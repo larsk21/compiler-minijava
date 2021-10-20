@@ -9,6 +9,8 @@ Our project requires the following tools with the specified versions.
 | Java  | >= 8    |
 | Maven | 3       |
 
+The build script (see below) requires a bash environment.
+
 # Build
 
 Execute the build script in the root directory (without any arguments).

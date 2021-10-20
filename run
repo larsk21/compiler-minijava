@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # get the absolute path to this script (SCRIPT_PATH)
 # see https://stackoverflow.com/a/12197518
