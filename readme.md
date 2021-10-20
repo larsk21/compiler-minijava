@@ -2,7 +2,12 @@ Java Compiler for the MiniJava language
 
 # Setup
 
-*Nothing to do for now.*
+Our project requires the following tools with the specified versions.
+
+| Tool  | Version |
+|-------|---------|
+| Java  | >= 8    |
+| Maven | 3       |
 
 # Build
 
