@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # get the absolute path to this script (SCRIPT_PATH)
 # see https://stackoverflow.com/a/12197518
 pushd . > /dev/null
@@ -11,7 +13,7 @@ SCRIPT_PATH="`pwd`";
 popd  > /dev/null
 
 # find the compiler executable (EXE_PATH)
-EXE_PATH=$(find $SCRIPT_PATH/???/???-*) || exit $? # TODO: fill in java output directory / jar name
+EXE_PATH=$(find $SCRIPT_PATH/target/java-compiler-*-with-dependencies.jar) || exit $?
 
 # execute the compiler with the provided arguments and return the exit code
 java -jar "$EXE_PATH" "$@"
