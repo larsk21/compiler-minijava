@@ -11,14 +11,20 @@ import java.io.InputStreamReader;
 @Slf4j
 public class JavaEasyCompiler {
 
-    public static Result main(CommandLine cmd, Options options) {
+    /**
+     * Execute the requested command.
+     * 
+     * @param cmd Parsed command line arguments
+     * @param options Available CLI options
+     * @return Result of the executed command
+     */
+    private static Result executeCommand(CommandLine cmd, Options options) {
         if (cmd.hasOption("h")) {
             HelpFormatter help = new HelpFormatter();
             help.printHelp("Java Easy Compiler", options);
 
             return Result.Ok;
-        }
-        else if (cmd.hasOption("e")) {
+        } else if (cmd.hasOption("e")) {
             String filePath = cmd.getOptionValue("e");
 
             return echo(filePath);
@@ -29,6 +35,12 @@ public class JavaEasyCompiler {
         }
     }
 
+    /**
+     * Output the file contents to stdout.
+     * 
+     * @param filePath Path of the file (absolute or relative)
+     * @return Ok or FileInputError (in case of an IOException)
+     */
     private static Result echo(String filePath) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
             reader.lines().forEachOrdered(line -> {
@@ -53,7 +65,7 @@ public class JavaEasyCompiler {
         try {
             CommandLine cmd = parser.parse(options, args);
 
-            result = main(cmd, options);
+            result = executeCommand(cmd, options);
         } catch (ParseException e) {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 
@@ -63,17 +75,26 @@ public class JavaEasyCompiler {
         System.exit(result.getCode());
     }
 
+    /**
+     * Represents the result of a command execution.
+     */
     public enum Result {
         Ok(0),
         CliInputError(1),
         FileInputError(1);
 
+        /**
+         * @param code The exit code associated with this Result
+         */
         private Result(int code) {
             this.code = code;
         }
 
         private int code;
 
+        /**
+         * @return The exit code associated with this Result.
+         */
         public int getCode() {
             return code;
         }
