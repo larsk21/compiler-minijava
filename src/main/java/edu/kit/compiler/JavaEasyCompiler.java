@@ -1,6 +1,7 @@
 package edu.kit.compiler;
 
 import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.cli.*;
 
 import java.io.BufferedReader;
@@ -10,30 +11,6 @@ import java.io.InputStreamReader;
 
 @Slf4j
 public class JavaEasyCompiler {
-
-    /**
-     * Execute the requested command.
-     * 
-     * @param cmd Parsed command line arguments
-     * @param options Available CLI options
-     * @return Result of the executed command
-     */
-    private static Result executeCommand(CommandLine cmd, Options options) {
-        if (cmd.hasOption("h")) {
-            HelpFormatter help = new HelpFormatter();
-            help.printHelp("Java Easy Compiler", options);
-
-            return Result.Ok;
-        } else if (cmd.hasOption("e")) {
-            String filePath = cmd.getOptionValue("e");
-
-            return echo(filePath);
-        } else {
-            System.err.println("Wrong command line arguments, see --help for supported commands.");
-
-            return Result.CliInputError;
-        }
-    }
 
     /**
      * Output the file contents to stdout.
@@ -56,22 +33,42 @@ public class JavaEasyCompiler {
     }
 
     public static void main(String[] args) {
+        // specify supported command line options
         Options options = new Options();
         options.addOption("e", "echo", true, "output file contents");
         options.addOption("h", "help", false, "print command line syntax help");
 
-        CommandLineParser parser = new DefaultParser();
-        Result result;
+        // parse command line arguments
+        CommandLine cmd;
         try {
-            CommandLine cmd = parser.parse(options, args);
+            CommandLineParser parser = new DefaultParser();
 
-            result = executeCommand(cmd, options);
+            cmd = parser.parse(options, args);
         } catch (ParseException e) {
+            System.err.println("Wrong command line arguments, see --help for supported commands.");
+
+            System.exit(Result.CliInputError.getCode());
+            return;
+        }
+
+        // execute requested function
+        Result result;
+        if (cmd.hasOption("h")) {
+            HelpFormatter help = new HelpFormatter();
+            help.printHelp("", options);
+
+            result = Result.Ok;
+        } else if (cmd.hasOption("e")) {
+            String filePath = cmd.getOptionValue("e");
+
+            result = echo(filePath);
+        } else {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 
             result = Result.CliInputError;
         }
 
+        // return exit code from executed function
         System.exit(result.getCode());
     }
 
