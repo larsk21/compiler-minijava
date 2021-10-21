@@ -1,3 +1,23 @@
 #!/bin/bash
 
+# get the absolute path to this script (SCRIPT_PATH)
+# see https://stackoverflow.com/a/12197518
+pushd . > /dev/null
+SCRIPT_PATH="${BASH_SOURCE[0]}";
+while ([ -h "${SCRIPT_PATH}" ]); do
+    cd "`dirname "${SCRIPT_PATH}"`"
+    SCRIPT_PATH="$(readlink "`basename "${SCRIPT_PATH}"`")";
+done
+cd "`dirname "${SCRIPT_PATH}"`" > /dev/null
+SCRIPT_PATH="`pwd`";
+popd > /dev/null
+
+# change the working directory to the project
+# (mvn -f <path> is not as flexible)
+pushd "$SCRIPT_PATH" > /dev/null
+
+# build the executable with Maven
 mvn package
+
+# change the working directory back to where we came from
+popd > /dev/null
