@@ -1,50 +1,100 @@
 package edu.kit.compiler;
 
 import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.cli.*;
 
-import java.io.File;
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Locale;
+import java.io.InputStreamReader;
 
 @Slf4j
 public class JavaEasyCompiler {
 
-    public static String byteArrayToHex(byte[] a) {
-        StringBuilder sb = new StringBuilder(a.length * 2);
-        for (byte b : a)
-            sb.append(String.format("%02x", b));
-        return sb.toString().toUpperCase(Locale.ROOT);
-    }
+    /**
+     * Output the file contents to stdout.
+     * 
+     * @param filePath Path of the file (absolute or relative)
+     * @return Ok or FileInputError (in case of an IOException)
+     */
+    private static Result echo(String filePath) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            reader.lines().forEachOrdered(line -> {
+                System.out.println(line);
+            });
 
-    public static void main(String[] args) throws ParseException {
-        //***Definition Stage***
-        // create Options object
-        Options options = new Options();
+            return Result.Ok;
+        } catch (IOException e) {
+            System.err.println("Error during file io: " + e.getMessage());
 
-        // add option "-a"
-        options.addOption("e", "echo", true, "add numbers");
-
-        //***Parsing Stage***
-        //Create a parser
-        CommandLineParser parser = new DefaultParser();
-
-        //parse the options passed as command line arguments
-        CommandLine cmd = parser.parse(options, args);
-
-        //***Interrogation Stage***
-        //hasOptions checks if option is present or not
-        if (cmd.hasOption("e")) {
-            String path = cmd.getOptionValue("e");
-
-            try (FileInputStream fis = new FileInputStream(new File(path))) {
-                // Print bytes of this file to stdout
-                byte[] bytes = fis.readAllBytes();
-                log.info("bytes read " + byteArrayToHex(bytes));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            return Result.FileInputError;
         }
     }
+
+    public static void main(String[] args) {
+        // specify supported command line options
+        Options options = new Options();
+        options.addOption("e", "echo", true, "output file contents");
+        options.addOption("h", "help", false, "print command line syntax help");
+
+        // parse command line arguments
+        CommandLine cmd;
+        try {
+            CommandLineParser parser = new DefaultParser();
+
+            cmd = parser.parse(options, args);
+        } catch (ParseException e) {
+            System.err.println("Wrong command line arguments, see --help for supported commands.");
+
+            System.exit(Result.CliInputError.getCode());
+            return;
+        }
+
+        // execute requested function
+        Result result;
+        if (cmd.hasOption("h")) {
+            HelpFormatter help = new HelpFormatter();
+            help.printHelp("", options);
+
+            result = Result.Ok;
+        } else if (cmd.hasOption("e")) {
+            String filePath = cmd.getOptionValue("e");
+
+            result = echo(filePath);
+        } else {
+            System.err.println("Wrong command line arguments, see --help for supported commands.");
+
+            result = Result.CliInputError;
+        }
+
+        // return exit code from executed function
+        System.exit(result.getCode());
+    }
+
+    /**
+     * Represents the result of a command execution.
+     */
+    public enum Result {
+        Ok(0),
+        CliInputError(1),
+        FileInputError(1);
+
+        /**
+         * @param code The exit code associated with this Result
+         */
+        private Result(int code) {
+            this.code = code;
+        }
+
+        private int code;
+
+        /**
+         * @return The exit code associated with this Result.
+         */
+        public int getCode() {
+            return code;
+        }
+    }
+
 }
