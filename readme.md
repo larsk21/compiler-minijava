@@ -9,13 +9,15 @@ Our project requires the following tools with the specified versions.
 | Java  | >= 8    |
 | Maven | 3       |
 
-The run script *(see below)* requires a bash environment (in order to find the compiler executable).
+The scripts *(see below)* require a bash environment (in order to find the project directory).
 
 # Build
 
-Execute the build script directly from the root directory (without any arguments).
+Execute the build script in the root directory from anywhere you like (without any arguments).
 
 `./build`
+
+`~/compiler/build`
 
 # Run
 
