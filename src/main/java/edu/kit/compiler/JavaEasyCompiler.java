@@ -4,6 +4,15 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.cli.*;
 
+import edu.kit.compiler.data.Token;
+import edu.kit.compiler.data.TokenType;
+import edu.kit.compiler.io.BufferedLookaheadIterator;
+import edu.kit.compiler.io.CharCounterLookaheadIterator;
+import edu.kit.compiler.io.ReaderCharIterator;
+import edu.kit.compiler.io.UniformCharIterator;
+import edu.kit.compiler.lexer.Lexer;
+import edu.kit.compiler.lexer.StringTable;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -32,11 +41,44 @@ public class JavaEasyCompiler {
         }
     }
 
+    /**
+     * Split the file contents in Lexer Tokens and output the representations one Token per line.
+     * 
+     * @param filePath Path of the file (absolute or relative)
+     * @return Ok or FileInputError (in case of an IOException)
+     */
+    private static Result lextest(String filePath) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            CharCounterLookaheadIterator iterator =
+                new CharCounterLookaheadIterator(
+                new BufferedLookaheadIterator<>(
+                new UniformCharIterator(
+                new ReaderCharIterator(
+                reader
+            ))));
+            Lexer lexer = new Lexer(iterator);
+            StringTable stringTable = lexer.getStringTable();
+
+            Token token;
+            while ((token = lexer.getNextToken()).getType() != TokenType.EndOfStream) {
+                System.out.println(token.getStringRepresentation(stringTable));
+            }
+            System.out.println(token.getStringRepresentation(stringTable));
+
+            return Result.Ok;
+        } catch (IOException e) {
+            System.err.println("Error during file io: " + e.getMessage());
+
+            return Result.FileInputError;
+        }
+    }
+
     public static void main(String[] args) {
         // specify supported command line options
         Options options = new Options();
-        options.addOption("e", "echo", true, "output file contents");
         options.addOption("h", "help", false, "print command line syntax help");
+        options.addOption("e", "echo", true, "output file contents");
+        options.addOption("l", "lextest", true, "output the tokens from the lexer");
 
         // parse command line arguments
         CommandLine cmd;
@@ -62,6 +104,10 @@ public class JavaEasyCompiler {
             String filePath = cmd.getOptionValue("e");
 
             result = echo(filePath);
+        } else if (cmd.hasOption("l")) {
+            String filePath = cmd.getOptionValue("l");
+
+            result = lextest(filePath);
         } else {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 
