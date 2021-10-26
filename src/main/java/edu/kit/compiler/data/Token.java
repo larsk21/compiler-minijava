@@ -105,20 +105,8 @@ public class Token {
      */
     public String getStringRepresentation(StringTable stringTable) {
         switch (type) {
-        case Comment:
-            if (stringValue.isPresent()) {
-                return "comment " + stringValue.get();
-            } else {
-                return "comment";
-            }
         case EndOfStream:
             return "EOF";
-        case Error:
-            if (stringValue.isPresent()) {
-                return "error " + stringValue.get();
-            } else {
-                return "error";
-            }
         case Identifier:
             if (intValue.isPresent()) {
                 return "identifier " + stringTable.retrieve(intValue.get());
@@ -331,12 +319,6 @@ public class Token {
             return "*=";
         case Operator_Tilde:
             return "~";
-        case Space_Newline:
-            return "newline";
-        case Space_Tabulator:
-            return "tabulator";
-        case Space_Whitespace:
-            return "whitespace";
         default:
             return "<unknown>";
         }
