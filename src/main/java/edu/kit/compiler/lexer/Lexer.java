@@ -5,10 +5,15 @@ import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import static edu.kit.compiler.data.TokenType.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Reads characters from an input stream and returns found tokens.
  */
 public class Lexer {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Lexer.class);
 
     private CharCounterLookaheadIterator charStream;
     private StringTable stringTable;
@@ -138,7 +143,7 @@ public class Lexer {
             };
             default -> throw new LexException(
                 charStream.getLine(), charStream.getColumn(),
-                "Unexpected character '" + charStream.get() + "'"
+                "unexpected character '" + charStream.get() + "'"
             );
         };
         
@@ -154,8 +159,27 @@ public class Lexer {
         }
     }
 
-    private boolean skipComment() {
-        throw new RuntimeException();
+    private boolean skipComment() throws LexException {
+        if (isCommentStart(charStream.get(0), charStream.get(1))) {
+            int startLine = charStream.getLine();
+            int startColumn = charStream.getColumn();
+            charStream.next(2);
+
+            while (!isCommentEnd(charStream.get(0), charStream.get(1))) {
+                if (isCommentStart(charStream.get(0), charStream.get(1))) {
+                    // todo proper format for warnings.
+                    LOGGER.warn("found opening comment inside of a comment");
+                } else if (isEndOfStream(charStream.get())) {
+                    throw new LexException(startLine, startColumn,
+                        "unclosed comment");
+                }
+                charStream.next();
+            }
+            charStream.next(2);
+            return true;
+       } else {
+           return false;
+       }
     }
 
     private static boolean isDigit(char c) {
@@ -170,5 +194,13 @@ public class Lexer {
 
     private static boolean isEndOfStream(char c) {
         return c == '\u0000';
+    }
+
+    private static boolean isCommentStart(char c1, char c2) {
+        return c1 == '/' && c2 == '*';
+    }
+
+    private static boolean isCommentEnd(char c1, char c2) {
+        return c1 == '*' && c2 == '/';
     }
 }
