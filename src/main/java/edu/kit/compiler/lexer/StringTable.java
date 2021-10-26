@@ -10,6 +10,11 @@ public class StringTable {
     private int index = -1;
     private final ArrayList<String> strings = new ArrayList<>();
 
+    /**
+     *
+     * @param str String to insert into table
+     * @return return index if string could be inserted
+     */
     public int insert(String str) {
         Integer i = table.get(str);
         if(i != null) {
