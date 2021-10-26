@@ -1,8 +1,13 @@
 package edu.kit.compiler.lexer;
 
 import edu.kit.compiler.data.Token;
+import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
+import static edu.kit.compiler.data.TokenType.*;
 
+/**
+ * Reads characters from an input stream and returns found tokens.
+ */
 public class Lexer {
 
     private CharCounterLookaheadIterator charStream;
@@ -17,12 +22,19 @@ public class Lexer {
         return stringTable;
     }
 
+    /**
+     * Read characters from the input stream until a token is found. Any
+     * comments or white spaces are skipped.
+     * 
+     * @return the next token found in input stream.
+     * @throws LexException if no valid token can be found.
+     */
     public Token getNextToken() throws LexException {
-        while (Character.isWhitespace(charStream.get())) {
-            charStream.next();
-        }
+        while (skipWhiteSpace() || skipComment()) { }
 
-        if (isDigit(charStream.get())) {
+        if (isEndOfStream(charStream.get())) {
+            return new Token(EndOfStream, charStream.getLine(), charStream.getColumn());
+        } else if (isDigit(charStream.get())) {
             return lexIntegerLiteral();
         } else if (isIdentifierStart(charStream.get())) {
             return lexKeywordOrIdentifier();
@@ -40,6 +52,109 @@ public class Lexer {
     }
 
     private Token lexOperator() throws LexException {
+        int line = charStream.getLine();
+        int column = charStream.getColumn();
+        TokenType tokenType = switch (charStream.get()) {
+            case '.' -> { charStream.next(); yield Operator_Dot;          }
+            case ',' -> { charStream.next(); yield Operator_Comma;        }
+            case ':' -> { charStream.next(); yield Operator_Colon;        }
+            case ';' -> { charStream.next(); yield Operator_Semicolon;    }
+            case '?' -> { charStream.next(); yield Operator_Questionmark; }
+            case '~' -> { charStream.next(); yield Operator_Tilde;        }
+            case '(' -> { charStream.next(); yield Operator_ParenL;       }
+            case ')' -> { charStream.next(); yield Operator_ParenR;       }
+            case '[' -> { charStream.next(); yield Operator_BracketL;     }
+            case ']' -> { charStream.next(); yield Operator_BracketR;     }
+            case '{' -> { charStream.next(); yield Operator_BraceL;       }
+            case '}' -> { charStream.next(); yield Operator_BraceR;       }
+
+
+            case '+' -> switch (charStream.get(1)) {
+                case '+' -> { charStream.next(2); yield Operator_PlusPlus;  }
+                case '=' -> { charStream.next(2); yield Operator_PlusEqual; }
+                default  -> { charStream.next(1); yield Operator_Plus;      }
+            };
+            case '-' -> switch (charStream.get(1)) {
+                case '-' -> { charStream.next(2); yield Operator_MinusMinus; }
+                case '=' -> { charStream.next(2); yield Operator_MinusEqual; }
+                default  -> { charStream.next(1); yield Operator_Minus;      }
+            };
+            case '*' -> switch (charStream.get(1)) {
+                case '=' -> { charStream.next(2); yield Operator_StarEqual; }
+                default  -> { charStream.next(1); yield Operator_Star;      }
+            };
+            case '/' -> switch (charStream.get(1)) {
+                case '=' -> { charStream.next(2); yield Operator_SlashEqual; }
+                case '*' -> throw new IllegalStateException(
+                    "Comments should have been skipped before a call to this method"
+                );
+                default  -> { charStream.next(1); yield Operator_Slash;      }
+            };
+            case '%' -> switch (charStream.get(1)) {
+                case '=' -> { charStream.next(2); yield Operator_PercentEqual; }
+                default  -> { charStream.next(1); yield Operator_Percent;      }
+            };
+            case '&' -> switch (charStream.get(1)) {
+                case '&' -> { charStream.next(2); yield Operator_AndAnd;   }
+                case '=' -> { charStream.next(2); yield Operator_AndEqual; }
+                default  -> { charStream.next(1); yield Operator_And;      }
+            };
+            case '|' -> switch (charStream.get(1)) {
+                case '|' -> { charStream.next(2); yield Operator_BarBar;   }
+                case '=' -> { charStream.next(2); yield Operator_BarEqual; }
+                default  -> { charStream.next(1); yield Operator_Bar;      }
+            };
+            case '^' -> switch (charStream.get(1)) {
+                case '=' -> { charStream.next(2); yield Operator_CircumEqual; }
+                default  -> { charStream.next(1); yield Operator_Circum;      }
+            };
+            case '!' -> switch (charStream.get(1)) {
+                case '=' -> { charStream.next(2); yield Operator_NotEqual; }
+                default  -> { charStream.next(1); yield Operator_Not;      }
+            };
+            case '=' -> switch (charStream.get(1)) {
+                case '=' -> { charStream.next(2); yield Operator_EqualEqual; }
+                default  -> { charStream.next(1); yield Operator_Equal;      }
+            };
+            case '<' -> switch (charStream.get(1)) {
+                case '<' -> switch (charStream.get(2)) {
+                    case '=' -> { charStream.next(3); yield Operator_SmallerSmallerEqual; }
+                    default  -> { charStream.next(3); yield Operator_SmallerSmaller;      }
+                };
+                case '=' -> { charStream.next(2); yield Operator_SmallerEqual; }
+                default  -> { charStream.next(1); yield Operator_Smaller;      }
+            };
+            case '>' -> switch (charStream.get(1)) {
+                case '>' -> switch (charStream.get(2)) {
+                    case '>' -> switch (charStream.get(3)) {
+                        case '=' -> { charStream.next(4); yield Operator_GreaterGreaterGreaterEqual; }
+                        default  -> { charStream.next(3); yield Operator_GreaterGreaterGreater; }
+                    };
+                    case '=' -> { charStream.next(3); yield Operator_GreaterGreaterEqual; }
+                    default  -> { charStream.next(2); yield Operator_GreaterGreater; }
+                };
+                case '=' -> { charStream.next(2); yield Operator_GreaterEqual; }
+                default  -> { charStream.next(1); yield Operator_Greater;      }
+            };
+            default -> throw new LexException(
+                charStream.getLine(), charStream.getColumn(),
+                "Unexpected character '" + charStream.get() + "'"
+            );
+        };
+        
+        return new Token(tokenType, line, column);
+    }
+
+    private boolean skipWhiteSpace() {
+        if (Character.isWhitespace(charStream.get())) {
+            charStream.next();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean skipComment() {
         throw new RuntimeException();
     }
 
@@ -51,5 +166,9 @@ public class Lexer {
 
     private static boolean isIdentifierStart(char c) {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || (c == '_');
+    }
+
+    private static boolean isEndOfStream(char c) {
+        return c == '\u0000';
     }
 }
