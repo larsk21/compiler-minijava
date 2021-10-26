@@ -24,27 +24,30 @@ jobs:
           distribution: 'adopt'
           architecture: x64
           cache: maven
-      - name: Set up Python3
+      - name: Set up Python3 for x64
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          python-version: '3.6.9' # Version range or exact version of a Python version to use, using SemVer's version range syntax
           architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
       - name: Build with Maven
         run: |
           pwd
           /home/runner/work/compiler-minijava/compiler-minijava/build
-      - name: Install MJTests and Tests Package
+
+      - name: Install MJTests
         run: |
-          cd ..
-          git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
-          chmod +x /home/runner/work/compiler-minijava/compiler-minijava/run
-          cd mjtest
-          git submodule update --init
-          export MJ_RUN='/home/runner/work/compiler-minijava/compiler-minijava/run'
-          ./mjt.py lexer --ci_testing --parallel
-          cd ../compiler-minijava
+          pwd
+          git submodule init
+          git submodule update
+
+      - name: Run Lexer Tests
+        run: |
+          pwd
+          ./run_mjtests.sh lexer
+
       - name: Copy Artifacts
         run: |
+          pwd
           mkdir /home/runner/work/compiler-minijava/compiler-minijava/staging && cp /home/runner/work/compiler-minijava/compiler-minijava/target/*.jar staging
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
