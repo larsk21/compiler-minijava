@@ -18,6 +18,7 @@ public class Token {
      * @param column Column position in the file.
      */
     public Token(TokenType type, int line, int column) {
+        this.type = type;
         this.line = line;
         this.column = column;
 
