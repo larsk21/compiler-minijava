@@ -4,9 +4,7 @@ package edu.kit.compiler.data;
  * Represents a type of Token created by the lexer.
  */
 public enum TokenType {
-    Comment,
     EndOfStream,
-    Error,
     Identifier,
     IntegerLiteral,
     Keyword_Abstract,
@@ -108,8 +106,5 @@ public enum TokenType {
     Operator_Tilde,
     Operator_BarEqual,
     Operator_BarBar,
-    Operator_Bar,
-    Space_Whitespace,
-    Space_Newline,
-    Space_Tabulator
+    Operator_Bar
 }
