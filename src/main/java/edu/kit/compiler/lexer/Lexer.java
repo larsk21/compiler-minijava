@@ -5,6 +5,9 @@ import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import static edu.kit.compiler.data.TokenType.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +17,7 @@ import org.slf4j.LoggerFactory;
 public class Lexer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Lexer.class);
+    private static Map<String, TokenType> KEYWORDS = new HashMap<>(keyWordMap());
 
     private CharCounterLookaheadIterator charStream;
     private StringTable stringTable;
@@ -44,11 +48,13 @@ public class Lexer {
         } else if (isIdentifierStart(charStream.get())) {
             return lexKeywordOrIdentifier();
         } else {
-            return lexOperator();
+            return lexOperatorOrDelimiter();
         }
     }
 
     private Token lexIntegerLiteral() throws LexException {
+        assert isDigit(charStream.get());
+
         int line = charStream.getLine();
         int column = charStream.getColumn();
         if (charStream.get() == '0') {
@@ -70,17 +76,33 @@ public class Lexer {
                 int intValue = Integer.parseInt(builder.toString());
                 return new Token(IntegerLiteral, line, column, intValue);
             } catch (NumberFormatException e) {
-                // todo This only occurs if Integer overflow, is this the correct handling?
-                throw new LexException(line, column, "invalid integer literal");
+                throw new LexException(line, column, "integer literal too large");
             }
         }
     }
 
     private Token lexKeywordOrIdentifier() throws LexException {
-        throw new RuntimeException();
+        assert isIdentifierStart(charStream.get());
+
+        int line = charStream.getLine();
+        int column = charStream.getColumn();
+        var builder = new StringBuilder();
+        while (isIdentifierPart(charStream.get())) {
+            builder.append(charStream.get());
+            charStream.next();
+        }
+        
+        String identifier = builder.toString();
+        TokenType keyword = KEYWORDS.get(identifier);
+        if (keyword == null) {
+            int index = stringTable.insert(identifier);
+            return new Token(Identifier, line, column, index);
+        } else {
+            return new Token(keyword, line, column);
+        }
     }
 
-    private Token lexOperator() throws LexException {
+    private Token lexOperatorOrDelimiter() throws LexException {
         int line = charStream.getLine();
         int column = charStream.getColumn();
         TokenType tokenType = switch (charStream.get()) {
@@ -215,6 +237,10 @@ public class Lexer {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || (c == '_');
     }
 
+    private static boolean isIdentifierPart(char c) {
+        return isIdentifierStart(c) || isDigit(c);
+    }
+
     private static boolean isEndOfStream(char c) {
         return c == '\u0000';
     }
@@ -225,5 +251,63 @@ public class Lexer {
 
     private static boolean isCommentEnd(char c1, char c2) {
         return c1 == '*' && c2 == '/';
+    }
+
+    private static Map<String, TokenType> keyWordMap() {
+        return Map.ofEntries(
+            Map.entry("abstract", Keyword_Abstract),
+            Map.entry("assert", Keyword_Assert),
+            Map.entry("boolean", Keyword_Boolean),
+            Map.entry("break", Keyword_Break),
+            Map.entry("byte", Keyword_Byte),
+            Map.entry("case", Keyword_Case),
+            Map.entry("catch", Keyword_Catch),
+            Map.entry("char", Keyword_Char),
+            Map.entry("class", Keyword_Class),
+            Map.entry("const", Keyword_Const),
+            Map.entry("continue", Keyword_Continue),
+            Map.entry("default", Keyword_Default),
+            Map.entry("double", Keyword_Double),
+            Map.entry("do", Keyword_Do),
+            Map.entry("else", Keyword_Else),
+            Map.entry("enum", Keyword_Enum),
+            Map.entry("extends", Keyword_Extends),
+            Map.entry("false", Keyword_False),
+            Map.entry("finally", Keyword_Finally),
+            Map.entry("final", Keyword_Final),
+            Map.entry("float", Keyword_Float),
+            Map.entry("for", Keyword_For),
+            Map.entry("goto", Keyword_Goto),
+            Map.entry("if", Keyword_If),
+            Map.entry("implements", Keyword_Implements),
+            Map.entry("import", Keyword_Import),
+            Map.entry("instanceof", Keyword_Instanceof),
+            Map.entry("interface", Keyword_Interface),
+            Map.entry("int", Keyword_Int),
+            Map.entry("long", Keyword_Long),
+            Map.entry("native", Keyword_Native),
+            Map.entry("new", Keyword_New),
+            Map.entry("null", Keyword_Null),
+            Map.entry("package", Keyword_Package),
+            Map.entry("private", Keyword_Private),
+            Map.entry("protected", Keyword_Protected),
+            Map.entry("public", Keyword_Public),
+            Map.entry("return", Keyword_Return),
+            Map.entry("short", Keyword_Short),
+            Map.entry("static", Keyword_Static),
+            Map.entry("strictfp", Keyword_Strictfp),
+            Map.entry("super", Keyword_Super),
+            Map.entry("switch", Keyword_Switch),
+            Map.entry("synchronized", Keyword_Synchronized),
+            Map.entry("this", Keyword_This),
+            Map.entry("throws", Keyword_Throws),
+            Map.entry("throw", Keyword_Throw),
+            Map.entry("transient", Keyword_Transient),
+            Map.entry("true", Keyword_True),
+            Map.entry("try", Keyword_Try),
+            Map.entry("void", Keyword_Void),
+            Map.entry("volatile", Keyword_Volatile),
+            Map.entry("while", Keyword_While)
+        );
     }
 }
