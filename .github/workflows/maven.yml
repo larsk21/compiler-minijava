@@ -29,7 +29,9 @@ jobs:
         python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
         architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: |
+        pwd
+        mvn -B package --file pom.xml
     - name: Install MJTests and Tests Package 
       run: |
         cd ..
