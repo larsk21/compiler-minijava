@@ -3,6 +3,8 @@ package edu.kit.compiler.lexer;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
+import lombok.extern.slf4j.Slf4j;
+
 import static edu.kit.compiler.data.TokenType.*;
 
 import java.util.HashMap;
@@ -14,9 +16,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Reads characters from an input stream and returns found tokens.
  */
+@Slf4j
 public class Lexer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Lexer.class);
     private static Map<String, TokenType> KEYWORDS = new HashMap<>(keyWordMap());
 
     private CharCounterLookaheadIterator charStream;
@@ -36,7 +38,7 @@ public class Lexer {
      * comments or white spaces are skipped.
      * 
      * @return the next token found in input stream.
-     * @throws LexException if no valid token can be found.
+     * @throws LexException if no valid token could be read from the input stream.
      */
     public Token getNextToken() throws LexException {
         while (skipWhiteSpace() || skipComment()) { }
@@ -52,6 +54,15 @@ public class Lexer {
         }
     }
 
+    /**
+     * Reads an integer literal from the input stream and returns it as a token.
+     * The caller must ensure that the next character in the input stream is an
+     * ASCII Digit.
+     * 
+     * @return a Token containing an integer literal.
+     * @throws LexException if a non zero literal has a leading zero, or the
+     *                      literal would overflow a 32-bit signed integer.
+     */
     private Token lexIntegerLiteral() throws LexException {
         assert isDigit(charStream.get());
 
@@ -81,7 +92,15 @@ public class Lexer {
         }
     }
 
-    private Token lexKeywordOrIdentifier() throws LexException {
+    /**
+     * Reads an identifier or keyword from the input stream and returns it as
+     * Token. The caller must ensure that the next character in the input
+     * stream is valid as first character in an identifier (i.e. an ASCII
+     * letter or underscore);
+     * 
+     * @return a Token containing a keyword or an identifier.
+     */
+    private Token lexKeywordOrIdentifier() {
         assert isIdentifierStart(charStream.get());
 
         int line = charStream.getLine();
@@ -102,6 +121,14 @@ public class Lexer {
         }
     }
 
+    /**
+     * Reads an operator or delimiter from the input stream and returns it as
+     * a Token. 
+     * 
+     * @return a Token containing an operator or a delimiter.
+     * @throws LexException if no valid operator or delimiter was found.
+     * @throws IllegalStateException if the token is the start of a comment (i.e. /*).
+     */
     private Token lexOperatorOrDelimiter() throws LexException {
         int line = charStream.getLine();
         int column = charStream.getColumn();
@@ -195,8 +222,13 @@ public class Lexer {
         return new Token(tokenType, line, column);
     }
 
+    /**
+     * Skips the next character in the input stream if it is a white space.
+     * 
+     * @return true if a white space character was skipped.
+     */
     private boolean skipWhiteSpace() {
-        if (Character.isWhitespace(charStream.get())) {
+        if (isWhiteSpace(charStream.get())) {
             charStream.next();
             return true;
         } else {
@@ -204,6 +236,13 @@ public class Lexer {
         }
     }
 
+    /**
+     * If the next characters in the input stream are the start of a comment,
+     * skips the entirety of that comment, including the closing delimiter.
+     * 
+     * @return true if a comment was skipped, false otherwise.
+     * @throws LexException if no closing delimiter was found for a comment.
+     */
     private boolean skipComment() throws LexException {
         if (isCommentStart(charStream.get(0), charStream.get(1))) {
             int startLine = charStream.getLine();
@@ -213,7 +252,7 @@ public class Lexer {
             while (!isCommentEnd(charStream.get(0), charStream.get(1))) {
                 if (isCommentStart(charStream.get(0), charStream.get(1))) {
                     // todo proper format for warnings.
-                    LOGGER.warn("found opening comment inside of a comment");
+                    log.warn("found opening comment inside of a comment");
                 } else if (isEndOfStream(charStream.get())) {
                     throw new LexException(startLine, startColumn,
                         "unclosed comment");
@@ -227,32 +266,64 @@ public class Lexer {
        }
     }
 
+    /**
+     * @return true if c is a white space.
+     */
+    private static boolean isWhiteSpace(char c) {
+        // ! This accepts more white spaces than those listed in the MiniJava Language specification
+        return Character.isWhitespace(c);
+    }
+
+    /**
+     * @return true if c is an ASCII digit.
+     */
     private static boolean isDigit(char c) {
         // The builtin 'isDigit' allows non ASCII digits,
         // which is not allowed in MiniJava.
         return '0' <= c && c <= '9';
     }
 
+    /**
+     * @return true if c is permissible as first character in an identifier.
+     */
     private static boolean isIdentifierStart(char c) {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || (c == '_');
     }
 
+    /**
+     * @return true if c is permissible as part of an identifier as other than the first character.
+     */
     private static boolean isIdentifierPart(char c) {
         return isIdentifierStart(c) || isDigit(c);
     }
 
+    /**
+     * @return true if c is a NUL (\0) character.
+     */
     private static boolean isEndOfStream(char c) {
         return c == '\u0000';
     }
 
+    /**
+     * @return true if c1 and c2 are the start of a comment.
+     */
     private static boolean isCommentStart(char c1, char c2) {
         return c1 == '/' && c2 == '*';
     }
 
+    /**
+     * @return true if c1 and c2 are the end of a comment.
+     */
     private static boolean isCommentEnd(char c1, char c2) {
         return c1 == '*' && c2 == '/';
     }
 
+    /**
+     * Returns a map containing ever identifier reserved as a keyword
+     * in MiniJava, mapped to their corresponding TokenTypes.
+     * 
+     * @return a map of keywords and corresponding TokenTypes.
+     */
     private static Map<String, TokenType> keyWordMap() {
         return Map.ofEntries(
             Map.entry("abstract", Keyword_Abstract),
