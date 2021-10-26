@@ -39,7 +39,7 @@ jobs:
         chmod +x /home/runner/work/compiler-minijava/compiler-minijava/run
         cd mjtest
         git submodule update --init
-        MJ_RUN='/home/runner/work/compiler-minijava/compiler-minijava/run' ./mjt.py lexer --ci-testing --parallel
+        MJ_RUN='/home/runner/work/compiler-minijava/compiler-minijava/run' ./mjt.py lexer --ci_testing --parallel
     - name: Copy Artifacts
       run: |
         cd compiler-minijava
