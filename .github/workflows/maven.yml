@@ -37,10 +37,9 @@ jobs:
         cd ..
         git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
         chmod +x /home/runner/work/compiler-minijava/compiler-minijava/run
-        MJ_RUN='/home/runner/work/compiler-minijava/compiler-minijava/run'
         cd mjtest
         git submodule update --init
-        ./mjt.py lexer --ci-testing --parallel
+        MJ_RUN='/home/runner/work/compiler-minijava/compiler-minijava/run' ./mjt.py lexer --ci-testing --parallel
     - name: Copy Artifacts
       run: |
         cd compiler-minijava
