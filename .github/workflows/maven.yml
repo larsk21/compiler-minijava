@@ -32,13 +32,17 @@ jobs:
       run: mvn -B package --file pom.xml
     - name: Install MJTests and Tests Package 
       run: |
+        cd ..
         git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
-        MJ_RUN='../compiler-minijava/run'
+        chmod +x /home/runner/work/compiler-minijava/run
+        MJ_RUN='/home/runner/work/compiler-minijava/run'
         cd mjtest
         git submodule update --init
         ./mjt.py lexer --ci-testing --parallel
     - name: Copy Artifacts
-      run: mkdir staging && cp target/*.jar staging
+      run: |
+        cd compiler-minijava
+        mkdir staging && cp target/*.jar staging
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
       with:
