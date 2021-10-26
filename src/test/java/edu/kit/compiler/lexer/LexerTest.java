@@ -3,6 +3,8 @@ package edu.kit.compiler.lexer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.StringReader;
 
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,8 @@ import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
 
 public class LexerTest {
+
+    private ClassLoader classLoader = getClass().getClassLoader();
 
     @Test
     public void testEmptyInput() throws LexException {
@@ -126,10 +130,70 @@ public class LexerTest {
         assertThrows(LexException.class, () -> lexer.getNextToken());
     }
 
+    @Test
+    public void testKeyword() throws LexException {
+        var lexer = new Lexer(getIterator("abstract"));
+        assertEquals(new Token(Keyword_Abstract, 1, 1), lexer.getNextToken());
+    }
+
+    @Test
+    public void testBasicIdentifiers() throws LexException {
+        var lexer = new Lexer(getIterator("foo"));
+        assertEquals(new Token(Identifier, 1, 1, 0), lexer.getNextToken());
+        lexer = new Lexer(getIterator("_true"));
+        assertEquals(new Token(Identifier, 1, 1, 0), lexer.getNextToken());
+        lexer = new Lexer(getIterator("Ab_c1__234a"));
+        assertEquals(new Token(Identifier, 1, 1, 0), lexer.getNextToken());
+    }
+
+    @Test
+    public void testWebsiteExample() throws LexException {
+        var stream = classLoader.getResourceAsStream("edu/kit/compiler/lexer/example.java");
+        var lexer = new Lexer(getIterator(new InputStreamReader(stream)));
+        var stringTable = lexer.getStringTable();
+        int classic = stringTable.insert("classic");
+        int method = stringTable.insert("method");
+        int arg = stringTable.insert("arg");
+        int res = stringTable.insert("res");
+
+        assertEquals(new Token(Keyword_Class, 5, 1), lexer.getNextToken());
+        assertEquals(new Token(Identifier, 5, 7, classic), lexer.getNextToken());
+        assertEquals(new Token(Operator_BraceL, 5, 15), lexer.getNextToken());
+        assertEquals(new Token(Keyword_Public, 6, 2),  lexer.getNextToken());
+        assertEquals(new Token(Keyword_Int, 6, 9), lexer.getNextToken());
+        assertEquals(new Token(Identifier, 6, 13, method), lexer.getNextToken());
+        assertEquals(new Token(Operator_ParenL, 6, 19), lexer.getNextToken());
+        assertEquals(new Token(Keyword_Int, 6, 20), lexer.getNextToken());
+        assertEquals(new Token(Identifier, 6, 24, arg), lexer.getNextToken());
+        assertEquals(new Token(Operator_ParenR, 6, 27), lexer.getNextToken());
+        assertEquals(new Token(Operator_BraceL, 6, 29), lexer.getNextToken());
+        assertEquals(new Token(Keyword_Int, 7, 3), lexer.getNextToken());
+        assertEquals(new Token(Identifier, 7, 7, res), lexer.getNextToken());
+        assertEquals(new Token(Operator_Equal, 7, 11), lexer.getNextToken());
+        assertEquals(new Token(Identifier, 7, 13, arg), lexer.getNextToken());
+        assertEquals(new Token(Operator_Plus, 7, 16), lexer.getNextToken());
+        assertEquals(new Token(IntegerLiteral, 7, 17, 42), lexer.getNextToken());
+        assertEquals(new Token(Operator_Semicolon, 7, 19), lexer.getNextToken());
+        assertEquals(new Token(Identifier, 8, 3, res), lexer.getNextToken());
+        assertEquals(new Token(Operator_GreaterGreaterEqual, 8, 7), lexer.getNextToken());
+        assertEquals(new Token(IntegerLiteral, 8, 11, 4), lexer.getNextToken());
+        assertEquals(new Token(Operator_Semicolon, 8, 12), lexer.getNextToken());
+        assertEquals(new Token(Keyword_Return, 9, 6), lexer.getNextToken());
+        assertEquals(new Token(Identifier, 9, 13, res), lexer.getNextToken());
+        assertEquals(new Token(Operator_Semicolon, 9, 16), lexer.getNextToken());
+        assertEquals(new Token(Operator_BraceR, 10, 2), lexer.getNextToken());
+        assertEquals(new Token(Operator_BraceR, 11, 1), lexer.getNextToken());
+        assertEquals(new Token(EndOfStream, 12, 1), lexer.getNextToken());
+    }
+
     private static CharCounterLookaheadIterator getIterator(String input) {
+        return getIterator(new StringReader(input));
+    }
+
+    private static CharCounterLookaheadIterator getIterator(Reader reader) {
         return new CharCounterLookaheadIterator(
             new BufferedLookaheadIterator<>(
-                new ReaderCharIterator(new StringReader(input))
+                new ReaderCharIterator(reader)
             )
         );
     }
