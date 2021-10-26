@@ -147,7 +147,7 @@ public class Lexer {
             case '<' -> switch (charStream.get(1)) {
                 case '<' -> switch (charStream.get(2)) {
                     case '=' -> { charStream.next(3); yield Operator_SmallerSmallerEqual; }
-                    default  -> { charStream.next(3); yield Operator_SmallerSmaller;      }
+                    default  -> { charStream.next(2); yield Operator_SmallerSmaller;      }
                 };
                 case '=' -> { charStream.next(2); yield Operator_SmallerEqual; }
                 default  -> { charStream.next(1); yield Operator_Smaller;      }
