@@ -6,9 +6,12 @@ name: Compiler CI with Maven and MJTest
 on:
   push:
     branches: 
-      # push events on master
       - master
-      - 'f/ci'
+      # push events on releases branch
+      - 'releases/**'
+      - 'f/**'
+    branches-ignore:
+      - 'noci/**'
 
 jobs:
   build-linux:
