@@ -8,20 +8,6 @@ on:
     branches: 
       # push events on master
       - master
-      # push events on releases branch
-      - 'releases/**'
-    branches-ignore:
-      - 'noci/**'
-  pull_request:
-    branches: 
-      # push events on master
-      - master
-      # push events on releases branch
-      - 'releases/**' 
-    branches-ignore:
-      - 'noci/**'
-  schedule:
-    - cron: '0 0 * * *'
 
 jobs:
   build-linux:
