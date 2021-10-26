@@ -1,13 +1,10 @@
 package edu.kit.compiler.io;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.CharArrayReader;
 import java.io.IOException;
-import java.util.NoSuchElementException;
 
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +23,7 @@ public class ReaderCharIteratorTest {
         CharArrayReader reader = new CharArrayReader("".toCharArray());
         ReaderCharIterator iterator = new ReaderCharIterator(reader);
 
-        assertFalse(iterator.hasNext());
+        assertTrue(iterator.hasNext());
     }
 
     @Test
@@ -46,7 +43,7 @@ public class ReaderCharIteratorTest {
 
         ReaderCharIterator iterator = new ReaderCharIterator(reader);
 
-        assertFalse(iterator.hasNext());
+        assertTrue(iterator.hasNext());
     }
 
     @Test
@@ -66,7 +63,7 @@ public class ReaderCharIteratorTest {
 
         iterator.next(); iterator.next(); iterator.next();
 
-        assertFalse(iterator.hasNext());
+        assertTrue(iterator.hasNext());
     }
 
     @Test
@@ -88,13 +85,45 @@ public class ReaderCharIteratorTest {
     }
 
     @Test
+    public void nextFirstSkipSingleCR() throws IOException {
+        CharArrayReader reader = new CharArrayReader("\rbc".toCharArray());
+        ReaderCharIterator iterator = new ReaderCharIterator(reader);
+
+        assertEquals('b', iterator.next());
+    }
+
+    @Test
+    public void nextFirstSkipMultipleCR() throws IOException {
+        CharArrayReader reader = new CharArrayReader("\r\rc".toCharArray());
+        ReaderCharIterator iterator = new ReaderCharIterator(reader);
+
+        assertEquals('c', iterator.next());
+    }
+
+    @Test
+    public void nextEmpty() throws IOException {
+        CharArrayReader reader = new CharArrayReader("".toCharArray());
+        ReaderCharIterator iterator = new ReaderCharIterator(reader);
+
+        assertEquals('\u0000', iterator.next());
+    }
+
+    @Test
     public void nextNoCharactersLeft() throws IOException {
         CharArrayReader reader = new CharArrayReader("abc".toCharArray());
         ReaderCharIterator iterator = new ReaderCharIterator(reader);
 
         iterator.next(); iterator.next(); iterator.next();
 
-        assertThrows(NoSuchElementException.class, () -> iterator.next());
+        assertEquals('\u0000', iterator.next());
+    }
+
+    @Test
+    public void nextOnlyCR() throws IOException {
+        CharArrayReader reader = new CharArrayReader("\r\r".toCharArray());
+        ReaderCharIterator iterator = new ReaderCharIterator(reader);
+
+        assertEquals('\u0000', iterator.next());
     }
 
 }

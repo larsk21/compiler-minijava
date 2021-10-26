@@ -9,7 +9,6 @@ import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
-import edu.kit.compiler.io.UniformCharIterator;
 import edu.kit.compiler.lexer.LexException;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
@@ -53,10 +52,9 @@ public class JavaEasyCompiler {
             CharCounterLookaheadIterator iterator =
                 new CharCounterLookaheadIterator(
                 new BufferedLookaheadIterator<>(
-                new UniformCharIterator(
                 new ReaderCharIterator(
                 reader
-            ))));
+            )));
             Lexer lexer = new Lexer(iterator);
             StringTable stringTable = lexer.getStringTable();
 
