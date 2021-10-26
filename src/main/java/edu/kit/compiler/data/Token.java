@@ -99,6 +99,11 @@ public class Token {
         return stringValue;
     }
 
+    @Override
+    public String toString() {
+        return String.format("Token(%s, %d, %d)", type, line, column);
+    }
+
     /**
      * Get the string representation of this Token. This includes associated
      * values.
