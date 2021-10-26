@@ -3,11 +3,13 @@ package edu.kit.compiler.data;
 import java.util.Optional;
 
 import edu.kit.compiler.lexer.StringTable;
+import lombok.EqualsAndHashCode;
 
 /**
  * Represents a Token created by the lexer. A Token can have a value of type
  * Integer or String associated with it, depending on the type of the Token.
  */
+@EqualsAndHashCode(callSuper = false)
 public class Token {
 
     /**

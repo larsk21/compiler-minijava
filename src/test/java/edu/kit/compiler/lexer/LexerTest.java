@@ -1,12 +1,16 @@
 package edu.kit.compiler.lexer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.StringReader;
 
 import org.junit.jupiter.api.Test;
 
+
 import static edu.kit.compiler.data.TokenType.*;
+
+import edu.kit.compiler.data.Token;
 import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
@@ -96,6 +100,30 @@ public class LexerTest {
         assertEquals(lexer.getNextToken().getType(), Operator_Plus);
         assertEquals(lexer.getNextToken().getType(), Operator_MinusMinus);
         assertEquals(lexer.getNextToken().getType(), Operator_Minus);
+    }
+
+    @Test
+    public void testIntegerLiteral() throws LexException {
+        var lexer = new Lexer(getIterator("42"));
+        assertEquals(lexer.getNextToken(), new Token(IntegerLiteral, 1, 1, 42));
+    }
+
+    @Test
+    public void testZeroLiteral() throws LexException {
+        var lexer = new Lexer(getIterator("0"));
+        assertEquals(lexer.getNextToken(), new Token(IntegerLiteral, 1, 1, 0));
+    }
+
+    @Test
+    public void testIllegalLiteral() throws LexException {
+        var lexer = new Lexer(getIterator("01234"));
+        assertThrows(LexException.class, () -> lexer.getNextToken());
+    }
+
+    @Test
+    public void testIntegerOverflow() throws LexException {
+        var lexer = new Lexer(getIterator("1234567891234"));
+        assertThrows(LexException.class, () -> lexer.getNextToken());
     }
 
     private static CharCounterLookaheadIterator getIterator(String input) {

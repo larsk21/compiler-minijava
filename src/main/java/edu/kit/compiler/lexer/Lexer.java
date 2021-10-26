@@ -70,6 +70,7 @@ public class Lexer {
                 int intValue = Integer.parseInt(builder.toString());
                 return new Token(IntegerLiteral, line, column, intValue);
             } catch (NumberFormatException e) {
+                // todo This only occurs if Integer overflow, is this the correct handling?
                 throw new LexException(line, column, "invalid integer literal");
             }
         }
@@ -95,7 +96,6 @@ public class Lexer {
             case ']' -> { charStream.next(); yield Operator_BracketR;     }
             case '{' -> { charStream.next(); yield Operator_BraceL;       }
             case '}' -> { charStream.next(); yield Operator_BraceR;       }
-
 
             case '+' -> switch (charStream.get(1)) {
                 case '+' -> { charStream.next(2); yield Operator_PlusPlus;  }
