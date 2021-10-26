@@ -25,10 +25,20 @@ jobs:
         distribution: 'adopt'
         architecture: x64
         cache: maven
+    - name: Set up Python3
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+        architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
     - name: Build with Maven
       run: mvn -B package --file pom.xml
     - name: Install MJTests and Tests Package 
-      run: git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
+      run: |
+        git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
+        MJ_RUN='../compiler-minijava/run'
+        cd mjtest
+        git submodule update --init
+        ./mjt.py lexer --ci-testing --parallel
     - name: Copy Artifacts
       run: mkdir staging && cp target/*.jar staging
     - name: Upload Artifacts
