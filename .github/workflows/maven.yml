@@ -11,7 +11,7 @@ on:
       # push events on releases branch
       - 'releases/**'
     branches-ignore:
-     - 'noci/**'
+      - 'noci/**'
   pull_request:
     branches: 
       # push events on master
@@ -19,9 +19,9 @@ on:
       # push events on releases branch
       - 'releases/**' 
     branches-ignore:
-     - 'noci/**'
+      - 'noci/**'
   schedule:
-   - cron : '0 0 * * *'
+    - cron: '0 0 * * *'
   # Also trigger on page_build, as well as release created events
   page_build:
   release:
