@@ -10,6 +10,7 @@ import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.io.UniformCharIterator;
+import edu.kit.compiler.lexer.LexException;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 
@@ -66,6 +67,10 @@ public class JavaEasyCompiler {
             System.out.println(token.getStringRepresentation(stringTable));
 
             return Result.Ok;
+        } catch (LexException e) {
+            System.err.println(String.format("Error during lexing at line %d, column %d: %s", e.getLine(), e.getColumn(), e.getMessage()));
+
+            return Result.LexError;
         } catch (IOException e) {
             System.err.println("Error during file io: " + e.getMessage());
 
@@ -124,7 +129,8 @@ public class JavaEasyCompiler {
     public enum Result {
         Ok(0),
         CliInputError(1),
-        FileInputError(1);
+        FileInputError(1),
+        LexError(1);
 
         /**
          * @param code The exit code associated with this Result

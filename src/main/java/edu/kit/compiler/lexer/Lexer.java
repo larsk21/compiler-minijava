@@ -11,7 +11,7 @@ public class Lexer {
         throw new RuntimeException();
     }
 
-    public Token getNextToken() {
+    public Token getNextToken() throws LexException {
         throw new RuntimeException();
     }
 
