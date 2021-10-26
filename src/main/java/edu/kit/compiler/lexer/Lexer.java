@@ -49,7 +49,30 @@ public class Lexer {
     }
 
     private Token lexIntegerLiteral() throws LexException {
-        throw new RuntimeException();
+        int line = charStream.getLine();
+        int column = charStream.getColumn();
+        if (charStream.get() == '0') {
+            if (isDigit(charStream.get(1))) {
+                throw new LexException(charStream.getLine(), charStream.getColumn(),
+                    "non-zero integer literal with leading zero");
+            } else {
+                charStream.next();
+                return new Token(IntegerLiteral, line, column, 0);
+            }
+        } else {
+            var builder = new StringBuilder();
+            while (isDigit(charStream.get())) {
+                builder.append(charStream.get());
+                charStream.next();
+            }
+            
+            try {
+                int intValue = Integer.parseInt(builder.toString());
+                return new Token(IntegerLiteral, line, column, intValue);
+            } catch (NumberFormatException e) {
+                throw new LexException(line, column, "invalid integer literal");
+            }
+        }
     }
 
     private Token lexKeywordOrIdentifier() throws LexException {
