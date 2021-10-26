@@ -8,6 +8,7 @@ on:
     branches: 
       # push events on master
       - master
+      - 'f/ci'
 
 jobs:
   build-linux:
