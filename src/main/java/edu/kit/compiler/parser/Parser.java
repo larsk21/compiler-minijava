@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import static edu.kit.compiler.data.TokenType.*;
 
 import java.util.Iterator;
+import java.util.Optional;
 
 /**
  * Parses a token stream.
@@ -62,7 +63,7 @@ public class Parser {
             expect(TokenType.Identifier);
             expect(TokenType.Operator_BraceL);
             parseClassMembers();
-            expect(TokenType.Operator_BraceL);
+            expect(TokenType.Operator_BraceR);
         }
         expect(TokenType.EndOfStream);
     }
@@ -309,20 +310,21 @@ public class Parser {
             return;
         }
 
+
         parsePostfixExpression();
 
-        OperatorInformation operator;
+        Optional<OperatorInformation> operator;
         while (
             (operator =
                 OperatorInformation
                 .getOperatorInformation(tokenStream.get().getType(), Appearence.Infix)
-                .orElseThrow(() -> new ParseException(tokenStream.get(), "expected operator"))
-            ).getPrecedence() >= minPrecedence
+            ).isPresent() &&
+            operator.get().getPrecedence() >= minPrecedence
         ) {
             tokenStream.next();
 
-            int precedence = operator.getPrecedence();
-            Associativity associativity = operator.getAssociativity();
+            int precedence = operator.get().getPrecedence();
+            Associativity associativity = operator.get().getAssociativity();
             if (associativity == Associativity.Left) {
                 precedence++;
             } else if (associativity == Associativity.None) {
