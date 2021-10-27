@@ -49,13 +49,7 @@ public class JavaEasyCompiler {
      */
     private static Result lextest(String filePath) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
-            CharCounterLookaheadIterator iterator =
-                new CharCounterLookaheadIterator(
-                new BufferedLookaheadIterator<>(
-                new ReaderCharIterator(
-                reader
-            )));
-            Lexer lexer = new Lexer(iterator);
+            Lexer lexer = new Lexer(new ReaderCharIterator(reader));
             StringTable stringTable = lexer.getStringTable();
 
             Token token;

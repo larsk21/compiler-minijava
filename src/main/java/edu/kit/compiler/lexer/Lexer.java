@@ -1,9 +1,10 @@
 package edu.kit.compiler.lexer;
 
-import edu.kit.compiler.lexer.Character;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
+import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
+import edu.kit.compiler.io.ReaderCharIterator;
 import lombok.extern.slf4j.Slf4j;
 
 import static edu.kit.compiler.data.TokenType.*;
@@ -21,8 +22,10 @@ public class Lexer {
     private CharCounterLookaheadIterator charStream;
     private StringTable stringTable;
 
-    public Lexer(CharCounterLookaheadIterator iterator) {
-        this.charStream = iterator;
+    public Lexer(ReaderCharIterator iterator) {
+        this.charStream = new CharCounterLookaheadIterator(
+            new BufferedLookaheadIterator<>(iterator)
+        );
         this.stringTable = new StringTable();
     }
 
