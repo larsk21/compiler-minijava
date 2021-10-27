@@ -46,7 +46,7 @@ public class Character {
     /**
      * @return true if c is a NUL (\0) character.
      */
-    public static boolean isEndOfStream(char c) {
+    public static boolean isNull(char c) {
         return c == '\u0000';
     }
 

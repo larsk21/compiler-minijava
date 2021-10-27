@@ -6,8 +6,6 @@ import org.apache.commons.cli.*;
 
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
-import edu.kit.compiler.io.BufferedLookaheadIterator;
-import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.LexException;
 import edu.kit.compiler.lexer.Lexer;

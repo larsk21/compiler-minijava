@@ -19,10 +19,12 @@ import java.util.Map;
 public class Lexer {
     private static Map<String, TokenType> KEYWORDS = new HashMap<>(keyWordMap());
 
+    private ReaderCharIterator.EndOfStreamProxy readerProxy;
     private CharCounterLookaheadIterator charStream;
     private StringTable stringTable;
 
     public Lexer(ReaderCharIterator iterator) {
+        this.readerProxy = iterator.new EndOfStreamProxy();
         this.charStream = new CharCounterLookaheadIterator(
             new BufferedLookaheadIterator<>(iterator)
         );
@@ -43,7 +45,7 @@ public class Lexer {
     public Token getNextToken() throws LexException {
         while (skipWhiteSpace() || skipComment()) { }
 
-        if (Character.isEndOfStream(charStream.get())) {
+        if (hasReachedEndOfStream()) {
             return new Token(EndOfStream, charStream.getLine(), charStream.getColumn());
         } else if (Character.isDigit(charStream.get())) {
             return lexIntegerLiteral();
@@ -252,9 +254,8 @@ public class Lexer {
                 if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
                     // todo proper format for warnings.
                     log.warn("found opening comment inside of a comment");
-                } else if (Character.isEndOfStream(charStream.get())) {
-                    throw new LexException(startLine, startColumn,
-                        "unclosed comment");
+                } else if (hasReachedEndOfStream()) {
+                    throw new LexException(startLine, startColumn, "unclosed comment");
                 }
                 charStream.next();
             }
@@ -263,6 +264,13 @@ public class Lexer {
        } else {
            return false;
        }
+    }
+
+    /**
+     * @return true if the input stream has ended.
+     */
+    private boolean hasReachedEndOfStream() {
+        return Character.isNull(charStream.get(0)) && readerProxy.hasEnded();
     }
 
     /**

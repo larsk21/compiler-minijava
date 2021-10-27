@@ -17,6 +17,7 @@ public class ReaderCharIterator implements Iterator<Character> {
     }
 
     private Reader reader;
+    private boolean hasEnded = false;
 
     @Override
     public boolean hasNext() {
@@ -33,6 +34,7 @@ public class ReaderCharIterator implements Iterator<Character> {
             }
             if (i < 0) {
                 i = '\u0000';
+                hasEnded = true;
             }
 
             return (char)i;
@@ -41,4 +43,9 @@ public class ReaderCharIterator implements Iterator<Character> {
         }
     }
 
+    public class EndOfStreamProxy {
+        public boolean hasEnded() {
+            return ReaderCharIterator.this.hasEnded;
+        }
+    }
 }

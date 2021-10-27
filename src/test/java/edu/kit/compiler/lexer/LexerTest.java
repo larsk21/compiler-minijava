@@ -27,6 +27,21 @@ public class LexerTest {
     }
 
     @Test
+    public void testNulCharacter() throws LexException {
+        var lexer = new Lexer(getIterator("1 + \0 0"));
+        assertEquals(IntegerLiteral, lexer.getNextToken().getType());
+        assertEquals(Operator_Plus, lexer.getNextToken().getType());
+        assertThrows(LexException.class, () -> lexer.getNextToken());
+    }
+
+    @Test
+    public void testUnicode() throws LexException {
+        var lexer = new Lexer(getIterator("int \u309e = 1;"));
+        assertEquals(Keyword_Int, lexer.getNextToken().getType());
+        assertThrows(LexException.class, () -> lexer.getNextToken());
+    }
+
+    @Test
     public void testWhiteSpace() throws LexException {
         var lexer = new Lexer(getIterator("  42\r\n+\t1"));
         assertEquals(new Token(IntegerLiteral, 1, 3, 42), lexer.getNextToken());
