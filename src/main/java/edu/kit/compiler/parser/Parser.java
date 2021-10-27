@@ -60,9 +60,68 @@ public class Parser {
 
     }
 
+    private void parsePrimaryExpression() {
+
+    }
+
+    // Either NewObjectExpression or NewArrayExpression
+    private void parseNewExpression() throws ParseException {
+        expect(TokenType.Keyword_New);
+        Token token = tokenStream.get();
+        switch(token.getType()) {
+            case Identifier: {
+                Token lookahead_token = tokenStream.get(1);
+                switch(lookahead_token.getType()) {
+                    case Operator_ParenL: {
+                        parseNewObjectExpression();
+                        break;
+                    }
+                    case Operator_BracketL: {
+                        parseNewArrayExpression();
+                        break;
+                    }
+                    default: {
+                        throw new ParseException(lookahead_token);
+                    }
+                }
+                break;
+            }
+            case Keyword_Int: {
+                parseNewObjectExpression();
+                break;
+            }
+            case Keyword_Boolean: {
+                parseNewObjectExpression();
+                break;
+            }
+            case Keyword_Void: {
+                parseNewObjectExpression();
+                break;
+            }
+            default: {
+                throw new ParseException(token);
+            }
+        }
+    }
+
+    private void parseNewObjectExpression() {
+        expect(TokenType.Identifier);
+        expect(TokenType.Operator_ParenL);
+        expect(TokenType.Operator_ParenR);
+    }
+
+    private void parseNewArrayExpression() {
+        parseBasicType();
+    }
+
+    private void parseBasicType() {
+        
+    }
+
     private void parseExpression() throws ParseException {
         parseExpression(OperatorInformation.MIN_PRECEDENCE);
     }
+
     private void parseExpression(int minPrecedence) throws ParseException {
         if (OperatorInformation.getOperatorInformation(tokenStream.get().getType(), Appearence.Prefix).isPresent()) {
             parseUnaryExpression();
@@ -145,10 +204,6 @@ public class Parser {
     }
 
     private void parseArguments() {
-
-    }
-
-    private void parsePrimaryExpression() {
 
     }
 
