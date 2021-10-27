@@ -271,10 +271,13 @@ public class Parser {
 
                 expect(Operator_BracketR);
             } else {
+                // TODO: parser-defined error location
                 if (token.getType() == Operator_Dot) {
                     throw new ParseException(token, "expected method invocation or field access");
-                } else {
+                } else if (token.getType() == Operator_BracketL) {
                     throw new ParseException(token, "expected array access");
+                } else {
+                    throw new ParseException(token);
                 }
             }
         }
