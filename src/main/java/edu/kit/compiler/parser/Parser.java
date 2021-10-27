@@ -130,7 +130,75 @@ public class Parser {
     }
 
     private void parseBlock() {
-        
+        expect(TokenType.Operator_BraceL);
+        while (tokenStream.get().getType() != TokenType.Operator_BraceR) {
+            TokenType type = tokenStream.get().getType();
+            if (type == TokenType.Keyword_Int ||
+                type == TokenType.Keyword_Boolean ||
+                type == TokenType.Keyword_Void ||
+                check(TokenType.Identifier, TokenType.Identifier)) {
+                // LocalVariableDeclarationStatement
+                parseType();
+                expect(TokenType.Identifier);
+                if (tokenStream.get().getType() == TokenType.Operator_Equal) {
+                    tokenStream.next();
+                    parseExpression();
+                }
+                expect(TokenType.Operator_Semicolon);
+            } else {
+                // Statement
+                parseStatement();
+            }
+        }
+        expect(TokenType.Operator_BraceR);
+    }
+
+    private void parseStatement() {
+        Token token = tokenStream.get();
+        switch(token.getType()) {
+            case Operator_BraceL: {
+                parseBlock();
+                break;
+            }
+            case Operator_Semicolon: {
+                // EmptyStatement
+                tokenStream.next();
+                break;
+            }
+            case Keyword_If: {
+                expect(TokenType.Operator_ParenL);
+                parseExpression();
+                expect(TokenType.Operator_ParenR);
+                parseStatement();
+                if (tokenStream.get().getType() == TokenType.Keyword_Else) {
+                    tokenStream.next();
+                    parseStatement();
+                }
+                break;
+            }
+            case Keyword_While: {
+                tokenStream.next();
+                expect(TokenType.Operator_ParenL);
+                parseExpression();
+                expect(TokenType.Operator_ParenR);
+                parseStatement();
+                break;
+            }
+            case Keyword_Return: {
+                tokenStream.next();
+                if (tokenStream.get().getType() != TokenType.Operator_Semicolon) {
+                    parseExpression();
+                }
+                expect(TokenType.Operator_Semicolon);
+                break;
+            }
+            default: {
+                // Probably an ExpressionStatement
+                parseExpression();
+                expect(TokenType.Operator_Semicolon);
+            }
+        }
+
     }
 
     private void parsePrimaryExpression() {
@@ -179,7 +247,6 @@ public class Parser {
                 throw new ParseException(token);
             }
         }
-
     }
 
     private void parseNewExpression() {
