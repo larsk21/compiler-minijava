@@ -14,7 +14,7 @@ public class ParseException extends RuntimeException {
      * @param token Token of parser-defined error position.
      */
     public ParseException(Token token) {
-        this(token, "unexepected token " + token.toString());
+        this(token, "");
     }
 
     /**
@@ -24,7 +24,8 @@ public class ParseException extends RuntimeException {
      * @param message Message describing the exception further.
      */
     public ParseException(Token token, String message) {
-        super("Parsing error at line " + token.getLine() + ", column " + token.getColumn() + ": " + message);
+        super("Parsing error at line " + token.getLine() + ", column " +  token.getColumn() +
+              ": unexepected token " + token.toString() + "; " + message);
     }
 
     /**
