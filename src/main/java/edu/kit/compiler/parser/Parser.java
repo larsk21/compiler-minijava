@@ -244,7 +244,7 @@ public class Parser {
                 break;
             }
             default: {
-                throw new ParseException(token);
+                throw new ParseException(token, "expected primary expression");
             }
         }
     }
@@ -293,7 +293,7 @@ public class Parser {
                 break;
             }
             default: {
-                throw new ParseException(token);
+                throw new ParseException(token, "expected int, boolean, void or identifier");
             }
         }
         
@@ -381,7 +381,7 @@ public class Parser {
                 } else if (token.getType() == Operator_BracketL) {
                     throw new ParseException(token, "expected array access");
                 } else {
-                    throw new ParseException(token);
+                    throw new ParseException(token, "expected dot or array access");
                 }
             }
         }
