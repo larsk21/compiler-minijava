@@ -15,7 +15,6 @@ import java.util.Map;
 /**
  * Reads characters from an input stream and returns found tokens.
  */
-@Slf4j
 public class Lexer {
     private static Map<String, TokenType> KEYWORDS = new HashMap<>(keyWordMap());
 
@@ -228,10 +227,13 @@ public class Lexer {
      * 
      * @return true if a white space character was skipped.
      */
-    private boolean skipWhiteSpace() {
+    private boolean skipWhiteSpace() throws LexException {
         if (Character.isWhiteSpace(charStream.get())) {
             charStream.next();
             return true;
+        } else if (Character.isNull(charStream.get(0)) && !readerProxy.hasEnded()) {
+            throw new LexException(charStream.getLine(), charStream.getColumn(),
+                "unexpected character 'NUL'");
         } else {
             return false;
         }
@@ -246,16 +248,18 @@ public class Lexer {
      */
     private boolean skipComment() throws LexException {
         if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
-            int startLine = charStream.getLine();
-            int startColumn = charStream.getColumn();
+            int line = charStream.getLine();
+            int column = charStream.getColumn();
             charStream.next(2);
 
             while (!Character.isCommentEnd(charStream.get(0), charStream.get(1))) {
                 if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
                     // todo proper format for warnings.
-                    log.warn("found opening comment inside of a comment");
+                    System.err.format(
+                        "warning: lexer: %d,%d: found opening comment inside of a comment\n",
+                        line, column);
                 } else if (hasReachedEndOfStream()) {
-                    throw new LexException(startLine, startColumn, "unclosed comment");
+                    throw new LexException(line, column, "unclosed comment");
                 }
                 charStream.next();
             }
@@ -270,6 +274,7 @@ public class Lexer {
      * @return true if the input stream has ended.
      */
     private boolean hasReachedEndOfStream() {
+        // This works for the most part but breaks if the NUL is the last character in a file
         return Character.isNull(charStream.get(0)) && readerProxy.hasEnded();
     }
 
