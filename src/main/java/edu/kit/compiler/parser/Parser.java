@@ -57,7 +57,80 @@ public class Parser {
      * @throws ParseException if a syntax error is encountered.
      */
     public void parse() {
+        while (tokenStream.get().getType() == TokenType.Keyword_Class) {
+            tokenStream.next();
+            expect(TokenType.Identifier);
+            expect(TokenType.Operator_BraceL);
+            parseClassMembers();
+            expect(TokenType.Operator_BraceL);
+        }
+        expect(TokenType.EndOfStream);
+    }
 
+    private void parseClassMembers() {
+        while (tokenStream.get().getType() == TokenType.Keyword_Public) {
+            tokenStream.next();
+            if (tokenStream.get().getType() == TokenType.Keyword_Static) {
+                // MainMethod
+                tokenStream.next();
+                expect(TokenType.Keyword_Void);
+                expect(TokenType.Identifier);
+                expect(TokenType.Operator_ParenL);
+                parseType();
+                expect(TokenType.Identifier);
+                expect(TokenType.Operator_ParenR);
+                parseMethodRest();
+                parseBlock();
+            } else {
+                parseType();
+                expect(TokenType.Identifier);
+                if (tokenStream.get().getType() == TokenType.Operator_Semicolon) {
+                    // Field
+                    tokenStream.next();
+                } else {
+                    // Method
+                    expect(TokenType.Operator_ParenL);
+                    if (tokenStream.get().getType()!= TokenType.Operator_ParenR) {
+                        parseParameters();
+                    }
+                    expect(TokenType.Operator_ParenR);
+                    parseMethodRest();
+                    parseBlock();
+                }
+            }
+        }
+    }
+
+    private void parseType() {
+        parseBasicType();
+        while (tokenStream.get().getType() == TokenType.Operator_BracketL) {
+            tokenStream.next();
+            expect(TokenType.Operator_BracketR);
+        }
+    }
+
+    private void parseMethodRest() {
+        if (tokenStream.get().getType() == TokenType.Keyword_Throws) {
+            tokenStream.next();
+            expect(TokenType.Identifier);
+        }
+    }
+
+    private void parseParameters() {
+        parseParameter();
+        while (tokenStream.get().getType() == TokenType.Operator_Comma) {
+            tokenStream.next();
+            parseParameter();
+        }
+    }
+
+    private void parseParameter() {
+        parseType();
+        expect(TokenType.Identifier);
+    }
+
+    private void parseBlock() {
+        
     }
 
     private void parsePrimaryExpression() {
