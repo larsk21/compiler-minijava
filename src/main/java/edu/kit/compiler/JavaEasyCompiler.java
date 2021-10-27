@@ -58,7 +58,7 @@ public class JavaEasyCompiler {
 
             return Result.Ok;
         } catch (LexException e) {
-            System.err.println(String.format("Error during lexing at line %d, column %d: %s", e.getLine(), e.getColumn(), e.getMessage()));
+            System.err.println(String.format("error: lexer: %d,%d: %s", e.getLine(), e.getColumn(), e.getMessage()));
 
             return Result.LexError;
         } catch (IOException e) {

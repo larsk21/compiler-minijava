@@ -5,7 +5,6 @@ import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
-import lombok.extern.slf4j.Slf4j;
 
 import static edu.kit.compiler.data.TokenType.*;
 
@@ -274,7 +273,6 @@ public class Lexer {
      * @return true if the input stream has ended.
      */
     private boolean hasReachedEndOfStream() {
-        // This works for the most part but breaks if the NUL is the last character in a file
         return Character.isNull(charStream.get(0)) && readerProxy.hasEnded();
     }
 
