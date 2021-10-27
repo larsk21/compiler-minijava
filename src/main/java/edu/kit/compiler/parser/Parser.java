@@ -5,6 +5,8 @@ import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.LookaheadIterator;
 import edu.kit.compiler.lexer.Lexer;
+import edu.kit.compiler.parser.OperatorInformation.Appearence;
+import edu.kit.compiler.parser.OperatorInformation.Associativity;
 import lombok.extern.slf4j.Slf4j;
 
 import static edu.kit.compiler.data.TokenType.*;
@@ -61,4 +63,47 @@ public class Parser {
     private void parsePrimaryExpression() {
 
     }
+
+    private void parseUnaryExpression() {
+
+    }
+
+    private void parsePostfixExpression() {
+
+    }
+
+    private void parseExpression() throws ParseException {
+        parseExpression(OperatorInformation.MIN_PRECEDENCE);
+    }
+    private void parseExpression(int minPrecedence) throws ParseException {
+        if (OperatorInformation.getOperatorInformation(tokenStream.get().getType(), Appearence.Prefix).isPresent()) {
+            parseUnaryExpression();
+            return;
+        }
+
+        parsePostfixExpression();
+
+        OperatorInformation operator;
+        while (
+            (operator =
+                OperatorInformation
+                .getOperatorInformation(tokenStream.get().getType(), Appearence.Infix)
+                .orElseThrow(() -> new ParseException(tokenStream.get(), "expected operator"))
+            ).getPrecedence() >= minPrecedence
+        ) {
+            tokenStream.next();
+
+            int precedence = operator.getPrecedence();
+            Associativity associativity = operator.getAssociativity();
+            if (associativity == Associativity.Left) {
+                precedence++;
+            } else if (associativity == Associativity.None) {
+                // precedence = OperatorInformation.MAX_PRECEDENCE + 1;
+                precedence++;
+            }
+
+            parseExpression(precedence);
+        }
+    }
+
 }
