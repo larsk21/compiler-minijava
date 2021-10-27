@@ -180,64 +180,26 @@ public class Parser {
 
     }
 
-    // Either NewObjectExpression or NewArrayExpression
     private void parseNewExpression() {
         expect(TokenType.Keyword_New);
-        Token token = tokenStream.get();
-        switch(token.getType()) {
-            case Identifier: {
-                Token lookahead_token = tokenStream.get(1);
-                switch(lookahead_token.getType()) {
-                    case Operator_ParenL: {
-                        parseNewObjectExpression();
-                        break;
-                    }
-                    case Operator_BracketL: {
-                        parseNewArrayExpression();
-                        break;
-                    }
-                    default: {
-                        throw new ParseException(lookahead_token);
-                    }
+        if (check(TokenType.Identifier, TokenType.Operator_ParenL)) {
+            // NewObjectExpression
+            tokenStream.next(2);
+            expect(TokenType.Operator_ParenR);
+        } else {
+            // NewArrayExpression
+            parseBasicType();
+            expect(TokenType.Operator_BracketL);
+            parseExpression();
+            expect(TokenType.Operator_BracketR);
+
+            while (tokenStream.get().getType() == TokenType.Operator_BracketL) {
+                if (tokenStream.get(1).getType() == TokenType.Operator_BracketR) {
+                    tokenStream.next(2);
+                } else {
+                    // This is not part of the NewArrayExpression, but possibly an ArrayAccess
+                    return;
                 }
-                break;
-            }
-            case Keyword_Int: {
-                parseNewArrayExpression();
-                break;
-            }
-            case Keyword_Boolean: {
-                parseNewArrayExpression();
-                break;
-            }
-            case Keyword_Void: {
-                parseNewArrayExpression();
-                break;
-            }
-            default: {
-                throw new ParseException(token);
-            }
-        }
-    }
-
-    private void parseNewObjectExpression() {
-        expect(TokenType.Identifier);
-        expect(TokenType.Operator_ParenL);
-        expect(TokenType.Operator_ParenR);
-    }
-
-    private void parseNewArrayExpression() {
-        parseBasicType();
-        expect(TokenType.Operator_BracketL);
-        parseExpression();
-        expect(TokenType.Operator_BracketR);
-
-        while (tokenStream.get().getType() == TokenType.Operator_BracketL) {
-            if (tokenStream.get(1).getType() == TokenType.Operator_BracketR) {
-                tokenStream.next(2);
-            } else {
-                // This is not part of the NewArrayExpression, but possibly an ArrayAccess
-                return;
             }
         }
     }
