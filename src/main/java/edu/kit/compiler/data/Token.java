@@ -25,7 +25,6 @@ public class Token {
         this.column = column;
 
         intValue = Optional.empty();
-        stringValue = Optional.empty();
     }
 
     /**
@@ -42,26 +41,11 @@ public class Token {
         this.intValue = Optional.of(intValue);
     }
 
-    /**
-     * Create a new Token with a value of type string.
-     * 
-     * @param type Type of this Token.
-     * @param line Line position in the file.
-     * @param column Column position in the file.
-     * @param intValue Integer value associated with this Token.
-     */
-    public Token(TokenType type, int line, int column, String stringValue) {
-        this(type, line, column);
-
-        this.stringValue = Optional.of(stringValue);
-    }
-
     private TokenType type;
     private int line;
     private int column;
 
     private Optional<Integer> intValue;
-    private Optional<String> stringValue;
 
     /**
      * Get the type of this Token.
@@ -89,14 +73,6 @@ public class Token {
      */
     public Optional<Integer> getIntValue() {
         return intValue;
-    }
-
-    /**
-     * Get the optional string value associated with this Token.
-     * @return
-     */
-    public Optional<String> getStringValue() {
-        return stringValue;
     }
 
     @Override
