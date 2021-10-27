@@ -286,7 +286,16 @@ public class Parser {
     }
 
     private void parseArguments() {
+        if (tokenStream.get().getType() == TokenType.Operator_ParenR) {
+            // empty arguments
+            return;
+        }
 
+        parseExpression();
+        while (tokenStream.get().getType() == TokenType.Operator_Comma) {
+            tokenStream.next();
+            parseExpression();
+        }
     }
 
     // helper functions
