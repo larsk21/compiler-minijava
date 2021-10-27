@@ -59,11 +59,56 @@ public class Parser {
     }
 
     private void parsePrimaryExpression() {
+        Token token = tokenStream.get();
+        switch(token.getType()) {
+            case Keyword_Null: {
+                tokenStream.next();
+                break;
+            }
+            case Keyword_False: {
+                tokenStream.next();
+                break;
+            }
+            case Keyword_True: {
+                tokenStream.next();
+                break;
+            }
+            case IntegerLiteral: {
+                tokenStream.next();
+                break;
+            }
+            case Identifier: {
+                tokenStream.next();
+                if (tokenStream.get().getType() == TokenType.Operator_ParenL) {
+                    tokenStream.next();
+                    parseArguments();
+                    expect(TokenType.Operator_ParenR);
+                }
+                break;
+            }
+            case Keyword_This: {
+                tokenStream.next();
+                break;
+            }
+            case Operator_ParenL: {
+                tokenStream.next();
+                parseExpression();
+                expect(TokenType.Operator_ParenR);
+                break;
+            }
+            case Keyword_New: {
+                parseNewExpression();
+                break;
+            }
+            default: {
+                throw new ParseException(token);
+            }
+        }
 
     }
 
     // Either NewObjectExpression or NewArrayExpression
-    private void parseNewExpression() throws ParseException {
+    private void parseNewExpression() {
         expect(TokenType.Keyword_New);
         Token token = tokenStream.get();
         switch(token.getType()) {
@@ -85,15 +130,15 @@ public class Parser {
                 break;
             }
             case Keyword_Int: {
-                parseNewObjectExpression();
+                parseNewArrayExpression();
                 break;
             }
             case Keyword_Boolean: {
-                parseNewObjectExpression();
+                parseNewArrayExpression();
                 break;
             }
             case Keyword_Void: {
-                parseNewObjectExpression();
+                parseNewArrayExpression();
                 break;
             }
             default: {
@@ -110,9 +155,43 @@ public class Parser {
 
     private void parseNewArrayExpression() {
         parseBasicType();
+        expect(TokenType.Operator_BracketL);
+        parseExpression();
+        expect(TokenType.Operator_BracketR);
+
+        while (tokenStream.get().getType() == TokenType.Operator_BracketL) {
+            if (tokenStream.get(1).getType() == TokenType.Operator_BracketR) {
+                tokenStream.next(2);
+            } else {
+                // This is not part of the NewArrayExpression, but possibly an ArrayAccess
+                return;
+            }
+        }
     }
 
     private void parseBasicType() {
+        Token token = tokenStream.get();
+        switch(token.getType()) {
+            case Identifier: {
+                tokenStream.next();
+                break;
+            }
+            case Keyword_Int: {
+                tokenStream.next();
+                break;
+            }
+            case Keyword_Boolean: {
+                tokenStream.next();
+                break;
+            }
+            case Keyword_Void: {
+                tokenStream.next();
+                break;
+            }
+            default: {
+                throw new ParseException(token);
+            }
+        }
         
     }
 
