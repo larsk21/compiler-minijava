@@ -1,5 +1,6 @@
 package edu.kit.compiler.lexer;
 
+import edu.kit.compiler.lexer.Character;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
@@ -39,11 +40,11 @@ public class Lexer {
     public Token getNextToken() throws LexException {
         while (skipWhiteSpace() || skipComment()) { }
 
-        if (isEndOfStream(charStream.get())) {
+        if (Character.isEndOfStream(charStream.get())) {
             return new Token(EndOfStream, charStream.getLine(), charStream.getColumn());
-        } else if (isDigit(charStream.get())) {
+        } else if (Character.isDigit(charStream.get())) {
             return lexIntegerLiteral();
-        } else if (isIdentifierStart(charStream.get())) {
+        } else if (Character.isIdentifierStart(charStream.get())) {
             return lexKeywordOrIdentifier();
         } else {
             return lexOperatorOrDelimiter();
@@ -60,12 +61,12 @@ public class Lexer {
      *                      literal would overflow a 32-bit signed integer.
      */
     private Token lexIntegerLiteral() throws LexException {
-        assert isDigit(charStream.get());
+        assert Character.isDigit(charStream.get());
 
         int line = charStream.getLine();
         int column = charStream.getColumn();
         if (charStream.get() == '0') {
-            if (isDigit(charStream.get(1))) {
+            if (Character.isDigit(charStream.get(1))) {
                 throw new LexException(line, column,
                     "non-zero integer literal with leading zero");
             } else {
@@ -74,7 +75,7 @@ public class Lexer {
             }
         } else {
             var builder = new StringBuilder();
-            while (isDigit(charStream.get())) {
+            while (Character.isDigit(charStream.get())) {
                 builder.append(charStream.get());
                 charStream.next();
             }
@@ -97,12 +98,12 @@ public class Lexer {
      * @return a Token containing a keyword or an identifier.
      */
     private Token lexKeywordOrIdentifier() {
-        assert isIdentifierStart(charStream.get());
+        assert Character.isIdentifierStart(charStream.get());
 
         int line = charStream.getLine();
         int column = charStream.getColumn();
         var builder = new StringBuilder();
-        while (isIdentifierPart(charStream.get())) {
+        while (Character.isIdentifierPart(charStream.get())) {
             builder.append(charStream.get());
             charStream.next();
         }
@@ -223,7 +224,7 @@ public class Lexer {
      * @return true if a white space character was skipped.
      */
     private boolean skipWhiteSpace() {
-        if (isWhiteSpace(charStream.get())) {
+        if (Character.isWhiteSpace(charStream.get())) {
             charStream.next();
             return true;
         } else {
@@ -239,16 +240,16 @@ public class Lexer {
      * @throws LexException if no closing delimiter was found for a comment.
      */
     private boolean skipComment() throws LexException {
-        if (isCommentStart(charStream.get(0), charStream.get(1))) {
+        if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
             int startLine = charStream.getLine();
             int startColumn = charStream.getColumn();
             charStream.next(2);
 
-            while (!isCommentEnd(charStream.get(0), charStream.get(1))) {
-                if (isCommentStart(charStream.get(0), charStream.get(1))) {
+            while (!Character.isCommentEnd(charStream.get(0), charStream.get(1))) {
+                if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
                     // todo proper format for warnings.
                     log.warn("found opening comment inside of a comment");
-                } else if (isEndOfStream(charStream.get())) {
+                } else if (Character.isEndOfStream(charStream.get())) {
                     throw new LexException(startLine, startColumn,
                         "unclosed comment");
                 }
@@ -259,57 +260,6 @@ public class Lexer {
        } else {
            return false;
        }
-    }
-
-    /**
-     * @return true if c is a white space as specified in the MiniJava language specification.
-     */
-    private static boolean isWhiteSpace(char c) {
-        return c == ' ' || c == '\n' || c == '\r' || c == '\t';
-    }
-
-    /**
-     * @return true if c is an ASCII digit.
-     */
-    private static boolean isDigit(char c) {
-        // The builtin 'isDigit' allows non ASCII digits,
-        // which is not allowed in MiniJava.
-        return '0' <= c && c <= '9';
-    }
-
-    /**
-     * @return true if c is permissible as first character in an identifier.
-     */
-    private static boolean isIdentifierStart(char c) {
-        return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || (c == '_');
-    }
-
-    /**
-     * @return true if c is permissible as part of an identifier as other than the first character.
-     */
-    private static boolean isIdentifierPart(char c) {
-        return isIdentifierStart(c) || isDigit(c);
-    }
-
-    /**
-     * @return true if c is a NUL (\0) character.
-     */
-    private static boolean isEndOfStream(char c) {
-        return c == '\u0000';
-    }
-
-    /**
-     * @return true if c1 and c2 are the start of a comment.
-     */
-    private static boolean isCommentStart(char c1, char c2) {
-        return c1 == '/' && c2 == '*';
-    }
-
-    /**
-     * @return true if c1 and c2 are the end of a comment.
-     */
-    private static boolean isCommentEnd(char c1, char c2) {
-        return c1 == '*' && c2 == '/';
     }
 
     /**
