@@ -10,15 +10,11 @@ import static edu.kit.compiler.data.TokenType.*;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Reads characters from an input stream and returns found tokens.
  */
 @Slf4j
 public class Lexer {
-
     private static Map<String, TokenType> KEYWORDS = new HashMap<>(keyWordMap());
 
     private CharCounterLookaheadIterator charStream;
@@ -70,7 +66,7 @@ public class Lexer {
         int column = charStream.getColumn();
         if (charStream.get() == '0') {
             if (isDigit(charStream.get(1))) {
-                throw new LexException(charStream.getLine(), charStream.getColumn(),
+                throw new LexException(line, column,
                     "non-zero integer literal with leading zero");
             } else {
                 charStream.next();
@@ -213,8 +209,7 @@ public class Lexer {
                 case '=' -> { charStream.next(2); yield Operator_GreaterEqual; }
                 default  -> { charStream.next(1); yield Operator_Greater;      }
             };
-            default -> throw new LexException(
-                charStream.getLine(), charStream.getColumn(),
+            default -> throw new LexException(line, column,
                 "unexpected character '" + charStream.get() + "'"
             );
         };
@@ -267,11 +262,10 @@ public class Lexer {
     }
 
     /**
-     * @return true if c is a white space.
+     * @return true if c is a white space as specified in the MiniJava language specification.
      */
     private static boolean isWhiteSpace(char c) {
-        // ! This accepts more white spaces than those listed in the MiniJava Language specification
-        return Character.isWhitespace(c);
+        return c == ' ' || c == '\n' || c == '\r' || c == '\t';
     }
 
     /**
