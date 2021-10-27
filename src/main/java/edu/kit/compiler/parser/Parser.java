@@ -60,18 +60,6 @@ public class Parser {
 
     }
 
-    private void parsePrimaryExpression() {
-
-    }
-
-    private void parseUnaryExpression() {
-
-    }
-
-    private void parsePostfixExpression() {
-
-    }
-
     private void parseExpression() throws ParseException {
         parseExpression(OperatorInformation.MIN_PRECEDENCE);
     }
@@ -104,6 +92,85 @@ public class Parser {
 
             parseExpression(precedence);
         }
+    }
+
+    private void parseUnaryExpression() {
+        switch (tokenStream.get().getType()) {
+        case Operator_Not:
+            tokenStream.next();
+
+            parseUnaryExpression();
+            break;
+        case Operator_Minus:
+            tokenStream.next();
+
+            parseUnaryExpression();
+            break;
+        default:
+            parsePostfixExpression();
+            break;
+        }
+    }
+
+    private void parsePostfixExpression() {
+        parsePrimaryExpression();
+
+        Token token = tokenStream.get(0);
+        while (token.getType() == Operator_Dot || token.getType() == Operator_BracketL) {
+            if (check(Operator_Dot, Identifier, Operator_BraceL)) {
+                // Method Invocation
+                tokenStream.next(3);
+
+                parseArguments();
+
+                expect(Operator_BraceR);
+            } else if (check(Operator_Dot, Identifier)) {
+                // Field Access
+                tokenStream.next(2);
+            } else if (check(Operator_BracketL)) {
+                // Array Access
+                tokenStream.next();
+
+                parseExpression();
+
+                expect(Operator_BracketR);
+            } else {
+                if (token.getType() == Operator_Dot) {
+                    throw new ParseException(token, "expected method invocation or field access");
+                } else {
+                    throw new ParseException(token, "expected array access");
+                }
+            }
+        }
+    }
+
+    private void parseArguments() {
+
+    }
+
+    private void parsePrimaryExpression() {
+
+    }
+
+    // helper functions
+    private boolean check(TokenType... types) {
+        for (int i = 0; i < types.length; i++) {
+            if (tokenStream.get(i).getType() != types[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private Token expect(TokenType type) {
+        Token token = tokenStream.get();
+        if (token.getType() != type) {
+            throw new ParseException(tokenStream.get(), "expected " + type.name());
+        }
+
+        tokenStream.next();
+        return token;
     }
 
 }
