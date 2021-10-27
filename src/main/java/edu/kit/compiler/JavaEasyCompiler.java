@@ -6,12 +6,12 @@ import org.apache.commons.cli.*;
 
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
-import edu.kit.compiler.io.BufferedLookaheadIterator;
-import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.LexException;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
+import edu.kit.compiler.parser.Parser;
+import edu.kit.compiler.parser.ParseException;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -65,6 +65,34 @@ public class JavaEasyCompiler {
             return Result.LexError;
         } catch (IOException e) {
             System.err.println("Error during file io: " + e.getMessage());
+            System.err.println(e.getStackTrace());
+
+            return Result.FileInputError;
+        }
+    }
+
+    /**
+     * Split the file contents in Lexer Tokens and output the representations one Token per line.
+     * 
+     * @param filePath Path of the file (absolute or relative)
+     * @return Ok or an according error
+     */
+    private static Result parseTest(String filePath) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            Parser parser = new Parser(new Lexer(new ReaderCharIterator(reader)));
+            parser.parse();
+
+            return Result.Ok;
+        } catch (ParseException e) {
+            System.err.println(e.getMessage());
+
+            return Result.ParseError;
+        } catch (LexException e) {
+            System.err.println(String.format("Error during lexing at line %d, column %d: %s", e.getLine(), e.getColumn(), e.getMessage()));
+
+            return Result.LexError;
+        } catch (IOException e) {
+            System.err.println("Error during file io: " + e.getMessage());
 
             return Result.FileInputError;
         }
@@ -76,6 +104,7 @@ public class JavaEasyCompiler {
         options.addOption("h", "help", false, "print command line syntax help");
         options.addOption("e", "echo", true, "output file contents");
         options.addOption("l", "lextest", true, "output the tokens from the lexer");
+        options.addOption("p", "parsetest", true, "try to parse the file contents");
 
         // parse command line arguments
         CommandLine cmd;
@@ -83,7 +112,7 @@ public class JavaEasyCompiler {
             CommandLineParser parser = new DefaultParser();
 
             cmd = parser.parse(options, args);
-        } catch (ParseException e) {
+        } catch (org.apache.commons.cli.ParseException e) {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 
             System.exit(Result.CliInputError.getCode());
@@ -105,6 +134,10 @@ public class JavaEasyCompiler {
             String filePath = cmd.getOptionValue("l");
 
             result = lextest(filePath);
+        } else if (cmd.hasOption("p")) {
+            String filePath = cmd.getOptionValue("p");
+
+            result = parseTest(filePath);
         } else {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 
@@ -122,7 +155,8 @@ public class JavaEasyCompiler {
         Ok(0),
         CliInputError(1),
         FileInputError(1),
-        LexError(1);
+        LexError(1),
+        ParseError(1);
 
         /**
          * @param code The exit code associated with this Result
