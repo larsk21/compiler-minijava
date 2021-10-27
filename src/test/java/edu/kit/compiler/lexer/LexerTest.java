@@ -13,8 +13,6 @@ import org.junit.jupiter.api.Test;
 import static edu.kit.compiler.data.TokenType.*;
 
 import edu.kit.compiler.data.Token;
-import edu.kit.compiler.io.BufferedLookaheadIterator;
-import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
 
 public class LexerTest {
@@ -26,6 +24,29 @@ public class LexerTest {
         var lexer = new Lexer(getIterator(""));
         assertEquals(EndOfStream, lexer.getNextToken().getType());
         assertEquals(EndOfStream, lexer.getNextToken().getType());
+    }
+
+    @Test
+    public void testWhiteSpace() throws LexException {
+        var lexer = new Lexer(getIterator("  42\r\n+\t1"));
+        assertEquals(new Token(IntegerLiteral, 1, 3, 42), lexer.getNextToken());
+        assertEquals(new Token(Operator_Plus, 2, 1), lexer.getNextToken());
+        assertEquals(new Token(IntegerLiteral, 2, 3, 1), lexer.getNextToken());
+    }
+
+    @Test
+    public void testComment() throws LexException {
+        var lexer = new Lexer(getIterator("/* comment */x+=/**/1/* *//* */"));
+        assertEquals(new Token(Identifier, 1, 14, 0), lexer.getNextToken());
+        assertEquals(new Token(Operator_PlusEqual, 1, 15), lexer.getNextToken());
+        assertEquals(new Token(IntegerLiteral, 1, 21, 1), lexer.getNextToken());
+        assertEquals(new Token(EndOfStream, 1, 32), lexer.getNextToken());
+    }
+
+    @Test
+    public void testUnclosedComment() throws LexException {
+        var lexer = new Lexer(getIterator("/* open comment "));
+        assertThrows(LexException.class, () -> lexer.getNextToken());
     }
 
     @Test
@@ -144,6 +165,7 @@ public class LexerTest {
         assertEquals(new Token(Identifier, 1, 1, 0), lexer.getNextToken());
         lexer = new Lexer(getIterator("Ab_c1__234a"));
         assertEquals(new Token(Identifier, 1, 1, 0), lexer.getNextToken());
+        assertEquals("Ab_c1__234a", lexer.getStringTable().retrieve(0));
     }
 
     @Test
@@ -186,15 +208,11 @@ public class LexerTest {
         assertEquals(new Token(EndOfStream, 12, 1), lexer.getNextToken());
     }
 
-    private static CharCounterLookaheadIterator getIterator(String input) {
+    private static ReaderCharIterator getIterator(String input) {
         return getIterator(new StringReader(input));
     }
 
-    private static CharCounterLookaheadIterator getIterator(Reader reader) {
-        return new CharCounterLookaheadIterator(
-            new BufferedLookaheadIterator<>(
-                new ReaderCharIterator(reader)
-            )
-        );
+    private static ReaderCharIterator getIterator(Reader reader) {
+        return new ReaderCharIterator(reader);
     }
 }
