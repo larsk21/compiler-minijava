@@ -1,0 +1,53 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Compiler CI with Maven and MJTest
+
+on:
+  push:
+    branches:
+      - master
+      # push events on releases branch
+      - 'releases/**'
+      - 'f/**'
+      - 'ci'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 14 for x64
+        uses: actions/setup-java@v2
+        with:
+          java-version: '14'
+          distribution: 'adopt'
+          architecture: x64
+          cache: maven
+      - name: Set up Python3
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+      - name: Build with Maven
+        run: |
+          pwd
+          /home/runner/work/compiler-minijava/compiler-minijava/build
+      - name: Install MJTests and Tests Package
+        run: |
+          cd ..
+          git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
+          chmod +x /home/runner/work/compiler-minijava/compiler-minijava/run
+          cd mjtest
+          git submodule update --init
+          export MJ_RUN='/home/runner/work/compiler-minijava/compiler-minijava/run'
+          ./mjt.py lexer --ci_testing --parallel
+          cd ../compiler-minijava
+      - name: Copy Artifacts
+        run: |
+          mkdir /home/runner/work/compiler-minijava/compiler-minijava/staging && cp /home/runner/work/compiler-minijava/compiler-minijava/target/*.jar staging
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Package
+          path: staging
