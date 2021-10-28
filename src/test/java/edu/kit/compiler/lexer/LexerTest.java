@@ -155,6 +155,8 @@ public class LexerTest {
     public void testIntegerLiteral() throws LexException {
         var lexer = new Lexer(getIterator("42"));
         assertEquals(new Token(IntegerLiteral, 1, 1, 42), lexer.getNextToken());
+        assertEquals(new Token(EndOfStream, 1, 3), lexer.getNextToken());
+        assertEquals(new Token(EndOfStream, 1, 3), lexer.getNextToken());
     }
 
     @Test

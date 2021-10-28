@@ -41,7 +41,7 @@ public class Lexer {
     public Token getNextToken() throws LexException {
         while (skipWhiteSpace() || skipComment()) { }
 
-        if (hasReachedEndOfStream()) {
+        if (Character.isEndOfStream(charStream.get(0))) {
             return new Token(EndOfStream, charStream.getLine(), charStream.getColumn());
         } else if (Character.isDigit(charStream.get())) {
             return lexIntegerLiteral();
@@ -77,7 +77,7 @@ public class Lexer {
         } else {
             var builder = new StringBuilder();
             while (Character.isDigit(charStream.get())) {
-                builder.append(charStream.get());
+                builder.append((char)charStream.get().intValue());
                 charStream.next();
             }
             
@@ -105,7 +105,7 @@ public class Lexer {
         int column = charStream.getColumn();
         var builder = new StringBuilder();
         while (Character.isIdentifierPart(charStream.get())) {
-            builder.append(charStream.get());
+            builder.append((char)charStream.get().intValue());
             charStream.next();
         }
         
@@ -211,8 +211,10 @@ public class Lexer {
                 case '=' -> { charStream.next(2); yield Operator_GreaterEqual; }
                 default  -> { charStream.next(1); yield Operator_Greater;      }
             };
+            case '\u0000' -> throw new LexException(line, column,
+                "unexpected character 'NUL'");
             default -> throw new LexException(line, column,
-                "unexpected character '" + charStream.get() + "'"
+                "unexpected character '" + (char)charStream.get().intValue() + "'"
             );
         };
         
@@ -228,9 +230,6 @@ public class Lexer {
         if (Character.isWhiteSpace(charStream.get())) {
             charStream.next();
             return true;
-        } else if (Character.isNull(charStream.get(0))) {
-            throw new LexException(charStream.getLine(), charStream.getColumn(),
-                "unexpected character 'NUL'");
         } else {
             return false;
         }
@@ -255,7 +254,7 @@ public class Lexer {
                     System.err.format(
                         "warning: lexer: %d,%d: found opening comment inside of a comment\n",
                         line, column);
-                } else if (hasReachedEndOfStream()) {
+                } else if (Character.isEndOfStream(charStream.get(0))) {
                     throw new LexException(line, column, "unclosed comment");
                 }
                 charStream.next();
@@ -265,13 +264,6 @@ public class Lexer {
        } else {
            return false;
        }
-    }
-
-    /**
-     * @return true if the input stream has ended.
-     */
-    private boolean hasReachedEndOfStream() {
-        return Character.isEndOfStream(charStream.get(0));
     }
 
     /**
