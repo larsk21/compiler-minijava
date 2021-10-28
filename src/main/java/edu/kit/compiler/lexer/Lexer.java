@@ -17,12 +17,10 @@ import java.util.Map;
 public class Lexer {
     private static Map<String, TokenType> KEYWORDS = new HashMap<>(keyWordMap());
 
-    private ReaderCharIterator.EndOfStreamProxy readerProxy;
     private CharCounterLookaheadIterator charStream;
     private StringTable stringTable;
 
     public Lexer(ReaderCharIterator iterator) {
-        this.readerProxy = iterator.new EndOfStreamProxy();
         this.charStream = new CharCounterLookaheadIterator(
             new BufferedLookaheadIterator<>(iterator)
         );
@@ -132,7 +130,7 @@ public class Lexer {
     private Token lexOperatorOrDelimiter() throws LexException {
         int line = charStream.getLine();
         int column = charStream.getColumn();
-        TokenType tokenType = switch (charStream.get()) {
+        TokenType tokenType = switch (charStream.get().intValue()) {
             case '.' -> { charStream.next(); yield Operator_Dot;          }
             case ',' -> { charStream.next(); yield Operator_Comma;        }
             case ':' -> { charStream.next(); yield Operator_Colon;        }
@@ -146,64 +144,64 @@ public class Lexer {
             case '{' -> { charStream.next(); yield Operator_BraceL;       }
             case '}' -> { charStream.next(); yield Operator_BraceR;       }
 
-            case '+' -> switch (charStream.get(1)) {
+            case '+' -> switch (charStream.get(1).intValue()) {
                 case '+' -> { charStream.next(2); yield Operator_PlusPlus;  }
                 case '=' -> { charStream.next(2); yield Operator_PlusEqual; }
                 default  -> { charStream.next(1); yield Operator_Plus;      }
             };
-            case '-' -> switch (charStream.get(1)) {
+            case '-' -> switch (charStream.get(1).intValue()) {
                 case '-' -> { charStream.next(2); yield Operator_MinusMinus; }
                 case '=' -> { charStream.next(2); yield Operator_MinusEqual; }
                 default  -> { charStream.next(1); yield Operator_Minus;      }
             };
-            case '*' -> switch (charStream.get(1)) {
+            case '*' -> switch (charStream.get(1).intValue()) {
                 case '=' -> { charStream.next(2); yield Operator_StarEqual; }
                 default  -> { charStream.next(1); yield Operator_Star;      }
             };
-            case '/' -> switch (charStream.get(1)) {
+            case '/' -> switch (charStream.get(1).intValue()) {
                 case '=' -> { charStream.next(2); yield Operator_SlashEqual; }
                 case '*' -> throw new IllegalStateException(
                     "Comments should have been skipped before a call to this method"
                 );
                 default  -> { charStream.next(1); yield Operator_Slash;      }
             };
-            case '%' -> switch (charStream.get(1)) {
+            case '%' -> switch (charStream.get(1).intValue()) {
                 case '=' -> { charStream.next(2); yield Operator_PercentEqual; }
                 default  -> { charStream.next(1); yield Operator_Percent;      }
             };
-            case '&' -> switch (charStream.get(1)) {
+            case '&' -> switch (charStream.get(1).intValue()) {
                 case '&' -> { charStream.next(2); yield Operator_AndAnd;   }
                 case '=' -> { charStream.next(2); yield Operator_AndEqual; }
                 default  -> { charStream.next(1); yield Operator_And;      }
             };
-            case '|' -> switch (charStream.get(1)) {
+            case '|' -> switch (charStream.get(1).intValue()) {
                 case '|' -> { charStream.next(2); yield Operator_BarBar;   }
                 case '=' -> { charStream.next(2); yield Operator_BarEqual; }
                 default  -> { charStream.next(1); yield Operator_Bar;      }
             };
-            case '^' -> switch (charStream.get(1)) {
+            case '^' -> switch (charStream.get(1).intValue()) {
                 case '=' -> { charStream.next(2); yield Operator_CircumEqual; }
                 default  -> { charStream.next(1); yield Operator_Circum;      }
             };
-            case '!' -> switch (charStream.get(1)) {
+            case '!' -> switch (charStream.get(1).intValue()) {
                 case '=' -> { charStream.next(2); yield Operator_NotEqual; }
                 default  -> { charStream.next(1); yield Operator_Not;      }
             };
-            case '=' -> switch (charStream.get(1)) {
+            case '=' -> switch (charStream.get(1).intValue()) {
                 case '=' -> { charStream.next(2); yield Operator_EqualEqual; }
                 default  -> { charStream.next(1); yield Operator_Equal;      }
             };
-            case '<' -> switch (charStream.get(1)) {
-                case '<' -> switch (charStream.get(2)) {
+            case '<' -> switch (charStream.get(1).intValue()) {
+                case '<' -> switch (charStream.get(2).intValue()) {
                     case '=' -> { charStream.next(3); yield Operator_SmallerSmallerEqual; }
                     default  -> { charStream.next(2); yield Operator_SmallerSmaller;      }
                 };
                 case '=' -> { charStream.next(2); yield Operator_SmallerEqual; }
                 default  -> { charStream.next(1); yield Operator_Smaller;      }
             };
-            case '>' -> switch (charStream.get(1)) {
-                case '>' -> switch (charStream.get(2)) {
-                    case '>' -> switch (charStream.get(3)) {
+            case '>' -> switch (charStream.get(1).intValue()) {
+                case '>' -> switch (charStream.get(2).intValue()) {
+                    case '>' -> switch (charStream.get(3).intValue()) {
                         case '=' -> { charStream.next(4); yield Operator_GreaterGreaterGreaterEqual; }
                         default  -> { charStream.next(3); yield Operator_GreaterGreaterGreater; }
                     };
@@ -230,7 +228,7 @@ public class Lexer {
         if (Character.isWhiteSpace(charStream.get())) {
             charStream.next();
             return true;
-        } else if (Character.isNull(charStream.get(0)) && !readerProxy.hasEnded()) {
+        } else if (Character.isNull(charStream.get(0))) {
             throw new LexException(charStream.getLine(), charStream.getColumn(),
                 "unexpected character 'NUL'");
         } else {
@@ -273,7 +271,7 @@ public class Lexer {
      * @return true if the input stream has ended.
      */
     private boolean hasReachedEndOfStream() {
-        return Character.isNull(charStream.get(0)) && readerProxy.hasEnded();
+        return Character.isEndOfStream(charStream.get(0));
     }
 
     /**

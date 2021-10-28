@@ -4,23 +4,23 @@ package edu.kit.compiler.io;
  * Wrapper for a character LookaheadIterator that counts the position (line,
  * column) of the current character.
  */
-public class CharCounterLookaheadIterator implements LookaheadIterator<Character> {
+public class CharCounterLookaheadIterator implements LookaheadIterator<Integer> {
 
     /**
      * Create a new character counting LookaheadIterator from a
      * LookaheadIterator.
      */
-    public CharCounterLookaheadIterator(LookaheadIterator<Character> source) {
+    public CharCounterLookaheadIterator(LookaheadIterator<Integer> source) {
         this.source = source;
     }
 
-    private LookaheadIterator<Character> source;
+    private LookaheadIterator<Integer> source;
 
     private int line = 1;
     private int column = 1;
 
-    private void updatePosition(char c) {
-        if (c == '\u0000') {
+    private void updatePosition(int c) {
+        if (c < 0) {
             // do nothing
         } else if (c == '\n') {
             line += 1;
@@ -50,14 +50,14 @@ public class CharCounterLookaheadIterator implements LookaheadIterator<Character
     }
 
     @Override
-    public Character get(int pos) {
+    public Integer get(int pos) {
         return source.get(pos);
     }
 
     @Override
     public void next(int steps) {
         for (int i = 0; i < steps; i++) {
-            char c = source.get(0);
+            int c = source.get(0);
             source.next(1);
 
             updatePosition(c);

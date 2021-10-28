@@ -10,7 +10,7 @@ public class Character {
      * 
      * @return true if c is a MiniJava white space.
      */
-    public static boolean isWhiteSpace(char c) {
+    public static boolean isWhiteSpace(int c) {
         return c == ' ' || c == '\n' || c == '\r' || c == '\t';
     }
 
@@ -19,7 +19,7 @@ public class Character {
      * 
      * @return true if c is a MiniJava digit.
      */
-    public static boolean isDigit(char c) {
+    public static boolean isDigit(int c) {
         return '0' <= c && c <= '9';
     }
 
@@ -29,7 +29,7 @@ public class Character {
      * 
      * @return true if c is permissible as first character in a MiniJava identifier.
      */
-    public static boolean isIdentifierStart(char c) {
+    public static boolean isIdentifierStart(int c) {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || (c == '_');
     }
 
@@ -39,14 +39,14 @@ public class Character {
      * 
      * @return true if c is permissible as part of a MiniJava identifier as other than the first character.
      */
-    public static boolean isIdentifierPart(char c) {
+    public static boolean isIdentifierPart(int c) {
         return isIdentifierStart(c) || isDigit(c);
     }
 
     /**
      * @return true if c is a NUL (\0) character.
      */
-    public static boolean isNull(char c) {
+    public static boolean isNull(int c) {
         return c == '\u0000';
     }
 
@@ -55,7 +55,7 @@ public class Character {
      * 
      * @return true if c1 and c2 are the start of a comment.
      */
-    public static boolean isCommentStart(char c1, char c2) {
+    public static boolean isCommentStart(int c1, int c2) {
         return c1 == '/' && c2 == '*';
     }
 
@@ -64,7 +64,15 @@ public class Character {
      *
      * @return true if c1 and c2 are the end of a comment.
      */
-    public static boolean isCommentEnd(char c1, char c2) {
+    public static boolean isCommentEnd(int c1, int c2) {
         return c1 == '*' && c2 == '/';
     }
+
+    /**
+     * @return true if c is smaller than zero.
+     */
+    public static boolean isEndOfStream(int c) {
+        return c < 0;
+    }
+
 }
