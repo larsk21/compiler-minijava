@@ -356,8 +356,8 @@ public class Parser {
     private void parsePostfixExpression() {
         parsePrimaryExpression();
 
-        Token token = tokenStream.get(0);
-        while (token.getType() == Operator_Dot || token.getType() == Operator_BracketL) {
+        while (tokenStream.get().getType() == Operator_Dot || tokenStream.get().getType() == Operator_BracketL) {
+            Token token = tokenStream.get();
             switch (token.getType()) {
                 case Operator_Dot:
                     parseMethodInvocationOrFieldAccess();
