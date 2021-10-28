@@ -358,34 +358,39 @@ public class Parser {
 
         Token token = tokenStream.get(0);
         while (token.getType() == Operator_Dot || token.getType() == Operator_BracketL) {
-            if (check(Operator_Dot, Identifier, Operator_BraceL)) {
-                // Method Invocation
-                tokenStream.next(3);
-
-                parseArguments();
-
-                expect(Operator_BraceR);
-            } else if (check(Operator_Dot, Identifier)) {
-                // Field Access
-                tokenStream.next(2);
-            } else if (check(Operator_BracketL)) {
-                // Array Access
-                tokenStream.next();
-
-                parseExpression();
-
-                expect(Operator_BracketR);
-            } else {
-                // TODO: parser-defined error location
-                if (token.getType() == Operator_Dot) {
-                    throw new ParseException(token, "expected method invocation or field access");
-                } else if (token.getType() == Operator_BracketL) {
-                    throw new ParseException(token, "expected array access");
-                } else {
+            switch (token.getType()) {
+                case Operator_Dot:
+                    parseMethodInvocationOrFieldAccess();
+                    break;
+                case Operator_BracketL:
+                    parseArrayAccess();
+                    break;
+                default:
+                    // never reached, see while condition
                     throw new ParseException(token, "expected dot or array access");
-                }
             }
         }
+    }
+
+    private void parseMethodInvocationOrFieldAccess() {
+        expect(Operator_Dot);
+        expect(Identifier);
+
+        if (tokenStream.get(0).getType() == Operator_BraceL) {
+            tokenStream.next();
+
+            parseArguments();
+
+            expect(Operator_BraceR);
+        } // else field access
+    }
+
+    private void parseArrayAccess() {
+        expect(Operator_BracketL);
+
+        parseExpression();
+
+        expect(Operator_BracketR);
     }
 
     private void parseArguments() {
