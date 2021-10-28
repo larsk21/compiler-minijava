@@ -12,11 +12,11 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void getLineAfterInit() {
-        LookaheadIterator<Character> source = new LookaheadIterator<Character>() {
+        LookaheadIterator<Integer> source = new LookaheadIterator<Integer>() {
             @Override
             public boolean has(int pos) { throw new RuntimeException(); }
             @Override
-            public Character get(int pos) { throw new RuntimeException(); }
+            public Integer get(int pos) { throw new RuntimeException(); }
             @Override
             public void next(int steps) { throw new RuntimeException(); }
         };
@@ -27,11 +27,11 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void getColumnAfterInit() {
-        LookaheadIterator<Character> source = new LookaheadIterator<Character>() {
+        LookaheadIterator<Integer> source = new LookaheadIterator<Integer>() {
             @Override
             public boolean has(int pos) { throw new RuntimeException(); }
             @Override
-            public Character get(int pos) { throw new RuntimeException(); }
+            public Integer get(int pos) { throw new RuntimeException(); }
             @Override
             public void next(int steps) { throw new RuntimeException(); }
         };
@@ -42,11 +42,11 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void hasTrue() {
-        LookaheadIterator<Character> source = new LookaheadIterator<Character>() {
+        LookaheadIterator<Integer> source = new LookaheadIterator<Integer>() {
             @Override
             public boolean has(int pos) { return true; }
             @Override
-            public Character get(int pos) { throw new RuntimeException(); }
+            public Integer get(int pos) { throw new RuntimeException(); }
             @Override
             public void next(int steps) { throw new RuntimeException(); }
         };
@@ -57,11 +57,11 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void hasFalse() {
-        LookaheadIterator<Character> source = new LookaheadIterator<Character>() {
+        LookaheadIterator<Integer> source = new LookaheadIterator<Integer>() {
             @Override
             public boolean has(int pos) { return false; }
             @Override
-            public Character get(int pos) { throw new RuntimeException(); }
+            public Integer get(int pos) { throw new RuntimeException(); }
             @Override
             public void next(int steps) { throw new RuntimeException(); }
         };
@@ -72,11 +72,11 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void getSome() {
-        LookaheadIterator<Character> source = new LookaheadIterator<Character>() {
+        LookaheadIterator<Integer> source = new LookaheadIterator<Integer>() {
             @Override
             public boolean has(int pos) { throw new RuntimeException(); }
             @Override
-            public Character get(int pos) { return 'b'; }
+            public Integer get(int pos) { return (int)'b'; }
             @Override
             public void next(int steps) { throw new RuntimeException(); }
         };
@@ -87,11 +87,11 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void getSomeNewline() {
-        LookaheadIterator<Character> source = new LookaheadIterator<Character>() {
+        LookaheadIterator<Integer> source = new LookaheadIterator<Integer>() {
             @Override
             public boolean has(int pos) { throw new RuntimeException(); }
             @Override
-            public Character get(int pos) { return '\n'; }
+            public Integer get(int pos) { return (int)'\n'; }
             @Override
             public void next(int steps) { throw new RuntimeException(); }
         };
@@ -101,8 +101,38 @@ public class CharCounterLookaheadIteratorTest {
     }
 
     @Test
+    public void getSomeNull() {
+        LookaheadIterator<Integer> source = new LookaheadIterator<Integer>() {
+            @Override
+            public boolean has(int pos) { throw new RuntimeException(); }
+            @Override
+            public Integer get(int pos) { return (int)'\u0000'; }
+            @Override
+            public void next(int steps) { throw new RuntimeException(); }
+        };
+        CharCounterLookaheadIterator iterator = new CharCounterLookaheadIterator(source);
+
+        assertEquals('\u0000', iterator.get(0));
+    }
+
+    @Test
+    public void getSomeNegative() {
+        LookaheadIterator<Integer> source = new LookaheadIterator<Integer>() {
+            @Override
+            public boolean has(int pos) { throw new RuntimeException(); }
+            @Override
+            public Integer get(int pos) { return -1; }
+            @Override
+            public void next(int steps) { throw new RuntimeException(); }
+        };
+        CharCounterLookaheadIterator iterator = new CharCounterLookaheadIterator(source);
+
+        assertEquals(-1, iterator.get(0));
+    }
+
+    @Test
     public void nextMove() {
-        LookaheadIterator<Character> source = new BufferedLookaheadIterator<>(Arrays.asList('a', 'b', 'c').iterator());
+        LookaheadIterator<Integer> source = new BufferedLookaheadIterator<>(Arrays.asList((int)'a', (int)'b', (int)'c').iterator());
         CharCounterLookaheadIterator iterator = new CharCounterLookaheadIterator(source);
 
         iterator.next(1);
@@ -112,7 +142,7 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void nextIncreaseColumn() {
-        LookaheadIterator<Character> source = new BufferedLookaheadIterator<>(Arrays.asList('a', 'b', 'c').iterator());
+        LookaheadIterator<Integer> source = new BufferedLookaheadIterator<>(Arrays.asList((int)'a', (int)'b', (int)'c').iterator());
         CharCounterLookaheadIterator iterator = new CharCounterLookaheadIterator(source);
 
         iterator.next(2);
@@ -122,7 +152,7 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void nextKeepLine() {
-        LookaheadIterator<Character> source = new BufferedLookaheadIterator<>(Arrays.asList('a', 'b', 'c').iterator());
+        LookaheadIterator<Integer> source = new BufferedLookaheadIterator<>(Arrays.asList((int)'a', (int)'b', (int)'c').iterator());
         CharCounterLookaheadIterator iterator = new CharCounterLookaheadIterator(source);
 
         iterator.next(2);
@@ -132,7 +162,7 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void nextResetColumn() {
-        LookaheadIterator<Character> source = new BufferedLookaheadIterator<>(Arrays.asList('a', '\n', 'c').iterator());
+        LookaheadIterator<Integer> source = new BufferedLookaheadIterator<>(Arrays.asList((int)'a', (int)'\n', (int)'c').iterator());
         CharCounterLookaheadIterator iterator = new CharCounterLookaheadIterator(source);
 
         iterator.next(2);
@@ -142,7 +172,7 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void nextIncreaseLine() {
-        LookaheadIterator<Character> source = new BufferedLookaheadIterator<>(Arrays.asList('a', '\n', 'c').iterator());
+        LookaheadIterator<Integer> source = new BufferedLookaheadIterator<>(Arrays.asList((int)'a', (int)'\n', (int)'c').iterator());
         CharCounterLookaheadIterator iterator = new CharCounterLookaheadIterator(source);
 
         iterator.next(2);
@@ -152,7 +182,7 @@ public class CharCounterLookaheadIteratorTest {
 
     @Test
     public void nextIncreaseLineAndColumn() {
-        LookaheadIterator<Character> source = new BufferedLookaheadIterator<>(Arrays.asList('a', 'b', 'c', '\n', 'd', 'e', 'f').iterator());
+        LookaheadIterator<Integer> source = new BufferedLookaheadIterator<>(Arrays.asList((int)'a', (int)'b', (int)'c', (int)'\n', (int)'d', (int)'e', (int)'f').iterator());
         CharCounterLookaheadIterator iterator = new CharCounterLookaheadIterator(source);
 
         iterator.next(6);

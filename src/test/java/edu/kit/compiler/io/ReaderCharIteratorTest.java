@@ -85,27 +85,11 @@ public class ReaderCharIteratorTest {
     }
 
     @Test
-    public void nextFirstSkipSingleCR() throws IOException {
-        CharArrayReader reader = new CharArrayReader("\rbc".toCharArray());
-        ReaderCharIterator iterator = new ReaderCharIterator(reader);
-
-        assertEquals('b', iterator.next());
-    }
-
-    @Test
-    public void nextFirstSkipMultipleCR() throws IOException {
-        CharArrayReader reader = new CharArrayReader("\r\rc".toCharArray());
-        ReaderCharIterator iterator = new ReaderCharIterator(reader);
-
-        assertEquals('c', iterator.next());
-    }
-
-    @Test
     public void nextEmpty() throws IOException {
         CharArrayReader reader = new CharArrayReader("".toCharArray());
         ReaderCharIterator iterator = new ReaderCharIterator(reader);
 
-        assertEquals('\u0000', iterator.next());
+        assertEquals(-1, iterator.next());
     }
 
     @Test
@@ -115,15 +99,7 @@ public class ReaderCharIteratorTest {
 
         iterator.next(); iterator.next(); iterator.next();
 
-        assertEquals('\u0000', iterator.next());
-    }
-
-    @Test
-    public void nextOnlyCR() throws IOException {
-        CharArrayReader reader = new CharArrayReader("\r\r".toCharArray());
-        ReaderCharIterator iterator = new ReaderCharIterator(reader);
-
-        assertEquals('\u0000', iterator.next());
+        assertEquals(-1, iterator.next());
     }
 
 }

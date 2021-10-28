@@ -6,8 +6,6 @@ import org.apache.commons.cli.*;
 
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
-import edu.kit.compiler.io.BufferedLookaheadIterator;
-import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.LexException;
 import edu.kit.compiler.lexer.Lexer;
@@ -49,13 +47,7 @@ public class JavaEasyCompiler {
      */
     private static Result lextest(String filePath) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
-            CharCounterLookaheadIterator iterator =
-                new CharCounterLookaheadIterator(
-                new BufferedLookaheadIterator<>(
-                new ReaderCharIterator(
-                reader
-            )));
-            Lexer lexer = new Lexer(iterator);
+            Lexer lexer = new Lexer(new ReaderCharIterator(reader));
             StringTable stringTable = lexer.getStringTable();
 
             Token token;
@@ -66,7 +58,7 @@ public class JavaEasyCompiler {
 
             return Result.Ok;
         } catch (LexException e) {
-            System.err.println(String.format("Error during lexing at line %d, column %d: %s", e.getLine(), e.getColumn(), e.getMessage()));
+            System.err.println(String.format("error: lexer: %d,%d: %s", e.getLine(), e.getColumn(), e.getMessage()));
 
             return Result.LexError;
         } catch (IOException e) {

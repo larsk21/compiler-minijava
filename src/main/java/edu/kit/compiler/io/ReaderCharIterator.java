@@ -6,8 +6,11 @@ import java.util.Iterator;
 
 /**
  * Wraps a Reader to act like a character Iterator.
+ * 
+ * This Iterator will always return true for hasNext and instead output -1 for
+ * next when the underlying Reader has no more elements.
  */
-public class ReaderCharIterator implements Iterator<Character> {
+public class ReaderCharIterator implements Iterator<Integer> {
 
     /**
      * Create a new character Iterator from a Reader.
@@ -24,20 +27,11 @@ public class ReaderCharIterator implements Iterator<Character> {
     }
 
     @Override
-    public Character next() {
+    public Integer next() {
         try {
-            int i = reader.read();
-
-            while (i == '\r') {
-                i = reader.read();
-            }
-            if (i < 0) {
-                i = '\u0000';
-            }
-
-            return (char)i;
+            return reader.read();
         } catch (IOException e) {
-            return '\u0000';
+            return -1;
         }
     }
 

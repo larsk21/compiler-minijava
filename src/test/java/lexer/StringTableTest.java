@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 public class StringTableTest {
 
-    StringTable table;
+    private StringTable table;
 
     @BeforeEach
     public void setup() {
