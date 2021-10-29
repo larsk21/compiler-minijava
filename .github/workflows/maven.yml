@@ -27,7 +27,7 @@ jobs:
       - name: Set up Python3 for x64
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          python-version: '3.6.9' # Version range or exact version of a Python version to use, using SemVer's version range syntax
           architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
       - name: Build with Maven
         run: |
