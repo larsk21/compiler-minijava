@@ -56,10 +56,9 @@ jobs:
       - name: Run Tests
         run: |
           pwd
-          cd ../
-          export MJ_TIMEOUT=10
-          export MJ_RUN='./compiler-minijava/run'
-          sudo MJ_RUN='./compiler-minijava/run' ./mjtest/mjt.py --log_level error --ci_testing --parallel lexer
+          echo $PATH > userpath
+          echo $JAVA_HOME > userhome
+          sudo -E ./run_mjtests.sh
           cd compiler-minijava
 
       - name: Copy Artifacts
