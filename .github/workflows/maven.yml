@@ -24,7 +24,7 @@ jobs:
           distribution: 'adopt'
           architecture: x64
           cache: maven
-      - name: Set up Python3
+      - name: Set up Python3 for x64
         uses: actions/setup-python@v2
         with:
           python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
@@ -42,6 +42,8 @@ jobs:
 
       - name: Copy Tests
         run: |
+          pwd
+          ls
           [ -d ./mjtest/tests/lexer ] && rm -r ./mjtest/tests/lexer
           mkdir ./mjtest/tests/lexer
           cp ./compiler-minijava/mjtest/public/* ./mjtest/tests/lexer
