@@ -36,14 +36,15 @@ jobs:
 
       - name: Install MJTests
         run: |
-          cd ..
+          pwd
+          cd ../..
           git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
           chmod +x /home/runner/work/compiler-minijava/compiler-minijava/run
 
       - name: Copy Tests
         run: |
           pwd
-          ls
+          ls mjtest/
           [ -d ./mjtest/tests/lexer ] && rm -r ./mjtest/tests/lexer
           mkdir ./mjtest/tests/lexer
           cp ./compiler-minijava/mjtest/public/* ./mjtest/tests/lexer
@@ -58,6 +59,7 @@ jobs:
 
       - name: Copy Artifacts
         run: |
+          pwd
           mkdir /home/runner/work/compiler-minijava/compiler-minijava/staging && cp /home/runner/work/compiler-minijava/compiler-minijava/target/*.jar staging
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
