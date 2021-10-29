@@ -58,6 +58,7 @@ jobs:
           pwd
           echo $PATH > userpath
           echo $JAVA_HOME > userhome
+          chmod +x ./run_mjtests.sh
           sudo -E ./run_mjtests.sh
           cd compiler-minijava
 
