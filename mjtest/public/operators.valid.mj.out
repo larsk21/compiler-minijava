@@ -1,0 +1,40 @@
+boolean
+identifier calc
+(
+int
+[
+]
+identifier x
+,
+int
+identifier y
+)
+{
+return
+identifier x
+[
+integer literal 1
+]
+*
+integer literal 2
++
+(
+integer literal 4
+-
+integer literal 1
+)
+*
+identifier x
+[
+identifier x
+[
+integer literal 0
+]
+]
+%
+integer literal 10
+>
+integer literal 0
+;
+}
+EOF
