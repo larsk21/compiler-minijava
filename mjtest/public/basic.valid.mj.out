@@ -6,5 +6,9 @@ identifier a
 )
 {
 return
+integer literal 42
+;
+}
+EOF
 
 
