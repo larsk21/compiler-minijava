@@ -39,16 +39,9 @@ jobs:
           cd ..
           git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
           chmod +x /home/runner/work/compiler-minijava/compiler-minijava/run
-          cd mjtest
-          git submodule update --init
-          export MJ_RUN='/home/runner/work/compiler-minijava/compiler-minijava/run'
-          ./mjt.py lexer --ci_testing --parallel
-          cd ../compiler-minijava
 
       - name: Copy Tests
         run: |
-          cd ..
-
           rm -r ./mjtest/tests/lexer
           mkdir ./mjtest/tests/lexer
           cp ./compiler-minijava/mjtest/public/* ./mjtest/tests/lexer
