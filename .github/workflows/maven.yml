@@ -34,16 +34,20 @@ jobs:
           pwd
           /home/runner/work/compiler-minijava/compiler-minijava/build
 
+      # Every step starts in the cloned repository therefore we need to cd from it in the beginning to manipulate the file system
       - name: Install MJTests
         run: |
           pwd
-          cd ../..
+          cd ../
           git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
+          cd mjtest
+          git submodule update --init
           chmod +x /home/runner/work/compiler-minijava/compiler-minijava/run
 
       - name: Copy Tests
         run: |
           pwd
+          cd ../
           ls mjtest/
           [ -d ./mjtest/tests/lexer ] && rm -r ./mjtest/tests/lexer
           mkdir ./mjtest/tests/lexer
@@ -52,6 +56,7 @@ jobs:
       - name: Run Tests
         run: |
           pwd
+          cd ../
           export MJ_TIMEOUT=10
           export MJ_RUN='./compiler-minijava/run'
           ./mjtest/mjt.py --log_level error --ci_testing --parallel lexer
