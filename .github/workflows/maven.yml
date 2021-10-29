@@ -42,7 +42,7 @@ jobs:
 
       - name: Copy Tests
         run: |
-          rm -r ./mjtest/tests/lexer
+          [ -d ./mjtest/tests/lexer ] && rm -r ./mjtest/tests/lexer
           mkdir ./mjtest/tests/lexer
           cp ./compiler-minijava/mjtest/public/* ./mjtest/tests/lexer
 
