@@ -33,7 +33,8 @@ jobs:
         run: |
           pwd
           /home/runner/work/compiler-minijava/compiler-minijava/build
-      - name: Install MJTests and Tests Package
+
+      - name: Install MJTests
         run: |
           cd ..
           git clone --recursive https://git.scc.kit.edu/IPDSnelting/mjtest.git
@@ -43,6 +44,22 @@ jobs:
           export MJ_RUN='/home/runner/work/compiler-minijava/compiler-minijava/run'
           ./mjt.py lexer --ci_testing --parallel
           cd ../compiler-minijava
+
+      - name: Copy Tests
+        run: |
+          cd ..
+
+          rm -r ./mjtest/tests/lexer
+          mkdir ./mjtest/tests/lexer
+          cp ./compiler-minijava/mjtest/public/* ./mjtest/tests/lexer
+
+      - name: Run Tests
+        run: |
+          export MJ_TIMEOUT=10
+          export MJ_RUN='./compiler-minijava/run'
+          ./mjtest/mjt.py --log_level error --ci_testing --parallel lexer
+          cd compiler-minijava
+
       - name: Copy Artifacts
         run: |
           mkdir /home/runner/work/compiler-minijava/compiler-minijava/staging && cp /home/runner/work/compiler-minijava/compiler-minijava/target/*.jar staging
