@@ -67,13 +67,8 @@ public class Lexer {
         int line = charStream.getLine();
         int column = charStream.getColumn();
         if (charStream.get() == '0') {
-            if (Character.isDigit(charStream.get(1))) {
-                throw new LexException(line, column,
-                    "non-zero integer literal with leading zero");
-            } else {
-                charStream.next();
-                return new Token(IntegerLiteral, line, column, 0);
-            }
+            charStream.next();
+            return new Token(IntegerLiteral, line, column, 0);
         } else {
             var builder = new StringBuilder();
             while (Character.isDigit(charStream.get())) {
