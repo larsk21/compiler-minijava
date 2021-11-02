@@ -171,7 +171,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testIllegalLiteral() throws LexException {
+    public void testLeadingZero() throws LexException {
         var lexer = new Lexer(getIterator("01234"));
         assertEquals(new Token(IntegerLiteral, 1, 1, 0), lexer.getNextToken());
         assertEquals(new Token(IntegerLiteral, 1, 2, 1234), lexer.getNextToken());
