@@ -48,6 +48,11 @@ public class LexerTest {
         var lexer = new Lexer(getIterator("int \u309e = 1;"));
         assertEquals(Keyword_Int, lexer.getNextToken().getType());
         assertThrows(LexException.class, () -> lexer.getNextToken());
+        var lexer2 = new Lexer(getIterator("int 😀 = 1;"));
+        assertEquals(Keyword_Int, lexer2.getNextToken().getType());
+        assertThrows(LexException.class, () -> lexer2.getNextToken());
+        var lexer3 = new Lexer(getIterator("/* int 😀 = 1; */"));
+        assertEquals(EndOfStream, lexer3.getNextToken().getType());
     }
 
     @Test
@@ -166,9 +171,10 @@ public class LexerTest {
     }
 
     @Test
-    public void testIllegalLiteral() throws LexException {
+    public void testLeadingZero() throws LexException {
         var lexer = new Lexer(getIterator("01234"));
-        assertThrows(LexException.class, () -> lexer.getNextToken());
+        assertEquals(new Token(IntegerLiteral, 1, 1, 0), lexer.getNextToken());
+        assertEquals(new Token(IntegerLiteral, 1, 2, 1234), lexer.getNextToken());
     }
 
     @Test
