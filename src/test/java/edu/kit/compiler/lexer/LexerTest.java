@@ -186,6 +186,14 @@ public class LexerTest {
     }
 
     @Test
+    public void testUnreasonablyLargeIntegerLiteral() throws LexException {
+        var input = "123456789".repeat(111);
+        var lexer = new Lexer(getIterator(input));
+        var token = new Token(IntegerLiteral, 1, 1, new Literal(input));
+        assertEquals(token, lexer.getNextToken());
+    }
+
+    @Test
     public void testKeyword() throws LexException {
         var lexer = new Lexer(getIterator("abstract"));
         assertEquals(new Token(Keyword_Abstract, 1, 1), lexer.getNextToken());
