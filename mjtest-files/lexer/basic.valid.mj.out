@@ -1,0 +1,14 @@
+void
+identifier method
+(
+int
+identifier a
+)
+{
+return
+integer literal 42
+;
+}
+EOF
+
+

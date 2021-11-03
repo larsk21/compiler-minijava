@@ -1,0 +1,1 @@
+void test(int y) { int x = $y; }
