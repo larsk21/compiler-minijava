@@ -1,5 +1,6 @@
 package edu.kit.compiler.data;
 
+import java.lang.StackWalker.Option;
 import java.util.Optional;
 
 import edu.kit.compiler.lexer.StringTable;
@@ -25,10 +26,11 @@ public class Token {
         this.column = column;
 
         intValue = Optional.empty();
+        literalValue = Optional.empty();
     }
 
     /**
-     * Create a new Token with a value of type integer.
+     * Create a new Token with an associated integer value.
      * 
      * @param type Type of this Token.
      * @param line Line position in the file.
@@ -41,11 +43,26 @@ public class Token {
         this.intValue = Optional.of(intValue);
     }
 
+    /**
+     * Create a new Token with an associated literal value.
+     * 
+     * @param type Type of this Token.
+     * @param line Line position in the file.
+     * @param column Column position in the file.
+     * @param literal Literal value associated with this Token.
+     */
+    public Token(TokenType type, int line, int column, Literal literal) {
+        this(type, line, column);
+
+        this.literalValue = Optional.of(literal);
+    }
+
     private TokenType type;
     private int line;
     private int column;
 
     private Optional<Integer> intValue;
+    private Optional<Literal> literalValue;
 
     /**
      * Get the type of this Token.
@@ -73,6 +90,13 @@ public class Token {
      */
     public Optional<Integer> getIntValue() {
         return intValue;
+    }
+
+    /**
+     * Get the optional literal value associated with this Token.
+     */
+    public Optional<Literal> getLiteralValue() {
+        return literalValue;
     }
 
     @Override
