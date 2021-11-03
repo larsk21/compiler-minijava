@@ -59,10 +59,8 @@ public class Lexer {
      * ASCII Digit.
      * 
      * @return a Token containing an integer literal.
-     * @throws LexException if a non zero literal has a leading zero, or the
-     *                      literal would overflow a 32-bit signed integer.
      */
-    private Token lexIntegerLiteral() throws LexException {
+    private Token lexIntegerLiteral() {
         assert Character.isDigit(charStream.get());
 
         int line = charStream.getLine();
