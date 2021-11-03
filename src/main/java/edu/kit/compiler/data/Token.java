@@ -1,6 +1,5 @@
 package edu.kit.compiler.data;
 
-import java.lang.StackWalker.Option;
 import java.util.Optional;
 
 import edu.kit.compiler.lexer.StringTable;
