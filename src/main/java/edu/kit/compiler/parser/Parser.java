@@ -134,7 +134,8 @@ public class Parser {
             if (type == TokenType.Keyword_Int ||
                 type == TokenType.Keyword_Boolean ||
                 type == TokenType.Keyword_Void ||
-                check(TokenType.Identifier, TokenType.Identifier)) {
+                check(TokenType.Identifier, TokenType.Identifier) ||
+                check(TokenType.Identifier, TokenType.Operator_BracketL, TokenType.Operator_BracketR)) {
                 // LocalVariableDeclarationStatement
                 parseType();
                 expect(TokenType.Identifier);
