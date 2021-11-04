@@ -78,7 +78,7 @@ public class JavaEasyCompiler {
         // parse command line arguments
         CommandLine cmd;
         try {
-            CommandLineParser parser = new DefaultParser();
+            CommandLineParser parser = new DefaultParser(false);
 
             cmd = parser.parse(options, args);
         } catch (ParseException e) {
