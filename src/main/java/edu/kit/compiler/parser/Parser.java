@@ -376,12 +376,13 @@ public class Parser {
         expect(Operator_Dot);
         expect(Identifier);
 
-        if (tokenStream.get(0).getType() == Operator_BraceL) {
+        if (tokenStream.get(0).getType() == Operator_ParenL) {
+            // method access
             tokenStream.next();
 
             parseArguments();
 
-            expect(Operator_BraceR);
+            expect(Operator_ParenR);
         } // else field access
     }
 
