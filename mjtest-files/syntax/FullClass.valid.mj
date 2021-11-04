@@ -1,0 +1,24 @@
+class Test {
+    public int x;
+    public ctype[][] z;
+
+    public void m1() {}
+
+    public void m2(int i, boolean b) throws Exception {}
+
+    public static void main(String[] args) {
+        int i = 1;
+        j = i + (i * 2);
+        ;
+        if (j > 0)
+            new objcect();
+        else {
+            new int[5];
+        }
+        while (!(i < j)) {
+            i = -j;
+        }
+        return 0;
+    }
+}
+
