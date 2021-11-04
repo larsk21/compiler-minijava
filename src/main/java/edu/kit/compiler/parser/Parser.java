@@ -5,7 +5,6 @@ import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.LookaheadIterator;
 import edu.kit.compiler.lexer.Lexer;
-import edu.kit.compiler.parser.OperatorInformation.Appearence;
 import edu.kit.compiler.parser.OperatorInformation.Associativity;
 
 import static edu.kit.compiler.data.TokenType.*;
@@ -304,19 +303,13 @@ public class Parser {
     }
 
     private void parseExpression(int minPrecedence) throws ParseException {
-        if (OperatorInformation.getOperatorInformation(tokenStream.get().getType(), Appearence.Prefix).isPresent()) {
-            parseUnaryExpression();
-            return;
-        }
-
-
-        parsePostfixExpression();
+        parseUnaryExpression();
 
         Optional<OperatorInformation> operator;
         while (
             (operator =
                 OperatorInformation
-                .getOperatorInformation(tokenStream.get().getType(), Appearence.Infix)
+                .getInfixOperatorInformation(tokenStream.get().getType())
             ).isPresent() &&
             operator.get().getPrecedence() >= minPrecedence
         ) {

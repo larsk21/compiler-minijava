@@ -59,37 +59,20 @@ public class OperatorInformation {
     }
 
     /**
-     * Represents the appearence of an operator.
-     * Note: Postfix is not listed here.
-     */
-    public static enum Appearence {
-        Prefix,
-        Infix
-    }
-
-    /**
      * Return the OperatorInformation for the given TokenType with the given
      * Appearence if it is defined (i.e. the given TokenType is a valid
      * operator for the given position).
      * 
      * @param type Type of the token.
-     * @param appearence Appearence of the token in the expression.
      * @return Information about the operator if valid, otherwise empty.
      */
-    public static Optional<OperatorInformation> getOperatorInformation(TokenType type, Appearence appearence) {
-        if (appearence == Appearence.Prefix && prefixOperatorInformations.containsKey(type)) {
-            return Optional.of(prefixOperatorInformations.get(type));
-        } else if (appearence == Appearence.Infix && infixOperatorInformations.containsKey(type)) {
+    public static Optional<OperatorInformation> getInfixOperatorInformation(TokenType type) {
+        if (infixOperatorInformations.containsKey(type)) {
             return Optional.of(infixOperatorInformations.get(type));
         } else {
             return Optional.empty();
         }
     }
-
-    private static Map<TokenType, OperatorInformation> prefixOperatorInformations = Map.ofEntries(
-        Map.entry(TokenType.Operator_Not, new OperatorInformation(14, Associativity.Right)),
-        Map.entry(TokenType.Operator_Minus, new OperatorInformation(14, Associativity.Right))
-    );
 
     private static Map<TokenType, OperatorInformation> infixOperatorInformations = Map.ofEntries(
         Map.entry(TokenType.Operator_Equal, new OperatorInformation(1, Associativity.Right)),
