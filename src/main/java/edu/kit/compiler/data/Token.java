@@ -25,10 +25,11 @@ public class Token {
         this.column = column;
 
         intValue = Optional.empty();
+        literalValue = Optional.empty();
     }
 
     /**
-     * Create a new Token with a value of type integer.
+     * Create a new Token with an associated integer value.
      * 
      * @param type Type of this Token.
      * @param line Line position in the file.
@@ -41,11 +42,26 @@ public class Token {
         this.intValue = Optional.of(intValue);
     }
 
+    /**
+     * Create a new Token with an associated literal value.
+     * 
+     * @param type Type of this Token.
+     * @param line Line position in the file.
+     * @param column Column position in the file.
+     * @param literal Literal value associated with this Token.
+     */
+    public Token(TokenType type, int line, int column, Literal literal) {
+        this(type, line, column);
+
+        this.literalValue = Optional.of(literal);
+    }
+
     private TokenType type;
     private int line;
     private int column;
 
     private Optional<Integer> intValue;
+    private Optional<Literal> literalValue;
 
     /**
      * Get the type of this Token.
@@ -75,6 +91,13 @@ public class Token {
         return intValue;
     }
 
+    /**
+     * Get the optional literal value associated with this Token.
+     */
+    public Optional<Literal> getLiteralValue() {
+        return literalValue;
+    }
+
     @Override
     public String toString() {
         return String.format("Token(%s, %d, %d)", type, line, column);
@@ -92,17 +115,13 @@ public class Token {
         case EndOfStream:
             return "EOF";
         case Identifier:
-            if (intValue.isPresent()) {
-                return "identifier " + stringTable.retrieve(intValue.get());
-            } else {
-                return "identifier <empty>";
-            }
+            return intValue
+                .map(value -> "identifier " + stringTable.retrieve(intValue.get()))
+                .orElseThrow(() -> new IllegalStateException("identifier token without associated id"));
         case IntegerLiteral:
-            if (intValue.isPresent()) {
-                return "integer literal " + intValue.get();
-            } else {
-                return "integer literal";
-            }
+            return literalValue
+                .map((literal) -> "integer literal " + literal.toString())
+                .orElseThrow(() -> new IllegalStateException("integer token without associated literal"));
         case Keyword_Abstract:
             return "abstract";
         case Keyword_Assert:
