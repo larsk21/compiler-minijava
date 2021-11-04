@@ -32,7 +32,7 @@ public class JavaEasyCompiler {
             iStream.transferTo(oStream);
             return Result.Ok;
         } catch (IOException e) {
-            System.err.println("Error during file io: " + e.getMessage());
+            System.err.println("error during file io: " + e.getMessage());
             return Result.FileInputError;
         }
     }
@@ -56,11 +56,11 @@ public class JavaEasyCompiler {
 
             return Result.Ok;
         } catch (LexException e) {
-            System.err.printf("error: lexer: %d,%d: %s%n", e.getLine(), e.getColumn(), e.getMessage());
+            System.err.printf("error: lexer at line %d, column %d: %s%n", e.getLine(), e.getColumn(), e.getMessage());
 
             return Result.LexError;
         } catch (IOException e) {
-            System.err.println("Error during file io: " + e.getMessage());
+            System.err.println("error during file io: " + e.getMessage());
 
             return Result.FileInputError;
         }
@@ -79,15 +79,15 @@ public class JavaEasyCompiler {
 
             return Result.Ok;
         } catch (ParseException e) {
-            System.err.println(e.getMessage());
+            System.err.println(String.format("error: parser at line %d, column %d: %s%n", e.getLine(), e.getColumn(), e.getMessage()));
 
             return Result.ParseError;
         } catch (LexException e) {
-            System.err.println(String.format("Error during lexing at line %d, column %d: %s", e.getLine(), e.getColumn(), e.getMessage()));
+            System.err.println(String.format("error: lexer at line %d, column %d: %s%n", e.getLine(), e.getColumn(), e.getMessage()));
 
             return Result.LexError;
         } catch (IOException e) {
-            System.err.println("Error during file io: " + e.getMessage());
+            System.err.println("error during file io: " + e.getMessage());
 
             return Result.FileInputError;
         }

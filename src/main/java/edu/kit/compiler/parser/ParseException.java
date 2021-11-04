@@ -24,8 +24,8 @@ public class ParseException extends RuntimeException {
      * @param message Message describing the exception further.
      */
     public ParseException(Token token, String message) {
-        super("Error during parsing at line " + token.getLine() + ", column " +  token.getColumn() +
-              ": unexepected token " + token.getType().name() + "; " + message);
+        super(String.format("unexepected token %s%n; %s%n", token.getType().name(), message));
+        this.token = token;
     }
 
     /**
@@ -33,6 +33,20 @@ public class ParseException extends RuntimeException {
      */
     public Token getToken() {
         return token;
+    }
+
+    /**
+     * Get the line position of the character that caused the exception.
+     */
+    public int getLine() {
+        return token.getLine();
+    }
+
+    /**
+     * Get the column position of the character that caused the exception.
+     */
+    public int getColumn() {
+        return token.getColumn();
     }
 }
 
