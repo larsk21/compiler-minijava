@@ -20,7 +20,7 @@ public final class Literal {
 
     @Override
     public String toString() {
-        return value.toString();
+        return value;
     }
 
     /**
