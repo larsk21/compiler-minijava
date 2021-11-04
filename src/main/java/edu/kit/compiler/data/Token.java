@@ -115,17 +115,13 @@ public class Token {
         case EndOfStream:
             return "EOF";
         case Identifier:
-            if (intValue.isPresent()) {
-                return "identifier " + stringTable.retrieve(intValue.get());
-            } else {
-                return "identifier <empty>";
-            }
+            return intValue
+                .map(value -> "identifier " + stringTable.retrieve(intValue.get()))
+                .orElseThrow(() -> new IllegalStateException("identifier token without associated id"));
         case IntegerLiteral:
-            if (intValue.isPresent()) {
-                return "integer literal " + intValue.get();
-            } else {
-                return "integer literal";
-            }
+            return literalValue
+                .map((literal) -> "integer literal " + literal.toString())
+                .orElseThrow(() -> new IllegalStateException("integer token without associated literal"));
         case Keyword_Abstract:
             return "abstract";
         case Keyword_Assert:
