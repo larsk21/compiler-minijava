@@ -1,5 +1,6 @@
 package edu.kit.compiler.lexer;
 
+import edu.kit.compiler.data.Literal;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.BufferedLookaheadIterator;
@@ -58,22 +59,15 @@ public class Lexer {
      * ASCII Digit.
      * 
      * @return a Token containing an integer literal.
-     * @throws LexException if a non zero literal has a leading zero, or the
-     *                      literal would overflow a 32-bit signed integer.
      */
-    private Token lexIntegerLiteral() throws LexException {
+    private Token lexIntegerLiteral() {
         assert Character.isDigit(charStream.get());
 
         int line = charStream.getLine();
         int column = charStream.getColumn();
         if (charStream.get() == '0') {
-            if (Character.isDigit(charStream.get(1))) {
-                throw new LexException(line, column,
-                    "non-zero integer literal with leading zero");
-            } else {
-                charStream.next();
-                return new Token(IntegerLiteral, line, column, 0);
-            }
+            charStream.next();
+            return new Token(IntegerLiteral, line, column, Literal.ofValue(0));
         } else {
             var builder = new StringBuilder();
             while (Character.isDigit(charStream.get())) {
@@ -81,12 +75,8 @@ public class Lexer {
                 charStream.next();
             }
             
-            try {
-                int intValue = Integer.parseInt(builder.toString());
-                return new Token(IntegerLiteral, line, column, intValue);
-            } catch (NumberFormatException e) {
-                throw new LexException(line, column, "integer literal too large");
-            }
+            var literal = new Literal(builder.toString());
+            return new Token(IntegerLiteral, line, column, literal);
         }
     }
 
