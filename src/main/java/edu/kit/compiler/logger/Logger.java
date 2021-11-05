@@ -4,63 +4,97 @@ import java.util.Optional;
 
 public class Logger {
     private final Optional<String> name;
+    private final Verbosity verbosity;
 
     public Logger() {
-        this.name = Optional.empty();
+        this(Verbosity.Default);
     }
 
-    public Logger(String name) {
+    public Logger(Verbosity verbosity) {
+        this.name = Optional.empty();
+        this.verbosity = verbosity;
+    }
+
+    public Logger(String name, Verbosity verbosity) {
         this.name = Optional.ofNullable(name);
+        this.verbosity = verbosity;
+    }
+
+    public Logger withName(String name) {
+        return new Logger(name, verbosity);
+    }
+
+    public Optional<String> getName() {
+        return name;
+    }
+
+    public Verbosity getVerbosity() {
+        return verbosity;
     }
 
     public void info(String format, Object... args) {
-        Level.INFO.log(getNamePrefix(), String.format(format, args));
+        log(Level.INFO, String.format(format, args));
     }
 
     public void info(int line, int column, String format, Object... args) {
-        Level.INFO.log(getNamePrefix(), line, column, String.format(format, args));
+        log(Level.INFO, line, column, String.format(format, args));
     }
 
     public void warn(String format, Object... args) {
-        Level.WARN.log(getNamePrefix(), String.format(format, args));
+        log(Level.WARN, String.format(format, args));
     }
 
     public void warn(int line, int column, String format, Object... args) {
-        Level.WARN.log(getNamePrefix(), line, column, String.format(format, args));
+        log(Level.WARN, line, column, String.format(format, args));
     }
 
     public void error(String format, Object... args) {
-        Level.ERROR.log(getNamePrefix(), String.format(format, args));
+        log(Level.ERROR, String.format(format, args));
     }
 
     public void error(int line, int column, String format, Object... args) {
-        Level.ERROR.log(getNamePrefix(), line, column, String.format(format, args));
+        log(Level.ERROR, line, column, String.format(format, args));
+    }
+
+    private void log(Level level, String message) {
+        if (verbosity.compareTo(level.verbosity) >= 0) {
+            System.err.printf("%s%s%s\n", level.getPrefix(), getNamePrefix(), message);
+        }
+    }
+
+    private void log(Level level, int line, int column, String message) {
+        if (verbosity.compareTo(level.verbosity) >= 0) {
+            System.err.printf("%s%s%d, %d: %s\n", level.getPrefix(), getNamePrefix(), message);
+        }
     }
 
     private String getNamePrefix() {
         return name.map(name -> name + ": ").orElse("");
     }
 
+    // ! Order of verbosity levels is defined by order of enum entries
+    public static enum Verbosity {
+        Silent,
+        Quiet,
+        Default,
+        Verbose,
+        Debug;
+    }
+
     private static enum Level {
-        INFO("info"),
-        WARN("warning"),
-        ERROR("error");
+        INFO("info", Verbosity.Verbose),
+        WARN("warning", Verbosity.Default),
+        ERROR("error", Verbosity.Quiet);
 
         private final String name;
+        private final Verbosity verbosity;
 
-        private Level(String name) {
+        private Level(String name, Verbosity verbosity) {
             this.name = name;
+            this.verbosity = verbosity;
         }
 
-        private void log(String namePrefix, String message) {
-            System.err.printf(getPrefix() + namePrefix + message);
-        }
-
-        private void log(String namePrefix, int line, int column, String message) {
-            System.err.printf("%s%s%d,%d: %s\n", getPrefix(), namePrefix, line, column, message);
-        }
-
-        private String getPrefix() {
+        public String getPrefix() {
             return name + ": ";
         }
     }
