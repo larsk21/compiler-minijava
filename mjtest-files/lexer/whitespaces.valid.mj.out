@@ -1,0 +1,15 @@
+class
+identifier Test
+{
+void
+identifier test
+(
+int
+identifier x
+)
+{
+return
+;
+}
+}
+EOF
