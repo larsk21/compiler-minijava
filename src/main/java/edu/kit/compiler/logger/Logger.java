@@ -62,18 +62,17 @@ public class Logger {
 
     private void log(Level level, String message) {
         if (verbosity.compareTo(level.verbosity) >= 0) {
-            System.err.printf("%s%s%s%n", level.getPrefix(), getNamePrefix(), message);
+            var namePrefix = name.map(name -> " " + name + ":").orElse("");
+            System.err.printf("%s:%s %s%n", level.getPrefix(), namePrefix, message);
         }
     }
 
     private void log(Level level, int line, int column, String message) {
         if (verbosity.compareTo(level.verbosity) >= 0) {
-            System.err.printf("%s%s%d, %d: %s%n", level.getPrefix(), getNamePrefix(), message);
+            var namePrefix = name.map(name -> " " + name + " at").orElse("");
+            System.err.printf("%s:%s line %d, column %d: %s%n",
+                level.getPrefix(), namePrefix, line, column, message);
         }
-    }
-
-    private String getNamePrefix() {
-        return name.map(name -> name + ": ").orElse("");
     }
 
     // ! Order of verbosity levels is defined by order of enum entries
@@ -99,7 +98,7 @@ public class Logger {
         }
 
         public String getPrefix() {
-            return name + ": ";
+            return name;
         }
     }
 }
