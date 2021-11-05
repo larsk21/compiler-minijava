@@ -92,7 +92,12 @@ public class JavaEasyCompiler {
         Result result;
         if (cmd.hasOption("h")) {
             HelpFormatter help = new HelpFormatter();
-            help.printHelp("", options);
+
+            String usage = "compiler [-h] [-e <file>] [-l <file>]";
+            String header = "\n";
+            String footer = "\nfor more information check out: https://github.com/larsk21/compiler-minijava";
+
+            help.printHelp(usage, header, options, footer);
 
             result = Result.Ok;
         } else if (cmd.hasOption("e")) {
