@@ -24,7 +24,7 @@ public class ParseException extends RuntimeException {
      * @param message Message describing the exception further.
      */
     public ParseException(Token token, String message) {
-        super(String.format("unexepected token %s%n; %s%n", token.getType().name(), message));
+        super(String.format("unexpected token %s; %s%n", token.getType().name(), message));
         this.token = token;
     }
 

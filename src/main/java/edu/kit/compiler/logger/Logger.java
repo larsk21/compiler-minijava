@@ -20,6 +20,10 @@ public class Logger {
         this.verbosity = verbosity;
     }
 
+    public static Logger nullLogger() {
+        return new Logger(Verbosity.Silent);
+    }
+
     public Logger withName(String name) {
         return new Logger(name, verbosity);
     }
@@ -58,13 +62,13 @@ public class Logger {
 
     private void log(Level level, String message) {
         if (verbosity.compareTo(level.verbosity) >= 0) {
-            System.err.printf("%s%s%s\n", level.getPrefix(), getNamePrefix(), message);
+            System.err.printf("%s%s%s%n", level.getPrefix(), getNamePrefix(), message);
         }
     }
 
     private void log(Level level, int line, int column, String message) {
         if (verbosity.compareTo(level.verbosity) >= 0) {
-            System.err.printf("%s%s%d, %d: %s\n", level.getPrefix(), getNamePrefix(), message);
+            System.err.printf("%s%s%d, %d: %s%n", level.getPrefix(), getNamePrefix(), message);
         }
     }
 

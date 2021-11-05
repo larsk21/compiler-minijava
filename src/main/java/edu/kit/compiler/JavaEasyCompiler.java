@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.ParseException;
+import edu.kit.compiler.logger.Logger;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -20,6 +21,7 @@ import java.io.OutputStream;
 
 @Slf4j
 public class JavaEasyCompiler {
+    private Logger logger = new Logger();
 
     /**
      * Output the file contents to stdout.
@@ -27,12 +29,12 @@ public class JavaEasyCompiler {
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or FileInputError (in case of an IOException)
      */
-    public static Result echo(String filePath, OutputStream oStream) {
+    public static Result echo(String filePath, OutputStream oStream, Logger logger) {
         try (InputStream iStream = new FileInputStream(filePath)) {
             iStream.transferTo(oStream);
             return Result.Ok;
         } catch (IOException e) {
-            System.err.println("error during file io: " + e.getMessage());
+            logger.error("unable to read file: %s", e.getMessage());
             return Result.FileInputError;
         }
     }
@@ -43,9 +45,9 @@ public class JavaEasyCompiler {
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or FileInputError (in case of an IOException)
      */
-    private static Result lextest(String filePath) {
+    private static Result lextest(String filePath, Logger logger) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
-            Lexer lexer = new Lexer(new ReaderCharIterator(reader));
+            Lexer lexer = new Lexer(new ReaderCharIterator(reader), logger);
             StringTable stringTable = lexer.getStringTable();
 
             Token token;
@@ -56,11 +58,11 @@ public class JavaEasyCompiler {
 
             return Result.Ok;
         } catch (LexException e) {
-            System.err.printf("error: lexer at line %d, column %d: %s%n", e.getLine(), e.getColumn(), e.getMessage());
+            logger.withName("lexer").error(e.getLine(), e.getColumn(), e.getMessage());
 
             return Result.LexError;
         } catch (IOException e) {
-            System.err.println("error during file io: " + e.getMessage());
+            logger.error("unable to read file: %s", e.getMessage());
 
             return Result.FileInputError;
         }
@@ -72,22 +74,22 @@ public class JavaEasyCompiler {
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or an according error
      */
-    private static Result parseTest(String filePath) {
+    private static Result parseTest(String filePath, Logger logger) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
             Parser parser = new Parser(new Lexer(new ReaderCharIterator(reader)));
             parser.parse();
 
             return Result.Ok;
         } catch (ParseException e) {
-            System.err.println(String.format("error: parser at line %d, column %d: %s%n", e.getLine(), e.getColumn(), e.getMessage()));
+            logger.withName("parser").error(e.getLine(), e.getColumn(), e.getMessage());
 
             return Result.ParseError;
         } catch (LexException e) {
-            System.err.println(String.format("error: lexer at line %d, column %d: %s%n", e.getLine(), e.getColumn(), e.getMessage()));
+            logger.withName("lexer").error(e.getLine(), e.getColumn(), e.getMessage());
 
             return Result.LexError;
         } catch (IOException e) {
-            System.err.println("error during file io: " + e.getMessage());
+            logger.error("unable to read file: %s", e.getMessage());
 
             return Result.FileInputError;
         }
@@ -95,11 +97,13 @@ public class JavaEasyCompiler {
 
     public static void main(String[] args) {
         // specify supported command line options
+        // todo make --lextest, --echo exclusive
         Options options = new Options();
         options.addOption("h", "help", false, "print command line syntax help");
         options.addOption("e", "echo", true, "output file contents");
         options.addOption("l", "lextest", true, "output the tokens from the lexer");
         options.addOption("p", "parsetest", true, "try to parse the file contents");
+        options.addOption("v", "verbose", false, "be more verbose");
 
         // parse command line arguments
         CommandLine cmd;
@@ -112,6 +116,13 @@ public class JavaEasyCompiler {
 
             System.exit(Result.CliInputError.getCode());
             return;
+        }
+
+        Logger logger;
+        if (cmd.hasOption("v")) {
+            logger = new Logger(Logger.Verbosity.Verbose);
+        } else {
+            logger = new Logger(Logger.Verbosity.Default);
         }
 
         // execute requested function
@@ -128,15 +139,15 @@ public class JavaEasyCompiler {
             result = Result.Ok;
         } else if (cmd.hasOption("e")) {
             String filePath = cmd.getOptionValue("e");
-            result = echo(filePath, System.out);
+            result = echo(filePath, System.out, logger);
         } else if (cmd.hasOption("l")) {
             String filePath = cmd.getOptionValue("l");
 
-            result = lextest(filePath);
+            result = lextest(filePath, logger);
         } else if (cmd.hasOption("p")) {
             String filePath = cmd.getOptionValue("p");
 
-            result = parseTest(filePath);
+            result = parseTest(filePath, logger);
         } else {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 
