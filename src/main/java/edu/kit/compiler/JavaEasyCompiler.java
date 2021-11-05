@@ -97,7 +97,6 @@ public class JavaEasyCompiler {
 
     public static void main(String[] args) {
         // specify supported command line options
-        // todo make --lextest, --echo exclusive
         Options options = new Options();
         options.addOption("h", "help", false, "print command line syntax help");
         options.addOption("e", "echo", true, "output file contents");
