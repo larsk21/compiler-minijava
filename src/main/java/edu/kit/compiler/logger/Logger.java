@@ -5,19 +5,22 @@ import java.util.Optional;
 public class Logger {
     private final Optional<String> name;
     private final Verbosity verbosity;
+    private final boolean printColor;
 
     public Logger() {
-        this(Verbosity.Default);
+        this(Verbosity.Default, false);
     }
 
-    public Logger(Verbosity verbosity) {
+    public Logger(Verbosity verbosity, boolean printColor) {
         this.name = Optional.empty();
         this.verbosity = verbosity;
+        this.printColor = printColor;
     }
 
-    public Logger(String name, Verbosity verbosity) {
+    public Logger(String name, Verbosity verbosity, boolean printColor) {
         this.name = Optional.ofNullable(name);
         this.verbosity = verbosity;
+        this.printColor = printColor;
     }
 
     public static Logger nullLogger() {
@@ -25,7 +28,7 @@ public class Logger {
     }
 
     public Logger withName(String name) {
-        return new Logger(name, verbosity);
+        return new Logger(name, verbosity, printColor);
     }
 
     public Optional<String> getName() {
@@ -63,15 +66,16 @@ public class Logger {
     private void log(Level level, String message) {
         if (verbosity.compareTo(level.verbosity) >= 0) {
             var namePrefix = name.map(name -> " " + name + ":").orElse("");
-            System.err.printf("%s:%s %s%n", level.getPrefix(), namePrefix, message);
+            System.err.printf("%s:%s %s%n", level.getPrefix(printColor),
+                namePrefix, message);
         }
     }
 
     private void log(Level level, int line, int column, String message) {
         if (verbosity.compareTo(level.verbosity) >= 0) {
             var namePrefix = name.map(name -> " " + name + " at").orElse("");
-            System.err.printf("%s:%s line %d, column %d: %s%n",
-                level.getPrefix(), namePrefix, line, column, message);
+            System.err.printf("%s:%s line %d, column %d: %s%n", level.getPrefix(printColor),
+                namePrefix, line, column, message);
         }
     }
 
@@ -85,20 +89,28 @@ public class Logger {
     }
 
     private static enum Level {
-        INFO("info", Verbosity.Verbose),
-        WARN("warning", Verbosity.Default),
-        ERROR("error", Verbosity.Quiet);
+        INFO("info", Verbosity.Verbose, "\u001B[32m"),
+        WARN("warning", Verbosity.Default, "\u001B[33m"),
+        ERROR("error", Verbosity.Quiet, "\u001B[91m");
+
+        private static final String ANSI_RESET = "\u001B[0m";
 
         private final String name;
         private final Verbosity verbosity;
+        private final String color;
 
-        private Level(String name, Verbosity verbosity) {
+        private Level(String name, Verbosity verbosity, String color) {
             this.name = name;
             this.verbosity = verbosity;
+            this.color = color;
         }
 
-        public String getPrefix() {
-            return name;
+        public String getPrefix(boolean printColor) {
+            if (printColor) {
+                return color + name + ANSI_RESET;
+            } else {
+                return name;
+            }
         }
     }
 }

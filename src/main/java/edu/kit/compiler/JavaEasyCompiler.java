@@ -11,6 +11,7 @@ import org.apache.commons.cli.*;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.ParseException;
 import edu.kit.compiler.logger.Logger;
+import edu.kit.compiler.logger.Logger.Verbosity;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -117,12 +118,18 @@ public class JavaEasyCompiler {
             return;
         }
 
-        Logger logger;
-        if (cmd.hasOption("v")) {
-            logger = new Logger(Logger.Verbosity.Verbose);
-        } else {
-            logger = new Logger(Logger.Verbosity.Default);
-        }
+        var printColor = System.getenv("COLOR") != null;
+        var verbosity = cmd.hasOption("v") ? Verbosity.Verbose : Verbosity.Default;
+        var logger = new Logger(verbosity, printColor);
+
+        logger.withName("lexer").info("this will be a good day");
+        logger.withName("lexer").warn("I hope today won't suck to badly");
+        logger.withName("lexer").error("it'll probably be shite");
+
+        logger.withName("lexer").info(42, 18, "this will be a good day");
+        logger.withName("lexer").warn(28, 24, "I hope today won't suck to badly");
+        logger.withName("lexer").error(137, 4, "it'll probably be shite");
+
 
         // execute requested function
         Result result;
