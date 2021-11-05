@@ -15,6 +15,8 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 public class JavaEasyCompiler {
@@ -25,17 +27,29 @@ public class JavaEasyCompiler {
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or FileInputError (in case of an IOException)
      */
-    private static Result echo(String filePath) {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
-            reader.lines().forEachOrdered(line -> {
-                System.out.println(line);
-            });
+    public static String echo(String filePath) throws IOException {
+        char[] readBuffer = new char[2056];
 
-            return Result.Ok;
+        StringBuilder result = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            int amountRead;
+            do  {
+                amountRead = reader.read(readBuffer);
+                // EOF
+                // find position of first zero byte if less than buffer size was read
+                if(amountRead < 2056) {
+                    result.append(new String(readBuffer, 0, amountRead));
+                    break;
+                }
+                else {
+                    result.append(new String(readBuffer));
+                }
+            } while (amountRead == 2056);
+
+            return result.toString();
         } catch (IOException e) {
             System.err.println("Error during file io: " + e.getMessage());
-
-            return Result.FileInputError;
+            throw e;
         }
     }
 
@@ -102,8 +116,15 @@ public class JavaEasyCompiler {
             result = Result.Ok;
         } else if (cmd.hasOption("e")) {
             String filePath = cmd.getOptionValue("e");
+            try {
+                String content = echo(filePath);
+                System.out.println(content);
 
-            result = echo(filePath);
+                result = Result.Ok;
+            } catch (IOException e) {
+                log.error("Could not read from file {}", filePath, e);
+                result = Result.FileInputError;
+            }
         } else if (cmd.hasOption("l")) {
             String filePath = cmd.getOptionValue("l");
 
