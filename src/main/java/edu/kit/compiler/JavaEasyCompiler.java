@@ -78,7 +78,7 @@ public class JavaEasyCompiler {
         // parse command line arguments
         CommandLine cmd;
         try {
-            CommandLineParser parser = new DefaultParser();
+            CommandLineParser parser = new DefaultParser(false);
 
             cmd = parser.parse(options, args);
         } catch (ParseException e) {
@@ -92,7 +92,12 @@ public class JavaEasyCompiler {
         Result result;
         if (cmd.hasOption("h")) {
             HelpFormatter help = new HelpFormatter();
-            help.printHelp("", options);
+
+            String usage = "compiler [-h] [-e <file>] [-l <file>]";
+            String header = "\n";
+            String footer = "\nfor more information check out: https://github.com/larsk21/compiler-minijava";
+
+            help.printHelp(usage, header, options, footer);
 
             result = Result.Ok;
         } else if (cmd.hasOption("e")) {
