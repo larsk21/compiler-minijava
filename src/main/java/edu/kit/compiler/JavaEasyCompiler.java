@@ -31,9 +31,10 @@ public class JavaEasyCompiler {
             BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)));
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(target));
         ) {
-            int buf;
-            while((buf = reader.read()) >= 0) {
-                writer.write(buf);
+            int read;
+            char[] buf = new char[512];
+            while((read = reader.read(buf)) >= 0) {
+                writer.write(buf, 0, read);
             }
             return Result.Ok;
         } catch (IOException e) {
