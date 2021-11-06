@@ -10,9 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 
 @Slf4j
 public class JavaEasyCompiler {
@@ -23,27 +26,19 @@ public class JavaEasyCompiler {
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or FileInputError (in case of an IOException)
      */
-    public static Result echo(String filePath) throws IOException {
-        char[] readBuffer = new char[2056];
-
-        StringBuilder result = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
-            int amountRead;
-            do  {
-                amountRead = reader.read(readBuffer);
-                // EOF
-                if(amountRead < 2056) {
-                    System.out.print(new String(readBuffer, 0, amountRead));
-                    break;
-                }
-                else {
-                    System.out.print(new String(readBuffer));
-                }
-            } while (amountRead == 2056);
+    public static Result echo(String filePath, OutputStream target) {
+        try (
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)));
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(target));
+        ) {
+            int buf;
+            while((buf = reader.read()) >= 0) {
+                writer.write(buf);
+            }
             return Result.Ok;
         } catch (IOException e) {
             System.err.println("Error during file io: " + e.getMessage());
-            throw e;
+            return Result.FileInputError;
         }
     }
 
@@ -110,12 +105,7 @@ public class JavaEasyCompiler {
             result = Result.Ok;
         } else if (cmd.hasOption("e")) {
             String filePath = cmd.getOptionValue("e");
-            try {
-                result = echo(filePath);
-            } catch (IOException e) {
-                log.error("Could not read from file {}", filePath, e);
-                result = Result.FileInputError;
-            }
+            result = echo(filePath, System.out);
         } else if (cmd.hasOption("l")) {
             String filePath = cmd.getOptionValue("l");
 
