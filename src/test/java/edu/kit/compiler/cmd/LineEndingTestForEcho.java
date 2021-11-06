@@ -34,7 +34,7 @@ public class LineEndingTestForEcho {
         var os = new ByteArrayOutputStream();
         assertEquals(JavaEasyCompiler.echo(path, os), Result.Ok);
 
-        String repeated = new String(new char[3000]).replace("\0", "A");
+        String repeated = "A".repeat(3000);
         assertEquals(os.toString(), repeated);
     }
 }

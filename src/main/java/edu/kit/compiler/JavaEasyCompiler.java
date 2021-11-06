@@ -10,13 +10,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 
 @Slf4j
 public class JavaEasyCompiler {
@@ -28,9 +26,7 @@ public class JavaEasyCompiler {
      * @return Ok or FileInputError (in case of an IOException)
      */
     public static Result echo(String filePath, OutputStream oStream) {
-        try (
-            InputStream iStream = new FileInputStream(filePath);
-        ) {
+        try (InputStream iStream = new FileInputStream(filePath)) {
             iStream.transferTo(oStream);
             return Result.Ok;
         } catch (IOException e) {
@@ -51,10 +47,10 @@ public class JavaEasyCompiler {
             StringTable stringTable = lexer.getStringTable();
 
             Token token;
-            while ((token = lexer.getNextToken()).getType() != TokenType.EndOfStream) {
+            do {
+                token = lexer.getNextToken();
                 System.out.println(token.getStringRepresentation(stringTable));
-            }
-            System.out.println(token.getStringRepresentation(stringTable));
+            } while (token.getType() != TokenType.EndOfStream);
 
             return Result.Ok;
         } catch (LexException e) {
