@@ -13,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -26,16 +27,11 @@ public class JavaEasyCompiler {
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or FileInputError (in case of an IOException)
      */
-    public static Result echo(String filePath, OutputStream target) {
+    public static Result echo(String filePath, OutputStream oStream) {
         try (
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)));
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(target));
+            InputStream iStream = new FileInputStream(filePath);
         ) {
-            int read;
-            char[] buf = new char[512];
-            while((read = reader.read(buf)) >= 0) {
-                writer.write(buf, 0, read);
-            }
+            iStream.transferTo(oStream);
             return Result.Ok;
         } catch (IOException e) {
             System.err.println("Error during file io: " + e.getMessage());
