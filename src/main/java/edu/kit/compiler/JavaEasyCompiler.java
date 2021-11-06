@@ -1,22 +1,18 @@
 package edu.kit.compiler;
 
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.commons.cli.*;
-
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.LexException;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.cli.*;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 public class JavaEasyCompiler {
@@ -27,7 +23,7 @@ public class JavaEasyCompiler {
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or FileInputError (in case of an IOException)
      */
-    public static String echo(String filePath) throws IOException {
+    public static Result echo(String filePath) throws IOException {
         char[] readBuffer = new char[2056];
 
         StringBuilder result = new StringBuilder();
@@ -36,17 +32,15 @@ public class JavaEasyCompiler {
             do  {
                 amountRead = reader.read(readBuffer);
                 // EOF
-                // find position of first zero byte if less than buffer size was read
                 if(amountRead < 2056) {
-                    result.append(new String(readBuffer, 0, amountRead));
+                    System.out.print(new String(readBuffer, 0, amountRead));
                     break;
                 }
                 else {
-                    result.append(new String(readBuffer));
+                    System.out.print(new String(readBuffer));
                 }
             } while (amountRead == 2056);
-
-            return result.toString();
+            return Result.Ok;
         } catch (IOException e) {
             System.err.println("Error during file io: " + e.getMessage());
             throw e;
@@ -72,7 +66,7 @@ public class JavaEasyCompiler {
 
             return Result.Ok;
         } catch (LexException e) {
-            System.err.println(String.format("error: lexer: %d,%d: %s", e.getLine(), e.getColumn(), e.getMessage()));
+            System.err.printf("error: lexer: %d,%d: %s%n", e.getLine(), e.getColumn(), e.getMessage());
 
             return Result.LexError;
         } catch (IOException e) {
@@ -117,10 +111,7 @@ public class JavaEasyCompiler {
         } else if (cmd.hasOption("e")) {
             String filePath = cmd.getOptionValue("e");
             try {
-                String content = echo(filePath);
-                System.out.println(content);
-
-                result = Result.Ok;
+                result = echo(filePath);
             } catch (IOException e) {
                 log.error("Could not read from file {}", filePath, e);
                 result = Result.FileInputError;
@@ -155,7 +146,7 @@ public class JavaEasyCompiler {
             this.code = code;
         }
 
-        private int code;
+        private final int code;
 
         /**
          * @return The exit code associated with this Result.
