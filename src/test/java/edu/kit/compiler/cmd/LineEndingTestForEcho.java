@@ -1,50 +1,40 @@
 package edu.kit.compiler.cmd;
 
 import edu.kit.compiler.JavaEasyCompiler;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeEach;
+import edu.kit.compiler.JavaEasyCompiler.Result;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Slf4j
 public class LineEndingTestForEcho {
 
+    private ClassLoader classLoader = getClass().getClassLoader();
 
-    private String absolutePath;
+    private static final String FILE = "edu/kit/compiler/cmd/file_with_line_endings.txt";
+    private static final String LARGE_FILE = "edu/kit/compiler/cmd/large_file";
 
-    String expected = "thisisafile\n" +
+    private final String expected = "thisisafile\n" +
             "\n" +
             "lkjasdfkjalsdf";
 
-    @BeforeEach
-    public void setup() {
-        String path = "src/test/resources/edu.kit.compiler.cmd/file_with_line_endings.txt";
-
-        File file = new File(path);
-        absolutePath = file.getAbsolutePath();
-    }
-
     @Test
     public void testLineEndings() throws IOException {
-        String content = JavaEasyCompiler.echo(absolutePath);
-        assertEquals(content, expected);
-
-        log.info(content);
+        var path = classLoader.getResource(FILE).getPath();
+        var os = new ByteArrayOutputStream();
+        assertEquals(JavaEasyCompiler.echo(path, os), Result.Ok);
+        assertEquals(os.toString(), expected);
     }
 
     @Test
     public void testLargeFile() throws IOException {
-        String path = "src/test/resources/edu.kit.compiler.cmd/large_file";
+        var path = classLoader.getResource(LARGE_FILE).getPath();
+        var os = new ByteArrayOutputStream();
+        assertEquals(JavaEasyCompiler.echo(path, os), Result.Ok);
 
-        File file = new File(path);
-        absolutePath = file.getAbsolutePath();
-        String content = JavaEasyCompiler.echo(absolutePath);
-
-        String repeated = new String(new char[3000]).replace("\0", "A");
-        assertEquals(content, repeated);
+        String repeated = "A".repeat(3000);
+        assertEquals(os.toString(), repeated);
     }
 }
