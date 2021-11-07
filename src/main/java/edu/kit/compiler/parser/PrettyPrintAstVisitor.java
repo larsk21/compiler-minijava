@@ -1,5 +1,12 @@
 package edu.kit.compiler.parser;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.Operator.*;
@@ -14,9 +21,64 @@ public class PrettyPrintAstVisitor implements AstVisitor {
 
     public PrettyPrintAstVisitor(StringTable stringTable) {
         this.stringTable = stringTable;
+
+        this.indentation = 0;
+        this.firstInLine = true;
+        this.topLevelExpression = true;
     }
 
     private StringTable stringTable;
+
+    private int indentation;
+    private boolean firstInLine;
+    private boolean topLevelExpression;
+
+    private void print(String format, Object... args) {
+        if (firstInLine) {
+            for (int i = 0; i < indentation; i++) {
+                System.out.print('\t');
+            }
+
+            firstInLine = false;
+        }
+
+        System.out.print(String.format(format, args));
+    }
+
+    private void println() {
+        System.out.println();
+
+        firstInLine = true;
+    }
+
+    private void println(String format, Object... args) {
+        print(format, args);
+        println();
+    }
+
+    private <T> List<T> toList(Iterable<T> iterable) {
+        return StreamSupport.stream(iterable.spliterator(), false).toList();
+    }
+
+    private <T> List<T> sortAlphabetically(Function<T, Integer> name, Iterable<? extends T>... iterables) {
+        Stream<T> stream = Stream.empty();
+
+        for (Iterable<? extends T> iterable : iterables) {
+            stream = Stream.concat(stream, StreamSupport.stream(iterable.spliterator(), false));
+        }
+
+        return stream.sorted(new Comparator<T>() {
+
+            @Override
+            public int compare(T arg0, T arg1) {
+                String name0 = stringTable.retrieve(name.apply(arg0));
+                String name1 = stringTable.retrieve(name.apply(arg1));
+
+                return name0.compareTo(name1);
+            }
+
+        }).collect(Collectors.toList());
+    }
 
     private String getTypeName(DataType type) {
         switch (type.getType()) {
@@ -91,77 +153,99 @@ public class PrettyPrintAstVisitor implements AstVisitor {
 
     @Override
     public void visit(ProgramNode programNode) {
-        for (ClassNode _class : programNode.getClasses()) {
+        for (ClassNode _class : sortAlphabetically(
+            _class -> _class.getName(),
+            programNode.getClasses()
+        )) {
             _class.accept(this);
 
-            System.out.println();
-            System.out.println();
+            println();
         }
     }
 
     @Override
     public void visit(ClassNode classNode) {
         String className = stringTable.retrieve(classNode.getName());
-        System.out.println(String.format("class %s {", className));
+        print("class %s ", className);
 
-        System.out.println();
+        List<ClassNodeField> fields = sortAlphabetically(
+            field -> field.getName(),
+            classNode.getFields()
+        );
+        List<MethodNode> methods = sortAlphabetically(
+            method -> method.getName(),
+            classNode.getStaticMethods(),
+            classNode.getDynamicMethods()
+        );
 
-        for (ClassNodeField field : classNode.getFields()) {
-            String typeName = getTypeName(field.getType());
-            String fieldName = stringTable.retrieve(field.getName());
+        if (fields.isEmpty() && methods.isEmpty()) {
+            print("{ }");
+        } else {
+            println();
 
-            System.out.println(String.format("public %s %s;", typeName, fieldName));
+            indentation++;
+
+            for (MethodNode method : methods) {
+                method.accept(this);
+                println();
+            }
+
+            for (ClassNodeField field : fields) {
+                String typeName = getTypeName(field.getType());
+                String fieldName = stringTable.retrieve(field.getName());
+
+                println("public %s %s;", typeName, fieldName);
+            }
+
+            indentation--;
+
+            print("}");
         }
-
-        System.out.println();
-
-        for (StaticMethodNode staticMethod : classNode.getStaticMethods()) {
-            staticMethod.accept(this);
-
-            System.out.println();
-        }
-
-        for (DynamicMethodNode dynamicMethod : classNode.getDynamicMethods()) {
-            dynamicMethod.accept(this);
-
-            System.out.println();
-        }
-
-        System.out.println();
-        System.out.println("}");
     }
 
     private void visitMethodNode(MethodNode methodNode) {
-        System.out.print("(");
+        print("(");
 
         {
             boolean first = true;
             for (MethodNodeParameter parameter : methodNode.getParameters()) {
                 if (!first) {
-                    System.out.print(", ");
+                    print(", ");
                 }
 
-                System.out.print(String.format("%s %s", parameter.getType(), parameter.getName()));
+                print("%s %s", parameter.getType(), parameter.getName());
 
                 first = false;
             }
         }
 
-        System.out.print(")");
+        print(")");
 
         if (methodNode.getRest().getThrowsTypeIdentifier().isPresent()) {
             String exceptionTypeName = stringTable.retrieve(methodNode.getRest().getThrowsTypeIdentifier().get());
 
-            System.out.print(String.format(" throws %s", exceptionTypeName));
+            print(" throws %s ", exceptionTypeName);
         }
 
-        System.out.println(" {");
+        List<StatementNode> statements = toList(methodNode.getStatements());
 
-        for (StatementNode statement : methodNode.getStatements()) {
-            statement.accept(this);
+        if (statements.isEmpty()) {
+            print(" { }");
+        } else {
+            println(" {");
+
+            indentation++;
+
+            for (StatementNode statement : methodNode.getStatements()) {
+                statement.accept(this);
+
+                println();
+            }
+
+            indentation--;
+
+            print("}");
         }
-
-        System.out.println("}");
     }
 
     @Override
@@ -169,7 +253,7 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         String typeName = getTypeName(staticMethodNode.getType());
         String methodName = stringTable.retrieve(staticMethodNode.getName());
 
-        System.out.print(String.format("public static %s %s ", typeName, methodName));
+        print("public static %s %s", typeName, methodName);
 
         visitMethodNode(staticMethodNode);
     }
@@ -179,7 +263,7 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         String typeName = getTypeName(dynamicMethodNode.getType());
         String methodName = stringTable.retrieve(dynamicMethodNode.getName());
 
-        System.out.print(String.format("public %s %s ", typeName, methodName));
+        print("public %s %s", typeName, methodName);
 
         visitMethodNode(dynamicMethodNode);
     }
@@ -189,70 +273,99 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         String typeName = getTypeName(localVariableDeclarationStatementNode.getType());
         String variableName = stringTable.retrieve(localVariableDeclarationStatementNode.getName());
 
-        System.out.print(String.format("%s %s", typeName, variableName));
+        print("%s %s", typeName, variableName);
 
         if (localVariableDeclarationStatementNode.getExpression().isPresent()) {
-            System.out.print(" = ");
+            print(" = ");
 
             localVariableDeclarationStatementNode.getExpression().get().accept(this);
         }
 
-        System.out.println(";");
+        print(";");
+    }
+
+    private void printStatementBlock(List<StatementNode> statements) {
+        if (statements.isEmpty()) {
+            print(" { }");
+        } else if (statements.size() == 1) {
+            if (statements.get(0) instanceof IfStatementNode) {
+                print(" ");
+
+                statements.get(0).accept(this);
+            } else {
+                println();
+
+                indentation++;
+
+                statements.get(0).accept(this);
+
+                indentation--;
+            }
+        } else {
+            println(" {");
+
+            indentation++;
+
+            for (StatementNode statement : statements) {
+                statement.accept(this);
+
+                println();
+            }
+
+            indentation--;
+
+            print("}");
+        }
     }
 
     @Override
     public void visit(IfStatementNode ifStatementNode) {
-        System.out.print("if (");
+        print("if (");
 
         ifStatementNode.getCondition().accept(this);
 
-        System.out.println(") {");
+        print(")");
 
-        for (StatementNode statement : ifStatementNode.getThenStatements()) {
-            statement.accept(this);
-        }
+        List<StatementNode> thenStatements = toList(ifStatementNode.getThenStatements());
+        List<StatementNode> elseStatements = toList(ifStatementNode.getElseStatements());
 
-        {
-            boolean first = true;
-            for (StatementNode statement : ifStatementNode.getElseStatements()) {
-                if (first) {
-                    System.out.println("} else {");
-                }
+        printStatementBlock(thenStatements);
 
-                statement.accept(this);
-
-                first = false;
+        if (!elseStatements.isEmpty()) {
+            if (thenStatements.size() == 1) {
+                println();
+            } else {
+                print(" ");
             }
-        }
+            print("else");
 
-        System.out.println("}");
+            printStatementBlock(elseStatements);
+        }
     }
 
     @Override
     public void visit(WhileStatementNode whileStatementNode) {
-        System.out.print("while (");
+        print("while (");
 
         whileStatementNode.getCondition().accept(this);
 
-        System.out.println(") {");
+        print(")");
 
-        for (StatementNode statement : whileStatementNode.getStatements()) {
-            statement.accept(this);
-        }
+        List<StatementNode> statements = toList(whileStatementNode.getStatements());
 
-        System.out.println("}");
+        printStatementBlock(statements);
     }
 
     @Override
     public void visit(ReturnStatementNode returnStatementNode) {
         if (returnStatementNode.getResult().isPresent()) {
-            System.out.print("return ");
+            print("return ");
 
             returnStatementNode.getResult().get().accept(this);
 
-            System.out.println(";");
+            print(";");
         } else {
-            System.out.println("return;");
+            print("return;");
         }
     }
 
@@ -260,45 +373,74 @@ public class PrettyPrintAstVisitor implements AstVisitor {
     public void visit(ExpressionStatementNode expressionStatementNode) {
         expressionStatementNode.getExpression().accept(this);
 
-        System.out.println(";");
+        print(";");
     }
 
     @Override
     public void visit(BinaryExpressionNode binaryExpressionNode) {
-        System.out.print("(");
+        if (!topLevelExpression) {
+            print("(");
+        }
+
+        boolean _topLevelExpression = topLevelExpression;
+        topLevelExpression = false;
 
         binaryExpressionNode.getLeftSide().accept(this);
 
         String operatorRepresentation = getOperatorRepresentation(binaryExpressionNode.getOperator());
-        System.out.print(String.format(" %s ", operatorRepresentation));
+        print(" %s ", operatorRepresentation);
 
         binaryExpressionNode.getRightSide().accept(this);
 
-        System.out.print(")");
+        topLevelExpression = _topLevelExpression;
+
+        if (!topLevelExpression) {
+            print(")");
+        }
     }
 
     @Override
     public void visit(UnaryExpressionNode unaryExpressionNode) {
+        if (!topLevelExpression) {
+            print("(");
+        }
+
+        boolean _topLevelExpression = topLevelExpression;
+        topLevelExpression = false;
+
         String operatorRepresentation = getOperatorRepresentation(unaryExpressionNode.getOperator());
-        System.out.print(operatorRepresentation);
+        print(operatorRepresentation);
 
         unaryExpressionNode.getExpression().accept(this);
+
+        topLevelExpression = _topLevelExpression;
+
+        if (!topLevelExpression) {
+            print(")");
+        }
     }
 
     @Override
     public void visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
+        if (!topLevelExpression) {
+            print("(");
+        }
+
+        boolean _topLevelExpression = topLevelExpression;
+        topLevelExpression = false;
+
         if (methodInvocationExpressionNode.getObject().isPresent()) {
             methodInvocationExpressionNode.getObject().get().accept(this);
         }
 
         String methodName = stringTable.retrieve(methodInvocationExpressionNode.getName());
-        System.out.print(String.format(".%s(", methodName));
+        print(".%s(", methodName);
 
         {
             boolean first = true;
             for (ExpressionNode argument : methodInvocationExpressionNode.getArguments()) {
                 if (!first) {
-                    System.out.print(", ");
+                    print(", ");
                 }
 
                 argument.accept(this);
@@ -307,56 +449,88 @@ public class PrettyPrintAstVisitor implements AstVisitor {
             }
         }
 
-        System.out.print(")");
+        print(")");
+
+        topLevelExpression = _topLevelExpression;
+
+        if (!topLevelExpression) {
+            print(")");
+        }
     }
 
     @Override
     public void visit(FieldAccessExpressionNode fieldAccessExpressionNode) {
+        if (!topLevelExpression) {
+            print("(");
+        }
+
+        boolean _topLevelExpression = topLevelExpression;
+        topLevelExpression = false;
+
         fieldAccessExpressionNode.getObject().accept(this);
 
         String fieldName = stringTable.retrieve(fieldAccessExpressionNode.getName());
-        System.out.print(String.format(".%s", fieldName));
+        print(".%s", fieldName);
+
+        topLevelExpression = _topLevelExpression;
+
+        if (!topLevelExpression) {
+            print(")");
+        }
     }
 
     @Override
     public void visit(ArrayAccessExpressionNode arrayAccessExpressionNode) {
+        if (!topLevelExpression) {
+            print("(");
+        }
+
+        boolean _topLevelExpression = topLevelExpression;
+        topLevelExpression = false;
+
         arrayAccessExpressionNode.getObject().accept(this);
 
-        System.out.print("[");
+        print("[");
 
         arrayAccessExpressionNode.getExpression().accept(this);
 
-        System.out.print("]");
+        print("]");
+
+        topLevelExpression = _topLevelExpression;
+
+        if (!topLevelExpression) {
+            print(")");
+        }
     }
 
     @Override
     public void visit(ValueExpressionNode valueExpressionNode) {
         switch (valueExpressionNode.getType()) {
         case False:
-            System.out.print("false");
+            print("false");
             break;
         case Identifier:
-            System.out.print(valueExpressionNode.getIntValue().map(
+            print(valueExpressionNode.getIntValue().map(
                 value -> stringTable.retrieve(value)
             ).orElseThrow(
                 () -> new IllegalStateException("identifier primary expression without associated identifier")
             ));
             break;
         case IntegerLiteral:
-            System.out.print(valueExpressionNode.getLiteralValue().map(
+            print(valueExpressionNode.getLiteralValue().map(
                 value -> value.toString()
             ).orElseThrow(
                 () -> new IllegalStateException("integer literal primary expression without associated integer literal")
             ));
             break;
         case Null:
-            System.out.print("null");
+            print("null");
             break;
         case This:
-            System.out.print("this");
+            print("this");
             break;
         case True:
-            System.out.print("true");
+            print("true");
             break;
         default:
             throw new IllegalStateException("Unsupported value primary expression type");
@@ -365,21 +539,47 @@ public class PrettyPrintAstVisitor implements AstVisitor {
 
     @Override
     public void visit(NewObjectExpressionNode newObjectExpressionNode) {
+        if (!topLevelExpression) {
+            print("(");
+        }
+
+        boolean _topLevelExpression = topLevelExpression;
+        topLevelExpression = false;
+
         String typeName = stringTable.retrieve(newObjectExpressionNode.getTypeName());
-        System.out.print(String.format("new %s()", typeName));
+        print("new %s()", typeName);
+
+        topLevelExpression = _topLevelExpression;
+
+        if (!topLevelExpression) {
+            print(")");
+        }
     }
 
     @Override
     public void visit(NewArrayExpressionNode newArrayExpressionNode) {
+        if (!topLevelExpression) {
+            print("(");
+        }
+
+        boolean _topLevelExpression = topLevelExpression;
+        topLevelExpression = false;
+
         String typeName = getTypeName(newArrayExpressionNode.getType());
-        System.out.print(String.format("new %s[", typeName));
+        print("new %s[", typeName);
 
         newArrayExpressionNode.getLength().accept(this);
 
-        System.out.print("]");
+        print("]");
 
         for (int i = 1; i < newArrayExpressionNode.getDimensions(); i++) {
-            System.out.print("[]");
+            print("[]");
+        }
+
+        topLevelExpression = _topLevelExpression;
+
+        if (!topLevelExpression) {
+            print(")");
         }
     }
 
