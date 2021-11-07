@@ -38,9 +38,8 @@ public class Lexer implements Iterator<Token> {
      * comments or white spaces are skipped.
      * 
      * @return the next token found in input stream.
-     * @throws LexException if no valid token could be read from the input stream.
      */
-    public Token getNextToken() throws LexException {
+    public Token getNextToken() {
         while (skipWhiteSpace() || skipComment()) { }
 
         if (Character.isEndOfStream(charStream.get(0))) {
@@ -118,7 +117,7 @@ public class Lexer implements Iterator<Token> {
      * @throws LexException if no valid operator or delimiter was found.
      * @throws IllegalStateException if the token is the start of a comment (i.e. /*).
      */
-    private Token lexOperatorOrDelimiter() throws LexException {
+    private Token lexOperatorOrDelimiter() {
         int line = charStream.getLine();
         int column = charStream.getColumn();
         TokenType tokenType = switch (charStream.get().intValue()) {
@@ -217,7 +216,7 @@ public class Lexer implements Iterator<Token> {
      * 
      * @return true if a white space character was skipped.
      */
-    private boolean skipWhiteSpace() throws LexException {
+    private boolean skipWhiteSpace() {
         if (Character.isWhiteSpace(charStream.get())) {
             charStream.next();
             return true;
@@ -231,9 +230,8 @@ public class Lexer implements Iterator<Token> {
      * skips the entirety of that comment, including the closing delimiter.
      * 
      * @return true if a comment was skipped, false otherwise.
-     * @throws LexException if no closing delimiter was found for a comment.
      */
-    private boolean skipComment() throws LexException {
+    private boolean skipComment() {
         if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
             int line = charStream.getLine();
             int column = charStream.getColumn();
