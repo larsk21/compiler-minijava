@@ -7,10 +7,9 @@ import edu.kit.compiler.io.LookaheadIterator;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.parser.OperatorInformation.Associativity;
 
-import static edu.kit.compiler.data.TokenType.*;
-
-import java.util.Iterator;
 import java.util.Optional;
+
+import static edu.kit.compiler.data.TokenType.*;
 
 /**
  * Parses a token stream.
@@ -33,20 +32,7 @@ public class Parser {
      * @param lexer The lexer.
      */
     public Parser(Lexer lexer) {
-        Iterator<Token> tokenIterator = new Iterator<Token>() {
-            private Lexer innerLexer = lexer;
-
-            @Override
-            public boolean hasNext() {
-                return true;
-            }
-
-            @Override
-            public Token next() {
-                return innerLexer.getNextToken();
-            }
-        };
-        this.tokenStream = new BufferedLookaheadIterator<>(tokenIterator);
+        this.tokenStream = new BufferedLookaheadIterator<>(lexer);
     }
 
     /**
