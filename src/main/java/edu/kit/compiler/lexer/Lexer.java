@@ -23,7 +23,7 @@ public class Lexer implements Iterator<Token> {
     private final Logger logger;
 
     public Lexer(ReaderCharIterator iterator) {
-        this(iterator, new Logger(Logger.Verbosity.Silent, false));
+        this(iterator, Logger.nullLogger());
     }
 
     public Lexer(ReaderCharIterator iterator, Logger logger) {

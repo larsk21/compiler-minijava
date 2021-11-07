@@ -22,8 +22,6 @@ import java.io.OutputStream;
 
 @Slf4j
 public class JavaEasyCompiler {
-    private Logger logger = new Logger();
-
     /**
      * Output the file contents to stdout.
      * 

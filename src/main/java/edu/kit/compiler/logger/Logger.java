@@ -1,30 +1,37 @@
 package edu.kit.compiler.logger;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.Optional;
 
 public class Logger {
     private final Optional<String> name;
     private final Verbosity verbosity;
     private final boolean printColor;
+    private final PrintStream stream;
 
     public Logger() {
         this(Verbosity.Default, false);
     }
 
     public Logger(Verbosity verbosity, boolean printColor) {
-        this.name = Optional.empty();
-        this.verbosity = verbosity;
-        this.printColor = printColor;
+        this(null, verbosity, printColor);
     }
 
     public Logger(String name, Verbosity verbosity, boolean printColor) {
+        this(name, verbosity, printColor, System.err);
+    }
+
+    public Logger(String name, Verbosity verbosity, boolean printColor, PrintStream stream) {
         this.name = Optional.ofNullable(name);
         this.verbosity = verbosity;
         this.printColor = printColor;
+        this.stream = stream;
     }
 
     public static Logger nullLogger() {
-        return new Logger(Verbosity.Silent);
+        return new Logger(null, Verbosity.Silent, false,
+            new PrintStream(OutputStream.nullOutputStream()));
     }
 
     public Logger withName(String name) {
@@ -66,7 +73,7 @@ public class Logger {
     private void log(Level level, String message) {
         if (verbosity.compareTo(level.verbosity) >= 0) {
             var namePrefix = name.map(name -> " " + name + ":").orElse("");
-            System.err.printf("%s:%s %s%n", level.getPrefix(printColor),
+            stream.printf("%s:%s %s%n", level.getPrefix(printColor),
                 namePrefix, message);
         }
     }
@@ -74,7 +81,7 @@ public class Logger {
     private void log(Level level, int line, int column, String message) {
         if (verbosity.compareTo(level.verbosity) >= 0) {
             var namePrefix = name.map(name -> " " + name + " at").orElse("");
-            System.err.printf("%s:%s line %d, column %d: %s%n", level.getPrefix(printColor),
+            stream.printf("%s:%s line %d, column %d: %s%n", level.getPrefix(printColor),
                 namePrefix, line, column, message);
         }
     }
