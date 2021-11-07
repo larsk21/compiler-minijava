@@ -7,15 +7,16 @@ import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
 
-import static edu.kit.compiler.data.TokenType.*;
-
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+
+import static edu.kit.compiler.data.TokenType.*;
 
 /**
  * Reads characters from an input stream and returns found tokens.
  */
-public class Lexer {
+public class Lexer implements Iterator<Token> {
     private static Map<String, TokenType> KEYWORDS = new HashMap<>(keyWordMap());
 
     private CharCounterLookaheadIterator charStream;
@@ -318,5 +319,15 @@ public class Lexer {
             Map.entry("volatile", Keyword_Volatile),
             Map.entry("while", Keyword_While)
         );
+    }
+
+    @Override
+    public boolean hasNext() {
+        return true;
+    }
+
+    @Override
+    public Token next() {
+        return getNextToken();
     }
 }
