@@ -7,15 +7,16 @@ import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
 
-import static edu.kit.compiler.data.TokenType.*;
-
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+
+import static edu.kit.compiler.data.TokenType.*;
 
 /**
  * Reads characters from an input stream and returns found tokens.
  */
-public class Lexer {
+public class Lexer implements Iterator<Token> {
     private static Map<String, TokenType> KEYWORDS = new HashMap<>(keyWordMap());
 
     private CharCounterLookaheadIterator charStream;
@@ -37,9 +38,8 @@ public class Lexer {
      * comments or white spaces are skipped.
      * 
      * @return the next token found in input stream.
-     * @throws LexException if no valid token could be read from the input stream.
      */
-    public Token getNextToken() throws LexException {
+    public Token getNextToken() {
         while (skipWhiteSpace() || skipComment()) { }
 
         if (Character.isEndOfStream(charStream.get(0))) {
@@ -117,7 +117,7 @@ public class Lexer {
      * @throws LexException if no valid operator or delimiter was found.
      * @throws IllegalStateException if the token is the start of a comment (i.e. /*).
      */
-    private Token lexOperatorOrDelimiter() throws LexException {
+    private Token lexOperatorOrDelimiter() {
         int line = charStream.getLine();
         int column = charStream.getColumn();
         TokenType tokenType = switch (charStream.get().intValue()) {
@@ -216,7 +216,7 @@ public class Lexer {
      * 
      * @return true if a white space character was skipped.
      */
-    private boolean skipWhiteSpace() throws LexException {
+    private boolean skipWhiteSpace() {
         if (Character.isWhiteSpace(charStream.get())) {
             charStream.next();
             return true;
@@ -230,9 +230,8 @@ public class Lexer {
      * skips the entirety of that comment, including the closing delimiter.
      * 
      * @return true if a comment was skipped, false otherwise.
-     * @throws LexException if no closing delimiter was found for a comment.
      */
-    private boolean skipComment() throws LexException {
+    private boolean skipComment() {
         if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
             int line = charStream.getLine();
             int column = charStream.getColumn();
@@ -318,5 +317,15 @@ public class Lexer {
             Map.entry("volatile", Keyword_Volatile),
             Map.entry("while", Keyword_While)
         );
+    }
+
+    @Override
+    public boolean hasNext() {
+        return true;
+    }
+
+    @Override
+    public Token next() {
+        return getNextToken();
     }
 }

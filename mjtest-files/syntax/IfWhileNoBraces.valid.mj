@@ -1,0 +1,10 @@
+class Test {
+    public void m() {
+        if (x > y)
+            return;
+        else
+            return;
+        while (!c)
+            return;
+    }
+}

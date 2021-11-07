@@ -3,7 +3,7 @@ package edu.kit.compiler.lexer;
 /**
  * Exception thrown by the Lexer in case of unexpected characters.
  */
-public class LexException extends Exception {
+public class LexException extends RuntimeException {
 
     /**
      * Create a new LexException.

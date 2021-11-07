@@ -48,6 +48,11 @@ jobs:
           pwd
           ./run_mjtests.sh lexer
 
+      - name: Run Parser Tests
+        run: |
+          pwd
+          ./run_mjtests.sh syntax
+
       - name: Copy Artifacts
         run: |
           pwd

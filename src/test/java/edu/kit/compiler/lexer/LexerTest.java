@@ -1,34 +1,31 @@
 package edu.kit.compiler.lexer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import edu.kit.compiler.data.Literal;
+import edu.kit.compiler.data.Token;
+import edu.kit.compiler.io.ReaderCharIterator;
+import org.junit.jupiter.api.Test;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 
-import org.junit.jupiter.api.Test;
-
-
 import static edu.kit.compiler.data.TokenType.*;
-
-import edu.kit.compiler.data.Literal;
-import edu.kit.compiler.data.Token;
-import edu.kit.compiler.io.ReaderCharIterator;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class LexerTest {
 
     private ClassLoader classLoader = getClass().getClassLoader();
 
     @Test
-    public void testEmptyInput() throws LexException {
+    public void testEmptyInput() {
         var lexer = new Lexer(getIterator(""));
         assertEquals(EndOfStream, lexer.getNextToken().getType());
         assertEquals(EndOfStream, lexer.getNextToken().getType());
     }
 
     @Test
-    public void testNulCharacter() throws LexException {
+    public void testNulCharacter() {
         var lexer = new Lexer(getIterator("1 + \0 0"));
         assertEquals(IntegerLiteral, lexer.getNextToken().getType());
         assertEquals(Operator_Plus, lexer.getNextToken().getType());
@@ -36,7 +33,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testNulCharacterAsFinal() throws LexException {
+    public void testNulCharacterAsFinal() {
         var lexer = new Lexer(getIterator("1 + 0\0"));
         assertEquals(IntegerLiteral, lexer.getNextToken().getType());
         assertEquals(Operator_Plus, lexer.getNextToken().getType());
@@ -45,7 +42,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testUnicode() throws LexException {
+    public void testUnicode() {
         var lexer = new Lexer(getIterator("int \u309e = 1;"));
         assertEquals(Keyword_Int, lexer.getNextToken().getType());
         assertThrows(LexException.class, () -> lexer.getNextToken());
@@ -57,7 +54,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testWhiteSpace() throws LexException {
+    public void testWhiteSpace() {
         var lexer = new Lexer(getIterator("  42\r\n+\t1"));
         assertEquals(new Token(IntegerLiteral, 1, 3, Literal.ofValue(42)), lexer.getNextToken());
         assertEquals(new Token(Operator_Plus, 2, 1), lexer.getNextToken());
@@ -65,7 +62,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testComment() throws LexException {
+    public void testComment() {
         var lexer = new Lexer(getIterator("/* comment */x+=/**/1/* *//* */"));
         assertEquals(new Token(Identifier, 1, 14, 0), lexer.getNextToken());
         assertEquals(new Token(Operator_PlusEqual, 1, 15), lexer.getNextToken());
@@ -74,13 +71,13 @@ public class LexerTest {
     }
 
     @Test
-    public void testUnclosedComment() throws LexException {
+    public void testUnclosedComment() {
         var lexer = new Lexer(getIterator("/* open comment "));
         assertThrows(LexException.class, () -> lexer.getNextToken());
     }
 
     @Test
-    public void testDelimiters() throws LexException {
+    public void testDelimiters() {
         var lexer = new Lexer(getIterator(",.:;?~()[]{}"));
         assertEquals(Operator_Comma, lexer.getNextToken().getType());
         assertEquals(Operator_Dot, lexer.getNextToken().getType());
@@ -97,7 +94,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testArithmeticOperators() throws LexException {
+    public void testArithmeticOperators() {
         var lexer = new Lexer(getIterator("+-*/%"));
         assertEquals(Operator_Plus, lexer.getNextToken().getType());
         assertEquals(Operator_Minus, lexer.getNextToken().getType());
@@ -107,7 +104,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testLogicOperators() throws LexException {
+    public void testLogicOperators() {
         var lexer = new Lexer(getIterator("!!===>=<=><&&||"));
         assertEquals(Operator_Not, lexer.getNextToken().getType());
         assertEquals(Operator_NotEqual, lexer.getNextToken().getType());
@@ -121,7 +118,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testBinaryOperators() throws LexException {
+    public void testBinaryOperators() {
         var lexer = new Lexer(getIterator("&^|~<<>>>>>"));
         assertEquals(Operator_And, lexer.getNextToken().getType());
         assertEquals(Operator_Circum, lexer.getNextToken().getType());
@@ -133,7 +130,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testAssignmentOperators() throws LexException {
+    public void testAssignmentOperators() {
         var lexer = new Lexer(getIterator("+=-=*=/=%=&=|=^=<<=>>=>>>="));
         assertEquals(Operator_PlusEqual, lexer.getNextToken().getType());
         assertEquals(Operator_MinusEqual, lexer.getNextToken().getType());
@@ -149,7 +146,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testIncDecOperators() throws LexException {
+    public void testIncDecOperators() {
         var lexer = new Lexer(getIterator("+++---"));
         assertEquals(Operator_PlusPlus, lexer.getNextToken().getType());
         assertEquals(Operator_Plus, lexer.getNextToken().getType());
@@ -158,7 +155,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testIntegerLiteral() throws LexException {
+    public void testIntegerLiteral() {
         var lexer = new Lexer(getIterator("42"));
         assertEquals(new Token(IntegerLiteral, 1, 1, Literal.ofValue(42)), lexer.getNextToken());
         assertEquals(new Token(EndOfStream, 1, 3), lexer.getNextToken());
@@ -166,27 +163,27 @@ public class LexerTest {
     }
 
     @Test
-    public void testZeroLiteral() throws LexException {
+    public void testZeroLiteral() {
         var lexer = new Lexer(getIterator("0"));
         assertEquals(new Token(IntegerLiteral, 1, 1, Literal.ofValue(0)), lexer.getNextToken());
     }
 
     @Test
-    public void testLeadingZero() throws LexException {
+    public void testLeadingZero() {
         var lexer = new Lexer(getIterator("01234"));
         assertEquals(new Token(IntegerLiteral, 1, 1, Literal.ofValue(0)), lexer.getNextToken());
         assertEquals(new Token(IntegerLiteral, 1, 2, Literal.ofValue(1234)), lexer.getNextToken());
     }
 
     @Test
-    public void testLargeIntegerLiteral() throws LexException {
+    public void testLargeIntegerLiteral() {
         var lexer = new Lexer(getIterator("123456789123456789"));
         var token = new Token(IntegerLiteral, 1, 1, new Literal("123456789123456789"));
         assertEquals(token, lexer.getNextToken());
     }
 
     @Test
-    public void testUnreasonablyLargeIntegerLiteral() throws LexException {
+    public void testUnreasonablyLargeIntegerLiteral() {
         var input = "123456789".repeat(111);
         var lexer = new Lexer(getIterator(input));
         var token = new Token(IntegerLiteral, 1, 1, new Literal(input));
@@ -194,13 +191,13 @@ public class LexerTest {
     }
 
     @Test
-    public void testKeyword() throws LexException {
+    public void testKeyword() {
         var lexer = new Lexer(getIterator("abstract"));
         assertEquals(new Token(Keyword_Abstract, 1, 1), lexer.getNextToken());
     }
 
     @Test
-    public void testBasicIdentifiers() throws LexException {
+    public void testBasicIdentifiers() {
         var lexer = new Lexer(getIterator("foo"));
         assertEquals(new Token(Identifier, 1, 1, 0), lexer.getNextToken());
         lexer = new Lexer(getIterator("_true"));
@@ -211,7 +208,7 @@ public class LexerTest {
     }
 
     @Test
-    public void testWebsiteExample() throws LexException {
+    public void testWebsiteExample() {
         var stream = classLoader.getResourceAsStream("edu/kit/compiler/lexer/example.java");
         var lexer = new Lexer(getIterator(new InputStreamReader(stream)));
         var stringTable = lexer.getStringTable();
