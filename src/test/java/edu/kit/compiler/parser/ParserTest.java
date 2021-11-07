@@ -1,12 +1,13 @@
 package edu.kit.compiler.parser;
 
+import edu.kit.compiler.io.ReaderCharIterator;
+import edu.kit.compiler.lexer.Lexer;
+import org.junit.jupiter.api.Test;
+
 import java.io.Reader;
 import java.io.StringReader;
 
-import org.junit.jupiter.api.Test;
-
-import edu.kit.compiler.lexer.Lexer;
-import edu.kit.compiler.io.ReaderCharIterator;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 public class ParserTest {
@@ -33,6 +34,22 @@ public class ParserTest {
             + "public static void main(String[] args){} }"
         )));
         parser.parse();
+    }
+
+    @Test
+    public void testInvalidClass() {
+        var parser = new Parser(new Lexer(getIterator(
+                "public class Test {}"
+        )));
+        assertThrows(ParseException.class, (parser)::parse, "not part of language spec");
+    }
+
+    @Test
+    public void testInvalidIdentifier() {
+        var parser = new Parser(new Lexer(getIterator(
+                "class int {}"
+        )));
+        assertThrows(ParseException.class, (parser)::parse, "not part of language spec");
     }
 
     private static ReaderCharIterator getIterator(String input) {
