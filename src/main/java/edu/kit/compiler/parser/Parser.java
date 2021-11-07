@@ -285,11 +285,11 @@ public class Parser {
         
     }
 
-    private void parseExpression() throws ParseException {
+    private void parseExpression() {
         parseExpression(OperatorInformation.MIN_PRECEDENCE);
     }
 
-    private void parseExpression(int minPrecedence) throws ParseException {
+    private void parseExpression(int minPrecedence) {
         parseUnaryExpression();
 
         Optional<OperatorInformation> operator;
