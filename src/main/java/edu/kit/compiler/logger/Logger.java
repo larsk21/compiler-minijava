@@ -4,10 +4,12 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Optional;
 
+import lombok.Getter;
+
 public class Logger {
-    private final Optional<String> name;
-    private final Verbosity verbosity;
-    private final boolean printColor;
+    @Getter private final Optional<String> name;
+    @Getter private final Verbosity verbosity;
+    @Getter private final boolean printColor;
     private final PrintStream stream;
 
     public Logger() {
@@ -36,14 +38,6 @@ public class Logger {
 
     public Logger withName(String name) {
         return new Logger(name, verbosity, printColor);
-    }
-
-    public Optional<String> getName() {
-        return name;
-    }
-
-    public Verbosity getVerbosity() {
-        return verbosity;
     }
 
     public void info(String format, Object... args) {
