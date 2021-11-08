@@ -98,10 +98,17 @@ public class JavaEasyCompiler {
         // specify supported command line options
         Options options = new Options();
         options.addOption("h", "help", false, "print command line syntax help");
-        options.addOption("e", "echo", true, "output file contents");
-        options.addOption("l", "lextest", true, "output the tokens from the lexer");
-        options.addOption("p", "parsetest", true, "try to parse the file contents");
-        options.addOption("v", "verbose", false, "be more verbose");
+
+        var runOptions = new OptionGroup();
+        runOptions.addOption(new Option("e", "echo", true, "output file contents"));
+        runOptions.addOption(new Option("l", "lextest", true, "output the tokens from the lexer"));
+        runOptions.addOption(new Option("p", "parsetest", true, "try to parse the file contents"));
+        options.addOptionGroup(runOptions);
+
+        var verbosityOptions = new OptionGroup();
+        verbosityOptions.addOption(new Option("v", "verbose", false, "be more verbose"));
+        verbosityOptions.addOption(new Option("d", "debug", false, "print debug information"));
+        options.addOptionGroup(verbosityOptions);
 
         // parse command line arguments
         CommandLine cmd;
@@ -116,9 +123,7 @@ public class JavaEasyCompiler {
             return;
         }
 
-        var printColor = System.getenv("COLOR") != null;
-        var verbosity = cmd.hasOption("v") ? Verbosity.Verbose : Verbosity.Default;
-        var logger = new Logger(verbosity, printColor);
+        var logger = parseLogger(cmd);
 
         // execute requested function
         Result result;
@@ -151,6 +156,21 @@ public class JavaEasyCompiler {
 
         // return exit code from executed function
         System.exit(result.getCode());
+    }
+
+    private static Logger parseLogger(CommandLine cmd) {
+        var printColor = System.getenv("COLOR") != null;
+
+        Verbosity verbosity;
+        if (cmd.hasOption("v")) {
+            verbosity = Verbosity.Verbose;
+        } else if (cmd.hasOption("d")) {
+            verbosity = Verbosity.Debug;
+        } else {
+            verbosity = Verbosity.Default;
+        }
+        
+        return new Logger(verbosity, printColor);
     }
 
     /**

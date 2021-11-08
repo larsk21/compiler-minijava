@@ -40,6 +40,14 @@ public class Logger {
         return new Logger(name, verbosity, printColor);
     }
 
+    public void debug(String format, Object... args) {
+        log(Level.Debug, String.format(format, args));
+    }
+
+    public void debug(int line, int column, String format, Object... args) {
+        log(Level.Debug, line, column, String.format(format, args));
+    }
+
     public void info(String format, Object... args) {
         log(Level.INFO, String.format(format, args));
     }
@@ -90,6 +98,7 @@ public class Logger {
     }
 
     private static enum Level {
+        Debug("debug", Verbosity.Debug, "\u001B[34m"),
         INFO("info", Verbosity.Verbose, "\u001B[32m"),
         WARN("warning", Verbosity.Default, "\u001B[33m"),
         ERROR("error", Verbosity.Quiet, "\u001B[91m");
