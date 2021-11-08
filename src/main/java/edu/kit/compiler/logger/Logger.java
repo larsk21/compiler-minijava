@@ -4,6 +4,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Optional;
 
+import edu.kit.compiler.data.CompilerException;
 import lombok.Getter;
 
 public class Logger {
@@ -72,7 +73,14 @@ public class Logger {
         log(Level.ERROR, line, column, String.format(format, args));
     }
 
-    public void debugStackTrace(Exception exception) {
+    public void exception(CompilerException exception) {
+        exception.getSourceLocation().ifPresentOrElse(
+            (source) -> error(source.getLine(), source.getColumn(), exception.getMessage()),
+            () -> error(exception.getMessage())
+        );
+    }
+
+    public void stackTrace(Exception exception) {
         if (this.verbosity.compareTo(Verbosity.DEBUG) >= 0) {
             exception.printStackTrace(stream);
         }

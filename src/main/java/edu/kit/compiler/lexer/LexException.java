@@ -1,9 +1,16 @@
 package edu.kit.compiler.lexer;
 
+import java.util.Optional;
+
+import edu.kit.compiler.JavaEasyCompiler.Result;
+import edu.kit.compiler.data.CompilerException;
+
 /**
  * Exception thrown by the Lexer in case of unexpected characters.
  */
-public class LexException extends RuntimeException {
+public class LexException extends CompilerException {
+    private int line;
+    private int column;
 
     /**
      * Create a new LexException.
@@ -20,21 +27,18 @@ public class LexException extends RuntimeException {
         this.column = column;
     }
 
-    private int line;
-    private int column;
-
-    /**
-     * Get the line position of the character that caused the exception.
-     */
-    public int getLine() {
-        return line;
+    @Override
+    public Optional<SourceLocation> getSourceLocation() {
+        return Optional.of(new SourceLocation(line, column));
     }
 
-    /**
-     * Get the column position of the character that caused the exception.
-     */
-    public int getColumn() {
-        return column;
+    @Override
+    public Optional<String> getCompilerStage() {
+        return Optional.of("lexer");
     }
 
+    @Override
+    public Result getResult() {
+        return Result.LexError;
+    }
 }

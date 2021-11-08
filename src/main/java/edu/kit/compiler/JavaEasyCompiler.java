@@ -1,15 +1,13 @@
 package edu.kit.compiler;
 
+import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.ReaderCharIterator;
-import edu.kit.compiler.lexer.LexException;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 import edu.kit.compiler.parser.Parser;
-import edu.kit.compiler.parser.ParseException;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
 
@@ -20,7 +18,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 
-@Slf4j
 public class JavaEasyCompiler {
     /**
      * Output the file contents to stdout.
@@ -56,10 +53,10 @@ public class JavaEasyCompiler {
             } while (token.getType() != TokenType.EndOfStream);
 
             return Result.Ok;
-        } catch (LexException e) {
-            logger.withName("lexer").error(e.getLine(), e.getColumn(), e.getMessage());
+        } catch (CompilerException e) {
+            logger.withName(e.getCompilerStage().orElse(null)).exception(e);
 
-            return Result.LexError;
+            return e.getResult();
         } catch (IOException e) {
             logger.error("unable to read file: %s", e.getMessage());
 
@@ -79,14 +76,10 @@ public class JavaEasyCompiler {
             parser.parse();
 
             return Result.Ok;
-        } catch (ParseException e) {
-            logger.withName("parser").error(e.getLine(), e.getColumn(), e.getMessage());
+        } catch (CompilerException e) {
+            logger.withName(e.getCompilerStage().orElse(null)).exception(e);
 
-            return Result.ParseError;
-        } catch (LexException e) {
-            logger.withName("lexer").error(e.getLine(), e.getColumn(), e.getMessage());
-
-            return Result.LexError;
+            return e.getResult();
         } catch (IOException e) {
             logger.error("unable to read file: %s", e.getMessage());
 
