@@ -443,6 +443,8 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         print("%s(", methodName);
 
         {
+            topLevelExpression = true;
+
             boolean first = true;
             for (ExpressionNode argument : methodInvocationExpressionNode.getArguments()) {
                 if (!first) {
@@ -497,6 +499,8 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         arrayAccessExpressionNode.getObject().accept(this);
 
         print("[");
+
+        topLevelExpression = true;
 
         arrayAccessExpressionNode.getExpression().accept(this);
 
@@ -573,6 +577,8 @@ public class PrettyPrintAstVisitor implements AstVisitor {
 
         String typeName = getTypeName(newArrayExpressionNode.getType());
         print("new %s[", typeName);
+
+        topLevelExpression = true;
 
         newArrayExpressionNode.getLength().accept(this);
 

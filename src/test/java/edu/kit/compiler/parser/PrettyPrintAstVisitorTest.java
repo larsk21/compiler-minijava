@@ -816,14 +816,16 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new ExpressionNode.MethodInvocationExpressionNode(0, 0, Optional.empty(), a, Arrays.asList(
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(42), false),
-            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false)
+            new ExpressionNode.UnaryExpressionNode(0, 0, Operator.UnaryOperator.LogicalNegation,
+                new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
+            false)
         ), false);
 
         node.accept(visitor);
         String result = stream.toString();
 
         assertEquals(
-            "a(42, false)",
+            "a(42, !false)",
             result
         );
     }
@@ -840,14 +842,17 @@ public class PrettyPrintAstVisitorTest {
             new ExpressionNode.ValueExpressionNode(0, 0, a, false)
         ), b, Arrays.asList(
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(42), false),
-            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false)
+            new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.LogicalAnd,
+                new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
+                new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.True, false),
+            false)
         ), false);
 
         node.accept(visitor);
         String result = stream.toString();
 
         assertEquals(
-            "a.b(42, false)",
+            "a.b(42, false && true)",
             result
         );
     }
@@ -893,6 +898,33 @@ public class PrettyPrintAstVisitorTest {
 
         assertEquals(
             "a[17 + 2]",
+            result
+        );
+    }
+
+    @Test
+    public void testComplexArrayAccessExpression() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        int a = stringTable.insert("a");
+
+        AstNode node = new ExpressionNode.ArrayAccessExpressionNode(0, 0,
+            new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+            new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Multiplication,
+                new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false),
+                new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Addition,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(1), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(1), false),
+                false),
+            false),
+        false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "a[17 * (1 + 1)]",
             result
         );
     }
@@ -1041,14 +1073,17 @@ public class PrettyPrintAstVisitorTest {
         int a = stringTable.insert("ClassA");
 
         AstNode node = new ExpressionNode.NewArrayExpressionNode(0, 0, new DataType(a),
-            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+            new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Addition,
+                new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+            false),
         3, false);
 
         node.accept(visitor);
         String result = stream.toString();
 
         assertEquals(
-            "new ClassA[5][][]",
+            "new ClassA[3 + 2][][]",
             result
         );
     }
@@ -1092,7 +1127,7 @@ public class PrettyPrintAstVisitorTest {
         String result = stream.toString();
 
         assertEquals(
-            "17 * ((a.b)[2 + 2] % (foo(-31, 2 < 5)))",
+            "17 * (((a.b)[2 + 2]) % (foo(-31, 2 < 5)))",
             result
         );
     }
