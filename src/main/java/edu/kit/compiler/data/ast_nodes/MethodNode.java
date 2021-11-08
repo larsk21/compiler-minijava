@@ -75,7 +75,7 @@ public abstract class MethodNode extends AstNode {
 
     }
 
-    public class DynamicMethodNode extends MethodNode {
+    public static class DynamicMethodNode extends MethodNode {
 
         public DynamicMethodNode(
             int line, int column,

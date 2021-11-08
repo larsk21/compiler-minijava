@@ -60,6 +60,7 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         return StreamSupport.stream(iterable.spliterator(), false).toList();
     }
 
+    @SafeVarargs
     private <T> List<T> sortAlphabetically(Function<T, Integer> name, Iterable<? extends T>... iterables) {
         Stream<T> stream = Stream.empty();
 
@@ -166,7 +167,7 @@ public class PrettyPrintAstVisitor implements AstVisitor {
     @Override
     public void visit(ClassNode classNode) {
         String className = stringTable.retrieve(classNode.getName());
-        print("class %s ", className);
+        print("class %s", className);
 
         List<ClassNodeField> fields = sortAlphabetically(
             field -> field.getName(),
@@ -179,9 +180,9 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         );
 
         if (fields.isEmpty() && methods.isEmpty()) {
-            print("{ }");
+            print(" { }");
         } else {
-            println();
+            println(" {");
 
             indentation++;
 
@@ -213,7 +214,10 @@ public class PrettyPrintAstVisitor implements AstVisitor {
                     print(", ");
                 }
 
-                print("%s %s", parameter.getType(), parameter.getName());
+                String typeName = getTypeName(parameter.getType());
+                String parameterName = stringTable.retrieve(parameter.getName());
+
+                print("%s %s", typeName, parameterName);
 
                 first = false;
             }
@@ -224,7 +228,7 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         if (methodNode.getRest().getThrowsTypeIdentifier().isPresent()) {
             String exceptionTypeName = stringTable.retrieve(methodNode.getRest().getThrowsTypeIdentifier().get());
 
-            print(" throws %s ", exceptionTypeName);
+            print(" throws %s", exceptionTypeName);
         }
 
         List<StatementNode> statements = toList(methodNode.getStatements());
@@ -332,7 +336,7 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         printStatementBlock(thenStatements);
 
         if (!elseStatements.isEmpty()) {
-            if (thenStatements.size() == 1) {
+            if (thenStatements.size() <= 1) {
                 println();
             } else {
                 print(" ");
@@ -431,10 +435,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
 
         if (methodInvocationExpressionNode.getObject().isPresent()) {
             methodInvocationExpressionNode.getObject().get().accept(this);
+
+            print(".");
         }
 
         String methodName = stringTable.retrieve(methodInvocationExpressionNode.getName());
-        print(".%s(", methodName);
+        print("%s(", methodName);
 
         {
             boolean first = true;
