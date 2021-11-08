@@ -172,6 +172,46 @@ public class PrettyPrintAstVisitorTest {
     }
 
     @Test
+    public void testEmptyBlockStatement() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        AstNode node = new StatementNode.BlockStatementNode(0, 0, Arrays.asList(), false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "{ }",
+            result
+        );
+    }
+
+    @Test
+    public void testBlockStatement() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        AstNode node = new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+            new StatementNode.ExpressionStatementNode(0, 0,
+                new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.True, false),
+            false),
+            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+        ), false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "{\n" +
+            "\ttrue;\n" +
+            "\treturn;\n" +
+            "}",
+            result
+        );
+    }
+
+    @Test
     public void testEmptyLocalVariableStatement() {
         StringTable stringTable = new StringTable();
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
@@ -218,7 +258,8 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.IfStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.True, false),
-        Arrays.asList(), Arrays.asList(), false);
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(), false),
+        Optional.empty(), false);
 
         node.accept(visitor);
         String result = stream.toString();
@@ -241,9 +282,8 @@ public class PrettyPrintAstVisitorTest {
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false),
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(42), false),
             false),
-        Arrays.asList(
-            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false)
-        ), Arrays.asList(), false);
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+        Optional.empty(), false);
 
         node.accept(visitor);
         String result = stream.toString();
@@ -267,10 +307,11 @@ public class PrettyPrintAstVisitorTest {
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false),
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(42), false),
             false),
-        Arrays.asList(
-            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
-        ), Arrays.asList(), false);
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false),
+        Optional.empty(), false);
 
         node.accept(visitor);
         String result = stream.toString();
@@ -285,28 +326,23 @@ public class PrettyPrintAstVisitorTest {
     }
 
     @Test
-    public void testSingleSingleIfElseStatement() {
+    public void testEmptyEmptyIfElseStatement() {
         StringTable stringTable = new StringTable();
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
 
-        int a = stringTable.insert("a");
-
         AstNode node = new StatementNode.IfStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(
-            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false)
-        ), Arrays.asList(
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(), false),
+        Optional.of(
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(), false)
         ), false);
 
         node.accept(visitor);
         String result = stream.toString();
 
         assertEquals(
-            "if (false)\n" +
-            "\tint a;\n" +
-            "else\n" +
-            "\treturn;",
+            "if (false) { }\n" +
+            "else { }",
             result
         );
     }
@@ -318,7 +354,8 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.IfStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(), Arrays.asList(
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(), false),
+        Optional.of(
             new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
         ), false);
 
@@ -342,9 +379,12 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.IfStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(), Arrays.asList(
-            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(), false),
+        Optional.of(
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false)
         ), false);
 
         node.accept(visitor);
@@ -361,6 +401,57 @@ public class PrettyPrintAstVisitorTest {
     }
 
     @Test
+    public void testSingleEmptyIfElseStatement() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        int a = stringTable.insert("a");
+
+        AstNode node = new StatementNode.IfStatementNode(0, 0,
+            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+        Optional.of(
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(), false)
+        ), false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "if (false)\n" +
+            "\tint a;\n" +
+            "else { }",
+            result
+        );
+    }
+
+    @Test
+    public void testSingleSingleIfElseStatement() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        int a = stringTable.insert("a");
+
+        AstNode node = new StatementNode.IfStatementNode(0, 0,
+            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+        Optional.of(
+            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+        ), false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "if (false)\n" +
+            "\tint a;\n" +
+            "else\n" +
+            "\treturn;",
+            result
+        );
+    }
+
+    @Test
     public void testSingleMultiIfElseStatement() {
         StringTable stringTable = new StringTable();
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
@@ -369,11 +460,12 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.IfStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(
-            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false)
-        ), Arrays.asList(
             new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+        Optional.of(
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false)
         ), false);
 
         node.accept(visitor);
@@ -391,6 +483,35 @@ public class PrettyPrintAstVisitorTest {
     }
 
     @Test
+    public void testMultiEmptyIfElseStatement() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        int a = stringTable.insert("a");
+
+        AstNode node = new StatementNode.IfStatementNode(0, 0,
+            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false),
+        Optional.of(
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(), false)
+        ), false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "if (false) {\n" +
+            "\tint a;\n" +
+            "\treturn;\n" +
+            "} else { }",
+            result
+        );
+    }
+
+    @Test
     public void testMultiSingleIfElseStatement() {
         StringTable stringTable = new StringTable();
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
@@ -399,10 +520,11 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.IfStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(
-            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
-        ), Arrays.asList(
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false),
+        Optional.of(
             new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false)
         ), false);
 
@@ -428,12 +550,15 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.IfStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(
-            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
-        ), Arrays.asList(
-            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false),
+        Optional.of(
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false)
         ), false);
 
         node.accept(visitor);
@@ -460,19 +585,17 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.IfStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
-        ), Arrays.asList(
+            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false),
+        Optional.of(
             new StatementNode.IfStatementNode(0, 0,
                 new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.GreaterThanOrEqual,
                     new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
                     new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(4), false),
                 false),
-            Arrays.asList(
                 new StatementNode.ExpressionStatementNode(0, 0,
                     new ExpressionNode.ValueExpressionNode(0, 0, a, false),
-                false)
-            ), Arrays.asList(
+                false),
+            Optional.of(
                 new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
             ), false)
         ), false);
@@ -501,29 +624,33 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.IfStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(
-            new StatementNode.ExpressionStatementNode(0, 0,
-                new ExpressionNode.ValueExpressionNode(0, 0, a, false),
-            false),
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
-        ), Arrays.asList(
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+                false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false),
+        Optional.of(
             new StatementNode.IfStatementNode(0, 0,
                 new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.GreaterThanOrEqual,
                     new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
                     new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(4), false),
                 false),
-            Arrays.asList(
-                new StatementNode.ExpressionStatementNode(0, 0,
-                    new ExpressionNode.ValueExpressionNode(0, 0, a, false),
-                false),
-                new StatementNode.ReturnStatementNode(0, 0, Optional.of(
-                    new ExpressionNode.ValueExpressionNode(0, 0, b, false)
+                new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                    new StatementNode.ExpressionStatementNode(0, 0,
+                        new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+                    false),
+                    new StatementNode.ReturnStatementNode(0, 0, Optional.of(
+                        new ExpressionNode.ValueExpressionNode(0, 0, b, false)
+                    ), false)
+                ), false),
+            Optional.of(
+                new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                    new StatementNode.ExpressionStatementNode(0, 0,
+                        new ExpressionNode.ValueExpressionNode(0, 0, b, false),
+                    false),
+                    new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
                 ), false)
-            ), Arrays.asList(
-                new StatementNode.ExpressionStatementNode(0, 0,
-                    new ExpressionNode.ValueExpressionNode(0, 0, b, false),
-                false),
-                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
             ), false)
         ), false);
 
@@ -552,7 +679,8 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.WhileStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(), false);
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(), false),
+        false);
 
         node.accept(visitor);
         String result = stream.toString();
@@ -570,9 +698,8 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.WhileStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
-        ), false);
+            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false),
+        false);
 
         node.accept(visitor);
         String result = stream.toString();
@@ -593,10 +720,11 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new StatementNode.WhileStatementNode(0, 0,
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
-        Arrays.asList(
-            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
-            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
-        ), false);
+            new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), a, Optional.empty(), false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false),
+        false);
 
         node.accept(visitor);
         String result = stream.toString();

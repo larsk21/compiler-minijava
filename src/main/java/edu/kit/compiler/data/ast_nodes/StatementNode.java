@@ -14,6 +14,24 @@ public abstract class StatementNode extends AstNode {
         super(line, column, hasError);
     }
 
+    public static class BlockStatementNode extends StatementNode {
+
+        public BlockStatementNode(int line, int column, Iterable<StatementNode> statements, boolean hasError) {
+            super(line, column, hasError);
+
+            this.statements = statements;
+        }
+
+        @Getter
+        private Iterable<StatementNode> statements;
+
+        @Override
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+    }
+
     public static class LocalVariableDeclarationStatementNode extends StatementNode {
 
         public LocalVariableDeclarationStatementNode(
@@ -47,24 +65,24 @@ public abstract class StatementNode extends AstNode {
         public IfStatementNode(
             int line, int column,
             ExpressionNode condition,
-            Iterable<StatementNode> thenStatements, Iterable<StatementNode> elseStatements,
+            StatementNode thenStatement, Optional<StatementNode> elseStatement,
             boolean hasError
         ) {
             super(line, column, hasError);
 
             this.condition = condition;
 
-            this.thenStatements = thenStatements;
-            this.elseStatements = elseStatements;
+            this.thenStatement = thenStatement;
+            this.elseStatement = elseStatement;
         }
 
         @Getter
         private ExpressionNode condition;
 
         @Getter
-        private Iterable<StatementNode> thenStatements;
+        private StatementNode thenStatement;
         @Getter
-        private Iterable<StatementNode> elseStatements;
+        private Optional<StatementNode> elseStatement;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
@@ -77,21 +95,21 @@ public abstract class StatementNode extends AstNode {
 
         public WhileStatementNode(
             int line, int column,
-            ExpressionNode condition, Iterable<StatementNode> statements,
+            ExpressionNode condition, StatementNode statement,
             boolean hasError
         ) {
             super(line, column, hasError);
 
             this.condition = condition;
 
-            this.statements = statements;
+            this.statement = statement;
         }
 
         @Getter
         private ExpressionNode condition;
 
         @Getter
-        private Iterable<StatementNode> statements;
+        private StatementNode statement;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {

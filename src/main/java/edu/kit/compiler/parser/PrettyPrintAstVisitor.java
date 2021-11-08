@@ -283,6 +283,31 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
     }
 
     @Override
+    public Void visit(BlockStatementNode blockStatementNode) {
+        List<StatementNode> statements = toList(blockStatementNode.getStatements());
+
+        if (statements.isEmpty()) {
+            print("{ }");
+        } else {
+            println("{");
+
+            indentation++;
+
+            for (StatementNode statement : statements) {
+                statement.accept(this);
+
+                println();
+            }
+
+            indentation--;
+
+            print("}");
+        }
+
+        return nothing;
+    }
+
+    @Override
     public Void visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode) {
         String typeName = getTypeName(localVariableDeclarationStatementNode.getType());
         String variableName = stringTable.retrieve(localVariableDeclarationStatementNode.getName());
@@ -300,40 +325,6 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
         return nothing;
     }
 
-    private void printStatementBlock(List<StatementNode> statements) {
-        if (statements.isEmpty()) {
-            print(" { }");
-        } else if (statements.size() == 1) {
-            if (statements.get(0) instanceof IfStatementNode) {
-                print(" ");
-
-                statements.get(0).accept(this);
-            } else {
-                println();
-
-                indentation++;
-
-                statements.get(0).accept(this);
-
-                indentation--;
-            }
-        } else {
-            println(" {");
-
-            indentation++;
-
-            for (StatementNode statement : statements) {
-                statement.accept(this);
-
-                println();
-            }
-
-            indentation--;
-
-            print("}");
-        }
-    }
-
     @Override
     public Void visit(IfStatementNode ifStatementNode) {
         print("if (");
@@ -342,20 +333,47 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
         print(")");
 
-        List<StatementNode> thenStatements = toList(ifStatementNode.getThenStatements());
-        List<StatementNode> elseStatements = toList(ifStatementNode.getElseStatements());
+        if (ifStatementNode.getThenStatement() instanceof BlockStatementNode) {
+            print(" ");
 
-        printStatementBlock(thenStatements);
+            ifStatementNode.getThenStatement().accept(this);
 
-        if (!elseStatements.isEmpty()) {
-            if (thenStatements.size() <= 1) {
-                println();
-            } else {
+            if (ifStatementNode.getElseStatement().isPresent()) {
                 print(" ");
             }
+        } else {
+            println();
+
+            indentation++;
+
+            ifStatementNode.getThenStatement().accept(this);
+
+            indentation--;
+
+            if (ifStatementNode.getElseStatement().isPresent()) {
+                println();
+            }
+        }
+
+        if (ifStatementNode.getElseStatement().isPresent()) {
             print("else");
 
-            printStatementBlock(elseStatements);
+            if (
+                ifStatementNode.getElseStatement().get() instanceof BlockStatementNode ||
+                ifStatementNode.getElseStatement().get() instanceof IfStatementNode
+            ) {
+                print(" ");
+
+                ifStatementNode.getElseStatement().get().accept(this);
+            } else {
+                println();
+
+                indentation++;
+
+                ifStatementNode.getElseStatement().get().accept(this);
+
+                indentation--;
+            }
         }
 
         return nothing;
@@ -369,9 +387,19 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
         print(")");
 
-        List<StatementNode> statements = toList(whileStatementNode.getStatements());
+        if (whileStatementNode.getStatement() instanceof BlockStatementNode) {
+            print(" ");
 
-        printStatementBlock(statements);
+            whileStatementNode.getStatement().accept(this);
+        } else {
+            println();
+
+            indentation++;
+
+            whileStatementNode.getStatement().accept(this);
+
+            indentation--;
+        }
 
         return nothing;
     }

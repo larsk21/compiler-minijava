@@ -16,6 +16,7 @@ public interface AstVisitor<T> {
     default T visit(ClassNode classNode) { throw new UnsupportedOperationException(); }
     default T visit(StaticMethodNode staticMethodNode) { throw new UnsupportedOperationException(); }
     default T visit(DynamicMethodNode dynamicMethodNode) { throw new UnsupportedOperationException(); }
+    default T visit(BlockStatementNode blockStatementNode) { throw new UnsupportedOperationException(); }
     default T visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode) { throw new UnsupportedOperationException(); }
     default T visit(IfStatementNode ifStatementNode) { throw new UnsupportedOperationException(); }
     default T visit(WhileStatementNode whileStatementNode) { throw new UnsupportedOperationException(); }
