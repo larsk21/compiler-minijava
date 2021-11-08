@@ -17,7 +17,9 @@ import edu.kit.compiler.data.ast_nodes.MethodNode.*;
 import edu.kit.compiler.data.ast_nodes.StatementNode.*;
 import edu.kit.compiler.lexer.StringTable;
 
-public class PrettyPrintAstVisitor implements AstVisitor {
+public class PrettyPrintAstVisitor implements AstVisitor<Void> {
+
+    private static final Void nothing = (Void)null;
 
     public PrettyPrintAstVisitor(StringTable stringTable) {
         this.stringTable = stringTable;
@@ -153,7 +155,7 @@ public class PrettyPrintAstVisitor implements AstVisitor {
     }
 
     @Override
-    public void visit(ProgramNode programNode) {
+    public Void visit(ProgramNode programNode) {
         for (ClassNode _class : sortAlphabetically(
             _class -> _class.getName(),
             programNode.getClasses()
@@ -162,10 +164,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
 
             println();
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(ClassNode classNode) {
+    public Void visit(ClassNode classNode) {
         String className = stringTable.retrieve(classNode.getName());
         print("class %s", className);
 
@@ -202,6 +206,8 @@ public class PrettyPrintAstVisitor implements AstVisitor {
 
             print("}");
         }
+
+        return nothing;
     }
 
     private void visitMethodNode(MethodNode methodNode) {
@@ -253,27 +259,31 @@ public class PrettyPrintAstVisitor implements AstVisitor {
     }
 
     @Override
-    public void visit(StaticMethodNode staticMethodNode) {
+    public Void visit(StaticMethodNode staticMethodNode) {
         String typeName = getTypeName(staticMethodNode.getType());
         String methodName = stringTable.retrieve(staticMethodNode.getName());
 
         print("public static %s %s", typeName, methodName);
 
         visitMethodNode(staticMethodNode);
+
+        return nothing;
     }
 
     @Override
-    public void visit(DynamicMethodNode dynamicMethodNode) {
+    public Void visit(DynamicMethodNode dynamicMethodNode) {
         String typeName = getTypeName(dynamicMethodNode.getType());
         String methodName = stringTable.retrieve(dynamicMethodNode.getName());
 
         print("public %s %s", typeName, methodName);
 
         visitMethodNode(dynamicMethodNode);
+
+        return nothing;
     }
 
     @Override
-    public void visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode) {
+    public Void visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode) {
         String typeName = getTypeName(localVariableDeclarationStatementNode.getType());
         String variableName = stringTable.retrieve(localVariableDeclarationStatementNode.getName());
 
@@ -286,6 +296,8 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         }
 
         print(";");
+
+        return nothing;
     }
 
     private void printStatementBlock(List<StatementNode> statements) {
@@ -323,7 +335,7 @@ public class PrettyPrintAstVisitor implements AstVisitor {
     }
 
     @Override
-    public void visit(IfStatementNode ifStatementNode) {
+    public Void visit(IfStatementNode ifStatementNode) {
         print("if (");
 
         ifStatementNode.getCondition().accept(this);
@@ -345,10 +357,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
 
             printStatementBlock(elseStatements);
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(WhileStatementNode whileStatementNode) {
+    public Void visit(WhileStatementNode whileStatementNode) {
         print("while (");
 
         whileStatementNode.getCondition().accept(this);
@@ -358,10 +372,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         List<StatementNode> statements = toList(whileStatementNode.getStatements());
 
         printStatementBlock(statements);
+
+        return nothing;
     }
 
     @Override
-    public void visit(ReturnStatementNode returnStatementNode) {
+    public Void visit(ReturnStatementNode returnStatementNode) {
         if (returnStatementNode.getResult().isPresent()) {
             print("return ");
 
@@ -371,17 +387,21 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         } else {
             print("return;");
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(ExpressionStatementNode expressionStatementNode) {
+    public Void visit(ExpressionStatementNode expressionStatementNode) {
         expressionStatementNode.getExpression().accept(this);
 
         print(";");
+
+        return nothing;
     }
 
     @Override
-    public void visit(BinaryExpressionNode binaryExpressionNode) {
+    public Void visit(BinaryExpressionNode binaryExpressionNode) {
         if (!topLevelExpression) {
             print("(");
         }
@@ -401,10 +421,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         if (!topLevelExpression) {
             print(")");
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(UnaryExpressionNode unaryExpressionNode) {
+    public Void visit(UnaryExpressionNode unaryExpressionNode) {
         if (!topLevelExpression) {
             print("(");
         }
@@ -422,10 +444,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         if (!topLevelExpression) {
             print(")");
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
+    public Void visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
         if (!topLevelExpression) {
             print("(");
         }
@@ -464,10 +488,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         if (!topLevelExpression) {
             print(")");
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(FieldAccessExpressionNode fieldAccessExpressionNode) {
+    public Void visit(FieldAccessExpressionNode fieldAccessExpressionNode) {
         if (!topLevelExpression) {
             print("(");
         }
@@ -485,10 +511,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         if (!topLevelExpression) {
             print(")");
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(ArrayAccessExpressionNode arrayAccessExpressionNode) {
+    public Void visit(ArrayAccessExpressionNode arrayAccessExpressionNode) {
         if (!topLevelExpression) {
             print("(");
         }
@@ -511,10 +539,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         if (!topLevelExpression) {
             print(")");
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(ValueExpressionNode valueExpressionNode) {
+    public Void visit(ValueExpressionNode valueExpressionNode) {
         switch (valueExpressionNode.getType()) {
         case False:
             print("false");
@@ -545,10 +575,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         default:
             throw new IllegalStateException("Unsupported value primary expression type");
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(NewObjectExpressionNode newObjectExpressionNode) {
+    public Void visit(NewObjectExpressionNode newObjectExpressionNode) {
         if (!topLevelExpression) {
             print("(");
         }
@@ -564,10 +596,12 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         if (!topLevelExpression) {
             print(")");
         }
+
+        return nothing;
     }
 
     @Override
-    public void visit(NewArrayExpressionNode newArrayExpressionNode) {
+    public Void visit(NewArrayExpressionNode newArrayExpressionNode) {
         if (!topLevelExpression) {
             print("(");
         }
@@ -593,6 +627,8 @@ public class PrettyPrintAstVisitor implements AstVisitor {
         if (!topLevelExpression) {
             print(")");
         }
+
+        return nothing;
     }
 
 }

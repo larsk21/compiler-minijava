@@ -37,8 +37,8 @@ public class ClassNode extends AstNode {
     private Iterable<DynamicMethodNode> dynamicMethods;
 
     @Override
-    public void accept(AstVisitor visitor) {
-        visitor.visit(this);
+    public <T> T accept(AstVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 
     @AllArgsConstructor

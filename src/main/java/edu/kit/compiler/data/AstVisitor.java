@@ -10,24 +10,24 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.*;
  * 
  * For more information: see visitor pattern.
  */
-public interface AstVisitor {
+public interface AstVisitor<T> {
 
-    void visit(ProgramNode programNode);
-    void visit(ClassNode classNode);
-    void visit(StaticMethodNode staticMethodNode);
-    void visit(DynamicMethodNode dynamicMethodNode);
-    void visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode);
-    void visit(IfStatementNode ifStatementNode);
-    void visit(WhileStatementNode whileStatementNode);
-    void visit(ReturnStatementNode returnStatementNode);
-    void visit(ExpressionStatementNode expressionStatementNode);
-    void visit(BinaryExpressionNode binaryExpressionNode);
-    void visit(UnaryExpressionNode unaryExpressionNode);
-    void visit(MethodInvocationExpressionNode methodInvocationExpressionNode);
-    void visit(FieldAccessExpressionNode fieldAccessExpressionNode);
-    void visit(ArrayAccessExpressionNode arrayAccessExpressionNode);
-    void visit(ValueExpressionNode valueExpressionNode);
-    void visit(NewObjectExpressionNode newObjectExpressionNode);
-    void visit(NewArrayExpressionNode newArrayExpressionNode);
+    default T visit(ProgramNode programNode) { throw new UnsupportedOperationException(); }
+    default T visit(ClassNode classNode) { throw new UnsupportedOperationException(); }
+    default T visit(StaticMethodNode staticMethodNode) { throw new UnsupportedOperationException(); }
+    default T visit(DynamicMethodNode dynamicMethodNode) { throw new UnsupportedOperationException(); }
+    default T visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode) { throw new UnsupportedOperationException(); }
+    default T visit(IfStatementNode ifStatementNode) { throw new UnsupportedOperationException(); }
+    default T visit(WhileStatementNode whileStatementNode) { throw new UnsupportedOperationException(); }
+    default T visit(ReturnStatementNode returnStatementNode) { throw new UnsupportedOperationException(); }
+    default T visit(ExpressionStatementNode expressionStatementNode) { throw new UnsupportedOperationException(); }
+    default T visit(BinaryExpressionNode binaryExpressionNode) { throw new UnsupportedOperationException(); }
+    default T visit(UnaryExpressionNode unaryExpressionNode) { throw new UnsupportedOperationException(); }
+    default T visit(MethodInvocationExpressionNode methodInvocationExpressionNode) { throw new UnsupportedOperationException(); }
+    default T visit(FieldAccessExpressionNode fieldAccessExpressionNode) { throw new UnsupportedOperationException(); }
+    default T visit(ArrayAccessExpressionNode arrayAccessExpressionNode) { throw new UnsupportedOperationException(); }
+    default T visit(ValueExpressionNode valueExpressionNode) { throw new UnsupportedOperationException(); }
+    default T visit(NewObjectExpressionNode newObjectExpressionNode) { throw new UnsupportedOperationException(); }
+    default T visit(NewArrayExpressionNode newArrayExpressionNode) { throw new UnsupportedOperationException(); }
 
 }

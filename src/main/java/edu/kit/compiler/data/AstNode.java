@@ -29,6 +29,6 @@ public abstract class AstNode {
     /**
      * Accept a visitor (see visitor pattern).
      */
-    public abstract void accept(AstVisitor visitor);
+    public abstract <T> T accept(AstVisitor<T> visitor);
 
 }

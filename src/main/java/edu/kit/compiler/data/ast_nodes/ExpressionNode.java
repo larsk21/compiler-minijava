@@ -41,8 +41,8 @@ public abstract class ExpressionNode extends AstNode {
         private ExpressionNode rightSide;
 
         @Override
-        public void accept(AstVisitor visitor) {
-            visitor.visit(this);
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
         }
 
     }
@@ -68,8 +68,8 @@ public abstract class ExpressionNode extends AstNode {
         private ExpressionNode expression;
 
         @Override
-        public void accept(AstVisitor visitor) {
-            visitor.visit(this);
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
         }
 
     }
@@ -96,8 +96,8 @@ public abstract class ExpressionNode extends AstNode {
         private Iterable<ExpressionNode> arguments;
 
         @Override
-        public void accept(AstVisitor visitor) {
-            visitor.visit(this);
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
         }
 
     }
@@ -121,8 +121,8 @@ public abstract class ExpressionNode extends AstNode {
         private int name;
 
         @Override
-        public void accept(AstVisitor visitor) {
-            visitor.visit(this);
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
         }
 
     }
@@ -146,8 +146,8 @@ public abstract class ExpressionNode extends AstNode {
         private ExpressionNode expression;
 
         @Override
-        public void accept(AstVisitor visitor) {
-            visitor.visit(this);
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
         }
 
     }
@@ -198,8 +198,8 @@ public abstract class ExpressionNode extends AstNode {
         private Optional<Literal> literalValue;
 
         @Override
-        public void accept(AstVisitor visitor) {
-            visitor.visit(this);
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
         }
 
     }
@@ -229,8 +229,8 @@ public abstract class ExpressionNode extends AstNode {
         private int typeName;
 
         @Override
-        public void accept(AstVisitor visitor) {
-            visitor.visit(this);
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
         }
 
     }
@@ -257,8 +257,8 @@ public abstract class ExpressionNode extends AstNode {
         private int dimensions;
 
         @Override
-        public void accept(AstVisitor visitor) {
-            visitor.visit(this);
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
         }
 
     }
