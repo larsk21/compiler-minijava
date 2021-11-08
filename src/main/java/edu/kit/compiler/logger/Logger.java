@@ -13,7 +13,7 @@ public class Logger {
     private final PrintStream stream;
 
     public Logger() {
-        this(Verbosity.Default, false);
+        this(Verbosity.DEFAULT, false);
     }
 
     public Logger(Verbosity verbosity, boolean printColor) {
@@ -32,7 +32,7 @@ public class Logger {
     }
 
     public static Logger nullLogger() {
-        return new Logger(null, Verbosity.Silent, false,
+        return new Logger(null, Verbosity.SILENT, false,
             new PrintStream(OutputStream.nullOutputStream()));
     }
 
@@ -72,6 +72,12 @@ public class Logger {
         log(Level.ERROR, line, column, String.format(format, args));
     }
 
+    public void debugStackTrace(Exception exception) {
+        if (this.verbosity.compareTo(Verbosity.DEBUG) >= 0) {
+            exception.printStackTrace(stream);
+        }
+    }
+
     private void log(Level level, String message) {
         if (verbosity.compareTo(level.verbosity) >= 0) {
             var namePrefix = name.map(name -> " " + name + ":").orElse("");
@@ -90,18 +96,18 @@ public class Logger {
 
     // ! Order of verbosity levels is defined by order of enum entries
     public static enum Verbosity {
-        Silent,
-        Quiet,
-        Default,
-        Verbose,
-        Debug;
+        SILENT,
+        QUIET,
+        DEFAULT,
+        VERBOSE,
+        DEBUG;
     }
 
     private static enum Level {
-        Debug("debug", Verbosity.Debug, "\u001B[34m"),
-        INFO("info", Verbosity.Verbose, "\u001B[32m"),
-        WARN("warning", Verbosity.Default, "\u001B[33m"),
-        ERROR("error", Verbosity.Quiet, "\u001B[91m");
+        Debug("debug", Verbosity.DEBUG, "\u001B[34m"),
+        INFO("info", Verbosity.VERBOSE, "\u001B[32m"),
+        WARN("warning", Verbosity.DEFAULT, "\u001B[33m"),
+        ERROR("error", Verbosity.QUIET, "\u001B[91m");
 
         private static final String ANSI_RESET = "\u001B[0m";
 

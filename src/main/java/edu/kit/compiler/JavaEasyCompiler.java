@@ -163,11 +163,11 @@ public class JavaEasyCompiler {
 
         Verbosity verbosity;
         if (cmd.hasOption("v")) {
-            verbosity = Verbosity.Verbose;
+            verbosity = Verbosity.VERBOSE;
         } else if (cmd.hasOption("d")) {
-            verbosity = Verbosity.Debug;
+            verbosity = Verbosity.DEBUG;
         } else {
-            verbosity = Verbosity.Default;
+            verbosity = Verbosity.DEFAULT;
         }
         
         return new Logger(verbosity, printColor);
