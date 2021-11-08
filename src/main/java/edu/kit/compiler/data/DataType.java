@@ -21,10 +21,10 @@ public class DataType {
     }
 
     /**
-     * Create a constructed data type.
+     * Create a constructed (here: array) data type.
      */
-    public DataType(DataTypeClass type, DataType innerType) {
-        this.type = type;
+    public DataType(DataType innerType) {
+        this.type = DataTypeClass.Array;
 
         this.innerType = Optional.of(innerType);
         this.identifier = Optional.empty();

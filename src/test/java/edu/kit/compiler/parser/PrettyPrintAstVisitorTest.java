@@ -93,7 +93,7 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new ClassNode(0, 0, a, Arrays.asList(
             new ClassNode.ClassNodeField(new DataType(DataTypeClass.Int), d),
-            new ClassNode.ClassNodeField(new DataType(DataTypeClass.Array, new DataType(DataTypeClass.Int)), c)
+            new ClassNode.ClassNodeField(new DataType(new DataType(DataTypeClass.Int)), c)
         ), Arrays.asList(
             new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Void), h, Arrays.asList(), new MethodNode.MethodNodeRest(Optional.empty()), Arrays.asList(), false),
             new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Boolean), f, Arrays.asList(), new MethodNode.MethodNodeRest(Optional.empty()), Arrays.asList(), false)
@@ -131,7 +131,7 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), a, Arrays.asList(
             new MethodNode.MethodNodeParameter(new DataType(DataTypeClass.Int), c),
-            new MethodNode.MethodNodeParameter(new DataType(DataTypeClass.Array, new DataType(d)), b)
+            new MethodNode.MethodNodeParameter(new DataType(new DataType(d)), b)
         ), new MethodNode.MethodNodeRest(Optional.of(e)), Arrays.asList(), false);
 
         node.accept(visitor);
