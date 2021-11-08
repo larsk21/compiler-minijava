@@ -13,30 +13,53 @@ public class Logger {
     @Getter private final boolean printColor;
     private final PrintStream stream;
 
+    /**
+     * Creates a new logger at default verbosity, with no colored output.
+     */
     public Logger() {
         this(Verbosity.DEFAULT, false);
     }
 
+    /**
+     * Creates a new logger with the given parameters.
+     * 
+     * @param verbosity how verbose the logger should be.
+     * @param printColor whether to produce colored output.
+     */
     public Logger(Verbosity verbosity, boolean printColor) {
         this(null, verbosity, printColor);
     }
 
+    /**
+     * Creates a new logger with the given parameters.
+     * 
+     * @param name the name to use in log messages, may be null.
+     * @param verbosity how verbose the logger should be.
+     * @param printColor whether to produce colored output.
+     */
     public Logger(String name, Verbosity verbosity, boolean printColor) {
         this(name, verbosity, printColor, System.err);
     }
 
-    public Logger(String name, Verbosity verbosity, boolean printColor, PrintStream stream) {
+    private Logger(String name, Verbosity verbosity, boolean printColor, PrintStream stream) {
         this.name = Optional.ofNullable(name);
         this.verbosity = verbosity;
         this.printColor = printColor;
         this.stream = stream;
     }
 
+    /**
+     * Return a new logger which discards all log messages.
+     */
     public static Logger nullLogger() {
         return new Logger(null, Verbosity.SILENT, false,
             new PrintStream(OutputStream.nullOutputStream()));
     }
 
+    /**
+     * Returns a copy of this logger, that uses the given name in its messages.
+     * The name may be null, in which case the logger will not use any name. 
+     */
     public Logger withName(String name) {
         return new Logger(name, verbosity, printColor);
     }
@@ -73,6 +96,9 @@ public class Logger {
         log(Level.ERROR, line, column, String.format(format, args));
     }
 
+    /**
+     * Logs the given compiler exception at log level error.
+     */
     public void exception(CompilerException exception) {
         exception.getSourceLocation().ifPresentOrElse(
             (source) -> error(source.getLine(), source.getColumn(), exception.getMessage()),
@@ -80,6 +106,9 @@ public class Logger {
         );
     }
 
+    /**
+     * Prints the stack trace for the given exception at log level debug.
+     */
     public void stackTrace(Exception exception) {
         if (this.verbosity.compareTo(Verbosity.DEBUG) >= 0) {
             exception.printStackTrace(stream);

@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.Iterator;
 
+import edu.kit.compiler.data.FileInputException;
+
 /**
  * Wraps a Reader to act like a character Iterator.
  * 
@@ -31,7 +33,7 @@ public class ReaderCharIterator implements Iterator<Integer> {
         try {
             return reader.read();
         } catch (IOException e) {
-            return -1;
+            throw new FileInputException(e);
         }
     }
 
