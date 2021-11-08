@@ -452,6 +452,100 @@ public class PrettyPrintAstVisitorTest {
     }
 
     @Test
+    public void testSingleElseIfStatement() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        int a = stringTable.insert("a");
+
+        AstNode node = new StatementNode.IfStatementNode(0, 0,
+            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
+        Arrays.asList(
+            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+        ), Arrays.asList(
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.GreaterThanOrEqual,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(4), false),
+                false),
+            Arrays.asList(
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+                false)
+            ), Arrays.asList(
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false)
+        ), false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "if (false)\n" +
+            "\treturn;\n" +
+            "else if (2 >= 4)\n" +
+            "\ta;\n" +
+            "else\n" +
+            "\treturn;",
+            result
+        );
+    }
+
+    @Test
+    public void testMultiElseIfStatement() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        int a = stringTable.insert("a");
+        int b = stringTable.insert("b");
+
+        AstNode node = new StatementNode.IfStatementNode(0, 0,
+            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
+        Arrays.asList(
+            new StatementNode.ExpressionStatementNode(0, 0,
+                new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+            false),
+            new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+        ), Arrays.asList(
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.GreaterThanOrEqual,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(4), false),
+                false),
+            Arrays.asList(
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+                false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.of(
+                    new ExpressionNode.ValueExpressionNode(0, 0, b, false)
+                ), false)
+            ), Arrays.asList(
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.ValueExpressionNode(0, 0, b, false),
+                false),
+                new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+            ), false)
+        ), false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "if (false) {\n" +
+            "\ta;\n" +
+            "\treturn;\n" +
+            "} else if (2 >= 4) {\n" +
+            "\ta;\n" +
+            "\treturn b;\n" +
+            "} else {\n" +
+            "\tb;\n" +
+            "\treturn;\n" +
+            "}",
+            result
+        );
+    }
+
+    @Test
     public void testEmptyWhileStatement() {
         StringTable stringTable = new StringTable();
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
@@ -999,6 +1093,35 @@ public class PrettyPrintAstVisitorTest {
 
         assertEquals(
             "17 * ((a.b)[2 + 2] % (foo(-31, 2 < 5)))",
+            result
+        );
+    }
+
+    @Test
+    public void testMultiLevels() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        int a = stringTable.insert("ClassA");
+        int b = stringTable.insert("MethodB");
+
+        AstNode node = new ProgramNode(0, 0, Arrays.asList(
+            new ClassNode(0, 0, a, Arrays.asList(), Arrays.asList(), Arrays.asList(
+                new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Int), b, Arrays.asList(), new MethodNode.MethodNodeRest(Optional.empty()), Arrays.asList(
+                    new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+                ), false)
+            ), false)
+        ), false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "class ClassA {\n" +
+            "\tpublic int MethodB() {\n" +
+            "\t\treturn;\n" +
+            "\t}\n" +
+            "}\n",
             result
         );
     }
