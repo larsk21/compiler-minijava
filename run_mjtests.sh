@@ -13,6 +13,8 @@ cp -r ./mjtest-files/* ./mjtest/tests/
 
 # call mjtest with the specified mode
 ./mjtest/mjt.py --log_level  error --ci_testing --parallel $1
+return_code=$?
 
 # cleanup
 rm -rf ./mjtest/tests/*
+exit $return_code

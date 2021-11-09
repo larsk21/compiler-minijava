@@ -18,6 +18,8 @@ pushd "$SCRIPT_PATH" > /dev/null
 
 # build the executable with Maven
 mvn package "$@"
+return_code=$?
 
 # change the working directory back to where we came from
 popd > /dev/null
+exit $return_code
