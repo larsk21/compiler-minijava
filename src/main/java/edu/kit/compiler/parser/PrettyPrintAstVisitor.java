@@ -59,7 +59,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
     }
 
     private <T> List<T> toList(Iterable<T> iterable) {
-        return StreamSupport.stream(iterable.spliterator(), false).toList();
+        return StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toList());
     }
 
     @SafeVarargs
