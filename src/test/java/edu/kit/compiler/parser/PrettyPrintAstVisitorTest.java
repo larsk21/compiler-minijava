@@ -341,8 +341,7 @@ public class PrettyPrintAstVisitorTest {
         String result = stream.toString();
 
         assertEquals(
-            "if (false) { }\n" +
-            "else { }",
+            "if (false) { } else { }",
             result
         );
     }
@@ -363,8 +362,7 @@ public class PrettyPrintAstVisitorTest {
         String result = stream.toString();
 
         assertEquals(
-            "if (false) { }\n" +
-            "else\n" +
+            "if (false) { } else\n" +
             "\treturn;",
             result
         );
@@ -391,8 +389,7 @@ public class PrettyPrintAstVisitorTest {
         String result = stream.toString();
 
         assertEquals(
-            "if (false) { }\n" +
-            "else {\n" +
+            "if (false) { } else {\n" +
             "\tint a;\n" +
             "\treturn;\n" +
             "}",
