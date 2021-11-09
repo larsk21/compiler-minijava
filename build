@@ -17,7 +17,7 @@ popd > /dev/null
 pushd "$SCRIPT_PATH" > /dev/null
 
 # build the executable with Maven
-mvn package
+mvn package "$@"
 
 # change the working directory back to where we came from
 popd > /dev/null
