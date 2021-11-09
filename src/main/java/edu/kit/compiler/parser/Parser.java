@@ -9,6 +9,7 @@ import edu.kit.compiler.data.Operator.UnaryOperator;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
+import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode;
 import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.UnaryExpressionNode;
@@ -76,8 +77,9 @@ public class Parser {
      * 
      * @throws ParseException if a syntax error is encountered.
      */
-    public List<ClassNode> parse() {
+    public ProgramNode parse() {
         List<ClassNode> classes = new ArrayList<>();
+        Token programStart = tokenStream.get();
         while (tokenStream.get().getType() == TokenType.Keyword_Class) {
             Token firstToken = tokenStream.get();
             tokenStream.next();
@@ -89,7 +91,7 @@ public class Parser {
             expect(TokenType.Operator_BraceR);
         }
         expect(TokenType.EndOfStream);
-        return classes;
+        return new ProgramNode(programStart.getLine(), programStart.getColumn(), classes, false);
     }
 
     private ClassNode parseClassMembers(int line, int column, int className) {

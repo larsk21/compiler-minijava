@@ -76,7 +76,7 @@ public class ParserTest {
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
 
         var parser = new Parser(lexer);
-        var classes = parser.parse();
+        var classes = parser.parse().getClasses();
 
         for (ClassNode node: classes) {
             node.accept(visitor);
