@@ -254,6 +254,12 @@ public abstract class ExpressionNode extends AstNode {
         private DataType type;
         @Getter
         private ExpressionNode length;
+
+        /**
+         * 1-dimensional array => dimensions = 1,
+         * 2-dimensional array => dimensions = 2,
+         * ...
+         */
         @Getter
         private int dimensions;
 
