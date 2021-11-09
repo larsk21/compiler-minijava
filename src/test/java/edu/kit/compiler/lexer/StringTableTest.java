@@ -1,6 +1,5 @@
-package lexer;
+package edu.kit.compiler.lexer;
 
-import edu.kit.compiler.lexer.StringTable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
