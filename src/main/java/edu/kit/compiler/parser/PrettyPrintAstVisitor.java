@@ -572,17 +572,19 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
     }
 
     @Override
+    public Void visit(IdentifierExpressionNode identifierExpressionNode) {
+        String name = stringTable.retrieve(identifierExpressionNode.getIdentifier());
+
+        print(name);
+
+        return nothing;
+    }
+
+    @Override
     public Void visit(ValueExpressionNode valueExpressionNode) {
         switch (valueExpressionNode.getType()) {
         case False:
             print("false");
-            break;
-        case Identifier:
-            print(valueExpressionNode.getIntValue().map(
-                value -> stringTable.retrieve(value)
-            ).orElseThrow(
-                () -> new IllegalStateException("identifier primary expression without associated identifier")
-            ));
             break;
         case IntegerLiteral:
             print(valueExpressionNode.getLiteralValue().map(

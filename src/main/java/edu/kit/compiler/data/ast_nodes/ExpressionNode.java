@@ -152,6 +152,24 @@ public abstract class ExpressionNode extends AstNode {
 
     }
 
+    public static class IdentifierExpressionNode extends ExpressionNode {
+
+        public IdentifierExpressionNode(int line, int column, int identifier, boolean hasError) {
+            super(line, column, hasError);
+
+            this.identifier = identifier;
+        }
+
+        @Getter
+        private int identifier;
+
+        @Override
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+    }
+
     public static class ValueExpressionNode extends ExpressionNode {
 
         public ValueExpressionNode(
@@ -162,7 +180,6 @@ public abstract class ExpressionNode extends AstNode {
             super(line, column, hasError);
 
             this.type = type;
-            this.intValue = Optional.empty();
             this.literalValue = Optional.empty();
         }
 
@@ -174,26 +191,11 @@ public abstract class ExpressionNode extends AstNode {
             super(line, column, hasError);
 
             this.type = type;
-            this.intValue = Optional.empty();
             this.literalValue = Optional.of(value);
-        }
-
-        public ValueExpressionNode(
-            int line, int column,
-            int identifier,
-            boolean hasError
-        ) {
-            super(line, column, hasError);
-
-            this.type = ValueExpressionType.Identifier;
-            this.intValue = Optional.of(identifier);
-            this.literalValue = Optional.empty();
         }
 
         @Getter
         private ValueExpressionType type;
-        @Getter
-        private Optional<Integer> intValue;
         @Getter
         private Optional<Literal> literalValue;
 
@@ -209,7 +211,6 @@ public abstract class ExpressionNode extends AstNode {
         False,
         True,
         IntegerLiteral,
-        Identifier,
         This
     }
 

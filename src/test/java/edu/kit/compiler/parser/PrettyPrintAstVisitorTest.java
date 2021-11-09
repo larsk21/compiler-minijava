@@ -593,7 +593,7 @@ public class PrettyPrintAstVisitorTest {
                     new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(4), false),
                 false),
                 new StatementNode.ExpressionStatementNode(0, 0,
-                    new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, a, false),
                 false),
             Optional.of(
                 new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
@@ -626,7 +626,7 @@ public class PrettyPrintAstVisitorTest {
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.False, false),
             new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
                 new StatementNode.ExpressionStatementNode(0, 0,
-                    new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, a, false),
                 false),
                 new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
             ), false),
@@ -638,16 +638,16 @@ public class PrettyPrintAstVisitorTest {
                 false),
                 new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
                     new StatementNode.ExpressionStatementNode(0, 0,
-                        new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, a, false),
                     false),
                     new StatementNode.ReturnStatementNode(0, 0, Optional.of(
-                        new ExpressionNode.ValueExpressionNode(0, 0, b, false)
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, b, false)
                     ), false)
                 ), false),
             Optional.of(
                 new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
                     new StatementNode.ExpressionStatementNode(0, 0,
-                        new ExpressionNode.ValueExpressionNode(0, 0, b, false),
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, b, false),
                     false),
                     new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
                 ), false)
@@ -863,7 +863,7 @@ public class PrettyPrintAstVisitorTest {
         int a = stringTable.insert("a");
 
         AstNode node = new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Assignment,
-            new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, a, false),
             new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Multiplication,
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false),
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
@@ -967,7 +967,7 @@ public class PrettyPrintAstVisitorTest {
         int b = stringTable.insert("b");
 
         AstNode node = new ExpressionNode.MethodInvocationExpressionNode(0, 0, Optional.of(
-            new ExpressionNode.ValueExpressionNode(0, 0, a, false)
+            new ExpressionNode.IdentifierExpressionNode(0, 0, a, false)
         ), b, Arrays.asList(
             new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(42), false),
             new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.LogicalAnd,
@@ -994,7 +994,7 @@ public class PrettyPrintAstVisitorTest {
         int b = stringTable.insert("b");
 
         AstNode node = new ExpressionNode.FieldAccessExpressionNode(0, 0,
-            new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, a, false),
         b, false);
 
         node.accept(visitor);
@@ -1014,7 +1014,7 @@ public class PrettyPrintAstVisitorTest {
         int a = stringTable.insert("a");
 
         AstNode node = new ExpressionNode.ArrayAccessExpressionNode(0, 0,
-            new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, a, false),
             new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Addition,
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false),
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
@@ -1038,7 +1038,7 @@ public class PrettyPrintAstVisitorTest {
         int a = stringTable.insert("a");
 
         AstNode node = new ExpressionNode.ArrayAccessExpressionNode(0, 0,
-            new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, a, false),
             new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Multiplication,
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false),
                 new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Addition,
@@ -1058,6 +1058,24 @@ public class PrettyPrintAstVisitorTest {
     }
 
     @Test
+    public void testIdentifierExpression() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        int a = stringTable.insert("a");
+
+        AstNode node = new ExpressionNode.IdentifierExpressionNode(0, 0, a, false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "a",
+            result
+        );
+    }
+
+    @Test
     public void testFalseValueExpression() {
         StringTable stringTable = new StringTable();
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
@@ -1069,24 +1087,6 @@ public class PrettyPrintAstVisitorTest {
 
         assertEquals(
             "false",
-            result
-        );
-    }
-
-    @Test
-    public void testIdentifierValueExpression() {
-        StringTable stringTable = new StringTable();
-        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
-
-        int a = stringTable.insert("a");
-
-        AstNode node = new ExpressionNode.ValueExpressionNode(0, 0, a, false);
-
-        node.accept(visitor);
-        String result = stream.toString();
-
-        assertEquals(
-            "a",
             result
         );
     }
@@ -1232,7 +1232,7 @@ public class PrettyPrintAstVisitorTest {
             new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Modulo,
                 new ExpressionNode.ArrayAccessExpressionNode(0, 0,
                     new ExpressionNode.FieldAccessExpressionNode(0, 0,
-                        new ExpressionNode.ValueExpressionNode(0, 0, a, false),
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, a, false),
                     b, false),
                     new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Addition,
                         new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
