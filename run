@@ -15,6 +15,11 @@ popd > /dev/null
 # find the compiler executable (EXE_PATH)
 EXE_PATH=$(find $SCRIPT_PATH/target/java-compiler-*-with-dependencies.jar) || exit $?
 
+# enable colored logging if stderr is a terminal
+if [[ -t 2 ]]; then
+    export COLOR="on"
+fi
+
 # execute the compiler with the provided arguments and return the exit code
 java -jar "$EXE_PATH" "$@"
 exit $?

@@ -1,11 +1,15 @@
 package edu.kit.compiler.parser;
 
+import java.util.Optional;
+
+import edu.kit.compiler.JavaEasyCompiler.Result;
+import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Token;
 
 /**
  * Exception thrown by the Parser in case of a syntax error.
  */
-public class ParseException extends RuntimeException {
+public class ParseException extends CompilerException {
     private Token token;
 
     /**
@@ -24,7 +28,7 @@ public class ParseException extends RuntimeException {
      * @param message Message describing the exception further.
      */
     public ParseException(Token token, String message) {
-        super(String.format("unexepected token %s%n; %s%n", token.getType().name(), message));
+        super(String.format("unexpected token %s; %s%n", token.getType().name(), message));
         this.token = token;
     }
 
@@ -35,18 +39,19 @@ public class ParseException extends RuntimeException {
         return token;
     }
 
-    /**
-     * Get the line position of the character that caused the exception.
-     */
-    public int getLine() {
-        return token.getLine();
+    @Override
+    public Optional<SourceLocation> getSourceLocation() {
+        return Optional.of(new SourceLocation(token.getLine(), token.getColumn()));
     }
 
-    /**
-     * Get the column position of the character that caused the exception.
-     */
-    public int getColumn() {
-        return token.getColumn();
+    @Override
+    public Optional<String> getCompilerStage() {
+        return Optional.of("parser");
+    }
+
+    @Override
+    public Result getResult() {
+        return Result.ParseError;
     }
 }
 

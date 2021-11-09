@@ -2,6 +2,8 @@ package edu.kit.compiler.cmd;
 
 import edu.kit.compiler.JavaEasyCompiler;
 import edu.kit.compiler.JavaEasyCompiler.Result;
+import edu.kit.compiler.logger.Logger;
+
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -24,7 +26,7 @@ public class LineEndingTestForEcho {
     public void testLineEndings() throws IOException {
         var path = classLoader.getResource(FILE).getPath();
         var os = new ByteArrayOutputStream();
-        assertEquals(JavaEasyCompiler.echo(path, os), Result.Ok);
+        assertEquals(JavaEasyCompiler.echo(path, os, Logger.nullLogger()), Result.Ok);
         assertEquals(os.toString(), expected);
     }
 
@@ -32,7 +34,7 @@ public class LineEndingTestForEcho {
     public void testLargeFile() throws IOException {
         var path = classLoader.getResource(LARGE_FILE).getPath();
         var os = new ByteArrayOutputStream();
-        assertEquals(JavaEasyCompiler.echo(path, os), Result.Ok);
+        assertEquals(JavaEasyCompiler.echo(path, os, Logger.nullLogger()), Result.Ok);
 
         String repeated = "A".repeat(3000);
         assertEquals(os.toString(), repeated);

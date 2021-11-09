@@ -6,27 +6,32 @@ import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.CharCounterLookaheadIterator;
 import edu.kit.compiler.io.ReaderCharIterator;
+import edu.kit.compiler.logger.Logger;
+import static edu.kit.compiler.data.TokenType.*;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import static edu.kit.compiler.data.TokenType.*;
 
 /**
  * Reads characters from an input stream and returns found tokens.
  */
 public class Lexer implements Iterator<Token> {
-    private static Map<String, TokenType> KEYWORDS = new HashMap<>(keyWordMap());
+    private static final Map<String, TokenType> KEYWORDS = keyWordMap();
 
-    private CharCounterLookaheadIterator charStream;
-    private StringTable stringTable;
+    private final CharCounterLookaheadIterator charStream;
+    private final StringTable stringTable;
+    private final Logger logger;
 
     public Lexer(ReaderCharIterator iterator) {
+        this(iterator, Logger.nullLogger());
+    }
+
+    public Lexer(ReaderCharIterator iterator, Logger logger) {
         this.charStream = new CharCounterLookaheadIterator(
             new BufferedLookaheadIterator<>(iterator)
         );
         this.stringTable = new StringTable();
+        this.logger = logger.withName("lexer");
     }
 
     public StringTable getStringTable() {
@@ -239,10 +244,7 @@ public class Lexer implements Iterator<Token> {
 
             while (!Character.isCommentEnd(charStream.get(0), charStream.get(1))) {
                 if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
-                    // todo proper format for warnings.
-                    System.err.format(
-                        "warning: lexer: %d,%d: found opening comment inside of a comment\n",
-                        line, column);
+                    logger.warn(line, column, "found opening comment inside of comment");
                 } else if (Character.isEndOfStream(charStream.get(0))) {
                     throw new LexException(line, column, "unclosed comment");
                 }
