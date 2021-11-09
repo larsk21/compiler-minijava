@@ -33,7 +33,7 @@ public class StringTable {
         if(hash < size() && hash >= 0) {
             return strings.get(hash);
         }
-        return null;
+        throw new IllegalArgumentException("No string present for this value.");
     }
 
     public int size() {
