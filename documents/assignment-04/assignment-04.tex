@@ -1,0 +1,86 @@
+\documentclass[12pt,a4paper]{scrartcl}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\title{4. Übungsblatt}
+\author{Lars, Niklas, Nikolai, Pascal}
+\date{\today}
+
+\newcommand{\todo}[1]{{\color{red} TODO: {#1}}}
+\newcommand{\node}[2]{\textit{#1} \enspace::\enspace &\textit{#2}\\}
+\newcommand{\leaf}[2]{\textit{#1} \enspace::\enspace &\texttt{#2}\\}
+\newcommand{\kind}[2]{\textit{#1} \enspace=\enspace &\textit{#2}\\}
+\renewcommand{\bar}[1]{&\quad | \:\textit{#1}\\}
+\newcommand{\kindol}[2]{\textit{#1} \enspace=\enspace &\textit{#2}}
+\newcommand{\barol}[1]{\enspace | \:\textit{#1}}
+
+\begin{document}
+\allowdisplaybreaks
+
+\maketitle
+
+\section{Abstrakter Syntaxbaum}
+
+\subsection{Modellierung als abstrakte Algebra}
+
+\begin{align*}
+    \node{Program}{Class*}
+    \node{Class}{Name Field* StaticMethod* DynamicMethod*}
+    \node{Field}{Name Type}
+    \node{StaticMethod}{MethodDecl}
+    \node{DynamicMethod}{MethodDecl}
+    \node{MethodDecl}{Name Type Parameter* MethodRest? Statement+}
+    \node{Parameter}{Name Type}
+    \node{MethodRest}{Name}
+    \kindol{Type}{PrimitiveType}
+        \barol{ArrayType}
+        \barol{UserType}\\
+    \leaf{PrimitiveType}{type}
+    \node{ArrayType}{Type}
+    \node{UserType}{Name}
+    \leaf{Name}{identifier}
+    \kind{Statement}{BlockStatement}
+        \bar{DeclarationStatement}
+        \bar{IfStatement}
+        \bar{WhileStatement}
+        \bar{ReturnStatement}
+        \bar{ExpressionStatement}
+    \node{BlockStatement}{Statement*}
+    \node{DeclarationStatement}{Name Type Expression?}
+    \node{IfStatement}{Expression Statement Statement?}
+    \node{WhileStatement}{Expression Statement}
+    \node{ReturnStatement}{Expression?}
+    \node{ExpressionStatement}{Expression}
+    \kind{Expression}{BinaryExpression}
+        \bar{UnaryExpression}
+        \bar{MethodInvocationExpression}
+        \bar{FieldAccessExpression}
+        \bar{ArrayAcessExpression}
+        \bar{IdentifierExpression}
+        \bar{ValueExpression}
+        \bar{NewObjectExpression}
+        \bar{NewArrayExpression}
+    \node{BinaryExpression}{Operator Expression Expression}
+    \node{UnaryExpression}{Operator Expression}
+    \node{MethodInvocationExpression}{Expression? Name Expression*}
+    \node{FieldAcessExpression}{Expression Name}
+    \node{ArrayAcessExpression}{Expression Expression}
+    \node{IdentifierExpression}{Name}
+    \kindol{ValueExpression}{Null}
+        \barol{True}
+        \barol{False}
+        \barol{This}
+        \barol{Integer}\\
+    \node{NewObjectExpression}{Name}
+    \node{NewArrayExpression}{Type Expression}
+    \leaf{Null}{}
+    \leaf{True}{}
+    \leaf{False}{}
+    \leaf{This}{}
+    \leaf{Integer}{literal}
+    \leaf{Operator}{operator}
+\end{align*}
+
+\end{document}
