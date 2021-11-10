@@ -231,8 +231,8 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
         print(")");
 
-        if (methodNode.getRest().getThrowsTypeIdentifier().isPresent()) {
-            String exceptionTypeName = stringTable.retrieve(methodNode.getRest().getThrowsTypeIdentifier().get());
+        if (methodNode.getRest().isPresent()) {
+            String exceptionTypeName = stringTable.retrieve(methodNode.getRest().get().getThrowsTypeIdentifier());
 
             print(" throws %s", exceptionTypeName);
         }

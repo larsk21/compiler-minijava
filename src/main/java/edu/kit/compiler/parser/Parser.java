@@ -37,16 +37,11 @@ import edu.kit.compiler.io.LookaheadIterator;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.parser.OperatorInformation.Associativity;
 
-import java.beans.Statement;
-import java.lang.StackWalker.Option;
-import java.lang.Thread.State;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
-import javax.xml.crypto.Data;
 
 import static edu.kit.compiler.data.TokenType.*;
 
@@ -109,11 +104,13 @@ public class Parser {
                 expect(TokenType.Keyword_Void);
                 Token name = expect(TokenType.Identifier);
                 expect(TokenType.Operator_ParenL);
+                int paramLine = tokenStream.get().getLine();
+                int paramColumn = tokenStream.get().getColumn();
                 DataType paramType = parseType();
                 Token paramName = expect(TokenType.Identifier);
-                MethodNodeParameter param = new MethodNodeParameter(paramType, paramName.getIntValue().get());
+                MethodNodeParameter param = new MethodNodeParameter(paramLine, paramColumn, paramType, paramName.getIntValue().get(), false);
                 expect(TokenType.Operator_ParenR);
-                MethodNodeRest mRest = parseMethodRest();
+                Optional<MethodNodeRest> mRest = parseMethodRest();
                 BlockStatementNode block = parseBlock();
                 staticMethods.add(
                     new StaticMethodNode(firstToken.getLine(), firstToken.getColumn(), new DataType(DataTypeClass.Void),
@@ -125,7 +122,7 @@ public class Parser {
                 if (tokenStream.get().getType() == TokenType.Operator_Semicolon) {
                     // Field
                     tokenStream.next();
-                    fields.add(new ClassNodeField(type, name.getIntValue().get()));
+                    fields.add(new ClassNodeField(firstToken.getLine(), firstToken.getColumn(), type, name.getIntValue().get(), false));
                 } else {
                     List<MethodNodeParameter> params = new ArrayList<>();
                     // Method
@@ -134,7 +131,7 @@ public class Parser {
                         params = parseParameters();
                     }
                     expect(TokenType.Operator_ParenR);
-                    MethodNodeRest mRest = parseMethodRest();
+                    Optional<MethodNodeRest> mRest = parseMethodRest();
                     BlockStatementNode block = parseBlock();
                     dynamicMethods.add(
                         new DynamicMethodNode(firstToken.getLine(), firstToken.getColumn(),
@@ -156,13 +153,15 @@ public class Parser {
         return result;
     }
 
-    private MethodNode.MethodNodeRest parseMethodRest() {
+    private Optional<MethodNode.MethodNodeRest> parseMethodRest() {
         if (tokenStream.get().getType() == TokenType.Keyword_Throws) {
+            int line = tokenStream.get().getLine();
+            int column = tokenStream.get().getColumn();
             tokenStream.next();
             Token throwType = expect(TokenType.Identifier);
-            return new MethodNodeRest(throwType.getIntValue());
+            return Optional.of(new MethodNodeRest(line, column, throwType.getIntValue().get(), false));
         }
-        return new MethodNodeRest(Optional.empty());
+        return Optional.empty();
     }
 
     private List<MethodNodeParameter> parseParameters() {
@@ -176,9 +175,11 @@ public class Parser {
     }
 
     private MethodNodeParameter parseParameter() {
+        int line = tokenStream.get().getLine();
+        int column = tokenStream.get().getColumn();
         DataType type = parseType();
         Token name = expect(TokenType.Identifier);
-        return new MethodNodeParameter(type, name.getIntValue().get());
+        return new MethodNodeParameter(line, column, type, name.getIntValue().get(), false);
     }
 
     private BlockStatementNode parseBlock() {
