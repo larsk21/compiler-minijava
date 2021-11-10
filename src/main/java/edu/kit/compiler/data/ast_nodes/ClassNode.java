@@ -1,12 +1,12 @@
 package edu.kit.compiler.data.ast_nodes;
 
 import edu.kit.compiler.data.AstNode;
+import edu.kit.compiler.data.AstObject;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 public class ClassNode extends AstNode {
@@ -41,8 +41,14 @@ public class ClassNode extends AstNode {
         return visitor.visit(this);
     }
 
-    @AllArgsConstructor
-    public static class ClassNodeField {
+    public static class ClassNodeField extends AstObject {
+
+        public ClassNodeField(int line, int column, DataType type, int name, boolean hasError) {
+            super(line, column, hasError);
+
+            this.type = type;
+            this.name = name;
+        }
 
         @Getter
         private DataType type;
