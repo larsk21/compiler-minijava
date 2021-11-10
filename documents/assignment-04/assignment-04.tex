@@ -1,14 +1,19 @@
 \documentclass[12pt,a4paper]{scrartcl}
+\usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
+\usepackage{color}
+\usepackage{lscape}
+\usepackage{booktabs}
 
 \title{4. Übungsblatt}
-\author{Lars, Niklas, Nikolai, Pascal}
+\author{Lars, Niklas, Nikolai Maas, Pascal Mehnert}
 \date{\today}
 
-\newcommand{\todo}[1]{{\color{red} TODO: {#1}}}
+\newcommand{\todo}[1]{}
+\renewcommand{\todo}[1]{{\color{red} TODO: {#1}}}
 \newcommand{\node}[2]{\textit{#1} \enspace::\enspace &\textit{#2}\\}
 \newcommand{\leaf}[2]{\textit{#1} \enspace::\enspace &\texttt{#2}\\}
 \newcommand{\kind}[2]{\textit{#1} \enspace=\enspace &\textit{#2}\\}
@@ -16,8 +21,13 @@
 \newcommand{\kindol}[2]{\textit{#1} \enspace=\enspace &\textit{#2}}
 \newcommand{\barol}[1]{\enspace | \:\textit{#1}}
 
+
+\renewcommand{\prod}[2]{$\textit{#1} \rightarrow \textit{#2}$}
+\newcommand{\tok}[1]{\textnormal{\texttt{#1}}}
+
 \begin{document}
 \allowdisplaybreaks
+\def\tor{\textnormal{|}}
 
 \maketitle
 
@@ -29,9 +39,9 @@
     \node{Program}{Class*}
     \node{Class}{Name Field* StaticMethod* DynamicMethod*}
     \node{Field}{Name Type}
-    \node{StaticMethod}{MethodDecl}
-    \node{DynamicMethod}{MethodDecl}
-    \node{MethodDecl}{Name Type Parameter* MethodRest? Statement+}
+    \node{StaticMethod}{Method}
+    \node{DynamicMethod}{Method}
+    \node{Method}{Name Type Parameter* MethodRest? Statement+}
     \node{Parameter}{Name Type}
     \node{MethodRest}{Name}
     \kindol{Type}{PrimitiveType}
@@ -57,16 +67,16 @@
         \bar{UnaryExpression}
         \bar{MethodInvocationExpression}
         \bar{FieldAccessExpression}
-        \bar{ArrayAcessExpression}
+        \bar{ArrayAccessExpression}
         \bar{IdentifierExpression}
         \bar{ValueExpression}
         \bar{NewObjectExpression}
         \bar{NewArrayExpression}
-    \node{BinaryExpression}{Operator Expression Expression}
-    \node{UnaryExpression}{Operator Expression}
+    \node{BinaryExpression}{BinaryOperator Expression Expression}
+    \node{UnaryExpression}{UnaryOperator Expression}
     \node{MethodInvocationExpression}{Expression? Name Expression*}
-    \node{FieldAcessExpression}{Expression Name}
-    \node{ArrayAcessExpression}{Expression Expression}
+    \node{FieldAccessExpression}{Expression Name}
+    \node{ArrayAccessExpression}{Expression Expression}
     \node{IdentifierExpression}{Name}
     \kindol{ValueExpression}{Null}
         \barol{True}
@@ -80,7 +90,113 @@
     \leaf{False}{}
     \leaf{This}{}
     \leaf{Integer}{literal}
-    \leaf{Operator}{operator}
+    \leaf{BinaryOperator}{operator}
+    \leaf{UnaryOperator}{operator}
 \end{align*}
 
+\todo{What to do with Null, True, False, This?}\\
+\todo{How to handle dimension in NewArrayExpression}\\
+\todo{Should method only have a block statement?}
+
+
+\subsection{Modellierung als attributierte Grammatik}
+
+
+\begin{landscape}
+\begin{center}
+\begin{tabular}{ll}
+    \toprule
+    Produktion & Semantische Regeln\\
+    \midrule
+    \prod{Program}{ClassDeclaration*} & \\
+    \prod{ClassDeclaration}{\tok{class IDENT \{} ClassMembers* \tok{\}}} & \\
+    \prod{ClassMember}{Field} & \\
+    \prod{ClassMember}{Method} & \\
+    \prod{ClassMember}{MainMethod} & \\ 
+    \prod{Field}{\tok{public} Type \tok{IDENT}} & \\
+    \prod{MainMethod}{\tok{public static void IDENT (} Type \tok{IDENT )}} & \\
+    \prod{Method}{\tok{public} Type \tok{IDENT (} Parameters? \tok{)} MethodRest? Block} & \\
+    \prod{MethodRest}{\tok{throws IDENT}} & \\
+    \prod{Parameters}{Parameter} & \\
+    \prod{Parameters}{Parameter \tok{,} Parameters} & \\
+    \prod{Parameter}{Type \tok{IDENT}} & \\
+    \prod{Type}{Type \tok{[ ]}} & \\
+    \prod{Type}{BasicType} & \\
+    \prod{BasicType}{\tok{int}} & \\
+    \prod{BasicType}{\tok{boolean}} & \\
+    \prod{BasicType}{\tok{void}} & \\
+    \prod{BasicType}{\tok{IDENT}} & \\
+    \prod{Statement}{Block} & \\
+    \prod{Statement}{EmptyStatement} & \\
+    \prod{Statement}{IfStatement} & \\
+    \prod{Statement}{ExpressionStatement} & \\
+    \prod{Statement}{WhileStatement} & \\
+    \prod{Statement}{ReturnStatement} & \\
+    \prod{Block}{\tok{\{} BlockStatement* \tok{\}}} & \\
+    \prod{BlockStatement}{Statement} & \\
+    \prod{BlockStatement}{LocalVariableDeclaration} & \\
+    \prod{LocalVariableDeclaration}{Type \tok{IDENT} (\tok{=} Expression)? \tok{;}} & \\
+    \prod{EmptyStatement}{\tok{;}} & \\
+    \bottomrule
+\end{tabular}
+\end{center}
+\end{landscape}
+
+\begin{landscape}
+\begin{center}
+\begin{tabular}{ll}
+    \toprule
+    Produktion & Semantische Regeln\\
+    \midrule
+    \prod{WhileStatement}{\tok{while (} Expression \tok{)} Statement} & \\
+    \prod{WhileStatement}{\tok{if (} Expression \tok{)} Statement (\tok{else} Statement)?} & \\
+    \prod{ExpressionStatement}{Expression \tok{;}} & \\
+    \prod{ReturnStatement}{\tok{return} Expression? \tok{;}} & \\
+    \prod{Expression}{AssignmentExpression} & \\
+    \prod{AssignmentExpression}{LogicalOrExpression (\tok{=} AssignmentExpression)?} & \\
+    \prod{LogicalOrExpression}{(LogicalOrExpression \tok{||})? LogicalAndExpression} & \\
+    \prod{LogicalAndExpression}{(LogicalAndExpression \tok{\&\&})? EqualityExpression} & \\
+    \prod{EqualityExpression}{(EqualityExpression (\tok{== \tor{} !=}))? RelationalExpression} & \\
+    \prod{RelationalExpression}{(RelationalExpression (\tok{< \tor{} <= \tor{} > \tor{} >=}))? AdditiveExpression} & \\
+    \prod{AdditiveExpression}{(AdditiveExpression (\tok{* \tor{} / \tor{} \%}))? UnaryExpression} & \\
+    \prod{UnaryExpression}{PostifxExpression} & \\
+    \prod{UnaryExpression}{(\tok{! \tor{} -}) UnaryExpression} & \\
+    \prod{PostifxExpression}{PrimaryExpression (PostifxOp)*} & \\
+    \prod{PostfixOp}{MethodInvocation} & \\
+    \prod{PostfixOp}{FieldAccess} & \\
+    \prod{PostfixOp}{ArrayAccess} & \\
+    \prod{MethodInvocation}{\tok{. IDENT (} Arguments \tok{)}} & \\
+    \prod{FieldAccess}{\tok{. IDENT}} & \\
+    \prod{ArrayAccess}{\tok{[} Expression \tok{]}} & \\
+    \prod{Arguments}{(Expression (\tok{,} Expression)*)?} & \\
+    \prod{PrimaryExpression}{\tok{null}} & \\
+    \prod{PrimaryExpression}{\tok{false}} & \\
+    \prod{PrimaryExpression}{\tok{true}} & \\
+    \prod{PrimaryExpression}{\tok{INTEGER\_LITERAL}} & \\
+    \prod{PrimaryExpression}{\tok{IDENT}} & \\
+    \prod{PrimaryExpression}{\tok{IDENT \tok{(} Arguments \tok{)}}} & \\
+    \prod{PrimaryExpression}{\tok{this}} & \\
+    \prod{PrimaryExpression}{\tok{(} Expression \tok{)}} & \\
+    \bottomrule
+\end{tabular}
+\end{center}
+\end{landscape}
+
+\begin{landscape}
+\begin{center}
+\begin{tabular}{ll}
+    \toprule
+    Produktion & Semantische Regeln\\
+    \midrule
+    \prod{PrimaryExpression}{NewObjectExpression} & \\
+    \prod{PrimaryExpression}{NewArrayExpression} & \\
+    \prod{NewObjectExpression}{\tok{new IDENT ( )}} & \\
+    \prod{NewArrayExpression}{\tok{new} BasicType \tok{[} Expression \tok{]} (\tok{[]})*} & \\
+    \bottomrule
+\end{tabular}
+\end{center}
+\end{landscape}
+
+
 \end{document}
+
