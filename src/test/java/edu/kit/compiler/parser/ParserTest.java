@@ -1,6 +1,5 @@
 package edu.kit.compiler.parser;
 
-import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
@@ -76,11 +75,7 @@ public class ParserTest {
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
 
         var parser = new Parser(lexer);
-        var classes = parser.parse().getClasses();
-
-        for (ClassNode node: classes) {
-            node.accept(visitor);
-        }
+        parser.parse().accept(visitor);
         String result = stream.toString();
 
         assertEquals(
@@ -89,7 +84,95 @@ public class ParserTest {
             + "\t\tint j = (i + 1) - j;\n"
             + "\t}\n"
             + "\tpublic int i;\n"
-            + "}",
+            + "}\n",
+            result
+        );
+        System.setOut(sysout);
+    }
+
+    @Test
+    public void testExampleFromAssignment() {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        PrintStream sysout = System.out;
+        System.setOut(new PrintStream(stream));
+
+        Lexer lexer = new Lexer(getIterator(
+            "class HelloWorld" +
+            "{" +
+            "public int c;" +
+            "public boolean[] array;" +
+            "public static /* blabla */ void main(String[] args)" +
+            "{ System.out.println( (43110 + 0) );" +
+            "boolean b = true && (!false);" +
+            "if (23+19 == (42+0)*1)" +
+            "b = (0 < 1);" +
+            "else if (!array[2+2]) {" +
+            "int x = 0;;" +
+            "x = x+1;" +
+            "} else {" +
+            "new HelloWorld().bar(42+0*1, -1);" +
+            "}" +
+            "}" +
+            "public int bar(int a, int b) { return c = (a+b); }" +
+            "}"
+        ));
+
+        StringTable stringTable = lexer.getStringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        var parser = new Parser(lexer);
+        parser.parse().accept(visitor);
+        String result = stream.toString();
+        String expected = "class HelloWorld {\n" +
+        "\tpublic int bar(int a, int b) {\n" +
+        "\t\treturn c = (a + b);\n" +
+        "\t}\n" +
+        "\tpublic static void main(String[] args) {\n" +
+        "\t\t(System.out).println(43110 + 0);\n" +
+        "\t\tboolean b = true && (!false);\n" +
+        "\t\tif ((23 + 19) == ((42 + 0) * 1))\n" +
+        "\t\t\tb = (0 < 1);\n" +
+        "\t\telse if (!(array[2 + 2])) {\n" +
+        "\t\t\tint x = 0;\n" +
+        "\t\t\tx = (x + 1);\n" +
+        "\t\t} else {\n" +
+        "\t\t\t(new HelloWorld()).bar(42 + (0 * 1), -1);\n" +
+        "\t\t}\n" +
+        "\t}\n" +
+        "\tpublic boolean[] array;\n" +
+        "\tpublic int c;\n" +
+        "}\n";
+
+        assertEquals(expected, result);
+        System.setOut(sysout);
+    }
+
+    @Test
+    public void testPrecedenceAst() {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        PrintStream sysout = System.out;
+        System.setOut(new PrintStream(stream));
+
+        Lexer lexer = new Lexer(getIterator(
+            "class Test {"
+            + "public void m(){"
+            + "  int j = (i + 1 - obj.m(-z[0]) < 0 < z) * j;"
+            + "} }"
+        ));
+
+        StringTable stringTable = lexer.getStringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        var parser = new Parser(lexer);
+        parser.parse().accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "class Test {\n"
+            + "\tpublic void m() {\n"
+            + "\t\tint j = ((((i + 1) - (obj.m(-(z[0])))) < 0) < z) * j;\n"
+            + "\t}\n"
+            + "}\n",
             result
         );
         System.setOut(sysout);
