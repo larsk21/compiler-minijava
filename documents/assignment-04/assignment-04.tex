@@ -7,9 +7,12 @@
 \usepackage{color}
 \usepackage{lscape}
 \usepackage{booktabs}
+\usepackage{xifthen}
+\usepackage{ragged2e}
 
 \title{4. Übungsblatt}
-\author{Lars, Niklas, Nikolai Maas, Pascal Mehnert}
+\author{Lars \and Niklas \and Nikolai \and Pascal}
+\subject{Gruppe 3}
 \date{\today}
 
 \newcommand{\todo}[1]{}
@@ -22,8 +25,14 @@
 \newcommand{\barol}[1]{\enspace | \:\textit{#1}}
 
 
-\renewcommand{\prod}[2]{$\textit{#1} \rightarrow \textit{#2}$}
+\renewcommand{\prod}[2]{\textit{#1} $\rightarrow$ \textit{#2}}
 \newcommand{\tok}[1]{\textnormal{\texttt{#1}}}
+\newcommand{\assign}[2]{\textit{#1} $=$ #2}
+\newcommand{\List}[1]{\textnormal{List(\textit{#1})}}
+\newcommand{\concat}[1]{\textnormal{concat(\textit{#1})}}
+\newcommand{\new}[2]{\textnormal{new #1(\textit{#2})}}
+\newcommand{\attr}[1]{\parbox{\linewidth}{\raggedleft \textit{#1}}}
+
 
 \begin{document}
 \allowdisplaybreaks
@@ -41,13 +50,18 @@
     \node{Field}{Name Type}
     \node{StaticMethod}{Method}
     \node{DynamicMethod}{Method}
-    \node{Method}{Name Type Parameter* MethodRest? Statement+}
+    \node{Method}{Name Type Parameter* MethodRest? Statement*}
     \node{Parameter}{Name Type}
     \node{MethodRest}{Name}
     \kindol{Type}{PrimitiveType}
         \barol{ArrayType}
         \barol{UserType}\\
-    \leaf{PrimitiveType}{type}
+    \kindol{PrimitiveType}{IntegerType}
+        \barol{BooleanType}
+        \barol{VoidType}\\
+    \leaf{IntegerType}{}
+    \leaf{BooleanType}{}
+    \leaf{VoidType}{}
     \node{ArrayType}{Type}
     \node{UserType}{Name}
     \leaf{Name}{identifier}
@@ -84,7 +98,7 @@
         \barol{This}
         \barol{Integer}\\
     \node{NewObjectExpression}{Name}
-    \node{NewArrayExpression}{Type Expression}
+    \node{NewArrayExpression}{Type Expression ArrayDimensions}
     \leaf{Null}{}
     \leaf{True}{}
     \leaf{False}{}
@@ -92,110 +106,161 @@
     \leaf{Integer}{literal}
     \leaf{BinaryOperator}{operator}
     \leaf{UnaryOperator}{operator}
+    \leaf{ArrayDimensions}{dimensions}
 \end{align*}
 
-\todo{What to do with Null, True, False, This?}\\
-\todo{How to handle dimension in NewArrayExpression}\\
-\todo{Should method only have a block statement?}
 
-
+\newpage
 \subsection{Modellierung als attributierte Grammatik}
 
+\begin{enumerate}
+    \item \prod{Program}{ClassDeclaration*}\\
+        \attr{\assign{Program.node}{\List{ClassDeclaration$_i$}}}
+    \item \prod{ClassDeclaration}{\tok{class IDENT \{} ClassMembers* \tok{\}}}
+        \footnote{Mit \textit{ClassMembers$_i$.<attr>} sind nur diejenigen $i$ gemeint, für die das Attribut \textit{attr} definiert ist}\\
+        \attr{\assign{ClassDeclaration.name}{\tok{IDENT}.lexval}}
+        \attr{\assign{ClassDeclaration.fields}{\List{ClassMembers$_i$.field}}}
+        \attr{\assign{ClassDeclaration.dynamicMethods}{\List{ClassMembers$_i$.dynamicMethod}}}
+        \attr{\assign{ClassDeclaration.staticMethods}{\List{ClassMembers$_i$.staticMethod}}}
+    \item \prod{ClassMember}{Field}\\
+        \attr{\assign{ClassMember.field}{Field.decl}}
+    \item \prod{ClassMember}{Method}\\
+        \attr{\assign{ClassMember.dynamicMethod}{Method.decl}}
+    \item \prod{ClassMember}{MainMethod}\\
+        \attr{\assign{ClassMember.staticMethod}{MainMethod.decl}}
+    \item \prod{Field}{\tok{public} Type \tok{IDENT}}\\
+        \attr{\assign{Field.decl}{\new{Field}{\new{Name}{\tok{IDENT}.lexval}, Type.type}}}
+    \item \textit{MainMethod} $\rightarrow$
+        $\begin{aligned} &\textit{\tok{public static void IDENT$_1$ (} Type \tok{IDENT$_2$ )}} \\
+                         &\textit{MethodRest? Block} \end{aligned}$\\
+        \attr{\assign{MainMethod.decl}{\new{StaticMethod}{\new{Name}{\tok{IDENT$_1$}.lexval}, PrimitiveType.\tok{void}, \new{Paramter}{\new{Name}{\tok{IDENT}$_2$.lexval}, Type.type}, MethodRest.decl Block.stmts}}}
+    \item \prod{Method}{\tok{public} Type \tok{IDENT (} Parameters? \tok{)} MethodRest? Block}
+        \footnote{Bei optionalen Termen wird nur der Fall betrachtet, dass der Term vorhanden ist}\\
+        \attr{\assign{Method.decl}{\new{DynamicMethod}{\new{Name}{\tok{IDENT}.lexval}, Type.type, Parameters.params, MethodRest.decl, Block.nodes}}}
+    \item \prod{MethodRest}{\tok{throws IDENT}}\\
+        \attr{\assign{MethRest.decl}{\new{MethodRest}{\new{Name}{\tok{IDENT}.lexval}}}}
+    \item \prod{Parameters}{Parameter}\\
+        \attr{\assign{Parameters.params}{\List{Parameter.param}}}
+    \item \prod{Parameters$_1$}{Parameter \tok{,} Parameters$_2$}\\
+        \attr{\assign{Parameters$_1$.params}{\concat{Parameter.param, Parameters$_2$.params}}}
+    \item \prod{Parameter}{Type \tok{IDENT}}\\
+        \attr{\assign{Parameter.param}{\new{Parameter}{\tok{IDENT.lexval}, Type.type}}}
+    \item \prod{Type}{Type \tok{[ ]}}\\
+        \attr{\assign{Type.type}{\new{ArrayType}{Type.type}}}
+    \item \prod{Type}{BasicType}\\
+        \attr{\assign{Type.type}{BasicType.type}}
+    \item \prod{BasicType}{\tok{int}}\\
+        \attr{\assign{BasicType.type}{\new{IntegerType}{}}}
+    \item \prod{BasicType}{\tok{boolean}}\\
+        \attr{\assign{BasicType.type}{\new{BooleanType}{}}}
+    \item \prod{BasicType}{\tok{void}}\\
+        \attr{\assign{BasicType.type}{\new{VoidType}{}}}
+    \item \prod{BasicType}{\tok{IDENT}}\\
+        \attr{\assign{BasicType.type}{\new{UserType}{\tok{IDENT}.lexval}}}
 
-\begin{landscape}
-\begin{center}
-\begin{tabular}{ll}
-    \toprule
-    Produktion & Semantische Regeln\\
-    \midrule
-    \prod{Program}{ClassDeclaration*} & \\
-    \prod{ClassDeclaration}{\tok{class IDENT \{} ClassMembers* \tok{\}}} & \\
-    \prod{ClassMember}{Field} & \\
-    \prod{ClassMember}{Method} & \\
-    \prod{ClassMember}{MainMethod} & \\ 
-    \prod{Field}{\tok{public} Type \tok{IDENT}} & \\
-    \prod{MainMethod}{\tok{public static void IDENT (} Type \tok{IDENT )}} & \\
-    \prod{Method}{\tok{public} Type \tok{IDENT (} Parameters? \tok{)} MethodRest? Block} & \\
-    \prod{MethodRest}{\tok{throws IDENT}} & \\
-    \prod{Parameters}{Parameter} & \\
-    \prod{Parameters}{Parameter \tok{,} Parameters} & \\
-    \prod{Parameter}{Type \tok{IDENT}} & \\
-    \prod{Type}{Type \tok{[ ]}} & \\
-    \prod{Type}{BasicType} & \\
-    \prod{BasicType}{\tok{int}} & \\
-    \prod{BasicType}{\tok{boolean}} & \\
-    \prod{BasicType}{\tok{void}} & \\
-    \prod{BasicType}{\tok{IDENT}} & \\
-    \prod{Statement}{Block} & \\
-    \prod{Statement}{EmptyStatement} & \\
-    \prod{Statement}{IfStatement} & \\
-    \prod{Statement}{ExpressionStatement} & \\
-    \prod{Statement}{WhileStatement} & \\
-    \prod{Statement}{ReturnStatement} & \\
-    \prod{Block}{\tok{\{} BlockStatement* \tok{\}}} & \\
-    \prod{BlockStatement}{Statement} & \\
-    \prod{BlockStatement}{LocalVariableDeclaration} & \\
-    \prod{LocalVariableDeclaration}{Type \tok{IDENT} (\tok{=} Expression)? \tok{;}} & \\
-    \prod{EmptyStatement}{\tok{;}} & \\
-    \bottomrule
-\end{tabular}
-\end{center}
-\end{landscape}
+    \item \prod{Statement}{Block}\\
+        \attr{\assign{Statement.node}{\new{BlockStatement}{Block.nodes}}}
+    \item \prod{Statement}{EmptyStatement}\\
+        \attr{\assign{Statement.node}{EmptyStatement.node}}
+    \item \prod{Statement}{IfStatement}\\
+        \attr{\assign{Statement.node}{IfStatement.node}}
+    \item \prod{Statement}{ExpressionStatement}\\
+        \attr{\assign{Statement.node}{ExpressionStatement.node}}
+    \item \prod{Statement}{WhileStatement}\\
+        \attr{\assign{Statement.node}{WhileStatement.node}}
+    \item \prod{Statement}{ReturnStatement}\\
+        \attr{\assign{Statement.node}{ReturnStatement.node}}
+    \item \prod{Block}{\tok{\{} BlockStatement* \tok{\}}}\\
+        \attr{\assign{Block.nodes}{\List{BlockStatement$_i$.node}}}
+    \item \prod{BlockStatement}{Statement}\\
+        \attr{\assign{BlockStatement.node}{Statement.node}}
+    \item \prod{BlockStatement}{LocalVariableDeclaration}\\
+        \attr{\assign{BlockStatement.node}{LocalVariableDeclaration.node}}
+    \item \prod{LocalVariableDeclaration}{Type \tok{IDENT} (\tok{=} Expression)? \tok{;}}\\
+        \attr{\assign{LocalVariableDeclaration.node}{\new{DeclarationStatement}{\tok{IDENT}.lexval, Type.type, Expression.expr}}}
+    \item \prod{EmptyStatement}{\tok{;}}\\
+        \attr{\assign{EmptyStatement.node}{$\bot$}}
+    \item \prod{WhileStatement}{\tok{while (} Expression \tok{)} Statement}\\
+        \attr{\assign{WhileStatement.node}{\new{WhileStatement}{Expression.expr, Statement.node}}}
+    \item \prod{IfStatement}{\tok{if (} Expression \tok{)} Statement$_1$ (\tok{else} Statement$_2$)?}\\
+        \attr{\assign{IfStatement.node}{\new{IfStatement}{Expression.expr, \\Statement$_1$.node, Statement$_2$.node}}}
+    \item \prod{ExpressionStatement}{Expression \tok{;}}\\
+        \attr{\assign{ExpressionStatement.node}{\new{ExpressionStatement}{Expression.expr}}}
+    \item \prod{ReturnStatement}{\tok{return} Expression? \tok{;}}\\
+        \attr{\assign{ReturnStatement.node}{\new{ReturnStatement}{Expression.expr}}}
+    \item \prod{Expression}{AssignmentExpression}\\
+        \attr{\assign{Expression.node}{AssignmentExpression.expr}}
+    \item \prod{AssignmentExpression$_1$}{LogicalOrExpression (\tok{=} AssignmentExpression$_2$)?}\\
+        \attr{\assign{AssignmentExpression$_1$.expr}{\new{BinaryExpression}{BinaryOperator.\tok{=}, LogicalOrExpression.expr, AssignmentExpression$_2$.expr}}}
+    \item \prod{LogicalOrExpression$_1$}{(LogicalOrExpression$_2$ \tok{||})? LogicalAndExpression}\\
+        \attr{\assign{LogicalOrExpression$_1$.expr}{\new{BinaryExpression}{BinaryOperator.\tok{||}, LogicalOrExpression$_2$.expr, LogicalAndExpression.expr}}}
+    \item \prod{LogicalAndExpression$_1$}{(LogicalAndExpression \tok{\&\&})? EqualityExpression}\\
+        \attr{\assign{LogicalAndExpression$_1$.expr}{\new{BinaryExpression}{BinaryOperator.\tok{\&\&}, LogicalAndExpression$_2$.expr, EqualityExpression.expr}}}
 
-\begin{landscape}
-\begin{center}
-\begin{tabular}{ll}
-    \toprule
-    Produktion & Semantische Regeln\\
-    \midrule
-    \prod{WhileStatement}{\tok{while (} Expression \tok{)} Statement} & \\
-    \prod{WhileStatement}{\tok{if (} Expression \tok{)} Statement (\tok{else} Statement)?} & \\
-    \prod{ExpressionStatement}{Expression \tok{;}} & \\
-    \prod{ReturnStatement}{\tok{return} Expression? \tok{;}} & \\
-    \prod{Expression}{AssignmentExpression} & \\
-    \prod{AssignmentExpression}{LogicalOrExpression (\tok{=} AssignmentExpression)?} & \\
-    \prod{LogicalOrExpression}{(LogicalOrExpression \tok{||})? LogicalAndExpression} & \\
-    \prod{LogicalAndExpression}{(LogicalAndExpression \tok{\&\&})? EqualityExpression} & \\
-    \prod{EqualityExpression}{(EqualityExpression (\tok{== \tor{} !=}))? RelationalExpression} & \\
-    \prod{RelationalExpression}{(RelationalExpression (\tok{< \tor{} <= \tor{} > \tor{} >=}))? AdditiveExpression} & \\
-    \prod{AdditiveExpression}{(AdditiveExpression (\tok{* \tor{} / \tor{} \%}))? UnaryExpression} & \\
-    \prod{UnaryExpression}{PostifxExpression} & \\
-    \prod{UnaryExpression}{(\tok{! \tor{} -}) UnaryExpression} & \\
-    \prod{PostifxExpression}{PrimaryExpression (PostifxOp)*} & \\
-    \prod{PostfixOp}{MethodInvocation} & \\
-    \prod{PostfixOp}{FieldAccess} & \\
-    \prod{PostfixOp}{ArrayAccess} & \\
-    \prod{MethodInvocation}{\tok{. IDENT (} Arguments \tok{)}} & \\
-    \prod{FieldAccess}{\tok{. IDENT}} & \\
-    \prod{ArrayAccess}{\tok{[} Expression \tok{]}} & \\
-    \prod{Arguments}{(Expression (\tok{,} Expression)*)?} & \\
-    \prod{PrimaryExpression}{\tok{null}} & \\
-    \prod{PrimaryExpression}{\tok{false}} & \\
-    \prod{PrimaryExpression}{\tok{true}} & \\
-    \prod{PrimaryExpression}{\tok{INTEGER\_LITERAL}} & \\
-    \prod{PrimaryExpression}{\tok{IDENT}} & \\
-    \prod{PrimaryExpression}{\tok{IDENT \tok{(} Arguments \tok{)}}} & \\
-    \prod{PrimaryExpression}{\tok{this}} & \\
-    \prod{PrimaryExpression}{\tok{(} Expression \tok{)}} & \\
-    \bottomrule
-\end{tabular}
-\end{center}
-\end{landscape}
+    \item \prod{EqualityExpression$_1$}{(EqualityExpression$_2$ (\tok{== \tor{} !=}))? RelationalExpression}
+        \attr{\assign{EqualityExpression$_1$.expr}{\new{BinaryExpression}{BinaryOperator.(\tok{==\tor{}!=}), EqualityExpression$_2$.expr, RelationalExpression.expr}}}
+    \item \textit{RelationalExpression}$_1$ $\rightarrow$
+        $\begin{aligned}&\textit{(RelationalExpression$_2$ (\tok{< \tor{} <= \tor{} > \tor{} >=}))?}\\
+                        &\textit{AdditiveExpression}\end{aligned}$\\
+        \attr{\assign{RelationalExpression$_1$.expr}{\new{BinaryExpression}{BinaryOperator.(\tok{<\tor{}<=\tor{}>\tor{}>=}), RelationalExpression$_2$.expr, AdditiveExpression.expr}}}
+    \item \prod{AdditiveExpression$_1$}{(AdditiveExpression$_2$ (\tok{+ \tor{} -}))? MultiplicativeExpression}
+        \attr{\assign{AdditiveExpression$_1$.expr}{\new{BinaryExpression}{BinaryOperator.(\tok{+\tor{}-}), AdditiveExpression$_2$.expr, MultiplicativeExpression.expr}}}
+    % \item \prod{MultiplicativeExpression$_1$}{(MultiplicativeExpression$_2$ (\tok{* \tor{} / \tor{} \%}))? UnaryExpression}\\
+    \item \textit{MultiplicativeExpression}$_1$ $\rightarrow$
+        $\begin{aligned}&\textit{(MultiplicativeExpression$_2$ (\tok{* \tor{} / \tor{} \%}))?}\\
+                        &\textit{UnaryExpression}\end{aligned}$\\
+        \attr{\assign{MultiplicativeExpression$_1$.expr}{\new{BinaryExpression}{BinaryOperator.(\tok{*\tor{}/\tor{}\%}), MultiplicativeExpression$_2$.expr, UnaryExpression.expr}}}
+    \item \prod{UnaryExpression}{PostifxExpression}\\
+        \attr{\assign{UnaryExpression.expr}{PostifxExpression.expr}}
+    \item \prod{UnaryExpression$_1$}{(\tok{! \tor{} -}) UnaryExpression$_2$}\\
+        \attr{\assign{UnaryExpression$_1$.expr}{\new{UnaryExpression}{UnaryOperator.(\tok{!\tor{}-}), UnaryExpression$_2$.expr}}}
+    \item \prod{PostifxExpression}{PrimaryExpression (PostifxOp)*}\\
+        \attr{\assign{PostfixOp$_1$.in}{PrimaryExpression.expr}}
+        \attr{\assign{PostfixOp$_i$.in}{PostfixOp$_{i-1}$.expr}}
+        \attr{\assign{PostfixExpression.expr}{PostifOp$_{\textnormal{last}}$.expr}}
 
-\begin{landscape}
-\begin{center}
-\begin{tabular}{ll}
-    \toprule
-    Produktion & Semantische Regeln\\
-    \midrule
-    \prod{PrimaryExpression}{NewObjectExpression} & \\
-    \prod{PrimaryExpression}{NewArrayExpression} & \\
-    \prod{NewObjectExpression}{\tok{new IDENT ( )}} & \\
-    \prod{NewArrayExpression}{\tok{new} BasicType \tok{[} Expression \tok{]} (\tok{[]})*} & \\
-    \bottomrule
-\end{tabular}
-\end{center}
-\end{landscape}
+    \item \prod{PostfixOp}{MethodInvocation}\\
+        \attr{\assign{MethodInvocation.in}{PostifOp.in}}
+        \attr{\assign{PostifOp.expr}{MethodInvocation.expr}}
+    \item \prod{PostfixOp}{FieldAccess}\\
+        \attr{\assign{FieldAccess.in}{PostifOp.in}}
+        \attr{\assign{PostifOp.expr}{FieldAccess.expr}}
+    \item \prod{PostfixOp}{ArrayAccess}\\
+        \attr{\assign{ArrayAccess.in}{PostifOp.in}}
+        \attr{\assign{PostifOp.expr}{ArrayAccess.expr}}
+    \item \prod{MethodInvocation}{\tok{.} \tok{IDENT (} Arguments \tok{)}}\\
+        \attr{\assign{MethodInvocation.expr}{\new{MethodInvocationExpression}{MethodInvocation.in, \tok{IDENT}.lexval, Arguments.exprs}}}
+    \item \prod{FieldAccess}{\tok{.} \tok{IDENT}}\\
+        \attr{\assign{FieldAccess.expr}{\new{FieldAccessExpression}{FieldAccess.in, \tok{IDENT}.lexval}}}
+    \item \prod{ArrayAccess}{\tok{[} Expression \tok{]}}\\
+        \attr{\assign{Array}{\new{ArrayAccessExpression}{ArrayAccess.in, Expression.expr}}}
+    \item \prod{Arguments}{(Expression$^1$ (\tok{,} Expression$^2$)*)?}\\
+        \attr{\assign{Arguments.exprs}{\concat{Expression$^1$, \List{Expression$^2_i$}}}}
+    \item \prod{PrimaryExpression}{\tok{null}}\\
+        \attr{\assign{PrimaryExpression.expr}{\new{Null}{}}}
+    \item \prod{PrimaryExpression}{\tok{false}}\\
+        \attr{\assign{PrimaryExpression.expr}{\new{False}{}}}
+    \item \prod{PrimaryExpression}{\tok{true}}\\
+        \attr{\assign{PrimaryExpression.expr}{\new{True}{}}}
+    \item \prod{PrimaryExpression}{\tok{INTEGER\_LITERAL}}\\
+        \attr{\assign{PrimaryExpression.expr}{\new{Integer}{\tok{INTEGER\_LITERAL}.lexval}}}
+    \item \prod{PrimaryExpression}{\tok{IDENT}}\\
+        \attr{\assign{PrimaryExpression.expr}{\new{Name}{\tok{IDENT}.lexval}}}
+    \item \prod{PrimaryExpression}{\tok{IDENT \tok{(} Arguments \tok{)}}}\\
+        \attr{\assign{PrimaryExpression.expr}{\new{MethodInvocationExpression}{$\bot$, \new{Name}{\tok{IDENT}.lexval}}}}
+    \item \prod{PrimaryExpression}{\tok{this}}\\
+        \attr{\assign{PrimaryExpression}{\new{This}{}}}
+    \item \prod{PrimaryExpression}{\tok{(} Expression \tok{)}}\\
+        \attr{\assign{PrimaryExpression.expr}{Expression.expr}}
+    \item \prod{PrimaryExpression}{NewObjectExpression}\\
+        \attr{\assign{PrimaryExpression.expr}{NewObjectExpression.expr}}
+    \item \prod{PrimaryExpression}{NewArrayExpression}\\
+        \attr{\assign{PrimaryExpression.expr}{NewArrayExpression.expr}}
+    \item \prod{NewObjectExpression}{\tok{new IDENT ( )}}\\
+        \attr{\assign{NewObjectExpression.expr}{\new{NewObjectExpression}{\tok{IDENT}.lexval}}}
+    \item \prod{NewArrayExpression}{\tok{new} BasicType \tok{[} Expression \tok{]} (\tok{[]})*}\\
+        \attr{\assign{NewArrayExpression.expr}{\new{NewArrayExpression}{Type.type, Expression.expr, \new{ArrayDimensions}{(\tok{[]})*}}}}
+\end{enumerate}
 
 
 \end{document}
