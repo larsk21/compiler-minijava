@@ -113,13 +113,14 @@
 
 \begin{enumerate}
     \item \prod{Program}{ClassDeclaration*}\\
-        \attr{\assign{Program.node}{\List{ClassDeclaration$_i$}}}
+        \attr{\assign{Program.node}{\List{ClassDeclaration$_i$.node}}}
     \item \prod{ClassDeclaration}{\tok{class IDENT \{} ClassMembers* \tok{\}}}
         \footnote{Mit \textit{ClassMembers$_i$.<attr>} sind nur diejenigen $i$ gemeint, für die das Attribut \textit{attr} definiert ist.}\\
         \attr{\assign{ClassDeclaration.name}{\new{Name}{\tok{IDENT}.lexval}}}
         \attr{\assign{ClassDeclaration.fields}{\List{ClassMembers$_i$.field}}}
         \attr{\assign{ClassDeclaration.dynamicMethods}{\List{ClassMembers$_i$.dynamicMethod}}}
         \attr{\assign{ClassDeclaration.staticMethods}{\List{ClassMembers$_i$.staticMethod}}}
+        \attr{\assign{ClassDeclaration.node}{\new{Class}{ClassDeclaration.name, ClassDeclaration.fields, ClassDeclaration.staticMethods, ClassDeclaration.dynamicMethods}}}
     \item \prod{ClassMember}{Field}\\
         \attr{\assign{ClassMember.field}{Field.decl}}
     \item \prod{ClassMember}{Method}\\
