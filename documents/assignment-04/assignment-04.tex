@@ -8,12 +8,12 @@
 % \usepackage{booktabs}
 
 \title{4. Übungsblatt}
-\author{Lars \and Niklas \and Nikolai \and Pascal}
+\author{Lars \and Niklas \and Nikolai\\Maas \and Pascal\\Mehnert}
 \subject{Gruppe 3}
 \date{\today}
 
 \newcommand{\todo}[1]{}
-\renewcommand{\todo}[1]{{\color{red} TODO: {#1}}}
+% \renewcommand{\todo}[1]{{\color{red} TODO: {#1}}}
 \newcommand{\node}[2]{\textit{#1} \enspace::\enspace &\textit{#2}\\}
 \newcommand{\leaf}[2]{\textit{#1} \enspace::\enspace &\texttt{#2}\\}
 \newcommand{\kind}[2]{\textit{#1} \enspace=\enspace &\textit{#2}\\}
@@ -41,6 +41,8 @@
 
 \subsection{Modellierung als abstrakte Algebra}
 
+\footnotetext[1]{\textit{Type} und \textit{ValueExpression} sind nicht mit Vererbung implementiert. Stattdessen werden sie durch jeweils eine Klasse und einem zugehörigen Enum realisiert. Auf diese Weise wird eine Art algebraischer Datentyp approximiert.}
+
 \begin{align*}
     \node{Program}{Class*}
     \node{Class}{Name Field* StaticMethod* DynamicMethod*}
@@ -50,7 +52,7 @@
     \node{Method}{Name Type Parameter* MethodRest? Statement*}
     \node{Parameter}{Name Type}
     \node{MethodRest}{Name}
-    \kindol{Type}{PrimitiveType}
+    \kindol{Type\footnotemark[1]}{PrimitiveType}
         \barol{ArrayType}
         \barol{UserType}\\
     \kindol{PrimitiveType}{IntegerType}
@@ -89,7 +91,7 @@
     \node{FieldAccessExpression}{Expression Name}
     \node{ArrayAccessExpression}{Expression Expression}
     \node{IdentifierExpression}{Name}
-    \kindol{ValueExpression}{Null}
+    \kindol{ValueExpression\footnotemark[1]}{Null}
         \barol{True}
         \barol{False}
         \barol{This}
@@ -107,14 +109,13 @@
 \end{align*}
 
 
-\newpage
 \subsection{Modellierung als attributierte Grammatik}
 
 \begin{enumerate}
     \item \prod{Program}{ClassDeclaration*}\\
         \attr{\assign{Program.node}{\List{ClassDeclaration$_i$}}}
     \item \prod{ClassDeclaration}{\tok{class IDENT \{} ClassMembers* \tok{\}}}
-        \footnote{Mit \textit{ClassMembers$_i$.<attr>} sind nur diejenigen $i$ gemeint, für die das Attribut \textit{attr} definiert ist}\\
+        \footnote{Mit \textit{ClassMembers$_i$.<attr>} sind nur diejenigen $i$ gemeint, für die das Attribut \textit{attr} definiert ist.}\\
         \attr{\assign{ClassDeclaration.name}{\new{Name}{\tok{IDENT}.lexval}}}
         \attr{\assign{ClassDeclaration.fields}{\List{ClassMembers$_i$.field}}}
         \attr{\assign{ClassDeclaration.dynamicMethods}{\List{ClassMembers$_i$.dynamicMethod}}}
@@ -130,9 +131,9 @@
     \item \textit{MainMethod} $\rightarrow$
         $\begin{aligned} &\textit{\tok{public static void IDENT$_1$ (} Type \tok{IDENT$_2$ )}} \\
                          &\textit{MethodRest? Block} \end{aligned}$\\
-        \attr{\assign{MainMethod.decl}{\new{StaticMethod}{\new{Name}{\tok{IDENT$_1$}.lexval}, PrimitiveType.\tok{void}, \new{Paramter}{\new{Name}{\tok{IDENT}$_2$.lexval}, Type.type}, MethodRest.decl Block.stmts}}}
+        \attr{\assign{MainMethod.decl}{\new{StaticMethod}{\new{Name}{\tok{IDENT$_1$}.lexval}, \\\new{VoidType}{}, \new{Paramter}{\new{Name}{\tok{IDENT}$_2$.lexval}, Type.type}, MethodRest.decl Block.stmts}}}
     \item \prod{Method}{\tok{public} Type \tok{IDENT (} Parameters? \tok{)} MethodRest? Block}
-        \footnote{Bei optionalen Termen wird nur der Fall betrachtet, dass der Term vorhanden ist}\\
+        \footnote{Bei optionalen Termen wird nur der Fall betrachtet, dass der Term vorhanden ist.}\\
         \attr{\assign{Method.decl}{\new{DynamicMethod}{\new{Name}{\tok{IDENT}.lexval}, Type.type, Parameters.params, MethodRest.decl, Block.nodes}}}
     \item \prod{MethodRest}{\tok{throws IDENT}}\\
         \attr{\assign{MethRest.decl}{\new{MethodRest}{\new{Name}{\tok{IDENT}.lexval}}}}
@@ -202,7 +203,6 @@
         \attr{\assign{RelationalExpression$_1$.expr}{\new{BinaryExpression}{BinaryOperator.(\tok{<\tor{}<=\tor{}>\tor{}>=}), RelationalExpression$_2$.expr, AdditiveExpression.expr}}}
     \item \prod{AdditiveExpression$_1$}{(AdditiveExpression$_2$ (\tok{+ \tor{} -}))? MultiplicativeExpression}
         \attr{\assign{AdditiveExpression$_1$.expr}{\new{BinaryExpression}{BinaryOperator.(\tok{+\tor{}-}), AdditiveExpression$_2$.expr, MultiplicativeExpression.expr}}}
-    % \item \prod{MultiplicativeExpression$_1$}{(MultiplicativeExpression$_2$ (\tok{* \tor{} / \tor{} \%}))? UnaryExpression}\\
     \item \textit{MultiplicativeExpression}$_1$ $\rightarrow$
         $\begin{aligned}&\textit{(MultiplicativeExpression$_2$ (\tok{* \tor{} / \tor{} \%}))?}\\
                         &\textit{UnaryExpression}\end{aligned}$\\
@@ -227,8 +227,9 @@
         \attr{\assign{PostifOp.expr}{ArrayAccess.expr}}
     \item \prod{MethodInvocation}{\tok{.} \tok{IDENT (} Arguments \tok{)}}\\
         \attr{\assign{MethodInvocation.expr}{\new{MethodInvocationExpression}{\\MethodInvocation.in, \new{Name}{\tok{IDENT}.lexval}, Arguments.exprs}}}
+    
     \item \prod{FieldAccess}{\tok{.} \tok{IDENT}}\\
-        \attr{\assign{FieldAccess.expr}{\new{FieldAccessExpression}{FieldAccess.in, \new{Name}{\tok{IDENT}.lexval}}}}
+        \attr{\assign{FieldAccess.expr}{\new{FieldAccessExpression}{FieldAccess.in, \\\new{Name}{\tok{IDENT}.lexval}}}}
     \item \prod{ArrayAccess}{\tok{[} Expression \tok{]}}\\
         \attr{\assign{Array}{\new{ArrayAccessExpression}{ArrayAccess.in, Expression.expr}}}
     \item \prod{Arguments}{(Expression$^1$ (\tok{,} Expression$^2$)*)?}\\
@@ -244,7 +245,7 @@
     \item \prod{PrimaryExpression}{\tok{IDENT}}\\
         \attr{\assign{PrimaryExpression.expr}{\new{Name}{\tok{IDENT}.lexval}}}
     \item \prod{PrimaryExpression}{\tok{IDENT \tok{(} Arguments \tok{)}}}\\
-        \attr{\assign{PrimaryExpression.expr}{\new{MethodInvocationExpression}{$\bot$,\\\new{Name}{\tok{IDENT}.lexval}}}}
+        \attr{\assign{PrimaryExpression.expr}{\new{MethodInvocationExpression}{\\$\bot$, \new{Name}{\tok{IDENT}.lexval}}}}
     \item \prod{PrimaryExpression}{\tok{this}}\\
         \attr{\assign{PrimaryExpression}{\new{This}{}}}
     \item \prod{PrimaryExpression}{\tok{(} Expression \tok{)}}\\
