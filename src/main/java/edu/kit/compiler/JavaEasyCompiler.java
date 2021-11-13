@@ -3,11 +3,13 @@ package edu.kit.compiler;
 import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
+import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 import org.apache.commons.cli.*;
 import edu.kit.compiler.parser.Parser;
+import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
 
@@ -87,6 +89,31 @@ public class JavaEasyCompiler {
         }
     }
 
+    /**
+     * Split the file contents in Lexer Tokens and output the representations one Token per line.
+     * 
+     * @param filePath Path of the file (absolute or relative)
+     * @return Ok or an according error
+     */
+    private static Result prettyPrint(String filePath, Logger logger) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            Lexer lexer = new Lexer(new ReaderCharIterator(reader));
+            StringTable stringTable = lexer.getStringTable();
+            ProgramNode ast = (new Parser(lexer)).parse();
+            ast.accept(new PrettyPrintAstVisitor(stringTable));
+
+            return Result.Ok;
+        } catch (CompilerException e) {
+            logger.withName(e.getCompilerStage().orElse(null)).exception(e);
+
+            return e.getResult();
+        } catch (IOException e) {
+            logger.error("unable to read file: %s", e.getMessage());
+
+            return Result.FileInputError;
+        }
+    }
+
     public static void main(String[] args) {
         // specify supported command line options
         Options options = new Options();
@@ -96,6 +123,7 @@ public class JavaEasyCompiler {
         runOptions.addOption(new Option("e", "echo", true, "output file contents"));
         runOptions.addOption(new Option("l", "lextest", true, "output the tokens from the lexer"));
         runOptions.addOption(new Option("p", "parsetest", true, "try to parse the file contents"));
+        runOptions.addOption(new Option("a", "print-ast", true, "try to parse the file contents and output the AST"));
         options.addOptionGroup(runOptions);
 
         var verbosityOptions = new OptionGroup();
@@ -141,6 +169,10 @@ public class JavaEasyCompiler {
             String filePath = cmd.getOptionValue("p");
 
             result = parseTest(filePath, logger);
+        } else if (cmd.hasOption("a")) {
+            String filePath = cmd.getOptionValue("a");
+
+            result = prettyPrint(filePath, logger);
         } else {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 

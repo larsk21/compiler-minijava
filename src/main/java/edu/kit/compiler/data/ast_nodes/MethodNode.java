@@ -3,17 +3,17 @@ package edu.kit.compiler.data.ast_nodes;
 import java.util.Optional;
 
 import edu.kit.compiler.data.AstNode;
+import edu.kit.compiler.data.AstObject;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 public abstract class MethodNode extends AstNode {
 
     public MethodNode(
         int line, int column,
-        DataType type, int name, Iterable<MethodNodeParameter> parameters, MethodNodeRest rest,
+        DataType type, int name, Iterable<MethodNodeParameter> parameters, Optional<MethodNodeRest> rest,
         Iterable<StatementNode> statements,
         boolean hasError
     ) {
@@ -34,13 +34,19 @@ public abstract class MethodNode extends AstNode {
     @Getter
     private Iterable<MethodNodeParameter> parameters;
     @Getter
-    private MethodNodeRest rest;
+    private Optional<MethodNodeRest> rest;
 
     @Getter
     private Iterable<StatementNode> statements;
 
-    @AllArgsConstructor
-    public static class MethodNodeParameter {
+    public static class MethodNodeParameter extends AstObject {
+
+        public MethodNodeParameter(int line, int column, DataType type, int name, boolean hasError) {
+            super(line, column, hasError);
+
+            this.type = type;
+            this.name = name;
+        }
 
         @Getter
         private DataType type;
@@ -49,11 +55,16 @@ public abstract class MethodNode extends AstNode {
 
     }
 
-    @AllArgsConstructor
-    public static class MethodNodeRest {
+    public static class MethodNodeRest extends AstObject {
+
+        public MethodNodeRest(int line, int column, Integer throwsTypeIdentifier, boolean hasError) {
+            super(line, column, hasError);
+
+            this.throwsTypeIdentifier = throwsTypeIdentifier;
+        }
 
         @Getter
-        private Optional<Integer> throwsTypeIdentifier;
+        private Integer throwsTypeIdentifier;
 
     }
 
@@ -61,7 +72,7 @@ public abstract class MethodNode extends AstNode {
 
         public StaticMethodNode(
             int line, int column,
-            DataType type, int name, Iterable<MethodNodeParameter> parameters, MethodNodeRest rest,
+            DataType type, int name, Iterable<MethodNodeParameter> parameters, Optional<MethodNodeRest> rest,
             Iterable<StatementNode> statements,
             boolean hasError
         ) {
@@ -79,7 +90,7 @@ public abstract class MethodNode extends AstNode {
 
         public DynamicMethodNode(
             int line, int column,
-            DataType type, int name, Iterable<MethodNodeParameter> parameters, MethodNodeRest rest,
+            DataType type, int name, Iterable<MethodNodeParameter> parameters, Optional<MethodNodeRest> rest,
             Iterable<StatementNode> statements,
             boolean hasError
         ) {

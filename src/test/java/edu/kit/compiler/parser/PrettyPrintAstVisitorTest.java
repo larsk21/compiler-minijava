@@ -92,14 +92,14 @@ public class PrettyPrintAstVisitorTest {
         int h = stringTable.insert("MethodH");
 
         AstNode node = new ClassNode(0, 0, a, Arrays.asList(
-            new ClassNode.ClassNodeField(new DataType(DataTypeClass.Int), d),
-            new ClassNode.ClassNodeField(new DataType(new DataType(DataTypeClass.Int)), c)
+            new ClassNode.ClassNodeField(0, 0, new DataType(DataTypeClass.Int), d, false),
+            new ClassNode.ClassNodeField(0, 0, new DataType(new DataType(DataTypeClass.Int)), c, false)
         ), Arrays.asList(
-            new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Void), h, Arrays.asList(), new MethodNode.MethodNodeRest(Optional.empty()), Arrays.asList(), false),
-            new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Boolean), f, Arrays.asList(), new MethodNode.MethodNodeRest(Optional.empty()), Arrays.asList(), false)
+            new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Void), h, Arrays.asList(), Optional.empty(), Arrays.asList(), false),
+            new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Boolean), f, Arrays.asList(), Optional.empty(), Arrays.asList(), false)
         ), Arrays.asList(
-            new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), e, Arrays.asList(), new MethodNode.MethodNodeRest(Optional.empty()), Arrays.asList(), false),
-            new MethodNode.DynamicMethodNode(0, 0, new DataType(b), g, Arrays.asList(), new MethodNode.MethodNodeRest(Optional.empty()), Arrays.asList(), false)
+            new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), e, Arrays.asList(), Optional.empty(), Arrays.asList(), false),
+            new MethodNode.DynamicMethodNode(0, 0, new DataType(b), g, Arrays.asList(), Optional.empty(), Arrays.asList(), false)
         ), false);
 
         node.accept(visitor);
@@ -130,9 +130,9 @@ public class PrettyPrintAstVisitorTest {
         int e = stringTable.insert("ExceptionE");
 
         AstNode node = new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), a, Arrays.asList(
-            new MethodNode.MethodNodeParameter(new DataType(DataTypeClass.Int), c),
-            new MethodNode.MethodNodeParameter(new DataType(new DataType(d)), b)
-        ), new MethodNode.MethodNodeRest(Optional.of(e)), Arrays.asList(), false);
+            new MethodNode.MethodNodeParameter(0, 0, new DataType(DataTypeClass.Int), c, false),
+            new MethodNode.MethodNodeParameter(0, 0, new DataType(new DataType(d)), b, false)
+        ), Optional.of(new MethodNode.MethodNodeRest(0, 0, e, false)), Arrays.asList(), false);
 
         node.accept(visitor);
         String result = stream.toString();
@@ -150,7 +150,7 @@ public class PrettyPrintAstVisitorTest {
 
         int a = stringTable.insert("MethodA");
 
-        AstNode node = new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), a, Arrays.asList(), new MethodNode.MethodNodeRest(Optional.empty()), Arrays.asList(
+        AstNode node = new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), a, Arrays.asList(), Optional.empty(), Arrays.asList(
             new StatementNode.ExpressionStatementNode(0, 0,
                 new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.True, false),
             false),
@@ -1267,7 +1267,7 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new ProgramNode(0, 0, Arrays.asList(
             new ClassNode(0, 0, a, Arrays.asList(), Arrays.asList(), Arrays.asList(
-                new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Int), b, Arrays.asList(), new MethodNode.MethodNodeRest(Optional.empty()), Arrays.asList(
+                new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Int), b, Arrays.asList(), Optional.empty(), Arrays.asList(
                     new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
                 ), false)
             ), false)
