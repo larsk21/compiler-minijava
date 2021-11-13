@@ -53,6 +53,11 @@ jobs:
           pwd
           ./run_mjtests.sh syntax
 
+      - name: Run Ast Tests
+        run: |
+          pwd
+          ./run_mjtests.sh ast
+
       - name: Copy Artifacts
         run: |
           pwd
