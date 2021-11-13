@@ -209,53 +209,55 @@ public class Parser {
                 stmts.add(new LocalVariableDeclarationStatementNode(
                     firstToken.getLine(), firstToken.getColumn(), variableType, name.getIntValue().get(), expr, false
                 ));
+            } else if (type == TokenType.Operator_Semicolon) {
+                // Empty statements in blocks are deleted
+                tokenStream.next();
             } else {
                 // Statement
-                Optional<StatementNode> stmt = parseStatement();
-                if (stmt.isPresent()) {
-                    stmts.add(stmt.get());
-                }
+                stmts.add(parseStatement());
             }
         }
         expect(TokenType.Operator_BraceR);
         return new BlockStatementNode(openingBrace.getLine(), openingBrace.getColumn(), stmts, false);
     }
 
-    private Optional<StatementNode> parseStatement() {
+    private StatementNode parseStatement() {
         Token token = tokenStream.get();
         switch(token.getType()) {
             case Operator_BraceL: {
-                return Optional.of(parseBlock());
+                return parseBlock();
             }
             case Operator_Semicolon: {
                 // EmptyStatement
                 tokenStream.next();
-                return Optional.empty();
+                return new BlockStatementNode(
+                    token.getLine(), token.getColumn(), Collections.emptyList(), false
+                );
             }
             case Keyword_If: {
                 tokenStream.next();
                 expect(TokenType.Operator_ParenL);
                 ExpressionNode condition = parseExpression();
                 expect(TokenType.Operator_ParenR);
-                StatementNode thenStmt = parseStatement().orElse(emptyBlock(token));
+                StatementNode thenStmt = parseStatement();
                 Optional<StatementNode> elseStmt = Optional.empty();
                 if (tokenStream.get().getType() == TokenType.Keyword_Else) {
                     tokenStream.next();
-                    elseStmt = Optional.of(parseStatement().orElse(emptyBlock(token)));
+                    elseStmt = Optional.of(parseStatement());
                 }
-                return Optional.of(new IfStatementNode(
+                return new IfStatementNode(
                     token.getLine(), token.getColumn(), condition, thenStmt, elseStmt, false
-                ));
+                );
             }
             case Keyword_While: {
                 tokenStream.next();
                 expect(TokenType.Operator_ParenL);
                 ExpressionNode condition = parseExpression();
                 expect(TokenType.Operator_ParenR);
-                StatementNode stmt = parseStatement().orElse(emptyBlock(token));
-                return Optional.of(new WhileStatementNode(
+                StatementNode stmt = parseStatement();
+                return new WhileStatementNode(
                     token.getLine(), token.getColumn(), condition, stmt, false
-                ));
+                );
             }
             case Keyword_Return: {
                 tokenStream.next();
@@ -264,13 +266,13 @@ public class Parser {
                     returnVal = Optional.of(parseExpression());
                 }
                 expect(TokenType.Operator_Semicolon);
-                return Optional.of(new ReturnStatementNode(token.getLine(), token.getColumn(), returnVal, false));
+                return new ReturnStatementNode(token.getLine(), token.getColumn(), returnVal, false);
             }
             default: {
                 // Probably an ExpressionStatement
                 ExpressionNode stmt = parseExpression();
                 expect(TokenType.Operator_Semicolon);
-                return Optional.of(new ExpressionStatementNode(token.getLine(), token.getColumn(), stmt, false));
+                return new ExpressionStatementNode(token.getLine(), token.getColumn(), stmt, false);
             }
         }
 
@@ -540,9 +542,4 @@ public class Parser {
         tokenStream.next();
         return token;
     }
-
-    private BlockStatementNode emptyBlock(Token token) {
-        return new BlockStatementNode(token.getLine(), token.getColumn(), Collections.emptyList(), false);
-    }
-
 }
