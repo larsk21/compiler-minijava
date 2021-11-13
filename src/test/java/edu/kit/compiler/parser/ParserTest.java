@@ -4,6 +4,8 @@ import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -16,6 +18,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 public class ParserTest {
+
+    @BeforeEach
+    public void setup() {
+        stream = new ByteArrayOutputStream();
+        sysout = System.out;
+        System.setOut(new PrintStream(stream));
+    }
+
+    @AfterEach
+    public void tearDown() {
+        System.setOut(sysout);
+    }
+
+    private PrintStream sysout;
+    private ByteArrayOutputStream stream;
+
     @Test
     public void testEmptyInput() {
         var parser = new Parser(new Lexer(getIterator("")));
@@ -59,10 +77,6 @@ public class ParserTest {
 
     @Test
     public void testSimpleAst() {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        PrintStream sysout = System.out;
-        System.setOut(new PrintStream(stream));
-
         Lexer lexer = new Lexer(getIterator(
             "class Test {"
             + "public int i;"
@@ -87,15 +101,10 @@ public class ParserTest {
             + "}\n",
             result
         );
-        System.setOut(sysout);
     }
 
     @Test
     public void testExampleFromAssignment() {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        PrintStream sysout = System.out;
-        System.setOut(new PrintStream(stream));
-
         Lexer lexer = new Lexer(getIterator(
             "class HelloWorld" +
             "{" +
@@ -144,15 +153,10 @@ public class ParserTest {
         "}\n";
 
         assertEquals(expected, result);
-        System.setOut(sysout);
     }
 
     @Test
     public void testPrecedenceAst() {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        PrintStream sysout = System.out;
-        System.setOut(new PrintStream(stream));
-
         Lexer lexer = new Lexer(getIterator(
             "class Test {"
             + "public void m(){"
@@ -175,7 +179,6 @@ public class ParserTest {
             + "}\n",
             result
         );
-        System.setOut(sysout);
     }
 
     private static ReaderCharIterator getIterator(String input) {

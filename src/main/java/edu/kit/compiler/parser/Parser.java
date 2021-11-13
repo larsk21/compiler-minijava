@@ -212,7 +212,9 @@ public class Parser {
             } else {
                 // Statement
                 Optional<StatementNode> stmt = parseStatement();
-                stmt.ifPresent(node -> stmts.add(node));
+                if (stmt.isPresent()) {
+                    stmts.add(stmt.get());
+                }
             }
         }
         expect(TokenType.Operator_BraceR);

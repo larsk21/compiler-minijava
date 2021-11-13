@@ -26,14 +26,21 @@ public class StringTable {
     /**
      *
      * @param hash index of the string value to be received
-     * @return String representation of this hash inside the String table or null if no
-     *         string exists.
+     * @return String representation of this hash inside the String table.
+     * @throws IllegalArgumentException if no such string exists.
      */
     public String retrieve(int hash) {
         if(hash < size() && hash >= 0) {
             return strings.get(hash);
         }
         throw new IllegalArgumentException("No string present for this value.");
+    }
+
+    /**
+     * @param hash index of the requested string value
+     */
+    public boolean contains(int hash) {
+        return hash < size() && hash >= 0;
     }
 
     public int size() {
