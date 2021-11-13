@@ -78,44 +78,26 @@ public class Parser {
         List<ClassNode> classes = new ArrayList<>();
         Token programStart = tokenStream.get();
         while (tokenStream.get().getType() == TokenType.Keyword_Class) {
-            Token firstToken = tokenStream.get();
-            tokenStream.next();
-            Token name = expect(TokenType.Identifier);
-            expect(TokenType.Operator_BraceL);
-            classes.add(parseClassMembers(
-                firstToken.getLine(), firstToken.getColumn(), name.getIntValue().get()
-            ));
-            expect(TokenType.Operator_BraceR);
+            classes.add(parseClass());
         }
         expect(TokenType.EndOfStream);
         return new ProgramNode(programStart.getLine(), programStart.getColumn(), classes, false);
     }
 
-    private ClassNode parseClassMembers(int line, int column, int className) {
+    private ClassNode parseClass() {
         List<ClassNodeField> fields = new ArrayList<>();
         List<StaticMethodNode> staticMethods = new ArrayList<>();
         List<DynamicMethodNode> dynamicMethods = new ArrayList<>();
+
+        Token classToken = expect(TokenType.Keyword_Class);
+        Token className = expect(TokenType.Identifier);
+        expect(TokenType.Operator_BraceL);
         while (tokenStream.get().getType() == TokenType.Keyword_Public) {
             Token firstToken = tokenStream.get();
             tokenStream.next();
             if (tokenStream.get().getType() == TokenType.Keyword_Static) {
-                // MainMethod
-                tokenStream.next();
-                expect(TokenType.Keyword_Void);
-                Token name = expect(TokenType.Identifier);
-                expect(TokenType.Operator_ParenL);
-                int paramLine = tokenStream.get().getLine();
-                int paramColumn = tokenStream.get().getColumn();
-                DataType paramType = parseType();
-                Token paramName = expect(TokenType.Identifier);
-                MethodNodeParameter param = new MethodNodeParameter(paramLine, paramColumn, paramType, paramName.getIntValue().get(), false);
-                expect(TokenType.Operator_ParenR);
-                Optional<MethodNodeRest> mRest = parseMethodRest();
-                BlockStatementNode block = parseBlock();
-                staticMethods.add(
-                    new StaticMethodNode(firstToken.getLine(), firstToken.getColumn(), new DataType(DataTypeClass.Void),
-                        name.getIntValue().get(), Arrays.asList(param), mRest, block.getStatements(), false)
-                );
+                // Main Method
+                staticMethods.add(parseStaticMethod(firstToken.getLine(), firstToken.getColumn()));
             } else {
                 DataType type = parseType();
                 Token name = expect(TokenType.Identifier);
@@ -140,7 +122,29 @@ public class Parser {
                 }
             }
         }
-        return new ClassNode(line, column, className, fields, staticMethods, dynamicMethods, false);
+        expect(TokenType.Operator_BraceR);
+        return new ClassNode(classToken.getLine(), classToken.getColumn(), className.getIntValue().get(),
+                             fields, staticMethods, dynamicMethods, false);
+    }
+
+    private StaticMethodNode parseStaticMethod(int line, int column) {
+        // "public" is already parsed
+        expect(TokenType.Keyword_Static);
+        expect(TokenType.Keyword_Void);
+        Token name = expect(TokenType.Identifier);
+        expect(TokenType.Operator_ParenL);
+        int paramLine = tokenStream.get().getLine();
+        int paramColumn = tokenStream.get().getColumn();
+        DataType paramType = parseType();
+        Token paramName = expect(TokenType.Identifier);
+        MethodNodeParameter param = new MethodNodeParameter(
+            paramLine, paramColumn, paramType, paramName.getIntValue().get(), false
+        );
+        expect(TokenType.Operator_ParenR);
+        Optional<MethodNodeRest> mRest = parseMethodRest();
+        BlockStatementNode block = parseBlock();
+        return new StaticMethodNode(line, column, new DataType(DataTypeClass.Void),
+            name.getIntValue().get(), Arrays.asList(param), mRest, block.getStatements(), false);
     }
 
     private DataType parseType() {
