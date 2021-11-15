@@ -1,8 +1,8 @@
 package edu.kit.compiler.semantic;
 
+import edu.kit.compiler.data.CompilerException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayDeque;
@@ -15,22 +15,28 @@ public class SymbolTable  {
     private final SymbolStringTable symbolStringTable = new SymbolStringTable();
     private Scope currentScope;
 
+    /**
+     * Construct a new symbol table that has yet to enter a valid scope.
+     */
+    public SymbolTable() {
+
+    }
+
     @RequiredArgsConstructor
-    static class Symbol {
-        @NonNull
-        int name;
+    public static class Symbol {
+        final int name;
         Scope currentScope;
         Definition currentDefinition;
     }
 
     @AllArgsConstructor
-    static class Scope {
+    protected static class Scope {
         Scope parent;
         int oldSize;
     }
 
     @AllArgsConstructor
-    static class Change {
+    protected static class Change {
         Symbol sym;
         Definition previousDefinition;
         Scope previousScope;
@@ -75,6 +81,10 @@ public class SymbolTable  {
         }
     }
 
+    /**
+     * Enter scope should be called when symbols from outer definitions can coexist with new definitions.
+     * <b>Note that enter scope has to be called once before interacting with the symbol table.</b>
+     */
     public void enterScope() {
         currentScope = new Scope(currentScope, changes.size());
     }
@@ -92,11 +102,14 @@ public class SymbolTable  {
         }
         currentScope = currentScope.parent;
     }
-    public Symbol insert(int name, Definition definition) {
+    public Symbol insert(Definition definition) {
+        int name = definition.getName();
         Symbol s = symbolStringTable.find(name);
-        if(isDefinedInCurrentScope(s)) {
+        if(isDefinedInCurrentScope(name)) {
             // this should never happen, make sure to check in upper level to get line number and column
-            throw new SemanticException("symbol is already defined in scope!");
+            throw new SemanticException("symbol is already defined in scope!", new CompilerException.SourceLocation(
+                    definition.getLine(),
+                    definition.getColumn()));
         }
         if(s == null) {
             s = symbolStringTable.insert(name);
@@ -131,11 +144,12 @@ public class SymbolTable  {
         }
     }
 
-    public boolean isDefinedInCurrentScope(Symbol symbol) {
-        if(symbol == null) {
+    public boolean isDefinedInCurrentScope(int symbol) {
+        Symbol s = symbolStringTable.find(symbol);
+        if(s == null) {
             return false;
         }
-        return symbol.currentScope == currentScope;
+        return s.currentScope == currentScope;
     }
 
 

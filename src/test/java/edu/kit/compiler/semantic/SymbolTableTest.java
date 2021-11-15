@@ -31,7 +31,7 @@ public class SymbolTableTest {
     @Test
     public void testLookup() {
         Definition expected = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 0, null, false);
-        SymbolTable.Symbol s = symbolTable.insert(expected.getName(), expected);
+        SymbolTable.Symbol s = symbolTable.insert(expected);
         // just test it without entering or leaving anything
         Definition actual = symbolTable.lookup(s);
 

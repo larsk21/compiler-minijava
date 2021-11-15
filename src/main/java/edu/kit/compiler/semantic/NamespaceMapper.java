@@ -2,7 +2,7 @@ package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
-import lombok.AllArgsConstructor;
+import edu.kit.compiler.data.ast_nodes.MethodNode;
 import lombok.Data;
 
 import java.util.HashMap;
@@ -12,13 +12,19 @@ public class NamespaceMapper {
 
     private final Map<Integer, ClassNamespace> symbolTableMap = new HashMap<>();
 
-    @AllArgsConstructor
     @Data
     public static class ClassNamespace {
-        private final int classNodeRef;
-        private SymbolTable methodSymbols;
-        private SymbolTable fieldSymbols;
+        private final ClassNode classNodeRef;
+        private final Map<Integer, MethodNode.DynamicMethodNode> dynamicMethods = new HashMap<>();
+        private final Map<Integer, MethodNode.StaticMethodNode> staticMethods = new HashMap<>();
+        // Inner symbol table that holds most recent definitions of control flow
+        private final SymbolTable classSymbolTable = new SymbolTable();
+
+        public ClassNamespace(ClassNode classNodeRef) {
+            this.classNodeRef = classNodeRef;
+        }
     }
+
 
     /**
      * Create a new symbol table once a new class is visited during recursive descent.
@@ -32,7 +38,7 @@ public class NamespaceMapper {
             CompilerException.SourceLocation sl = new CompilerException.SourceLocation(classNode.getLine(), classNode.getColumn());
             throw new SemanticException("Cannot insert same class twice into namespace map", sl);
         }
-        ClassNamespace classNamespace = new ClassNamespace(classNodeName, new SymbolTable(), new SymbolTable());
+        ClassNamespace classNamespace = new ClassNamespace(classNode);
         symbolTableMap.put(classNodeName, classNamespace);
 
         return classNamespace;
