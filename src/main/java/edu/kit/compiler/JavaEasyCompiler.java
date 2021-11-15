@@ -12,13 +12,10 @@ import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
+import edu.kit.compiler.parser.Parser;
+import org.apache.commons.cli.*;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 
 public class JavaEasyCompiler {
     /**
@@ -91,7 +88,7 @@ public class JavaEasyCompiler {
 
     /**
      * Split the file contents in Lexer Tokens and output the representations one Token per line.
-     * 
+     *
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or an according error
      */
@@ -206,7 +203,8 @@ public class JavaEasyCompiler {
         CliInputError(1),
         FileInputError(1),
         LexError(1),
-        ParseError(1);
+        ParseError(1),
+        SemanticError(1);
 
         /**
          * @param code The exit code associated with this Result
