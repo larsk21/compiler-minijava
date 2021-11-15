@@ -4,7 +4,6 @@ import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
-import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 import org.apache.commons.cli.*;
@@ -47,7 +46,7 @@ public class JavaEasyCompiler {
      */
     private static Result lextest(String filePath, Logger logger) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
-            Lexer lexer = new Lexer(new ReaderCharIterator(reader), logger);
+            Lexer lexer = new Lexer(reader, logger);
             StringTable stringTable = lexer.getStringTable();
 
             Token token;
@@ -77,7 +76,7 @@ public class JavaEasyCompiler {
      */
     private static Result parseTest(String filePath, Logger logger) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
-            Parser parser = new Parser(new Lexer(new ReaderCharIterator(reader)));
+            Parser parser = new Parser(new Lexer(reader, logger));
             parser.parse();
 
             return Result.Ok;
@@ -101,7 +100,7 @@ public class JavaEasyCompiler {
      */
     private static Result prettyPrint(String filePath, Logger logger) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
-            Lexer lexer = new Lexer(new ReaderCharIterator(reader));
+            Lexer lexer = new Lexer(reader, logger);
             StringTable stringTable = lexer.getStringTable();
             ProgramNode ast = (new Parser(lexer)).parse();
             ast.accept(new PrettyPrintAstVisitor(stringTable));
