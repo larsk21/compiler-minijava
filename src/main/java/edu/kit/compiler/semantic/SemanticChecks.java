@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.ArrayList;
 
 import edu.kit.compiler.data.AstVisitor;
+import edu.kit.compiler.data.Operator.BinaryOperator;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
@@ -26,18 +27,25 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.IfStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.ReturnStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.WhileStatementNode;
+import lombok.Getter;
 
 public class SemanticChecks {
-    public static void applyChecks(ProgramNode ast) {
+    public static List<SemanticError> applyChecks(ProgramNode ast) {
+        List<SemanticError> errors = new ArrayList<>();
         for (ClassNode currentClass: ast.getClasses()) {
-            checkClass(currentClass);
+            errors.addAll(checkClass(currentClass));
         }
+        return errors;
     }
 
-    private static void checkClass(ClassNode currentClass) {
+    private static List<SemanticError> checkClass(ClassNode currentClass) {
+        List<SemanticError> errors = new ArrayList<>();
         for (MethodNode method: currentClass.getDynamicMethods()) {
-            method.getStatementBlock().accept(new MethodCheckVisitor(false));
+            MethodCheckVisitor visitor = new MethodCheckVisitor(false);
+            method.getStatementBlock().accept(visitor);
+            errors.addAll(visitor.getErrors());
         }
+        return errors;
     }
 }
 
@@ -53,6 +61,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
      */
     private boolean isMain;
 
+    @Getter
     private List<SemanticError> errors;
 
     public MethodCheckVisitor(boolean isMain) {
@@ -63,7 +72,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
     public Boolean visit(BlockStatementNode block) {
         boolean alwaysReturns = false;
         for (StatementNode stmt: block.getStatements()) {
-            alwaysReturns &= stmt.accept(this);
+            alwaysReturns |= stmt.accept(this);
         }
         return alwaysReturns;
     }
@@ -72,7 +81,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
         ifNode.getCondition().accept(this);
         boolean ifReturns = ifNode.getThenStatement().accept(this);
 
-        boolean elseReturns = true;
+        boolean elseReturns = false;
         Optional<StatementNode> elseStmt = ifNode.getElseStatement();
         if (elseStmt.isPresent()) {
             elseReturns = elseStmt.get().accept(this);
@@ -104,11 +113,20 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
         return false;
     }
 
-    public Boolean visit(ExpressionStatementNode expressionStatementNode) {
+    public Boolean visit(ExpressionStatementNode stmt) {
+        stmt.getExpression().accept(this);
         return false;
     }
 
     public Boolean visit(BinaryExpressionNode expr) {
+        if (expr.getOperator() == BinaryOperator.Assignment) {
+            // check that the left hand side is an lvalue
+            if (!isLValue(expr.getLeftSide())) {
+                errors.add(new SemanticError(expr.getLine(), expr.getColumn(),
+                    "Left side of assignment must be a variable, field or array element."));
+            }
+        }
+
         expr.getLeftSide().accept(this);
         expr.getRightSide().accept(this);
         return false;
@@ -165,5 +183,21 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
 
     public Boolean visit(NewArrayExpressionNode expr) {
         return false;
+    }
+
+    private boolean isLValue(ExpressionNode expr) {
+        AstVisitor<Boolean> visitor = new AstVisitor<>() {
+            public Boolean visit(BinaryExpressionNode n) { return false; }
+            public Boolean visit(UnaryExpressionNode n) { return false; }
+            public Boolean visit(MethodInvocationExpressionNode n) { return false; }
+            public Boolean visit(FieldAccessExpressionNode n) { return true; }
+            public Boolean visit(ArrayAccessExpressionNode n) { return true; }
+            public Boolean visit(IdentifierExpressionNode n) { return true; }
+            public Boolean visit(ValueExpressionNode n) { return false; }
+            public Boolean visit(ThisExpressionNode n) { return false; }
+            public Boolean visit(NewObjectExpressionNode n) { return false; }
+            public Boolean visit(NewArrayExpressionNode n) { return false; }
+        };
+        return expr.accept(visitor);
     }
 }
