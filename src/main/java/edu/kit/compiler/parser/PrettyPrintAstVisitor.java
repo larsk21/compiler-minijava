@@ -1,9 +1,6 @@
 package edu.kit.compiler.parser;
 
 import edu.kit.compiler.data.AstVisitor;
-import edu.kit.compiler.data.DataType;
-import edu.kit.compiler.data.Operator.BinaryOperator;
-import edu.kit.compiler.data.Operator.UnaryOperator;
 import edu.kit.compiler.data.ast_nodes.*;
 import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
@@ -86,77 +83,6 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
         }).collect(Collectors.toList());
     }
 
-    private String getTypeName(DataType type) {
-        switch (type.getType()) {
-        case Array:
-            return type.getInnerType().map(
-                innerType -> getTypeName(innerType) + "[]"
-            ).orElseThrow(
-                () -> new IllegalStateException("array type without inner type")
-            );
-        case Boolean:
-            return "boolean";
-        case Int:
-            return "int";
-        case UserDefined:
-            return type.getIdentifier().map(
-                identifier -> stringTable.retrieve(identifier)
-            ).orElseThrow(
-                () -> new IllegalStateException("user defined type without identifier")
-            );
-        case Void:
-            return "void";
-        default:
-            throw new IllegalStateException("unsupported data type");
-        }
-    }
-
-    private String getOperatorRepresentation(BinaryOperator operator) {
-        switch (operator) {
-        case Addition:
-            return "+";
-        case Assignment:
-            return "=";
-        case Division:
-            return "/";
-        case Equal:
-            return "==";
-        case GreaterThan:
-            return ">";
-        case GreaterThanOrEqual:
-            return ">=";
-        case LessThan:
-            return "<";
-        case LessThanOrEqual:
-            return "<=";
-        case LogicalAnd:
-            return "&&";
-        case LogicalOr:
-            return "||";
-        case Modulo:
-            return "%";
-        case Multiplication:
-            return "*";
-        case NotEqual:
-            return "!=";
-        case Subtraction:
-            return "-";
-        default:
-            throw new IllegalStateException("unsupported operator");
-        }
-    }
-
-    private String getOperatorRepresentation(UnaryOperator operator) {
-        switch (operator) {
-        case ArithmeticNegation:
-            return "-";
-        case LogicalNegation:
-            return "!";
-        default:
-            throw new IllegalStateException("unsupported operator");
-        }
-    }
-
     @Override
     public Void visit(ProgramNode programNode) {
         for (ClassNode _class : sortAlphabetically(
@@ -199,7 +125,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
             }
 
             for (ClassNodeField field : fields) {
-                String typeName = getTypeName(field.getType());
+                String typeName = field.getType().getRepresentation(stringTable);
                 String fieldName = stringTable.retrieve(field.getName());
 
                 println("public %s %s;", typeName, fieldName);
@@ -223,7 +149,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
                     print(", ");
                 }
 
-                String typeName = getTypeName(parameter.getType());
+                String typeName = parameter.getType().getRepresentation(stringTable);
                 String parameterName = stringTable.retrieve(parameter.getName());
 
                 print("%s %s", typeName, parameterName);
@@ -263,7 +189,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
     @Override
     public Void visit(StaticMethodNode staticMethodNode) {
-        String typeName = getTypeName(staticMethodNode.getType());
+        String typeName = staticMethodNode.getType().getRepresentation(stringTable);
         String methodName = stringTable.retrieve(staticMethodNode.getName());
 
         print("public static %s %s", typeName, methodName);
@@ -275,7 +201,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
     @Override
     public Void visit(DynamicMethodNode dynamicMethodNode) {
-        String typeName = getTypeName(dynamicMethodNode.getType());
+        String typeName = dynamicMethodNode.getType().getRepresentation(stringTable);
         String methodName = stringTable.retrieve(dynamicMethodNode.getName());
 
         print("public %s %s", typeName, methodName);
@@ -312,7 +238,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
     @Override
     public Void visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode) {
-        String typeName = getTypeName(localVariableDeclarationStatementNode.getType());
+        String typeName = localVariableDeclarationStatementNode.getType().getRepresentation(stringTable);
         String variableName = stringTable.retrieve(localVariableDeclarationStatementNode.getName());
 
         print("%s %s", typeName, variableName);
@@ -442,8 +368,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
         binaryExpressionNode.getLeftSide().accept(this);
 
-        String operatorRepresentation = getOperatorRepresentation(binaryExpressionNode.getOperator());
-        print(" %s ", operatorRepresentation);
+        print(" %s ", binaryExpressionNode.getOperator().toString());
 
         binaryExpressionNode.getRightSide().accept(this);
 
@@ -465,8 +390,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
         boolean _topLevelExpression = topLevelExpression;
         topLevelExpression = false;
 
-        String operatorRepresentation = getOperatorRepresentation(unaryExpressionNode.getOperator());
-        print(operatorRepresentation);
+        print(unaryExpressionNode.getOperator().toString());
 
         unaryExpressionNode.getExpression().accept(this);
 
@@ -642,7 +566,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
         boolean _topLevelExpression = topLevelExpression;
         topLevelExpression = false;
 
-        String typeName = getTypeName(newArrayExpressionNode.getType());
+        String typeName = newArrayExpressionNode.getElementType().getRepresentation(stringTable);
         print("new %s[", typeName);
 
         topLevelExpression = true;
