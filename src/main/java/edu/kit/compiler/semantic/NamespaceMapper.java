@@ -17,7 +17,6 @@ public class NamespaceMapper {
         private final ClassNode classNodeRef;
         private final Map<Integer, MethodNode.DynamicMethodNode> dynamicMethods = new HashMap<>();
         private final Map<Integer, MethodNode.StaticMethodNode> staticMethods = new HashMap<>();
-        // Inner symbol table that holds most recent definitions of control flow
         private final Map<Integer, ClassNode.ClassNodeField> classSymbols = new HashMap<>();
 
         public ClassNamespace(ClassNode classNodeRef) {
