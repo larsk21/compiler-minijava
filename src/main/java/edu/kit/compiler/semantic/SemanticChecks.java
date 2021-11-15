@@ -114,6 +114,12 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
     }
 
     public Boolean visit(ExpressionStatementNode stmt) {
+        if (!isAssignmentOrMethodInvocation(stmt.getExpression())) {
+            // only assignments or method invocations are valid expression statements
+            errors.add(new SemanticError(stmt.getLine(), stmt.getColumn(),
+                "Statement needs to be either assignment or method invocation."));
+        }
+
         stmt.getExpression().accept(this);
         return false;
     }
@@ -193,6 +199,25 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
             public Boolean visit(FieldAccessExpressionNode n) { return true; }
             public Boolean visit(ArrayAccessExpressionNode n) { return true; }
             public Boolean visit(IdentifierExpressionNode n) { return true; }
+            public Boolean visit(ValueExpressionNode n) { return false; }
+            public Boolean visit(ThisExpressionNode n) { return false; }
+            public Boolean visit(NewObjectExpressionNode n) { return false; }
+            public Boolean visit(NewArrayExpressionNode n) { return false; }
+        };
+        return expr.accept(visitor);
+    }
+
+    private boolean isAssignmentOrMethodInvocation(ExpressionNode expr) {
+        AstVisitor<Boolean> visitor = new AstVisitor<>() {
+            public Boolean visit(BinaryExpressionNode n) {
+                return n.getOperator() == BinaryOperator.Assignment;
+            }
+            public Boolean visit(MethodInvocationExpressionNode n) { return true; }
+
+            public Boolean visit(UnaryExpressionNode n) { return false; }
+            public Boolean visit(FieldAccessExpressionNode n) { return false; }
+            public Boolean visit(ArrayAccessExpressionNode n) { return false; }
+            public Boolean visit(IdentifierExpressionNode n) { return false; }
             public Boolean visit(ValueExpressionNode n) { return false; }
             public Boolean visit(ThisExpressionNode n) { return false; }
             public Boolean visit(NewObjectExpressionNode n) { return false; }

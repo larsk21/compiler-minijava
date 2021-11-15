@@ -64,6 +64,15 @@ public class SemanticChecksTest {
         assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x[0][1]=z; } }")).isEmpty());
     }
 
+    @Test
+    public void testExpressionStatement() {
+        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { this; } }")).isEmpty());
+        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { x+y; } }")).isEmpty());
+        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { a.z; } }")).isEmpty());
+        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x=y; } }")).isEmpty());
+        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x.m(); } }")).isEmpty());
+    }
+
     private MethodNode getMethod(String input) {
         ProgramNode node = createAst(input);
         for (ClassNode classNode: node.getClasses()) {
