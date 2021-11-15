@@ -28,6 +28,7 @@ public interface AstVisitor<T> {
     default T visit(FieldAccessExpressionNode fieldAccessExpressionNode) { throw new UnsupportedOperationException(); }
     default T visit(ArrayAccessExpressionNode arrayAccessExpressionNode) { throw new UnsupportedOperationException(); }
     default T visit(IdentifierExpressionNode identifierExpressionNode) { throw new UnsupportedOperationException(); }
+    default T visit(ThisExpressionNode thisExpressionNode) { throw new UnsupportedOperationException(); }
     default T visit(ValueExpressionNode valueExpressionNode) { throw new UnsupportedOperationException(); }
     default T visit(NewObjectExpressionNode newObjectExpressionNode) { throw new UnsupportedOperationException(); }
     default T visit(NewArrayExpressionNode newArrayExpressionNode) { throw new UnsupportedOperationException(); }

@@ -166,25 +166,9 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
             print(" throws %s", exceptionTypeName);
         }
 
-        List<StatementNode> statements = toList(methodNode.getStatements());
+        print(" ");
 
-        if (statements.isEmpty()) {
-            print(" { }");
-        } else {
-            println(" {");
-
-            indentation++;
-
-            for (StatementNode statement : methodNode.getStatements()) {
-                statement.accept(this);
-
-                println();
-            }
-
-            indentation--;
-
-            print("}");
-        }
+        methodNode.getStatementBlock().accept(this);
     }
 
     @Override
@@ -508,6 +492,13 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
     }
 
     @Override
+    public Void visit(ThisExpressionNode thisExpressionNode) {
+        print("this");
+
+        return nothing;
+    }
+
+    @Override
     public Void visit(ValueExpressionNode valueExpressionNode) {
         switch (valueExpressionNode.getType()) {
         case False:
@@ -522,9 +513,6 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
             break;
         case Null:
             print("null");
-            break;
-        case This:
-            print("this");
             break;
         case True:
             print("true");

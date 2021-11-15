@@ -4,18 +4,20 @@ import edu.kit.compiler.data.AstNode;
 import edu.kit.compiler.data.AstObject;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
+import edu.kit.compiler.data.ast_nodes.StatementNode.BlockStatementNode;
 import edu.kit.compiler.semantic.Definition;
 import lombok.Getter;
 
+import java.util.List;
 import java.util.Optional;
 
 public abstract class MethodNode extends AstNode implements Definition {
 
     public MethodNode(
-            int line, int column,
-            DataType type, int name, Iterable<MethodNodeParameter> parameters, Optional<MethodNodeRest> rest,
-            Iterable<StatementNode> statements,
-            boolean hasError
+        int line, int column,
+        DataType type, int name, List<MethodNodeParameter> parameters, Optional<MethodNodeRest> rest,
+        BlockStatementNode statementBlock,
+        boolean hasError
     ) {
         super(line, column, hasError);
 
@@ -24,7 +26,7 @@ public abstract class MethodNode extends AstNode implements Definition {
         this.parameters = parameters;
         this.rest = rest;
 
-        this.statements = statements;
+        this.statementBlock = statementBlock;
     }
 
     @Getter
@@ -32,12 +34,12 @@ public abstract class MethodNode extends AstNode implements Definition {
     @Getter
     private int name;
     @Getter
-    private Iterable<MethodNodeParameter> parameters;
+    private List<MethodNodeParameter> parameters;
     @Getter
     private Optional<MethodNodeRest> rest;
 
     @Getter
-    private Iterable<StatementNode> statements;
+    private BlockStatementNode statementBlock;
 
     /**
      * Definitions of method node parameters can overshadow outer variables as well.
@@ -74,12 +76,12 @@ public abstract class MethodNode extends AstNode implements Definition {
     public static class StaticMethodNode extends MethodNode {
 
         public StaticMethodNode(
-                int line, int column,
-                DataType type, int name, Iterable<MethodNodeParameter> parameters, Optional<MethodNodeRest> rest,
-                Iterable<StatementNode> statements,
-                boolean hasError
+            int line, int column,
+            DataType type, int name, List<MethodNodeParameter> parameters, Optional<MethodNodeRest> rest,
+            BlockStatementNode statementBlock,
+            boolean hasError
         ) {
-            super(line, column, type, name, parameters, rest, statements, hasError);
+            super(line, column, type, name, parameters, rest, statementBlock, hasError);
         }
 
         @Override
@@ -92,12 +94,12 @@ public abstract class MethodNode extends AstNode implements Definition {
     public static class DynamicMethodNode extends MethodNode {
 
         public DynamicMethodNode(
-                int line, int column,
-                DataType type, int name, Iterable<MethodNodeParameter> parameters, Optional<MethodNodeRest> rest,
-                Iterable<StatementNode> statements,
-                boolean hasError
+            int line, int column,
+            DataType type, int name, List<MethodNodeParameter> parameters, Optional<MethodNodeRest> rest,
+            BlockStatementNode statementBlock,
+            boolean hasError
         ) {
-            super(line, column, type, name, parameters, rest, statements, hasError);
+            super(line, column, type, name, parameters, rest, statementBlock, hasError);
         }
 
         @Override

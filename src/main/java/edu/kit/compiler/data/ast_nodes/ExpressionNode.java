@@ -1,5 +1,6 @@
 package edu.kit.compiler.data.ast_nodes;
 
+import java.util.List;
 import java.util.Optional;
 
 import edu.kit.compiler.data.AstNode;
@@ -81,7 +82,7 @@ public abstract class ExpressionNode extends AstNode {
 
         public MethodInvocationExpressionNode(
             int line, int column,
-            Optional<ExpressionNode> object, int name, Iterable<ExpressionNode> arguments,
+            Optional<ExpressionNode> object, int name, List<ExpressionNode> arguments,
             boolean hasError
         ) {
             super(line, column, hasError);
@@ -96,7 +97,8 @@ public abstract class ExpressionNode extends AstNode {
         @Getter
         private int name;
         @Getter
-        private Iterable<ExpressionNode> arguments;
+        private List<ExpressionNode> arguments;
+
         @Getter
         @Setter
         private Definition definition;
@@ -184,6 +186,23 @@ public abstract class ExpressionNode extends AstNode {
 
     }
 
+    public static class ThisExpressionNode extends ExpressionNode {
+
+        public ThisExpressionNode(int line, int column, boolean hasError) {
+            super(line, column, hasError);
+        }
+
+        @Getter
+        @Setter
+        private Definition definition;
+
+        @Override
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+    }
+
     public static class ValueExpressionNode extends ExpressionNode {
 
         public ValueExpressionNode(
@@ -224,8 +243,7 @@ public abstract class ExpressionNode extends AstNode {
         Null,
         False,
         True,
-        IntegerLiteral,
-        This
+        IntegerLiteral
     }
 
     public static class NewObjectExpressionNode extends ExpressionNode {
