@@ -500,7 +500,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
     @Override
     public Void visit(ValueExpressionNode valueExpressionNode) {
-        switch (valueExpressionNode.getType()) {
+        switch (valueExpressionNode.getValueType()) {
         case False:
             print("false");
             break;
