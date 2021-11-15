@@ -3,33 +3,30 @@ package edu.kit.compiler.lexer;
 import edu.kit.compiler.data.Literal;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
-import edu.kit.compiler.io.BufferedLookaheadIterator;
-import edu.kit.compiler.io.CharCounterLookaheadIterator;
-import edu.kit.compiler.io.ReaderCharIterator;
+import edu.kit.compiler.io.SourceLocationReader;
 import edu.kit.compiler.logger.Logger;
 import static edu.kit.compiler.data.TokenType.*;
 
+import java.io.Reader;
 import java.util.Iterator;
 import java.util.Map;
 
 /**
- * Reads characters from an input stream and returns found tokens.
+ * Reads characters from a character stream and returns found tokens.
  */
-public class Lexer implements Iterator<Token> {
+public final class Lexer implements Iterator<Token> {
     private static final Map<String, TokenType> KEYWORDS = keyWordMap();
 
-    private final CharCounterLookaheadIterator charStream;
+    private final SourceLocationReader reader;
     private final StringTable stringTable;
     private final Logger logger;
 
-    public Lexer(ReaderCharIterator iterator) {
-        this(iterator, Logger.nullLogger());
+    public Lexer(Reader source) {
+        this(source, Logger.nullLogger());
     }
 
-    public Lexer(ReaderCharIterator iterator, Logger logger) {
-        this.charStream = new CharCounterLookaheadIterator(
-            new BufferedLookaheadIterator<>(iterator)
-        );
+    public Lexer(Reader source, Logger logger) {
+        this.reader = new SourceLocationReader(source);
         this.stringTable = new StringTable();
         this.logger = logger.withName("lexer");
     }
@@ -39,19 +36,19 @@ public class Lexer implements Iterator<Token> {
     }
 
     /**
-     * Read characters from the input stream until a token is found. Any
+     * Read characters from the character stream until a token is found. Any
      * comments or white spaces are skipped.
      * 
      * @return the next token found in input stream.
      */
     public Token getNextToken() {
-        while (skipWhiteSpace() || skipComment()) { }
+        while (skipWhiteSpace() || skipComment());
 
-        if (Character.isEndOfStream(charStream.get(0))) {
-            return new Token(EndOfStream, charStream.getLine(), charStream.getColumn());
-        } else if (Character.isDigit(charStream.get())) {
+        if (Character.isEndOfStream(reader.peek())) {
+            return new Token(EndOfStream, reader.getLine(), reader.getColumn());
+        } else if (Character.isDigit(reader.peek())) {
             return lexIntegerLiteral();
-        } else if (Character.isIdentifierStart(charStream.get())) {
+        } else if (Character.isIdentifierStart(reader.peek())) {
             return lexKeywordOrIdentifier();
         } else {
             return lexOperatorOrDelimiter();
@@ -59,25 +56,25 @@ public class Lexer implements Iterator<Token> {
     }
 
     /**
-     * Reads an integer literal from the input stream and returns it as a token.
-     * The caller must ensure that the next character in the input stream is an
+     * Reads an integer literal from the character stream and returns it as a token.
+     * The caller must ensure that the next character in the character stream is an
      * ASCII Digit.
      * 
      * @return a Token containing an integer literal.
      */
     private Token lexIntegerLiteral() {
-        assert Character.isDigit(charStream.get());
+        assert Character.isDigit(reader.peek());
 
-        int line = charStream.getLine();
-        int column = charStream.getColumn();
-        if (charStream.get() == '0') {
-            charStream.next();
+        int line = reader.getLine();
+        int column = reader.getColumn();
+        if (reader.peek() == '0') {
+            reader.next();
             return new Token(IntegerLiteral, line, column, Literal.ofValue(0));
         } else {
             var builder = new StringBuilder();
-            while (Character.isDigit(charStream.get())) {
-                builder.append((char)charStream.get().intValue());
-                charStream.next();
+            while (Character.isDigit(reader.peek())) {
+                builder.append((char)reader.peek());
+                reader.next();
             }
             
             var literal = new Literal(builder.toString());
@@ -86,22 +83,22 @@ public class Lexer implements Iterator<Token> {
     }
 
     /**
-     * Reads an identifier or keyword from the input stream and returns it as
-     * Token. The caller must ensure that the next character in the input
-     * stream is valid as first character in an identifier (i.e. an ASCII
-     * letter or underscore);
+     * Reads an identifier or keyword from the character stream and returns
+     * it as Token. The caller must ensure that the next character in the
+     * input stream is valid as first character in an identifier (i.e. an
+     * ASCII letter or underscore);
      * 
      * @return a Token containing a keyword or an identifier.
      */
     private Token lexKeywordOrIdentifier() {
-        assert Character.isIdentifierStart(charStream.get());
+        assert Character.isIdentifierStart(reader.peek());
 
-        int line = charStream.getLine();
-        int column = charStream.getColumn();
+        int line = reader.getLine();
+        int column = reader.getColumn();
         var builder = new StringBuilder();
-        while (Character.isIdentifierPart(charStream.get())) {
-            builder.append((char)charStream.get().intValue());
-            charStream.next();
+        while (Character.isIdentifierPart(reader.peek())) {
+            builder.append((char)reader.peek());
+            reader.next();
         }
         
         String identifier = builder.toString();
@@ -115,101 +112,101 @@ public class Lexer implements Iterator<Token> {
     }
 
     /**
-     * Reads an operator or delimiter from the input stream and returns it as
-     * a Token. 
+     * Reads an operator or delimiter from the characters stream and returns it
+     * as a Token. 
      * 
      * @return a Token containing an operator or a delimiter.
      * @throws LexException if no valid operator or delimiter was found.
      * @throws IllegalStateException if the token is the start of a comment (i.e. /*).
      */
     private Token lexOperatorOrDelimiter() {
-        int line = charStream.getLine();
-        int column = charStream.getColumn();
-        TokenType tokenType = switch (charStream.get().intValue()) {
-            case '.' -> { charStream.next(); yield Operator_Dot;          }
-            case ',' -> { charStream.next(); yield Operator_Comma;        }
-            case ':' -> { charStream.next(); yield Operator_Colon;        }
-            case ';' -> { charStream.next(); yield Operator_Semicolon;    }
-            case '?' -> { charStream.next(); yield Operator_Questionmark; }
-            case '~' -> { charStream.next(); yield Operator_Tilde;        }
-            case '(' -> { charStream.next(); yield Operator_ParenL;       }
-            case ')' -> { charStream.next(); yield Operator_ParenR;       }
-            case '[' -> { charStream.next(); yield Operator_BracketL;     }
-            case ']' -> { charStream.next(); yield Operator_BracketR;     }
-            case '{' -> { charStream.next(); yield Operator_BraceL;       }
-            case '}' -> { charStream.next(); yield Operator_BraceR;       }
+        int line = reader.getLine();
+        int column = reader.getColumn();
+        TokenType tokenType = switch (reader.peek()) {
+            case '.' -> { reader.next(); yield Operator_Dot;          }
+            case ',' -> { reader.next(); yield Operator_Comma;        }
+            case ':' -> { reader.next(); yield Operator_Colon;        }
+            case ';' -> { reader.next(); yield Operator_Semicolon;    }
+            case '?' -> { reader.next(); yield Operator_Questionmark; }
+            case '~' -> { reader.next(); yield Operator_Tilde;        }
+            case '(' -> { reader.next(); yield Operator_ParenL;       }
+            case ')' -> { reader.next(); yield Operator_ParenR;       }
+            case '[' -> { reader.next(); yield Operator_BracketL;     }
+            case ']' -> { reader.next(); yield Operator_BracketR;     }
+            case '{' -> { reader.next(); yield Operator_BraceL;       }
+            case '}' -> { reader.next(); yield Operator_BraceR;       }
 
-            case '+' -> switch (charStream.get(1).intValue()) {
-                case '+' -> { charStream.next(2); yield Operator_PlusPlus;  }
-                case '=' -> { charStream.next(2); yield Operator_PlusEqual; }
-                default  -> { charStream.next(1); yield Operator_Plus;      }
+            case '+' -> switch (reader.peekNext()) {
+                case '+' -> { reader.next(); yield Operator_PlusPlus;  }
+                case '=' -> { reader.next(); yield Operator_PlusEqual; }
+                default  -> {                yield Operator_Plus;      }
             };
-            case '-' -> switch (charStream.get(1).intValue()) {
-                case '-' -> { charStream.next(2); yield Operator_MinusMinus; }
-                case '=' -> { charStream.next(2); yield Operator_MinusEqual; }
-                default  -> { charStream.next(1); yield Operator_Minus;      }
+            case '-' -> switch (reader.peekNext()) {
+                case '-' -> { reader.next(); yield Operator_MinusMinus; }
+                case '=' -> { reader.next(); yield Operator_MinusEqual; }
+                default  -> {                yield Operator_Minus;      }
             };
-            case '*' -> switch (charStream.get(1).intValue()) {
-                case '=' -> { charStream.next(2); yield Operator_StarEqual; }
-                default  -> { charStream.next(1); yield Operator_Star;      }
+            case '*' -> switch (reader.peekNext()) {
+                case '=' -> { reader.next(); yield Operator_StarEqual; }
+                default  -> {                yield Operator_Star;      }
             };
-            case '/' -> switch (charStream.get(1).intValue()) {
-                case '=' -> { charStream.next(2); yield Operator_SlashEqual; }
+            case '/' -> switch (reader.peekNext()) {
+                case '=' -> { reader.next(); yield Operator_SlashEqual; }
                 case '*' -> throw new IllegalStateException(
                     "Comments should have been skipped before a call to this method"
                 );
-                default  -> { charStream.next(1); yield Operator_Slash;      }
+                default  -> {                yield Operator_Slash;      }
             };
-            case '%' -> switch (charStream.get(1).intValue()) {
-                case '=' -> { charStream.next(2); yield Operator_PercentEqual; }
-                default  -> { charStream.next(1); yield Operator_Percent;      }
+            case '%' -> switch (reader.peekNext()) {
+                case '=' -> { reader.next(); yield Operator_PercentEqual; }
+                default  -> {                yield Operator_Percent;      }
             };
-            case '&' -> switch (charStream.get(1).intValue()) {
-                case '&' -> { charStream.next(2); yield Operator_AndAnd;   }
-                case '=' -> { charStream.next(2); yield Operator_AndEqual; }
-                default  -> { charStream.next(1); yield Operator_And;      }
+            case '&' -> switch (reader.peekNext()) {
+                case '&' -> { reader.next(); yield Operator_AndAnd;   }
+                case '=' -> { reader.next(); yield Operator_AndEqual; }
+                default  -> {                yield Operator_And;      }
             };
-            case '|' -> switch (charStream.get(1).intValue()) {
-                case '|' -> { charStream.next(2); yield Operator_BarBar;   }
-                case '=' -> { charStream.next(2); yield Operator_BarEqual; }
-                default  -> { charStream.next(1); yield Operator_Bar;      }
+            case '|' -> switch (reader.peekNext()) {
+                case '|' -> { reader.next(); yield Operator_BarBar;   }
+                case '=' -> { reader.next(); yield Operator_BarEqual; }
+                default  -> {                yield Operator_Bar;      }
             };
-            case '^' -> switch (charStream.get(1).intValue()) {
-                case '=' -> { charStream.next(2); yield Operator_CircumEqual; }
-                default  -> { charStream.next(1); yield Operator_Circum;      }
+            case '^' -> switch (reader.peekNext()) {
+                case '=' -> { reader.next(); yield Operator_CircumEqual; }
+                default  -> {                yield Operator_Circum;      }
             };
-            case '!' -> switch (charStream.get(1).intValue()) {
-                case '=' -> { charStream.next(2); yield Operator_NotEqual; }
-                default  -> { charStream.next(1); yield Operator_Not;      }
+            case '!' -> switch (reader.peekNext()) {
+                case '=' -> { reader.next(); yield Operator_NotEqual; }
+                default  -> {                yield Operator_Not;      }
             };
-            case '=' -> switch (charStream.get(1).intValue()) {
-                case '=' -> { charStream.next(2); yield Operator_EqualEqual; }
-                default  -> { charStream.next(1); yield Operator_Equal;      }
+            case '=' -> switch (reader.peekNext()) {
+                case '=' -> { reader.next(); yield Operator_EqualEqual; }
+                default  -> {                yield Operator_Equal;      }
             };
-            case '<' -> switch (charStream.get(1).intValue()) {
-                case '<' -> switch (charStream.get(2).intValue()) {
-                    case '=' -> { charStream.next(3); yield Operator_SmallerSmallerEqual; }
-                    default  -> { charStream.next(2); yield Operator_SmallerSmaller;      }
+            case '<' -> switch (reader.peekNext()) {
+                case '<' -> switch (reader.peekNext()) {
+                    case '=' -> { reader.next(); yield Operator_SmallerSmallerEqual; }
+                    default  -> {                yield Operator_SmallerSmaller;      }
                 };
-                case '=' -> { charStream.next(2); yield Operator_SmallerEqual; }
-                default  -> { charStream.next(1); yield Operator_Smaller;      }
+                case '=' -> { reader.next(); yield Operator_SmallerEqual; }
+                default  -> {                yield Operator_Smaller;      }
             };
-            case '>' -> switch (charStream.get(1).intValue()) {
-                case '>' -> switch (charStream.get(2).intValue()) {
-                    case '>' -> switch (charStream.get(3).intValue()) {
-                        case '=' -> { charStream.next(4); yield Operator_GreaterGreaterGreaterEqual; }
-                        default  -> { charStream.next(3); yield Operator_GreaterGreaterGreater; }
+            case '>' -> switch (reader.peekNext()) {
+                case '>' -> switch (reader.peekNext()) {
+                    case '>' -> switch (reader.peekNext()) {
+                        case '=' -> { reader.next(); yield Operator_GreaterGreaterGreaterEqual; }
+                        default  -> {                yield Operator_GreaterGreaterGreater; }
                     };
-                    case '=' -> { charStream.next(3); yield Operator_GreaterGreaterEqual; }
-                    default  -> { charStream.next(2); yield Operator_GreaterGreater; }
+                    case '=' -> { reader.next(); yield Operator_GreaterGreaterEqual; }
+                    default  -> {                yield Operator_GreaterGreater; }
                 };
-                case '=' -> { charStream.next(2); yield Operator_GreaterEqual; }
-                default  -> { charStream.next(1); yield Operator_Greater;      }
+                case '=' -> { reader.next(); yield Operator_GreaterEqual; }
+                default  -> {                yield Operator_Greater;      }
             };
             case '\u0000' -> throw new LexException(line, column,
                 "unexpected character 'NUL'");
             default -> throw new LexException(line, column,
-                "unexpected character '" + (char)charStream.get().intValue() + "'"
+                "unexpected character '" + (char)reader.peek() + "'"
             );
         };
         
@@ -217,13 +214,13 @@ public class Lexer implements Iterator<Token> {
     }
 
     /**
-     * Skips the next character in the input stream if it is a white space.
+     * Skips the next character in the character stream if it is a white space.
      * 
      * @return true if a white space character was skipped.
      */
     private boolean skipWhiteSpace() {
-        if (Character.isWhiteSpace(charStream.get())) {
-            charStream.next();
+        if (Character.isWhiteSpace(reader.peek())) {
+            reader.next();
             return true;
         } else {
             return false;
@@ -231,30 +228,32 @@ public class Lexer implements Iterator<Token> {
     }
 
     /**
-     * If the next characters in the input stream are the start of a comment,
+     * If the next characters in the character stream are the start of a comment,
      * skips the entirety of that comment, including the closing delimiter.
      * 
      * @return true if a comment was skipped, false otherwise.
      */
     private boolean skipComment() {
-        if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
-            int line = charStream.getLine();
-            int column = charStream.getColumn();
-            charStream.next(2);
+        if (reader.peek() == '/' && reader.previewNext() == '*') {
+            int line = reader.getLine();
+            int column = reader.getColumn();
+            reader.next();
+            reader.next();
 
-            while (!Character.isCommentEnd(charStream.get(0), charStream.get(1))) {
-                if (Character.isCommentStart(charStream.get(0), charStream.get(1))) {
+            while (reader.peek() != '*' || reader.peekNext() != '/') {
+                if (reader.peek() == '/' && reader.peekNext() == '*') {
                     logger.warn(line, column, "found opening comment inside of comment");
-                } else if (Character.isEndOfStream(charStream.get(0))) {
+                } else if (Character.isEndOfStream(reader.peek())) {
                     throw new LexException(line, column, "unclosed comment");
+                } else {
+                    reader.next();
                 }
-                charStream.next();
             }
-            charStream.next(2);
+            reader.next();
             return true;
-       } else {
-           return false;
-       }
+        } else {
+            return false;
+        }
     }
 
     /**
