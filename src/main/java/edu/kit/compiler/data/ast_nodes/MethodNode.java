@@ -6,10 +6,13 @@ import edu.kit.compiler.data.AstNode;
 import edu.kit.compiler.data.AstObject;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
+import edu.kit.compiler.semantic.Definition;
 
 import lombok.Getter;
 
-public abstract class MethodNode extends AstNode {
+import java.util.Optional;
+
+public abstract class MethodNode extends AstNode implements Definition {
 
     public MethodNode(
         int line, int column,
@@ -39,7 +42,10 @@ public abstract class MethodNode extends AstNode {
     @Getter
     private Iterable<StatementNode> statements;
 
-    public static class MethodNodeParameter extends AstObject {
+    /**
+     * Definitions of method node parameters can overshadow outer variables as well.
+     */
+    public static class MethodNodeParameter extends AstObject implements Definition {
 
         public MethodNodeParameter(int line, int column, DataType type, int name, boolean hasError) {
             super(line, column, hasError);
