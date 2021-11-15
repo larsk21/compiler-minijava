@@ -6,10 +6,11 @@ import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
+import edu.kit.compiler.semantic.Definition;
 
 import lombok.Getter;
 
-public class ClassNode extends AstNode {
+public class ClassNode extends AstNode implements Definition {
 
     public ClassNode(
         int line, int column,
@@ -37,11 +38,16 @@ public class ClassNode extends AstNode {
     private Iterable<DynamicMethodNode> dynamicMethods;
 
     @Override
+    public DataType getType() {
+        return new DataType(name);
+    }
+
+    @Override
     public <T> T accept(AstVisitor<T> visitor) {
         return visitor.visit(this);
     }
 
-    public static class ClassNodeField extends AstObject {
+    public static class ClassNodeField extends AstObject implements Definition {
 
         public ClassNodeField(int line, int column, DataType type, int name, boolean hasError) {
             super(line, column, hasError);

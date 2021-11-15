@@ -8,6 +8,9 @@ import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.Literal;
 import edu.kit.compiler.data.Operator.BinaryOperator;
 import edu.kit.compiler.data.Operator.UnaryOperator;
+import edu.kit.compiler.semantic.Definition;
+import edu.kit.compiler.semantic.Reference;
+
 import lombok.Getter;
 
 public abstract class ExpressionNode extends AstNode {
@@ -74,7 +77,7 @@ public abstract class ExpressionNode extends AstNode {
 
     }
 
-    public static class MethodInvocationExpressionNode extends ExpressionNode {
+    public static class MethodInvocationExpressionNode extends ExpressionNode implements Reference {
 
         public MethodInvocationExpressionNode(
             int line, int column,
@@ -94,6 +97,9 @@ public abstract class ExpressionNode extends AstNode {
         private int name;
         @Getter
         private Iterable<ExpressionNode> arguments;
+        @Getter
+        @Setter
+        private Definition definition;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
@@ -102,7 +108,7 @@ public abstract class ExpressionNode extends AstNode {
 
     }
 
-    public static class FieldAccessExpressionNode extends ExpressionNode {
+    public static class FieldAccessExpressionNode extends ExpressionNode implements Reference {
 
         public FieldAccessExpressionNode(
             int line, int column,
@@ -119,6 +125,10 @@ public abstract class ExpressionNode extends AstNode {
         private ExpressionNode object;
         @Getter
         private int name;
+
+        @Getter
+        @Setter
+        private Definition definition;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
@@ -152,7 +162,7 @@ public abstract class ExpressionNode extends AstNode {
 
     }
 
-    public static class IdentifierExpressionNode extends ExpressionNode {
+    public static class IdentifierExpressionNode extends ExpressionNode implements Reference {
 
         public IdentifierExpressionNode(int line, int column, int identifier, boolean hasError) {
             super(line, column, hasError);
@@ -162,6 +172,10 @@ public abstract class ExpressionNode extends AstNode {
 
         @Getter
         private int identifier;
+
+        @Getter
+        @Setter
+        private Definition definition;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
