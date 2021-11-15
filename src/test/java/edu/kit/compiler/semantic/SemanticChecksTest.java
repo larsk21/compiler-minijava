@@ -54,6 +54,16 @@ public class SemanticChecksTest {
         );
     }
 
+    @Test
+    public void testLValue() {
+        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { (x+y)=z; } }")).isEmpty());
+        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { (x.m())=z; } }")).isEmpty());
+        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { this=z; } }")).isEmpty());
+        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x=y=z; } }")).isEmpty());
+        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x.a.b=z; } }")).isEmpty());
+        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x[0][1]=z; } }")).isEmpty());
+    }
+
     private MethodNode getMethod(String input) {
         ProgramNode node = createAst(input);
         for (ClassNode classNode: node.getClasses()) {
