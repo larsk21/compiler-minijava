@@ -1,7 +1,6 @@
-package edu.kit.compiler.ag;
+package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.data.ast_nodes.StatementNode;
-import edu.kit.compiler.lexer.StringTable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -11,12 +10,10 @@ public class SymbolTableTest {
 
 
     private SymbolTable symbolTable;
-    private StringTable stringTable;
 
     @BeforeEach
     public void setup() {
-        stringTable = new StringTable();
-        symbolTable = new SymbolTable(stringTable);
+        symbolTable = new SymbolTable();
     }
 
     /**
@@ -39,5 +36,10 @@ public class SymbolTableTest {
         Definition actual = symbolTable.lookup(s);
 
         assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testLookupComplicated() {
+
     }
 }

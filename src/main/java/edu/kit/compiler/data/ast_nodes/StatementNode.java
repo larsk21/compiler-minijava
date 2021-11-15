@@ -1,9 +1,9 @@
 package edu.kit.compiler.data.ast_nodes;
 
-import edu.kit.compiler.ag.Definition;
 import edu.kit.compiler.data.AstNode;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
+import edu.kit.compiler.semantic.Definition;
 import lombok.Getter;
 
 import java.util.Optional;

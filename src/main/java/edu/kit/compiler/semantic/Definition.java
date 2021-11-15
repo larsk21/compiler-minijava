@@ -1,8 +1,8 @@
-package edu.kit.compiler.ag;
+package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.data.DataType;
 
 public interface Definition {
-    String getName();
+    int getName();
     DataType getType();
 }

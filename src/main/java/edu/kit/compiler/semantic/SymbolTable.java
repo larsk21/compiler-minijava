@@ -1,6 +1,5 @@
-package edu.kit.compiler.ag;
+package edu.kit.compiler.semantic;
 
-import edu.kit.compiler.lexer.StringTable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
@@ -12,7 +11,6 @@ import java.util.LinkedHashMap;
 @Data
 public class SymbolTable  {
 
-    private final StringTable stringTable;
     private final ArrayDeque<Change> changes = new ArrayDeque<>();
     private final SymbolStringTable symbolStringTable = new SymbolStringTable();
     private Scope currentScope;
@@ -20,7 +18,7 @@ public class SymbolTable  {
     @RequiredArgsConstructor
     static class Symbol {
         @NonNull
-        String name;
+        int name;
         Scope currentScope;
         Definition currentDefinition;
     }
@@ -39,15 +37,29 @@ public class SymbolTable  {
 
     }
 
+    /**
+     * AstNodes do not hold a String reference, they only hold a reference integer to our global string table.
+     * Thus the mapping from String to symbol can be simplified by only providing a mapping from
+     * Integer -> Symbol instead of String -> Integer -> Symbol
+     */
     static class SymbolStringTable {
-        private final LinkedHashMap<String, Symbol> table = new LinkedHashMap<>();
 
+        private final LinkedHashMap<Integer, Symbol> table = new LinkedHashMap<>();
+
+        /**
+         *
+         * @param name The name of the symbol mapped by our global String table
+         * @return The symbol for which this name is mapped otherwise null
+         */
+        public Symbol find(int name) {
+            return table.get(name);
+        }
         /**
          * Returns a symbol that has yet to be initialized with current scope and current definition
          * @param name The name of the symbol
          * @return If there exists a symbol in the string table return the symbol otherwise create a new symbol
          */
-        public Symbol findOrInsert(String name) {
+        public Symbol insert(int name) {
             if(table.get(name) == null) {
                 Symbol s = new Symbol(name);
                 table.put(name, s);
@@ -57,10 +69,10 @@ public class SymbolTable  {
                 return table.get(name);
             }
         }
-    }
 
-    public SymbolTable(StringTable stringTable) {
-        this.stringTable = stringTable;
+        public void remove(int name) {
+            table.remove(name);
+        }
     }
 
     public void enterScope() {
@@ -70,17 +82,24 @@ public class SymbolTable  {
         // revert all previous changes
         while (changes.size() > currentScope.oldSize) {
             Change c = changes.pop();
+            // check if we leave our defining scope then remove symbol entirely from table
+            if (c.previousScope == null) {
+                symbolStringTable.remove(c.sym.name);
+                return;
+            }
             c.sym.currentDefinition = c.previousDefinition;
             c.sym.currentScope = c.previousScope;
         }
         currentScope = currentScope.parent;
     }
-    public Symbol insert(String name, Definition definition) {
-        Symbol s = symbolStringTable.findOrInsert(name);
-
+    public Symbol insert(int name, Definition definition) {
+        Symbol s = symbolStringTable.find(name);
         if(isDefinedInCurrentScope(s)) {
             // this should never happen, make sure to check in upper level to get line number and column
             throw new SemanticException("symbol is already defined in scope!");
+        }
+        if(s == null) {
+            s = symbolStringTable.insert(name);
         }
 
         s.currentDefinition = null;
@@ -96,7 +115,26 @@ public class SymbolTable  {
     public Definition lookup(Symbol symbol) {
         return symbol.currentDefinition;
     }
+
+    /**
+     * Return a definition for this symbol if there exists one otherwise return null
+     * @param symbol The symbol to be checked
+     * @return Definition if there exists a symbol otherwise null
+     */
+    public Definition lookup(int symbol) {
+        Symbol s = symbolStringTable.find(symbol);
+        if(symbolStringTable.find(symbol) == null) {
+            return null;
+        }
+        else {
+            return s.currentDefinition;
+        }
+    }
+
     public boolean isDefinedInCurrentScope(Symbol symbol) {
+        if(symbol == null) {
+            return false;
+        }
         return symbol.currentScope == currentScope;
     }
 
