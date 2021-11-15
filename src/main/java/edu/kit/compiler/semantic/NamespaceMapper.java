@@ -18,7 +18,7 @@ public class NamespaceMapper {
         private final Map<Integer, MethodNode.DynamicMethodNode> dynamicMethods = new HashMap<>();
         private final Map<Integer, MethodNode.StaticMethodNode> staticMethods = new HashMap<>();
         // Inner symbol table that holds most recent definitions of control flow
-        private final SymbolTable classSymbolTable = new SymbolTable();
+        private final Map<Integer, ClassNode.ClassNodeField> classSymbols = new HashMap<>();
 
         public ClassNamespace(ClassNode classNodeRef) {
             this.classNodeRef = classNodeRef;
@@ -33,13 +33,13 @@ public class NamespaceMapper {
      */
     public ClassNamespace insertSymbolTable(ClassNode classNode) {
         int classNodeName = classNode.getName();
-        if(symbolTableMap.containsKey(classNodeName)) {
+        if(this.symbolTableMap.containsKey(classNodeName)) {
             // this should never happend make sure to fix all issues where the same class would get added twice
             CompilerException.SourceLocation sl = new CompilerException.SourceLocation(classNode.getLine(), classNode.getColumn());
             throw new SemanticException("Cannot insert same class twice into namespace map", sl);
         }
         ClassNamespace classNamespace = new ClassNamespace(classNode);
-        symbolTableMap.put(classNodeName, classNamespace);
+        this.symbolTableMap.put(classNodeName, classNamespace);
 
         return classNamespace;
     }
@@ -50,7 +50,7 @@ public class NamespaceMapper {
      * @return the namespace that is assigned to this node
      */
     public ClassNamespace getClassNamespace(ClassNode node) {
-        return symbolTableMap.get(node.getName());
+        return this.symbolTableMap.get(node.getName());
     }
 
     /**
@@ -59,6 +59,6 @@ public class NamespaceMapper {
      * @return the namespace that is assigned to this node
      */
     public ClassNamespace getClassNamespace(int nodeId) {
-        return symbolTableMap.get(nodeId);
+        return this.symbolTableMap.get(nodeId);
     }
 }
