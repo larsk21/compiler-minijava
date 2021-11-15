@@ -53,13 +53,14 @@ public class SymbolTable  {
         private final LinkedHashMap<Integer, Symbol> table = new LinkedHashMap<>();
 
         /**
-         *
+         * Return the symbol for which this name is mapped.
          * @param name The name of the symbol mapped by our global String table
          * @return The symbol for which this name is mapped otherwise null
          */
         public Symbol find(int name) {
             return table.get(name);
         }
+
         /**
          * Returns a symbol that has yet to be initialized with current scope and current definition
          * @param name The name of the symbol
@@ -76,9 +77,14 @@ public class SymbolTable  {
             }
         }
 
+        /**
+         * Remove the symbol for which this name is mapped.
+         * @param name The name of the symbol mapped by our global String table
+         */
         public void remove(int name) {
             table.remove(name);
         }
+
     }
 
     /**
@@ -102,6 +108,10 @@ public class SymbolTable  {
         }
         currentScope = currentScope.parent;
     }
+
+    /**
+     * Insert the given Definition in the current scope.
+     */
     public Symbol insert(Definition definition) {
         int name = definition.getName();
         Symbol s = symbolStringTable.find(name);
@@ -125,6 +135,12 @@ public class SymbolTable  {
 
         return s;
     }
+
+    /**
+     * Return a definition for this symbol
+     * @param symbol The symbol to be checked
+     * @return Definition of the symbol
+     */
     public Definition lookup(Symbol symbol) {
         return symbol.currentDefinition;
     }
@@ -144,6 +160,10 @@ public class SymbolTable  {
         }
     }
 
+    /**
+     * Return if the symbol is defined in the current scope.
+     * @param symbol The symbol to be checked
+     */
     public boolean isDefinedInCurrentScope(int symbol) {
         Symbol s = symbolStringTable.find(symbol);
         if(s == null) {
@@ -152,6 +172,13 @@ public class SymbolTable  {
         return s.currentScope == currentScope;
     }
 
-
+    /**
+     * Return if the symbol is defined either in the current scope or in some
+     * parent scope of the current scope.
+     * @param symbol The symbol to be checked
+     */
+    public boolean isDefined(int symbol) {
+        return symbolStringTable.find(symbol) != null;
+    }
 
 }

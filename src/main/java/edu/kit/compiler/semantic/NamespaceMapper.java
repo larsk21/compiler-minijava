@@ -60,4 +60,14 @@ public class NamespaceMapper {
     public ClassNamespace getClassNamespace(int nodeId) {
         return this.symbolTableMap.get(nodeId);
     }
+
+    /**
+     * Return if the namespace for this class node exists.
+     * 
+     * @param nodeId class node id
+     */
+    public boolean containsClassNamespace(int nodeId) {
+        return this.symbolTableMap.containsKey(nodeId);
+    }
+
 }
