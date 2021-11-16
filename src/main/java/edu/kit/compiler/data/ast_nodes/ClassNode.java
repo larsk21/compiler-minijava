@@ -6,7 +6,8 @@ import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
-
+import edu.kit.compiler.semantic.Definition;
+import edu.kit.compiler.semantic.DefinitionKind;
 import lombok.Getter;
 
 public class ClassNode extends AstNode {
@@ -41,7 +42,7 @@ public class ClassNode extends AstNode {
         return visitor.visit(this);
     }
 
-    public static class ClassNodeField extends AstObject {
+    public static class ClassNodeField extends AstObject implements Definition {
 
         public ClassNodeField(int line, int column, DataType type, int name, boolean hasError) {
             super(line, column, hasError);
@@ -55,6 +56,10 @@ public class ClassNode extends AstNode {
         @Getter
         private int name;
 
+        @Override
+        public DefinitionKind getKind() {
+            return DefinitionKind.Field;
+        }
     }
 
 }

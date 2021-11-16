@@ -7,4 +7,5 @@ public interface Definition {
     int getColumn();
     int getName();
     DataType getType();
+    DefinitionKind getKind();
 }
