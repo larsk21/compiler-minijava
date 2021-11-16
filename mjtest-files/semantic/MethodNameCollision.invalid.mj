@@ -1,0 +1,10 @@
+class Main {
+    public void foo() {
+    }
+
+    public void foo() {
+    }
+
+    public static void main(String[] args) {
+    }
+}

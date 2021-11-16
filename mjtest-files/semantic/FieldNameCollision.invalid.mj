@@ -1,0 +1,7 @@
+class Main {
+    public int foo;
+    public boolean foo;
+    public static void main(String[] args) {
+        
+    }
+}
