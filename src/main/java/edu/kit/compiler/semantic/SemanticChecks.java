@@ -164,7 +164,9 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
     }
 
     public Boolean visit(IdentifierExpressionNode expr) {
-        // TODO: args in main
+        if (isMain && expr.getDefinition().getKind() == DefinitionKind.Parameter) {
+            errors.add(new SemanticError(expr, "accessing method parameters not allowed in main"));
+        }
         return false;
     }
 
