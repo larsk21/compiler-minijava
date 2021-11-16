@@ -116,8 +116,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
     public Boolean visit(ExpressionStatementNode stmt) {
         if (!isAssignmentOrMethodInvocation(stmt.getExpression())) {
             // only assignments or method invocations are valid expression statements
-            errors.add(new SemanticError(stmt.getLine(), stmt.getColumn(),
-                "Statement needs to be either assignment or method invocation."));
+            errors.add(new SemanticError(stmt, "Statement needs to be either assignment or method invocation."));
         }
 
         stmt.getExpression().accept(this);
@@ -128,8 +127,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
         if (expr.getOperator() == BinaryOperator.Assignment) {
             // check that the left hand side is an lvalue
             if (!isLValue(expr.getLeftSide())) {
-                errors.add(new SemanticError(expr.getLine(), expr.getColumn(),
-                    "Left side of assignment must be a variable, field or array element."));
+                errors.add(new SemanticError(expr, "Left side of assignment must be a variable, field or array element."));
             }
         }
 
@@ -177,8 +175,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
 
     public Boolean visit(ThisExpressionNode expr) {
         if (this.isMain) {
-            errors.add(new SemanticError(expr.getLine(), expr.getColumn(),
-                "this-pointer not allowed in main"));
+            errors.add(new SemanticError(expr, "this-pointer not allowed in main"));
         }
         return false;
     }
