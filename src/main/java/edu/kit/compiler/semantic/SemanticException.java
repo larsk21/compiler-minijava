@@ -18,11 +18,6 @@ public class SemanticException extends CompilerException {
         this(error.getMessage(), error);
     }
 
-    public SemanticException(Iterable<SemanticError> errors) {
-        super(errorListToMsg(errors));
-        this.sourceLocation = Optional.empty();
-    }
-
     @Override
     public Optional<Positionable> getSourceLocation() {
         return sourceLocation;
@@ -36,13 +31,5 @@ public class SemanticException extends CompilerException {
     @Override
     public JavaEasyCompiler.Result getResult() {
         return JavaEasyCompiler.Result.SemanticError;
-    }
-
-    private static String errorListToMsg(Iterable<SemanticError> errors) {
-        StringBuilder msg = new StringBuilder();
-        for (SemanticError error: errors) {
-            msg.append(String.format("At line %d, column %d: %s\n\n", error.getLine(), error.getColumn(), error.getMessage()));
-        }
-        return msg.toString();
     }
 }
