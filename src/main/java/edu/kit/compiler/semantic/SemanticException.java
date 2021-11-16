@@ -7,16 +7,25 @@ import edu.kit.compiler.data.Positionable;
 import java.util.Optional;
 
 public class SemanticException extends CompilerException {
-    private final Positionable sourceLocation;
+    private Optional<Positionable> sourceLocation;
 
     public SemanticException(String msg, Positionable sourceLocation) {
         super(msg);
-        this.sourceLocation = sourceLocation;
+        this.sourceLocation = Optional.of(sourceLocation);
+    }
+
+    public SemanticException(SemanticError error) {
+        this(error.getMessage(), error);
+    }
+
+    public SemanticException(Iterable<SemanticError> errors) {
+        super(errorListToMsg(errors));
+        this.sourceLocation = Optional.empty();
     }
 
     @Override
     public Optional<Positionable> getSourceLocation() {
-        return Optional.of(sourceLocation);
+        return sourceLocation;
     }
 
     @Override
@@ -27,5 +36,13 @@ public class SemanticException extends CompilerException {
     @Override
     public JavaEasyCompiler.Result getResult() {
         return JavaEasyCompiler.Result.SemanticError;
+    }
+
+    private static String errorListToMsg(Iterable<SemanticError> errors) {
+        StringBuilder msg = new StringBuilder();
+        for (SemanticError error: errors) {
+            msg.append(String.format("At line %d, column %d: %s\n\n", error.getLine(), error.getColumn(), error.getMessage()));
+        }
+        return msg.toString();
     }
 }
