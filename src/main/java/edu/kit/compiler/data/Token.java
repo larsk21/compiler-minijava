@@ -323,7 +323,7 @@ public class Token {
         case Operator_Tilde:
             return "~";
         default:
-            return "<unknown>";
+            throw new IllegalStateException("unsupported token type");
         }
     }
 
