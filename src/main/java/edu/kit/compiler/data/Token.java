@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
  * Integer or String associated with it, depending on the type of the Token.
  */
 @EqualsAndHashCode(callSuper = false)
-public class Token {
+public class Token implements Positionable {
 
     /**
      * Create a new Token without any value.

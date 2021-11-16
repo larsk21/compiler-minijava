@@ -4,12 +4,16 @@ import java.util.Optional;
 
 import edu.kit.compiler.JavaEasyCompiler.Result;
 import edu.kit.compiler.data.CompilerException;
+import edu.kit.compiler.data.Positionable;
+import lombok.Getter;
 
 /**
  * Exception thrown by the Lexer in case of unexpected characters.
  */
-public class LexException extends CompilerException {
+public class LexException extends CompilerException implements Positionable {
+    @Getter
     private int line;
+    @Getter
     private int column;
 
     /**
@@ -28,8 +32,8 @@ public class LexException extends CompilerException {
     }
 
     @Override
-    public Optional<SourceLocation> getSourceLocation() {
-        return Optional.of(new SourceLocation(line, column));
+    public Optional<Positionable> getPosition() {
+        return Optional.of(this);
     }
 
     @Override

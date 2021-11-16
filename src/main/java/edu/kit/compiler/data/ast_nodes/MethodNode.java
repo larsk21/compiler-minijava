@@ -5,11 +5,12 @@ import edu.kit.compiler.data.AstObject;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.semantic.Definition;
+import edu.kit.compiler.semantic.DefinitionKind;
 import lombok.Getter;
 
 import java.util.Optional;
 
-public abstract class MethodNode extends AstNode implements Definition {
+public abstract class MethodNode extends AstNode {
 
     public MethodNode(
             int line, int column,
@@ -56,6 +57,11 @@ public abstract class MethodNode extends AstNode implements Definition {
         @Getter
         private int name;
 
+
+        @Override
+        public DefinitionKind getKind() {
+            return DefinitionKind.Parameter;
+        }
     }
 
     public static class MethodNodeRest extends AstObject {

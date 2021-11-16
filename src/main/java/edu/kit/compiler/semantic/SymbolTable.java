@@ -107,9 +107,7 @@ public class SymbolTable  {
         Symbol s = symbolStringTable.find(name);
         if(isDefinedInCurrentScope(name)) {
             // this should never happen, make sure to check in upper level to get line number and column
-            throw new SemanticException("symbol is already defined in scope!", new CompilerException.SourceLocation(
-                    definition.getLine(),
-                    definition.getColumn()));
+            throw new SemanticException("symbol is already defined in scope!", definition);
         }
         if(s == null) {
             s = symbolStringTable.insert(name);

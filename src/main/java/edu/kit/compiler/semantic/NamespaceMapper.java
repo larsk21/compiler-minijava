@@ -1,6 +1,7 @@
 package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.data.CompilerException;
+import edu.kit.compiler.data.Positionable;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
 import lombok.Data;
@@ -34,8 +35,7 @@ public class NamespaceMapper {
         int classNodeName = classNode.getName();
         if(this.symbolTableMap.containsKey(classNodeName)) {
             // this should never happend make sure to fix all issues where the same class would get added twice
-            CompilerException.SourceLocation sl = new CompilerException.SourceLocation(classNode.getLine(), classNode.getColumn());
-            throw new SemanticException("Cannot insert same class twice into namespace map", sl);
+            throw new SemanticException("Cannot insert same class twice into namespace map", classNode);
         }
         ClassNamespace classNamespace = new ClassNamespace(classNode);
         this.symbolTableMap.put(classNodeName, classNamespace);
