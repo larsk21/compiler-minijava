@@ -4,13 +4,13 @@ import edu.kit.compiler.logger.Logger;
 import lombok.Getter;
 import lombok.NonNull;
 
-public class ErrorQueue {
+public class ErrorHandler {
     @Getter
     private boolean hasError;
     @NonNull
     private Logger logger;
 
-    public ErrorQueue(Logger logger) {
+    public ErrorHandler(Logger logger) {
         this.hasError = false;
         this.logger = logger.withName("semantic check");
     }

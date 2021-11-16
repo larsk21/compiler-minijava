@@ -7,11 +7,11 @@ import edu.kit.compiler.data.Positionable;
 import java.util.Optional;
 
 public class SemanticException extends CompilerException {
-    private Optional<Positionable> sourceLocation;
+    private Optional<Positionable> position;
 
-    public SemanticException(String msg, Positionable sourceLocation) {
+    public SemanticException(String msg, Positionable position) {
         super(msg);
-        this.sourceLocation = Optional.of(sourceLocation);
+        this.position = Optional.of(position);
     }
 
     public SemanticException(SemanticError error) {
@@ -19,8 +19,8 @@ public class SemanticException extends CompilerException {
     }
 
     @Override
-    public Optional<Positionable> getSourceLocation() {
-        return sourceLocation;
+    public Optional<Positionable> getPosition() {
+        return position;
     }
 
     @Override

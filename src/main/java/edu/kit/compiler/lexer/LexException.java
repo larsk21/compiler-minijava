@@ -32,7 +32,7 @@ public class LexException extends CompilerException implements Positionable {
     }
 
     @Override
-    public Optional<Positionable> getSourceLocation() {
+    public Optional<Positionable> getPosition() {
         return Optional.of(this);
     }
 

@@ -19,7 +19,7 @@ public abstract class CompilerException extends RuntimeException {
     /**
      * Return the optional source location of the character that caused the exception.
      */
-    public abstract Optional<Positionable> getSourceLocation();
+    public abstract Optional<Positionable> getPosition();
 
     /**
      * Return name of the compiler stage in which the exception occurred.
