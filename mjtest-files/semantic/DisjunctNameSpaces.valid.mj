@@ -1,9 +1,9 @@
 class foo {
-    int foo;
-    void foo(boolean foo) {
+    public int foo;
+    public void foo(boolean foo) {
 
     }
     public static void main(String[] args) {
-        
+
     }
 }
