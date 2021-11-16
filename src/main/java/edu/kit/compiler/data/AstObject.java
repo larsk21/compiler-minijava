@@ -7,7 +7,7 @@ import lombok.Getter;
  * Represents an object (not necessarily a node) that appears in the AST.
  */
 @AllArgsConstructor
-public class AstObject {
+public class AstObject implements Positionable {
 
     /**
      * Characteristic line position of this object in the source file.
