@@ -22,7 +22,6 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
  * Preconditions:
  * - class namespaces can be found by name (= identifier)
  * - each class namespace contains all fields and methods with name and type
- * - user defined data types of fields and methods (incl. parameters) are valid
  * - builtin definitions (classes, fields, methods) are available
  * 
  * Postconditions:
@@ -31,9 +30,10 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
  * - no variable is declared twice inside the same scope
  * - every expression node contains a valid result type
  * - static methods contain no reference to this
- * - void is not used as local variable type, in a new object or a new array
- * expression
+ * - void is not used as a field, parameter or local variable type, in a new
+ * object or new array expression
  * - hasError is set in all nodes where an error occured
+ * - user defined data types of fields and methods (incl. parameters) are valid
  * 
  * Not checked:
  * - all code paths return a value
@@ -98,7 +98,13 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         symboltable.enterScope();
 
         for (ClassNodeField field : classNode.getFields()) {
-            symboltable.insert(field);
+            if (isValidDataType(field.getType())) {
+                symboltable.insert(field);
+            } else if (field.getType().getType() == DataTypeClass.Void) {
+                semanticError(field, "void type is not allowed for a field");
+            } else {
+                semanticError(field, "unknown reference type %s", field.getType().getRepresentation(stringTable));
+            }
         }
 
         for (MethodNode methodNode : classNode.getStaticMethods()) {
@@ -119,8 +125,18 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
     private DataType visitMethodNode(MethodNode methodNode) {
         symboltable.enterScope();
 
+        if (!isValidDataType(methodNode.getType()) && methodNode.getType().getType() != DataTypeClass.Void) {
+            semanticError(methodNode, "unknown reference type %s", methodNode.getType().getRepresentation(stringTable));
+        }
+
         for (MethodNodeParameter parameter : methodNode.getParameters()) {
-            symboltable.insert(parameter);
+            if (isValidDataType(parameter.getType())) {
+                symboltable.insert(parameter);
+            } else if (parameter.getType().getType() == DataTypeClass.Void) {
+                semanticError(parameter, "void type is not allowed for a method parameter");
+            } else {
+                semanticError(parameter, "unknown reference type %s", parameter.getType().getRepresentation(stringTable));
+            }
         }
 
         expectedReturnType = methodNode.getType();
