@@ -1,12 +1,12 @@
 package edu.kit.compiler.data.ast_nodes;
 
-import java.util.Optional;
-
 import edu.kit.compiler.data.AstNode;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
-
+import edu.kit.compiler.semantic.Definition;
 import lombok.Getter;
+
+import java.util.Optional;
 
 public abstract class StatementNode extends AstNode {
 
@@ -32,7 +32,7 @@ public abstract class StatementNode extends AstNode {
 
     }
 
-    public static class LocalVariableDeclarationStatementNode extends StatementNode {
+    public static class LocalVariableDeclarationStatementNode extends StatementNode implements Definition {
 
         public LocalVariableDeclarationStatementNode(
             int line, int column,

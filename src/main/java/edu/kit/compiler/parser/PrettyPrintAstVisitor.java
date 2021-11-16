@@ -1,5 +1,18 @@
 package edu.kit.compiler.parser;
 
+import edu.kit.compiler.data.AstVisitor;
+import edu.kit.compiler.data.DataType;
+import edu.kit.compiler.data.Operator.BinaryOperator;
+import edu.kit.compiler.data.Operator.UnaryOperator;
+import edu.kit.compiler.data.ast_nodes.*;
+import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
+import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
+import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
+import edu.kit.compiler.data.ast_nodes.MethodNode.MethodNodeParameter;
+import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
+import edu.kit.compiler.data.ast_nodes.StatementNode.*;
+import edu.kit.compiler.lexer.StringTable;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
@@ -7,19 +20,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import edu.kit.compiler.data.AstVisitor;
-import edu.kit.compiler.data.DataType;
-import edu.kit.compiler.data.Operator.*;
-import edu.kit.compiler.data.ast_nodes.*;
-import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
-import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
-import edu.kit.compiler.data.ast_nodes.MethodNode.*;
-import edu.kit.compiler.data.ast_nodes.StatementNode.*;
-import edu.kit.compiler.lexer.StringTable;
-
 public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
-    private static final Void nothing = (Void)null;
+    private static final Void nothing = null;
 
     public PrettyPrintAstVisitor(StringTable stringTable) {
         this.stringTable = stringTable;
@@ -29,7 +32,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
         this.topLevelExpression = true;
     }
 
-    private StringTable stringTable;
+    private final StringTable stringTable;
 
     private int indentation;
     private boolean firstInLine;
@@ -44,7 +47,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
             firstInLine = false;
         }
 
-        System.out.print(String.format(format, args));
+        System.out.printf(format, args);
     }
 
     private void println() {

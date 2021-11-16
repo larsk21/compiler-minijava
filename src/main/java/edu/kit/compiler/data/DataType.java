@@ -1,8 +1,8 @@
 package edu.kit.compiler.data;
 
-import java.util.Optional;
-
 import lombok.Getter;
+
+import java.util.Optional;
 
 /**
  * Represents the possible data types in MiniJava. This includes predefined,
@@ -49,10 +49,12 @@ public class DataType {
     private DataTypeClass type;
 
     /**
-     * Inner type of this (constructed) data type.
+     * Inner type of this (constructed) data type. Inner type is used when declaring arrays.
+     * For multi dimensional array declarations the innerType is another array.
      */
     @Getter
     private Optional<DataType> innerType;
+
     /**
      * Identifier of this (user-defined) data type.
      */
