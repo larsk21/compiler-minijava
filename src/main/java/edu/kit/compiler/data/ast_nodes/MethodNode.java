@@ -9,7 +9,7 @@ import lombok.Getter;
 
 import java.util.Optional;
 
-public abstract class MethodNode extends AstNode implements Definition {
+public abstract class MethodNode extends AstNode {
 
     public MethodNode(
             int line, int column,
