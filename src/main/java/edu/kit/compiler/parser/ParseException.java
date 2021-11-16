@@ -4,12 +4,13 @@ import java.util.Optional;
 
 import edu.kit.compiler.JavaEasyCompiler.Result;
 import edu.kit.compiler.data.CompilerException;
+import edu.kit.compiler.data.Positionable;
 import edu.kit.compiler.data.Token;
 
 /**
  * Exception thrown by the Parser in case of a syntax error.
  */
-public class ParseException extends CompilerException {
+public class ParseException extends CompilerException implements Positionable {
     private Token token;
 
     /**
@@ -40,8 +41,8 @@ public class ParseException extends CompilerException {
     }
 
     @Override
-    public Optional<SourceLocation> getSourceLocation() {
-        return Optional.of(new SourceLocation(token.getLine(), token.getColumn()));
+    public Optional<Positionable> getSourceLocation() {
+        return Optional.of(this);
     }
 
     @Override
@@ -52,6 +53,16 @@ public class ParseException extends CompilerException {
     @Override
     public Result getResult() {
         return Result.ParseError;
+    }
+
+    @Override
+    public int getLine() {
+        return token.getLine();
+    }
+
+    @Override
+    public int getColumn() {
+        return token.getColumn();
     }
 }
 
