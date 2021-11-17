@@ -10,6 +10,7 @@ import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.DataType.DataTypeClass;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
+import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
@@ -19,7 +20,6 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
 import lombok.Getter;
 import lombok.NonNull;
 
-// todo errors as messages?
 // todo we really need a map for static methods?
 
 /**
@@ -33,8 +33,10 @@ import lombok.NonNull;
  *         - which is called main
  *         - which has return type void
  *         - which has exactly on parameter of type String[]
- * - If a method has duplicate parameters, `hasError` will be set on every
- *   parameter with the same name, except for the last occurrence
+ * - If a class has duplicate fields, `hasError` will be set for every field
+ *   with the same name except for the FIRST occurrence
+ * - If a method has duplicate parameters, `hasError` will be set for every
+ *   parameter with the same name, except for the LAST occurrence
  * - A predefined class String with no fields or methods exists
  * - Non-duplicate classes, fields and methods are registered in the `NamespaceMapper`
  *     - Classes are registered even if they contain duplicate fields
@@ -121,20 +123,19 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
             for (var field : classNode.getFields()) {
                 addField(field);
             }
-
             for (var method : classNode.getStaticMethods()) {
                 method.accept(this);
             }
-
             for (var method : classNode.getDynamicMethods()) {
                 method.accept(this);
             }
-
             return (Void)null;
         }
 
         @Override
         public Void visit(StaticMethodNode method) {
+            visitMethodNode(method);
+
             if (hasMethod(method.getName())) {
                 semanticError(method, "method %s is already defined in class %s",
                     stringTable.retrieve(method.getName()),
@@ -162,6 +163,20 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
 
         @Override
         public Void visit(DynamicMethodNode method) {
+            visitMethodNode(method);
+
+            if (hasMethod(method.getName())) {
+                semanticError(method, "method %s is already defined in class %s",
+                    stringTable.retrieve(method.getName()),
+                    stringTable.retrieve(classNode.getName())
+                );
+            } else {
+                dynamicMethods.put(method.getName(), method);
+            }
+            return (Void)null;
+        }
+
+        private void visitMethodNode(MethodNode method) {
             var parameters = new HashMap<Integer, AstObject>();
             for (var parameter : method.getParameters()) {
                 // Set `hasError` on the previous parameter with the same name (if one exists)
@@ -174,15 +189,6 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
                         stringTable.retrieve(method.getName()));
                 }
             }
-
-            if (hasMethod(method.getName())) {
-                semanticError(method, "method %s is already defined in class %s",
-                    stringTable.retrieve(method.getName()),
-                    stringTable.retrieve(classNode.getName()));
-            } else {
-                dynamicMethods.put(method.getName(), method);
-            }
-            return (Void)null;
         }
 
         private void addField(ClassNodeField field) {
