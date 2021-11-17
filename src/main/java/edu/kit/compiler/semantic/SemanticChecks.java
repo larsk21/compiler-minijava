@@ -3,6 +3,8 @@ package edu.kit.compiler.semantic;
 import java.util.Optional;
 
 import edu.kit.compiler.data.AstVisitor;
+import edu.kit.compiler.data.DataType;
+import edu.kit.compiler.data.DataType.DataTypeClass;
 import edu.kit.compiler.data.Operator.BinaryOperator;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
@@ -27,11 +29,17 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.ReturnStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.WhileStatementNode;
 
 public class SemanticChecks {
+    private static final DataType voidType = new DataType(DataTypeClass.Void);
+
     public static void applyChecks(ProgramNode ast, ErrorHandler errorHandler, ClassNode stringClass) {
         for (ClassNode currentClass: ast.getClasses()) {
             for (MethodNode method: currentClass.getDynamicMethods()) {
                 MethodCheckVisitor visitor = new MethodCheckVisitor(false, errorHandler, stringClass);
-                method.getStatementBlock().accept(visitor);
+                boolean returns = method.getStatementBlock().accept(visitor);
+                if (!returns && !method.getType().equals(voidType)) {
+                    errorHandler.receive(new SemanticError(method,
+                        "return statement for all branches required"));
+                }
             }
             for (MethodNode method: currentClass.getStaticMethods()) {
                 MethodCheckVisitor visitor = new MethodCheckVisitor(true, errorHandler, stringClass);
