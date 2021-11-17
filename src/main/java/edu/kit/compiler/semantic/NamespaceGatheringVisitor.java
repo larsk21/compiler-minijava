@@ -19,8 +19,6 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
 import lombok.Getter;
 import lombok.NonNull;
 
-// todo add exception messages
-// todo add pretty printing for method signatures
 // todo errors as messages?
 // todo we really need a map for static methods?
 
@@ -52,8 +50,8 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
     }
 
     @Override
-    public Void visit(ProgramNode programNode) {
-        for (var classNode: programNode.getClasses()) {
+    public Void visit(ProgramNode program) {
+        for (var classNode: program.getClasses()) {
             if (namespaceMapper.containsClassNamespace(classNode.getName())) {
                 semanticError(classNode, "duplicate class %s",
                     stringTable.retrieve(classNode.getName()));
@@ -68,7 +66,7 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
 
     private void semanticError(AstObject object, String format, Object... args) {
         object.setHasError(true);
-        // todo log some kind of error
+        // todo actually log some kind of error
     }
 
     private final class ClassGatherer implements AstVisitor<Void> {
@@ -112,17 +110,18 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
             } else if (!stringTable.retrieve(method.getName()).equals("main")) {
                 semanticError(method, "only a single static method, which must "
                     + "be called main, is allowed in the entire program");
-            } else if (!method.getType().equals(new DataType(DataTypeClass.Void))) {
-                semanticError(method, "main method must have return type void");
-            } else if (method.getParameters().size() != 1) {
-                semanticError(method, "main method must have exactly one parameter of type String[]");
-            } else if (!method.getParameters().get(0).getType()
-                    .equals(new DataType(new DataType(stringClass.getName())))
-            ) {
-                semanticError(method, "main method must have exactly one parameter of type String[]");
             } else {
                 staticMethods.put(method.getName(), method);
                 mainMethod = Optional.of(method);
+            }
+
+            if (!method.getType().equals(new DataType(DataTypeClass.Void))) {
+                semanticError(method, "main method must have return type void");
+            } else if (method.getParameters().size() != 1
+                || !method.getParameters().get(0).getType()
+                    .equals(new DataType(new DataType(stringClass.getName())))
+            ) {
+                semanticError(method, "main method must have exactly one parameter of type String[]");
             }
             return (Void)null;
         }
