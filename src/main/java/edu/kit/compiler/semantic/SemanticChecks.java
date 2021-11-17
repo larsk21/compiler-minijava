@@ -28,6 +28,21 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationSta
 import edu.kit.compiler.data.ast_nodes.StatementNode.ReturnStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.WhileStatementNode;
 
+/**
+ * This class performs the remaining steps of semantic analysis after name and type analysis.
+ *
+ * Preconditions:
+ * - type checking is done
+ * - all references are initialized with the according definition
+ * - the definition for the builtin class "String" is available
+ *
+ * Postconditions:
+ * - left hand of assignments is an lvalue
+ * - all ExpressionStatements are either a method invocation or an assignment
+ * - if the return type of a method is not void, each branch contains a return statement
+ * - the class "String" is never constructed
+ * - in the main method, no parameters are accessed (args)
+ */
 public class SemanticChecks {
     private static final DataType voidType = new DataType(DataTypeClass.Void);
 
