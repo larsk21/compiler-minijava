@@ -1,0 +1,7 @@
+class main {
+    public int main;
+
+    public /* not static */ void main(String[] args) {
+
+    }
+}
