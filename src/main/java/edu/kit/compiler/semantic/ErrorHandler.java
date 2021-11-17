@@ -21,4 +21,15 @@ public class ErrorHandler {
     public boolean hasError() {
         return hasError;
     }
+
+    /**
+     * Throws an exception if any error is present.
+     * 
+     * @throws SemanticException
+     */
+    public void checkForErrors() {
+        if (hasError) {
+            throw SemanticException.quietException();
+        }
+    }
 }

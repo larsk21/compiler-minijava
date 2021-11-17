@@ -174,6 +174,8 @@ public class JavaEasyCompiler {
         ast.accept(nameTypeVisitor);
         // remaining semantic checks
         SemanticChecks.applyChecks(ast, errorHandler, gatheringVisitor.getStringClass());
+
+        errorHandler.checkForErrors();
         return ast;
     }
 
