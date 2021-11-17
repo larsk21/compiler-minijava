@@ -2,7 +2,6 @@ package edu.kit.compiler.semantic;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,7 +25,7 @@ import lombok.NonNull;
 /**
  * Post Conditions:
  * - If any of the following conditions are not met, `hasError` will be set
- *   on the offending ASTObject(s)
+ *   on the offending `AstObject`
  *     - The program does not contain classes with duplicate names
  *     - Classes do not contain fields with duplicate names
  *     - Methods do not have parameters with duplicate names
@@ -41,24 +40,32 @@ import lombok.NonNull;
  *     - Classes are registered even if they contain duplicate fields
  *     - Methods are registered even if they contain duplicate parameters
  *     - At most one static method is registered
- * - The first static method with name main is registered in mainMethod
+ * - The first static method with name main is registered in `mainMethod`
  */
 public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
     @Getter
     private final NamespaceMapper namespaceMapper;
 
-    @Getter
-    private Optional<StaticMethodNode> mainMethod = Optional.empty();
-
     @NonNull
     private final StringTable stringTable;
+
+    @NonNull
+    private final ErrorHandler errorHandler;
+
+    @Getter
+    private Optional<StaticMethodNode> mainMethod = Optional.empty();
 
     @Getter
     private final ClassNode stringClass;
 
-    public NamespaceGatheringVisitor(NamespaceMapper namespaceMapper, StringTable stringTable) {
+    public NamespaceGatheringVisitor(
+        NamespaceMapper namespaceMapper,
+        StringTable stringTable,
+        ErrorHandler errorHandler
+    ) {
         this.namespaceMapper = namespaceMapper;
         this.stringTable = stringTable;
+        this.errorHandler = errorHandler;
 
         // Prevent classes called String from being created
         stringClass = new ClassNode(0, 0, stringTable.insert("String"),
@@ -89,11 +96,11 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
 
     private void semanticError(AstObject object, String format, Object... args) {
         object.setHasError(true);
-        semanticError(format, args);
+        semanticError(object.getLine(), object.getColumn(), format, args);
     }
 
-    private void semanticError(String format, Object... args) {
-        // todo actually log some kind of error
+    private void semanticError(int line, int column, String format, Object... args) {
+        errorHandler.receive(new SemanticError(line, column, String.format(format, args)));
     }
 
     private final class ClassGatherer implements AstVisitor<Void> {
@@ -157,11 +164,12 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
         public Void visit(DynamicMethodNode method) {
             var parameters = new HashMap<Integer, AstObject>();
             for (var parameter : method.getParameters()) {
-                // Set `hasError` on the previous occurrence of the parameter name
+                // Set `hasError` on the previous parameter with the same name (if one exists)
                 var previousDefinition = parameters.put(parameter.getName(), parameter);
                 if (previousDefinition != null) {
                     previousDefinition.setHasError(true);
-                    semanticError("parameter %s is already defined for method %s",
+                    semanticError(parameter.getLine(), parameter.getColumn(),
+                        "parameter %s is already defined for method %s",
                         stringTable.retrieve(parameter.getName()),
                         stringTable.retrieve(method.getName()));
                 }
