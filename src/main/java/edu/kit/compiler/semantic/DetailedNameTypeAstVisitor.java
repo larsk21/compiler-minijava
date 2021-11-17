@@ -26,7 +26,7 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
  * 
  * Postconditions:
  * - all used variables reference their declaration
- * - every method, statement and expression is correctly typed
+ * - every field, method, statement and expression is correctly typed
  * - no variable is declared twice inside the same scope
  * - every expression node contains a valid result type
  * - static methods contain no reference to this
@@ -46,6 +46,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
 
     public DetailedNameTypeAstVisitor(NamespaceMapper namespaceMapper, StringTable stringTable) {
         this.namespaceMapper = namespaceMapper;
+        this.stringTable = stringTable;
         this.symboltable = new SymbolTable();
 
         currentClassNamespace = Optional.empty();
@@ -458,11 +459,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
     public DataType visit(NewObjectExpressionNode newObjectExpressionNode) {
         DataType objectType = new DataType(newObjectExpressionNode.getTypeName());
         if (!isValidDataType(objectType)) {
-            if (objectType.getType() == DataTypeClass.Void) {
-                semanticError(newObjectExpressionNode, "void type is not allowed in a new object expression");
-            } else {
-                semanticError(newObjectExpressionNode, "unknown reference type %s", stringTable.retrieve(objectType.getIdentifier().get()));
-            }
+            semanticError(newObjectExpressionNode, "unknown reference type %s", stringTable.retrieve(objectType.getIdentifier().get()));
         }
 
         newObjectExpressionNode.setResultType(objectType);
@@ -480,7 +477,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         }
 
         DataType expressionType = newArrayExpressionNode.getLength().accept(this);
-        if (expressionType.getType() == DataTypeClass.Int) {
+        if (expressionType.getType() != DataTypeClass.Int) {
             semanticError(newArrayExpressionNode, "array length must be of type int");
         }
 
