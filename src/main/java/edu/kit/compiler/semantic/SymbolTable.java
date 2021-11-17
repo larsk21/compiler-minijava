@@ -1,6 +1,5 @@
 package edu.kit.compiler.semantic;
 
-import edu.kit.compiler.data.CompilerException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;

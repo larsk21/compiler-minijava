@@ -1,9 +1,8 @@
 package edu.kit.compiler.semantic;
 
-import edu.kit.compiler.data.CompilerException;
-import edu.kit.compiler.data.Positionable;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
+
 import lombok.Data;
 
 import java.util.HashMap;
