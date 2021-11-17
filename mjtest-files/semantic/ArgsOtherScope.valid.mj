@@ -1,8 +1,8 @@
 class c {
     public static void main(String[] args) {
         d obj = new d();
-        d.args = 0;
-        d.args(d.args);
+        obj.args = 0;
+        obj.args(obj.args);
     }
 }
 
