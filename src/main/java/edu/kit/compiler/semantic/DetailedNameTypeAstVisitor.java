@@ -48,6 +48,8 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         this.stringTable = stringTable;
         this.symboltable = new SymbolTable();
 
+        StandardLibrary.initialize(namespaceMapper, stringTable, symboltable);
+
         currentClassNamespace = Optional.empty();
         expectedReturnType = null;
     }

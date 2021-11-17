@@ -9,6 +9,7 @@ import edu.kit.compiler.semantic.Definition;
 import edu.kit.compiler.semantic.DefinitionKind;
 import lombok.Getter;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -107,6 +108,31 @@ public abstract class MethodNode extends AstNode {
         ) {
             super(line, column, type, name, parameters, rest, statementBlock, hasError);
         }
+
+        @Override
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+    }
+
+    public static enum StandardLibraryMethod {
+        Read,
+        Write,
+        PrintLn,
+        Flush
+    }
+
+    public static class StandardLibraryMethodNode extends MethodNode.DynamicMethodNode {
+
+        public StandardLibraryMethodNode(DataType type, int name, List<MethodNode.MethodNodeParameter> parameters, StandardLibraryMethod method) {
+            super(-1, -1, type, name, parameters, Optional.empty(), new StatementNode.BlockStatementNode(-1, -1, Arrays.asList(), false), false);
+
+            this.method = method;
+        }
+
+        @Getter
+        private StandardLibraryMethod method;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
