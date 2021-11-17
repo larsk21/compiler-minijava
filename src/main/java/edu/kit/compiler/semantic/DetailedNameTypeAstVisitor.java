@@ -99,12 +99,16 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         symboltable.enterScope();
 
         for (ClassNodeField field : classNode.getFields()) {
-            if (isValidDataType(field.getType())) {
+            if (!isValidDataType(field.getType())) {
+                if (field.getType().getType() == DataTypeClass.Void) {
+                    return semanticError(field, "void type is not allowed for a field");
+                } else {
+                    return semanticError(field, "unknown reference type %s", field.getType().getRepresentation(stringTable));
+                }
+            }
+
+            if (!field.isHasError()) {
                 symboltable.insert(field);
-            } else if (field.getType().getType() == DataTypeClass.Void) {
-                return semanticError(field, "void type is not allowed for a field");
-            } else {
-                return semanticError(field, "unknown reference type %s", field.getType().getRepresentation(stringTable));
             }
         }
 
@@ -131,12 +135,16 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         }
 
         for (MethodNodeParameter parameter : methodNode.getParameters()) {
-            if (isValidDataType(parameter.getType())) {
+            if (!isValidDataType(parameter.getType())) {
+                if (parameter.getType().getType() == DataTypeClass.Void) {
+                    return semanticError(parameter, "void type is not allowed for a method parameter");
+                } else {
+                    return semanticError(parameter, "unknown reference type %s", parameter.getType().getRepresentation(stringTable));
+                }
+            }
+
+            if (!parameter.isHasError()) {
                 symboltable.insert(parameter);
-            } else if (parameter.getType().getType() == DataTypeClass.Void) {
-                return semanticError(parameter, "void type is not allowed for a method parameter");
-            } else {
-                return semanticError(parameter, "unknown reference type %s", parameter.getType().getRepresentation(stringTable));
             }
         }
 
