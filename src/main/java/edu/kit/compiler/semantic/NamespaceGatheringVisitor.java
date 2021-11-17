@@ -192,7 +192,7 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
         }
 
         private void addField(ClassNodeField field) {
-            if (fields.containsKey(field.getName())) {
+            if (!fields.containsKey(field.getName())) {
                 fields.put(field.getName(), field);
             } else {
                 semanticError(field, "field %s is already defined in class %s",
