@@ -27,10 +27,14 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.ReturnStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.WhileStatementNode;
 
 public class SemanticChecks {
-    public static void applyChecks(ProgramNode ast, ErrorHandler errorHandler) {
+    public static void applyChecks(ProgramNode ast, ErrorHandler errorHandler, ClassNode stringClass) {
         for (ClassNode currentClass: ast.getClasses()) {
             for (MethodNode method: currentClass.getDynamicMethods()) {
-                MethodCheckVisitor visitor = new MethodCheckVisitor(false, errorHandler);
+                MethodCheckVisitor visitor = new MethodCheckVisitor(false, errorHandler, stringClass);
+                method.getStatementBlock().accept(visitor);
+            }
+            for (MethodNode method: currentClass.getStaticMethods()) {
+                MethodCheckVisitor visitor = new MethodCheckVisitor(true, errorHandler, stringClass);
                 method.getStatementBlock().accept(visitor);
             }
         }
@@ -43,6 +47,10 @@ public class SemanticChecks {
  * Returns whether the analysed part of the AST contains a return statement for every branch.
  */
 class MethodCheckVisitor implements AstVisitor<Boolean> {
+    /**
+     * The predefined class "String".
+     */
+    private ClassNode stringClass;
 
     /**
      * Whether the analyzed method is "main" or not.
@@ -50,9 +58,10 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
     private boolean isMain;
     private ErrorHandler errorHandler;
 
-    public MethodCheckVisitor(boolean isMain, ErrorHandler errorHandler) {
+    public MethodCheckVisitor(boolean isMain, ErrorHandler errorHandler, ClassNode stringClass) {
         this.isMain = isMain;
         this.errorHandler = errorHandler;
+        this.stringClass = stringClass;
     }
 
     public Boolean visit(BlockStatementNode block) {
@@ -102,7 +111,8 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
     public Boolean visit(ExpressionStatementNode stmt) {
         if (!isAssignmentOrMethodInvocation(stmt.getExpression())) {
             // only assignments or method invocations are valid expression statements
-            errorHandler.receive(new SemanticError(stmt, "Statement needs to be either assignment or method invocation."));
+            errorHandler.receive(new SemanticError(stmt,
+                "Statement needs to be either assignment or method invocation."));
         }
 
         stmt.getExpression().accept(this);
@@ -113,7 +123,8 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
         if (expr.getOperator() == BinaryOperator.Assignment) {
             // check that the left hand side is an lvalue
             if (!isLValue(expr.getLeftSide())) {
-                errorHandler.receive(new SemanticError(expr, "Left side of assignment must be a variable, field or array element."));
+                errorHandler.receive(new SemanticError(expr,
+                    "Left side of assignment must be a variable, field or array element."));
             }
         }
 
@@ -151,7 +162,8 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
 
     public Boolean visit(IdentifierExpressionNode expr) {
         if (isMain && expr.getDefinition().getKind() == DefinitionKind.Parameter) {
-            errorHandler.receive(new SemanticError(expr, "accessing method parameters not allowed in main"));
+            errorHandler.receive(new SemanticError(expr,
+                "accessing method parameters not allowed in main"));
         }
         return false;
     }
@@ -163,7 +175,8 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
 
     public Boolean visit(ThisExpressionNode expr) {
         if (this.isMain) {
-            errorHandler.receive(new SemanticError(expr, "this-pointer not allowed in main"));
+            errorHandler.receive(new SemanticError(expr,
+                 "this-pointer not allowed in main"));
         }
         return false;
     }

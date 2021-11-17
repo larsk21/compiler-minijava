@@ -17,16 +17,39 @@ import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.parser.Parser;
 
 public class SemanticChecksTest {
-    private void checkHasError(ProgramNode node, boolean hasError) {
+    private static final String main = "class Main {public static void main(String[] args) {}}";
+
+    private void checkHasError(String input, boolean hasError, boolean nameTypeCheck) {
         ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
-        SemanticChecks.applyChecks(node, errorHandler);
+        Lexer lexer = new Lexer(getIterator(input));
+        ProgramNode node =  new Parser(lexer).parse();
+
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        NamespaceGatheringVisitor visitor1 = new NamespaceGatheringVisitor(
+            namespaceMapper, lexer.getStringTable(), errorHandler
+        );
+        node.accept(visitor1);
+        if (nameTypeCheck) {
+            try {
+                DetailedNameTypeAstVisitor visitor2 = new DetailedNameTypeAstVisitor(namespaceMapper, lexer.getStringTable());
+                node.accept(visitor2);
+            } catch (SemanticException e) {
+                assert(hasError);
+                return;
+            }
+        }
+        SemanticChecks.applyChecks(node, errorHandler, visitor1.getStringClass());
         assertEquals(hasError, errorHandler.hasError());
+    }
+
+    private void checkHasError(String input, boolean hasError) {
+        checkHasError(input, hasError, false);
     }
 
     @Test
     public void testAlwaysReturns() {
         ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
-        MethodCheckVisitor visitor = new MethodCheckVisitor(false, errorHandler);
+        MethodCheckVisitor visitor = new MethodCheckVisitor(false, errorHandler, null);
         assertEquals(
             false,
             getMethod("class c { public void m() { } }").getStatementBlock().accept(visitor)
@@ -63,21 +86,27 @@ public class SemanticChecksTest {
 
     @Test
     public void testLValue() {
-        checkHasError(createAst("class c { public void m() { (x+y)=z; } }"), true);
-        checkHasError(createAst("class c { public void m() { (x.m())=z; } }"), true);
-        checkHasError(createAst("class c { public void m() { this=z; } }"), true);
-        checkHasError(createAst("class c { public void m() { x=y=z; } }"), false);
-        checkHasError(createAst("class c { public void m() { x.a.b=z; } }"), false);
-        checkHasError(createAst("class c { public void m() { x[0][1]=z; } }"), false);
+        checkHasError("class c { public void m() { (x+y)=z; } }" + main, true);
+        checkHasError("class c { public void m() { (x.m())=z; } }" + main, true);
+        checkHasError("class c { public void m() { this=z; } }" + main, true);
+        checkHasError("class c { public void m() { x=y=z; } }" + main, false);
+        checkHasError("class c { public void m() { x.a.b=z; } }" + main, false);
+        checkHasError("class c { public void m() { x[0][1]=z; } }" + main, false);
     }
 
     @Test
     public void testExpressionStatement() {
-        checkHasError(createAst("class c { public void m() { this; } }"), true);
-        checkHasError(createAst("class c { public void m() { x+y; } }"), true);
-        checkHasError(createAst("class c { public void m() { a.z; } }"), true);
-        checkHasError(createAst("class c { public void m() { x=y; } }"), false);
-        checkHasError(createAst("class c { public void m() { x.m(); } }"), false);
+        checkHasError("class c { public void m() { this; } }" + main, true);
+        checkHasError("class c { public void m() { x+y; } }" + main, true);
+        checkHasError("class c { public void m() { a.z; } }" + main, true);
+        checkHasError("class c { public void m() { x=y; } }" + main, false);
+        checkHasError("class c { public void m() { x.m(); } }" + main, false);
+    }
+
+    @Test
+    public void testArgs() {
+        checkHasError("class Main {public static void main(String[] args) {String[] args;}}", true, true);
+        checkHasError("class Main {public static void main(String[] args) {String s = args[0];}}", true, true);
     }
 
     private MethodNode getMethod(String input) {
