@@ -18,6 +18,7 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
 import edu.kit.compiler.data.ast_nodes.MethodNode.*;
 import edu.kit.compiler.data.ast_nodes.StatementNode.*;
 import edu.kit.compiler.lexer.StringTable;
+import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
 
 public class DetailedNameTypeAstVisitorResultTypeTest {
@@ -38,11 +39,14 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
         }
     }
 
+    private Logger logger = new Logger();
+
     @Test
     public void testBinaryExpression_FixedType() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         BinaryExpressionNode binaryExpression;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -70,7 +74,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testBinaryExpression_VariableType() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         BinaryExpressionNode binaryExpression;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -99,7 +104,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testBinaryExpression_VariableTypeWithAny() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         BinaryExpressionNode binaryExpression;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -128,7 +134,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testUnaryExpression() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         UnaryExpressionNode unaryExpression;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -155,7 +162,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testMethodInvocation_Void() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         MethodInvocationExpressionNode methodInvocation;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -180,7 +188,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testMethodInvocation() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         MethodInvocationExpressionNode methodInvocation;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -205,7 +214,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testFieldAccess() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         FieldAccessExpressionNode fieldAccess;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(
@@ -235,7 +245,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testArrayAccess_SingleDimension() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ArrayAccessExpressionNode arrayAccess;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -264,7 +275,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testArrayAccess_MultipleDimensions() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ArrayAccessExpressionNode arrayAccess;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -293,7 +305,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testIdentifier() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         IdentifierExpressionNode identifier;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -319,7 +332,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testThis() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ThisExpressionNode _this;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -345,7 +359,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testValue_False() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode value;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -370,7 +385,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testValue_True() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode value;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -395,7 +411,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testValue_Integer() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode value;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -420,7 +437,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testValue_Null() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode value;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -445,7 +463,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testNewObject() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         NewObjectExpressionNode newObject;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -470,7 +489,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testNewArray_SingleDimension() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         NewArrayExpressionNode newArray;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -497,7 +517,8 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
     public void testNewArray_MultipleDimensions() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         NewArrayExpressionNode newArray;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(

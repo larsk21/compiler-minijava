@@ -43,9 +43,10 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
 
     public static final DataType VoidType = new DataType(DataTypeClass.Void);
 
-    public DetailedNameTypeAstVisitor(NamespaceMapper namespaceMapper, StringTable stringTable) {
+    public DetailedNameTypeAstVisitor(NamespaceMapper namespaceMapper, StringTable stringTable, ErrorHandler errorHandler) {
         this.namespaceMapper = namespaceMapper;
         this.stringTable = stringTable;
+        this.errorHandler = errorHandler;
         this.symboltable = new SymbolTable();
 
         currentClassNamespace = Optional.empty();
@@ -54,6 +55,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
 
     private NamespaceMapper namespaceMapper;
     private StringTable stringTable;
+    private ErrorHandler errorHandler;
     private SymbolTable symboltable;
 
     private Optional<ClassNamespace> currentClassNamespace;
@@ -76,14 +78,12 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         }
     }
 
-    private void semanticError(AstObject object, String message, Object... args) {
+    private DataType semanticError(AstObject object, String message, Object... args) {
         object.setHasError(true);
 
-        // TODO: collect semantic errors in list
-        throw new SemanticException(
-            String.format(message, args),
-            object
-        );
+        errorHandler.receive(new SemanticError(object, String.format(message, args)));
+
+        return VoidType;
     }
 
     public DataType visit(ProgramNode programNode) {
@@ -102,9 +102,9 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             if (isValidDataType(field.getType())) {
                 symboltable.insert(field);
             } else if (field.getType().getType() == DataTypeClass.Void) {
-                semanticError(field, "void type is not allowed for a field");
+                return semanticError(field, "void type is not allowed for a field");
             } else {
-                semanticError(field, "unknown reference type %s", field.getType().getRepresentation(stringTable));
+                return semanticError(field, "unknown reference type %s", field.getType().getRepresentation(stringTable));
             }
         }
 
@@ -127,16 +127,16 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         symboltable.enterScope();
 
         if (!isValidDataType(methodNode.getType()) && methodNode.getType().getType() != DataTypeClass.Void) {
-            semanticError(methodNode, "unknown reference type %s", methodNode.getType().getRepresentation(stringTable));
+            return semanticError(methodNode, "unknown reference type %s", methodNode.getType().getRepresentation(stringTable));
         }
 
         for (MethodNodeParameter parameter : methodNode.getParameters()) {
             if (isValidDataType(parameter.getType())) {
                 symboltable.insert(parameter);
             } else if (parameter.getType().getType() == DataTypeClass.Void) {
-                semanticError(parameter, "void type is not allowed for a method parameter");
+                return semanticError(parameter, "void type is not allowed for a method parameter");
             } else {
-                semanticError(parameter, "unknown reference type %s", parameter.getType().getRepresentation(stringTable));
+                return semanticError(parameter, "unknown reference type %s", parameter.getType().getRepresentation(stringTable));
             }
         }
 
@@ -171,21 +171,21 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         DataType leftSideType = localVariableDeclarationStatementNode.getType();
         if (!isValidDataType(leftSideType)) {
             if (leftSideType.getType() == DataTypeClass.Void) {
-                semanticError(localVariableDeclarationStatementNode, "void type is not allowed in a local variable declaration");
+                return semanticError(localVariableDeclarationStatementNode, "void type is not allowed in a local variable declaration");
             } else {
-                semanticError(localVariableDeclarationStatementNode, "unknown reference type %s", leftSideType.getRepresentation(stringTable));
+                return semanticError(localVariableDeclarationStatementNode, "unknown reference type %s", leftSideType.getRepresentation(stringTable));
             }
         }
 
         if (symboltable.isDefinedInCurrentScope(localVariableDeclarationStatementNode.getName())) {
-            semanticError(localVariableDeclarationStatementNode, "variable is already defined in current scope");
+            return semanticError(localVariableDeclarationStatementNode, "variable is already defined in current scope");
         }
 
         if (localVariableDeclarationStatementNode.getExpression().isPresent()) {
             DataType rightSideType = localVariableDeclarationStatementNode.getExpression().get().accept(this);
 
             if (!leftSideType.isCompatibleTo(rightSideType)) {
-                semanticError(localVariableDeclarationStatementNode,
+                return semanticError(localVariableDeclarationStatementNode,
                     "invalid assigment, variable type is %s while expression type is %s",
                     leftSideType.getRepresentation(stringTable),
                     rightSideType.getRepresentation(stringTable)
@@ -201,7 +201,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
     public DataType visit(IfStatementNode ifStatementNode) {
         DataType conditionType = ifStatementNode.getCondition().accept(this);
         if (conditionType.getType() != DataTypeClass.Boolean) {
-            semanticError(ifStatementNode, "if statement condition must be boolean");
+            return semanticError(ifStatementNode, "if statement condition must be boolean");
         }
 
         ifStatementNode.getThenStatement().accept(this);
@@ -215,7 +215,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
     public DataType visit(WhileStatementNode whileStatementNode) {
         DataType conditionType = whileStatementNode.getCondition().accept(this);
         if (conditionType.getType() != DataTypeClass.Boolean) {
-            semanticError(whileStatementNode, "while statement condition must be boolean");
+            return semanticError(whileStatementNode, "while statement condition must be boolean");
         }
 
         whileStatementNode.getStatement().accept(this);
@@ -228,14 +228,14 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             DataType resultType = returnStatementNode.getResult().get().accept(this);
 
             if (!resultType.isCompatibleTo(expectedReturnType)) {
-                semanticError(returnStatementNode,
+                return semanticError(returnStatementNode,
                     "expression type %s does not match required return type %s",
                     resultType.getRepresentation(stringTable),
                     expectedReturnType.getRepresentation(stringTable)
                 );
             }
         } else if (expectedReturnType.getType() != DataTypeClass.Void) {
-            semanticError(returnStatementNode, "method requires a return value of type %s", expectedReturnType.getRepresentation(stringTable));
+            return semanticError(returnStatementNode, "method requires a return value of type %s", expectedReturnType.getRepresentation(stringTable));
         }
 
         return VoidType;
@@ -257,7 +257,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         switch (operator) {
             case Assignment:
                 if (!leftSideType.isCompatibleTo(rightSideType)) {
-                    semanticError(binaryExpressionNode, "the two sides of an assignment must have compatible types");
+                    return semanticError(binaryExpressionNode, "the two sides of an assignment must have compatible types");
                 }
 
                 resultType = leftSideType;
@@ -265,7 +265,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             case Equal:
             case NotEqual:
                 if (!leftSideType.isCompatibleTo(rightSideType)) {
-                    semanticError(binaryExpressionNode, "the two arguments of %s must have compatible types", operator);
+                    return semanticError(binaryExpressionNode, "the two arguments of %s must have compatible types", operator);
                 }
 
                 resultType = operator.getResultType();
@@ -274,7 +274,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
                 DataType expectedArgumentType = operator.getExpectedArgumentType();
 
                 if (!leftSideType.isCompatibleTo(expectedArgumentType)) {
-                    semanticError(binaryExpressionNode,
+                    return semanticError(binaryExpressionNode,
                         "wrong argument type %s, %s operator requires %s",
                         leftSideType.getRepresentation(stringTable),
                         operator,
@@ -282,7 +282,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
                     );
                 }
                 if (!rightSideType.isCompatibleTo(expectedArgumentType)) {
-                    semanticError(binaryExpressionNode,
+                    return semanticError(binaryExpressionNode,
                         "wrong argument type %s, %s operator requires %s",
                         leftSideType.getRepresentation(stringTable),
                         operator,
@@ -305,7 +305,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         DataType expectedArgumentType = operator.getExpectedArgumentType();
 
         if (!argumentType.isCompatibleTo(expectedArgumentType)) {
-            semanticError(unaryExpressionNode,
+            return semanticError(unaryExpressionNode,
                 "wrong argument type %s, %s operator requires %s",
                 argumentType.getRepresentation(stringTable),
                 operator,
@@ -323,27 +323,27 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             DataType objectType = methodInvocationExpressionNode.getObject().get().accept(this);
 
             if (objectType.getType() != DataTypeClass.UserDefined) {
-                semanticError(methodInvocationExpressionNode, "method invocation is only allowed on reference type expressions");
+                return semanticError(methodInvocationExpressionNode, "method invocation is only allowed on reference type expressions");
             }
 
             namespace = namespaceMapper.getClassNamespace(objectType.getIdentifier().get());
         } else {
             if (!currentClassNamespace.isPresent()) {
-                semanticError(methodInvocationExpressionNode, "method calls without object are not allowed in static methods");
+                return semanticError(methodInvocationExpressionNode, "method calls without object are not allowed in static methods");
             }
 
             namespace = currentClassNamespace.get();
         }
 
         if (!namespace.getDynamicMethods().containsKey(methodInvocationExpressionNode.getName())) {
-            semanticError(methodInvocationExpressionNode, "unknown method");
+            return semanticError(methodInvocationExpressionNode, "unknown method");
         }
         MethodNode definition = namespace.getDynamicMethods().get(methodInvocationExpressionNode.getName());
 
         methodInvocationExpressionNode.setDefinition(definition);
 
         if (methodInvocationExpressionNode.getArguments().size() != definition.getParameters().size()) {
-            semanticError(methodInvocationExpressionNode, "wrong number of arguments");
+            return semanticError(methodInvocationExpressionNode, "wrong number of arguments");
         }
 
         for (int i = 0; i < definition.getParameters().size(); i++) {
@@ -351,7 +351,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             DataType actualArgumentType = methodInvocationExpressionNode.getArguments().get(i).accept(this);
 
             if (!actualArgumentType.isCompatibleTo(expectedArgumentType)) {
-                semanticError(methodInvocationExpressionNode,
+                return semanticError(methodInvocationExpressionNode,
                     "argument %d of type %s does not match expected type %s",
                     i,
                     actualArgumentType.getRepresentation(stringTable),
@@ -369,13 +369,13 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         DataType objectType = fieldAccessExpressionNode.getObject().accept(this);
 
         if (objectType.getType() != DataTypeClass.UserDefined) {
-            semanticError(fieldAccessExpressionNode, "field access is only allowed on reference type expressions");
+            return semanticError(fieldAccessExpressionNode, "field access is only allowed on reference type expressions");
         }
 
         namespace = namespaceMapper.getClassNamespace(objectType.getIdentifier().get());
 
         if (!namespace.getClassSymbols().containsKey(fieldAccessExpressionNode.getName())) {
-            semanticError(fieldAccessExpressionNode, "unknown class field");
+            return semanticError(fieldAccessExpressionNode, "unknown class field");
         }
         ClassNodeField definition = namespace.getClassSymbols().get(fieldAccessExpressionNode.getName());
 
@@ -388,12 +388,12 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
     public DataType visit(ArrayAccessExpressionNode arrayAccessExpressionNode) {
         DataType objectType = arrayAccessExpressionNode.getObject().accept(this);
         if (objectType.getType() != DataTypeClass.Array) {
-            semanticError(arrayAccessExpressionNode, "%s is not an array type", objectType.getRepresentation(stringTable));
+            return semanticError(arrayAccessExpressionNode, "%s is not an array type", objectType.getRepresentation(stringTable));
         }
 
         DataType expressionType = arrayAccessExpressionNode.getExpression().accept(this);
         if (expressionType.getType() != DataTypeClass.Int) {
-            semanticError(arrayAccessExpressionNode, "array index must be of type int");
+            return semanticError(arrayAccessExpressionNode, "array index must be of type int");
         }
 
         DataType resultType = objectType.getInnerType().get();
@@ -404,7 +404,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
 
     public DataType visit(IdentifierExpressionNode identifierExpressionNode) {
         if (!symboltable.isDefined(identifierExpressionNode.getIdentifier())) {
-            semanticError(identifierExpressionNode, "`%s` cannot be resolved", stringTable.retrieve(identifierExpressionNode.getIdentifier()));
+            return semanticError(identifierExpressionNode, "`%s` cannot be resolved", stringTable.retrieve(identifierExpressionNode.getIdentifier()));
         }
         Definition definition = symboltable.lookup(identifierExpressionNode.getIdentifier());
 
@@ -416,7 +416,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
 
     public DataType visit(ThisExpressionNode thisExpressionNode) {
         if (!currentClassNamespace.isPresent()) {
-            semanticError(thisExpressionNode, "`this` is not allowed in static contexts");
+            return semanticError(thisExpressionNode, "`this` is not allowed in static contexts");
         }
 
         ClassNode classNode = currentClassNamespace.get().getClassNodeRef();
@@ -436,7 +436,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             break;
         case IntegerLiteral:
             if (!valueExpressionNode.getLiteralValue().get().isIntValue()) {
-                semanticError(valueExpressionNode, "%s is not a 32-bit integer value", valueExpressionNode.getLiteralValue().get());
+                return semanticError(valueExpressionNode, "%s is not a 32-bit integer value", valueExpressionNode.getLiteralValue().get());
             }
 
             resultType = new DataType(DataTypeClass.Int);
@@ -458,7 +458,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
     public DataType visit(NewObjectExpressionNode newObjectExpressionNode) {
         DataType objectType = new DataType(newObjectExpressionNode.getTypeName());
         if (!isValidDataType(objectType)) {
-            semanticError(newObjectExpressionNode, "unknown reference type %s", stringTable.retrieve(objectType.getIdentifier().get()));
+            return semanticError(newObjectExpressionNode, "unknown reference type %s", stringTable.retrieve(objectType.getIdentifier().get()));
         }
 
         newObjectExpressionNode.setResultType(objectType);
@@ -469,15 +469,15 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         DataType elementType = newArrayExpressionNode.getElementType();
         if (!isValidDataType(elementType)) {
             if (elementType.getType() == DataTypeClass.Void) {
-                semanticError(newArrayExpressionNode, "void type is not allowed in a new array expression");
+                return semanticError(newArrayExpressionNode, "void type is not allowed in a new array expression");
             } else {
-                semanticError(newArrayExpressionNode, "unknown reference type %s", stringTable.retrieve(elementType.getIdentifier().get()));
+                return semanticError(newArrayExpressionNode, "unknown reference type %s", stringTable.retrieve(elementType.getIdentifier().get()));
             }
         }
 
         DataType expressionType = newArrayExpressionNode.getLength().accept(this);
         if (expressionType.getType() != DataTypeClass.Int) {
-            semanticError(newArrayExpressionNode, "array length must be of type int");
+            return semanticError(newArrayExpressionNode, "array length must be of type int");
         }
 
         DataType arrayType = elementType;
