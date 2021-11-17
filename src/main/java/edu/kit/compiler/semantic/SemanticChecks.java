@@ -1,8 +1,6 @@
 package edu.kit.compiler.semantic;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.ArrayList;
 
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.Operator.BinaryOperator;
@@ -27,25 +25,15 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.IfStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.ReturnStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.WhileStatementNode;
-import lombok.Getter;
 
 public class SemanticChecks {
-    public static List<SemanticError> applyChecks(ProgramNode ast) {
-        List<SemanticError> errors = new ArrayList<>();
+    public static void applyChecks(ProgramNode ast, ErrorHandler errorHandler) {
         for (ClassNode currentClass: ast.getClasses()) {
-            errors.addAll(checkClass(currentClass));
+            for (MethodNode method: currentClass.getDynamicMethods()) {
+                MethodCheckVisitor visitor = new MethodCheckVisitor(false, errorHandler);
+                method.getStatementBlock().accept(visitor);
+            }
         }
-        return errors;
-    }
-
-    private static List<SemanticError> checkClass(ClassNode currentClass) {
-        List<SemanticError> errors = new ArrayList<>();
-        for (MethodNode method: currentClass.getDynamicMethods()) {
-            MethodCheckVisitor visitor = new MethodCheckVisitor(false);
-            method.getStatementBlock().accept(visitor);
-            errors.addAll(visitor.getErrors());
-        }
-        return errors;
     }
 }
 
@@ -60,13 +48,11 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
      * Whether the analyzed method is "main" or not.
      */
     private boolean isMain;
+    private ErrorHandler errorHandler;
 
-    @Getter
-    private List<SemanticError> errors;
-
-    public MethodCheckVisitor(boolean isMain) {
+    public MethodCheckVisitor(boolean isMain, ErrorHandler errorHandler) {
         this.isMain = isMain;
-        this.errors = new ArrayList<>();
+        this.errorHandler = errorHandler;
     }
 
     public Boolean visit(BlockStatementNode block) {
@@ -116,7 +102,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
     public Boolean visit(ExpressionStatementNode stmt) {
         if (!isAssignmentOrMethodInvocation(stmt.getExpression())) {
             // only assignments or method invocations are valid expression statements
-            errors.add(new SemanticError(stmt, "Statement needs to be either assignment or method invocation."));
+            errorHandler.receive(new SemanticError(stmt, "Statement needs to be either assignment or method invocation."));
         }
 
         stmt.getExpression().accept(this);
@@ -127,7 +113,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
         if (expr.getOperator() == BinaryOperator.Assignment) {
             // check that the left hand side is an lvalue
             if (!isLValue(expr.getLeftSide())) {
-                errors.add(new SemanticError(expr, "Left side of assignment must be a variable, field or array element."));
+                errorHandler.receive(new SemanticError(expr, "Left side of assignment must be a variable, field or array element."));
             }
         }
 
@@ -165,7 +151,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
 
     public Boolean visit(IdentifierExpressionNode expr) {
         if (isMain && expr.getDefinition().getKind() == DefinitionKind.Parameter) {
-            errors.add(new SemanticError(expr, "accessing method parameters not allowed in main"));
+            errorHandler.receive(new SemanticError(expr, "accessing method parameters not allowed in main"));
         }
         return false;
     }
@@ -177,7 +163,7 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
 
     public Boolean visit(ThisExpressionNode expr) {
         if (this.isMain) {
-            errors.add(new SemanticError(expr, "this-pointer not allowed in main"));
+            errorHandler.receive(new SemanticError(expr, "this-pointer not allowed in main"));
         }
         return false;
     }
