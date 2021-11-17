@@ -1,5 +1,6 @@
 package edu.kit.compiler.data.ast_nodes;
 
+import java.util.List;
 import java.util.Optional;
 
 import edu.kit.compiler.data.AstNode;
@@ -8,13 +9,21 @@ import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.Literal;
 import edu.kit.compiler.data.Operator.BinaryOperator;
 import edu.kit.compiler.data.Operator.UnaryOperator;
+import edu.kit.compiler.semantic.Definition;
+import edu.kit.compiler.semantic.Reference;
+
 import lombok.Getter;
+import lombok.Setter;
 
 public abstract class ExpressionNode extends AstNode {
 
     public ExpressionNode(int line, int column, boolean hasError) {
         super(line, column, hasError);
     }
+
+    @Getter
+    @Setter
+    private DataType resultType;
 
     public static class BinaryExpressionNode extends ExpressionNode {
 
@@ -78,7 +87,7 @@ public abstract class ExpressionNode extends AstNode {
 
         public MethodInvocationExpressionNode(
             int line, int column,
-            Optional<ExpressionNode> object, int name, Iterable<ExpressionNode> arguments,
+            Optional<ExpressionNode> object, int name, List<ExpressionNode> arguments,
             boolean hasError
         ) {
             super(line, column, hasError);
@@ -93,7 +102,11 @@ public abstract class ExpressionNode extends AstNode {
         @Getter
         private int name;
         @Getter
-        private Iterable<ExpressionNode> arguments;
+        private List<ExpressionNode> arguments;
+
+        @Getter
+        @Setter
+        private MethodNode definition;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
@@ -102,7 +115,7 @@ public abstract class ExpressionNode extends AstNode {
 
     }
 
-    public static class FieldAccessExpressionNode extends ExpressionNode {
+    public static class FieldAccessExpressionNode extends ExpressionNode implements Reference {
 
         public FieldAccessExpressionNode(
             int line, int column,
@@ -119,6 +132,10 @@ public abstract class ExpressionNode extends AstNode {
         private ExpressionNode object;
         @Getter
         private int name;
+
+        @Getter
+        @Setter
+        private Definition definition;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
@@ -152,7 +169,7 @@ public abstract class ExpressionNode extends AstNode {
 
     }
 
-    public static class IdentifierExpressionNode extends ExpressionNode {
+    public static class IdentifierExpressionNode extends ExpressionNode implements Reference {
 
         public IdentifierExpressionNode(int line, int column, int identifier, boolean hasError) {
             super(line, column, hasError);
@@ -162,6 +179,27 @@ public abstract class ExpressionNode extends AstNode {
 
         @Getter
         private int identifier;
+
+        @Getter
+        @Setter
+        private Definition definition;
+
+        @Override
+        public <T> T accept(AstVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+    }
+
+    public static class ThisExpressionNode extends ExpressionNode {
+
+        public ThisExpressionNode(int line, int column, boolean hasError) {
+            super(line, column, hasError);
+        }
+
+        @Getter
+        @Setter
+        private ClassNode definition;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
@@ -174,28 +212,28 @@ public abstract class ExpressionNode extends AstNode {
 
         public ValueExpressionNode(
             int line, int column,
-            ValueExpressionType type,
+            ValueExpressionType valueType,
             boolean hasError
         ) {
             super(line, column, hasError);
 
-            this.type = type;
+            this.valueType = valueType;
             this.literalValue = Optional.empty();
         }
 
         public ValueExpressionNode(
             int line, int column,
-            ValueExpressionType type, Literal value,
+            ValueExpressionType valueType, Literal value,
             boolean hasError
         ) {
             super(line, column, hasError);
 
-            this.type = type;
+            this.valueType = valueType;
             this.literalValue = Optional.of(value);
         }
 
         @Getter
-        private ValueExpressionType type;
+        private ValueExpressionType valueType;
         @Getter
         private Optional<Literal> literalValue;
 
@@ -210,8 +248,7 @@ public abstract class ExpressionNode extends AstNode {
         Null,
         False,
         True,
-        IntegerLiteral,
-        This
+        IntegerLiteral
     }
 
     public static class NewObjectExpressionNode extends ExpressionNode {
@@ -240,18 +277,18 @@ public abstract class ExpressionNode extends AstNode {
 
         public NewArrayExpressionNode(
             int line, int column,
-            DataType type, ExpressionNode length, int dimensions,
+            DataType elementType, ExpressionNode length, int dimensions,
             boolean hasError
         ) {
             super(line, column, hasError);
 
-            this.type = type;
+            this.elementType = elementType;
             this.length = length;
             this.dimensions = dimensions;
         }
 
         @Getter
-        private DataType type;
+        private DataType elementType;
         @Getter
         private ExpressionNode length;
 

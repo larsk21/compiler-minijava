@@ -34,6 +34,19 @@ public final class Literal {
     }
 
     /**
+     * Returns whether the value of the literal can be parsed as an integer
+     * (i.e. it fits in in a 32-bit signed value).
+     */
+    public boolean isIntValue() {
+        try {
+            Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    /**
      * Create a literal using the textual representation of the given integer.
      * 
      * @param value the integer to be represented.

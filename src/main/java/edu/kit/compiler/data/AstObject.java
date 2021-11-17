@@ -2,6 +2,7 @@ package edu.kit.compiler.data;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Represents an object (not necessarily a node) that appears in the AST.
@@ -24,6 +25,7 @@ public class AstObject implements Positionable {
      * Whether this node contains an error.
      */
     @Getter
+    @Setter
     private boolean hasError;
 
 }

@@ -21,6 +21,7 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode.FieldAccessExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.MethodInvocationExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.NewArrayExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.NewObjectExpressionNode;
+import edu.kit.compiler.data.ast_nodes.ExpressionNode.ThisExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.IdentifierExpressionNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.MethodNodeParameter;
@@ -117,7 +118,7 @@ public class Parser {
                     BlockStatementNode block = parseBlock();
                     dynamicMethods.add(
                         new DynamicMethodNode(firstToken.getLine(), firstToken.getColumn(),
-                            type, name.getIntValue().get(), params, mRest, block.getStatements(), false)
+                            type, name.getIntValue().get(), params, mRest, block, false)
                     );
                 }
             }
@@ -144,7 +145,7 @@ public class Parser {
         Optional<MethodNodeRest> mRest = parseMethodRest();
         BlockStatementNode block = parseBlock();
         return new StaticMethodNode(line, column, new DataType(DataTypeClass.Void),
-            name.getIntValue().get(), Arrays.asList(param), mRest, block.getStatements(), false);
+            name.getIntValue().get(), Arrays.asList(param), mRest, block, false);
     }
 
     private DataType parseType() {
@@ -325,8 +326,8 @@ public class Parser {
             }
             case Keyword_This: {
                 tokenStream.next();
-                return new ValueExpressionNode(
-                    token.getLine(), token.getColumn(), ValueExpressionType.This, false
+                return new ThisExpressionNode(
+                    token.getLine(), token.getColumn(), false
                 );
             }
             case Operator_ParenL: {

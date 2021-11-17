@@ -21,6 +21,7 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode;
+import edu.kit.compiler.data.ast_nodes.StatementNode.BlockStatementNode;
 import edu.kit.compiler.lexer.StringTable;
 
 public class PrettyPrintAstVisitorTest {
@@ -95,11 +96,19 @@ public class PrettyPrintAstVisitorTest {
             new ClassNode.ClassNodeField(0, 0, new DataType(DataTypeClass.Int), d, false),
             new ClassNode.ClassNodeField(0, 0, new DataType(new DataType(DataTypeClass.Int)), c, false)
         ), Arrays.asList(
-            new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Void), h, Arrays.asList(), Optional.empty(), Arrays.asList(), false),
-            new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Boolean), f, Arrays.asList(), Optional.empty(), Arrays.asList(), false)
+            new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Void), h, Arrays.asList(), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(), false),
+            false),
+            new MethodNode.StaticMethodNode(0, 0, new DataType(DataTypeClass.Boolean), f, Arrays.asList(), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(), false),
+            false)
         ), Arrays.asList(
-            new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), e, Arrays.asList(), Optional.empty(), Arrays.asList(), false),
-            new MethodNode.DynamicMethodNode(0, 0, new DataType(b), g, Arrays.asList(), Optional.empty(), Arrays.asList(), false)
+            new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), e, Arrays.asList(), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(), false),
+            false),
+            new MethodNode.DynamicMethodNode(0, 0, new DataType(b), g, Arrays.asList(), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(), false),
+            false)
         ), false);
 
         node.accept(visitor);
@@ -132,7 +141,9 @@ public class PrettyPrintAstVisitorTest {
         AstNode node = new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), a, Arrays.asList(
             new MethodNode.MethodNodeParameter(0, 0, new DataType(DataTypeClass.Int), c, false),
             new MethodNode.MethodNodeParameter(0, 0, new DataType(new DataType(d)), b, false)
-        ), Optional.of(new MethodNode.MethodNodeRest(0, 0, e, false)), Arrays.asList(), false);
+        ), Optional.of(new MethodNode.MethodNodeRest(0, 0, e, false)),
+            new BlockStatementNode(0, 0, Arrays.asList(), false),
+        false);
 
         node.accept(visitor);
         String result = stream.toString();
@@ -150,14 +161,16 @@ public class PrettyPrintAstVisitorTest {
 
         int a = stringTable.insert("MethodA");
 
-        AstNode node = new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), a, Arrays.asList(), Optional.empty(), Arrays.asList(
-            new StatementNode.ExpressionStatementNode(0, 0,
-                new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.True, false),
-            false),
-            new StatementNode.ReturnStatementNode(0, 0,
-                Optional.of(new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.This, false)),
-            false)
-        ), false);
+        AstNode node = new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), a, Arrays.asList(), Optional.empty(),
+            new BlockStatementNode(0, 0, Arrays.asList(
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.True, false),
+                false),
+                new StatementNode.ReturnStatementNode(0, 0,
+                    Optional.of(new ExpressionNode.ThisExpressionNode(0, 0, false)),
+                false)
+            ), false),
+        false);
 
         node.accept(visitor);
         String result = stream.toString();
@@ -1121,11 +1134,11 @@ public class PrettyPrintAstVisitorTest {
     }
 
     @Test
-    public void testThisValueExpression() {
+    public void testThisExpression() {
         StringTable stringTable = new StringTable();
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
 
-        AstNode node = new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.This, false);
+        AstNode node = new ExpressionNode.ThisExpressionNode(0, 0, false);
 
         node.accept(visitor);
         String result = stream.toString();
@@ -1267,9 +1280,11 @@ public class PrettyPrintAstVisitorTest {
 
         AstNode node = new ProgramNode(0, 0, Arrays.asList(
             new ClassNode(0, 0, a, Arrays.asList(), Arrays.asList(), Arrays.asList(
-                new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Int), b, Arrays.asList(), Optional.empty(), Arrays.asList(
-                    new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
-                ), false)
+                new MethodNode.DynamicMethodNode(0, 0, new DataType(DataTypeClass.Int), b, Arrays.asList(), Optional.empty(),
+                    new BlockStatementNode(0, 0, Arrays.asList(
+                        new StatementNode.ReturnStatementNode(0, 0, Optional.empty(), false)
+                    ), false),
+                false)
             ), false)
         ), false);
 
