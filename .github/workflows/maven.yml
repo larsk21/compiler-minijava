@@ -58,6 +58,11 @@ jobs:
           pwd
           ./run_mjtests.sh ast
 
+      - name: Run Semantic Tests
+        run: |
+          pwd
+          ./run_mjtests.sh semantic
+
       - name: Copy Artifacts
         run: |
           pwd
