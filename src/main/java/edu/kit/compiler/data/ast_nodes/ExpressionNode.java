@@ -83,7 +83,7 @@ public abstract class ExpressionNode extends AstNode {
 
     }
 
-    public static class MethodInvocationExpressionNode extends ExpressionNode implements Reference {
+    public static class MethodInvocationExpressionNode extends ExpressionNode {
 
         public MethodInvocationExpressionNode(
             int line, int column,
@@ -106,7 +106,7 @@ public abstract class ExpressionNode extends AstNode {
 
         @Getter
         @Setter
-        private Definition definition;
+        private MethodNode definition;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
@@ -199,7 +199,7 @@ public abstract class ExpressionNode extends AstNode {
 
         @Getter
         @Setter
-        private Definition definition;
+        private ClassNode definition;
 
         @Override
         public <T> T accept(AstVisitor<T> visitor) {

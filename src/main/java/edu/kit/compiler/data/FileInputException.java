@@ -11,7 +11,7 @@ public class FileInputException extends CompilerException {
     }
 
     @Override
-    public Optional<SourceLocation> getSourceLocation() {
+    public Optional<Positionable> getPosition() {
         return Optional.empty();
     }
 

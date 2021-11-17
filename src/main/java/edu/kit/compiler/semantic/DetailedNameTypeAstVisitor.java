@@ -5,7 +5,6 @@ import java.util.Optional;
 import edu.kit.compiler.data.AstObject;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
-import edu.kit.compiler.data.CompilerException.SourceLocation;
 import edu.kit.compiler.data.DataType.DataTypeClass;
 import edu.kit.compiler.data.Operator.*;
 import edu.kit.compiler.data.ast_nodes.*;
@@ -83,7 +82,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         // TODO: collect semantic errors in list
         throw new SemanticException(
             String.format(message, args),
-            new SourceLocation(object.getLine(), object.getColumn())
+            object
         );
     }
 

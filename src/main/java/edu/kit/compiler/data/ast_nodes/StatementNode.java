@@ -4,6 +4,7 @@ import edu.kit.compiler.data.AstNode;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.semantic.Definition;
+import edu.kit.compiler.semantic.DefinitionKind;
 import lombok.Getter;
 
 import java.util.Optional;
@@ -58,6 +59,10 @@ public abstract class StatementNode extends AstNode {
             return visitor.visit(this);
         }
 
+        @Override
+        public DefinitionKind getKind() {
+            return DefinitionKind.LocalVariable;
+        }
     }
 
     public static class IfStatementNode extends StatementNode {

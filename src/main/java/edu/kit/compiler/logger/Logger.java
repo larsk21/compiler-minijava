@@ -100,7 +100,7 @@ public class Logger {
      * Logs the given compiler exception at log level error.
      */
     public void exception(CompilerException exception) {
-        exception.getSourceLocation().ifPresentOrElse(
+        exception.getPosition().ifPresentOrElse(
             (source) -> error(source.getLine(), source.getColumn(), exception.getMessage()),
             () -> error(exception.getMessage())
         );
