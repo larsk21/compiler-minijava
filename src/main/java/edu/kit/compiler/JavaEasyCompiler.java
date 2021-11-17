@@ -12,8 +12,6 @@ import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
-import edu.kit.compiler.parser.Parser;
-import org.apache.commons.cli.*;
 
 import java.io.*;
 
@@ -22,6 +20,7 @@ public class JavaEasyCompiler {
      * Output the file contents to stdout.
      * 
      * @param filePath Path of the file (absolute or relative)
+     * @param logger the logger
      * @return Ok or FileInputError (in case of an IOException)
      */
     public static Result echo(String filePath, OutputStream oStream, Logger logger) {
@@ -38,6 +37,7 @@ public class JavaEasyCompiler {
      * Split the file contents in Lexer Tokens and output the representations one Token per line.
      * 
      * @param filePath Path of the file (absolute or relative)
+     * @param logger the logger
      * @return Ok or FileInputError (in case of an IOException)
      */
     private static Result lextest(String filePath, Logger logger) {
@@ -64,9 +64,10 @@ public class JavaEasyCompiler {
     }
 
     /**
-     * Split the file contents in Lexer Tokens and output the representations one Token per line.
+     * Parses the file.
      * 
      * @param filePath Path of the file (absolute or relative)
+     * @param logger the logger
      * @return Ok or an according error
      */
     private static Result parseTest(String filePath, Logger logger) {
@@ -87,9 +88,10 @@ public class JavaEasyCompiler {
     }
 
     /**
-     * Split the file contents in Lexer Tokens and output the representations one Token per line.
+     * Parses the file and outputs a pretty printed version of the AST.
      *
      * @param filePath Path of the file (absolute or relative)
+     * @param logger the logger
      * @return Ok or an according error
      */
     private static Result prettyPrint(String filePath, Logger logger) {
