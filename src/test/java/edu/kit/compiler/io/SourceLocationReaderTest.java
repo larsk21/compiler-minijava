@@ -64,8 +64,8 @@ public class SourceLocationReaderTest {
     public void testPeekNext() {
         SourceLocationReader reader = new SourceLocationReader(stringReader("abc"));
 
-        assertEquals('b', reader.peekNext());
-        assertEquals('c', reader.peekNext());
+        assertEquals('b', reader.getNext());
+        assertEquals('c', reader.getNext());
     }
 
     @Test
@@ -82,9 +82,9 @@ public class SourceLocationReaderTest {
     public void peekNextIncreaseColumn() {
         SourceLocationReader reader = new SourceLocationReader(stringReader("abc"));
 
-        reader.peekNext();
+        reader.getNext();
         assertEquals(2, reader.getColumn());
-        reader.peekNext();
+        reader.getNext();
         assertEquals(3, reader.getColumn());
     }
 

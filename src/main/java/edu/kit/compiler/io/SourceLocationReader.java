@@ -25,6 +25,7 @@ public final class SourceLocationReader {
      * @throws FileInputException if an I/O error occurs in the underlying reader.
      */
     public SourceLocationReader(Reader source) {
+        // We need mark support for `previewNext`, therefore wrap source if necessary
         if (!source.markSupported()) {
             this.source = new BufferedReader(source);
         } else {
@@ -51,7 +52,7 @@ public final class SourceLocationReader {
      * Advances the reader by one character and returns the next character.
      * @return the character returned by the reader.
      */
-    public int peekNext() {
+    public int getNext() {
         next();
         return buffer;
     }

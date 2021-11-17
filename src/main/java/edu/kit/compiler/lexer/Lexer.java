@@ -136,64 +136,64 @@ public final class Lexer implements Iterator<Token> {
             case '{' -> { reader.next(); yield Operator_BraceL;       }
             case '}' -> { reader.next(); yield Operator_BraceR;       }
 
-            case '+' -> switch (reader.peekNext()) {
+            case '+' -> switch (reader.getNext()) {
                 case '+' -> { reader.next(); yield Operator_PlusPlus;  }
                 case '=' -> { reader.next(); yield Operator_PlusEqual; }
                 default  -> {                yield Operator_Plus;      }
             };
-            case '-' -> switch (reader.peekNext()) {
+            case '-' -> switch (reader.getNext()) {
                 case '-' -> { reader.next(); yield Operator_MinusMinus; }
                 case '=' -> { reader.next(); yield Operator_MinusEqual; }
                 default  -> {                yield Operator_Minus;      }
             };
-            case '*' -> switch (reader.peekNext()) {
+            case '*' -> switch (reader.getNext()) {
                 case '=' -> { reader.next(); yield Operator_StarEqual; }
                 default  -> {                yield Operator_Star;      }
             };
-            case '/' -> switch (reader.peekNext()) {
+            case '/' -> switch (reader.getNext()) {
                 case '=' -> { reader.next(); yield Operator_SlashEqual; }
                 case '*' -> throw new IllegalStateException(
                     "Comments should have been skipped before a call to this method"
                 );
                 default  -> {                yield Operator_Slash;      }
             };
-            case '%' -> switch (reader.peekNext()) {
+            case '%' -> switch (reader.getNext()) {
                 case '=' -> { reader.next(); yield Operator_PercentEqual; }
                 default  -> {                yield Operator_Percent;      }
             };
-            case '&' -> switch (reader.peekNext()) {
+            case '&' -> switch (reader.getNext()) {
                 case '&' -> { reader.next(); yield Operator_AndAnd;   }
                 case '=' -> { reader.next(); yield Operator_AndEqual; }
                 default  -> {                yield Operator_And;      }
             };
-            case '|' -> switch (reader.peekNext()) {
+            case '|' -> switch (reader.getNext()) {
                 case '|' -> { reader.next(); yield Operator_BarBar;   }
                 case '=' -> { reader.next(); yield Operator_BarEqual; }
                 default  -> {                yield Operator_Bar;      }
             };
-            case '^' -> switch (reader.peekNext()) {
+            case '^' -> switch (reader.getNext()) {
                 case '=' -> { reader.next(); yield Operator_CircumEqual; }
                 default  -> {                yield Operator_Circum;      }
             };
-            case '!' -> switch (reader.peekNext()) {
+            case '!' -> switch (reader.getNext()) {
                 case '=' -> { reader.next(); yield Operator_NotEqual; }
                 default  -> {                yield Operator_Not;      }
             };
-            case '=' -> switch (reader.peekNext()) {
+            case '=' -> switch (reader.getNext()) {
                 case '=' -> { reader.next(); yield Operator_EqualEqual; }
                 default  -> {                yield Operator_Equal;      }
             };
-            case '<' -> switch (reader.peekNext()) {
-                case '<' -> switch (reader.peekNext()) {
+            case '<' -> switch (reader.getNext()) {
+                case '<' -> switch (reader.getNext()) {
                     case '=' -> { reader.next(); yield Operator_SmallerSmallerEqual; }
                     default  -> {                yield Operator_SmallerSmaller;      }
                 };
                 case '=' -> { reader.next(); yield Operator_SmallerEqual; }
                 default  -> {                yield Operator_Smaller;      }
             };
-            case '>' -> switch (reader.peekNext()) {
-                case '>' -> switch (reader.peekNext()) {
-                    case '>' -> switch (reader.peekNext()) {
+            case '>' -> switch (reader.getNext()) {
+                case '>' -> switch (reader.getNext()) {
+                    case '>' -> switch (reader.getNext()) {
                         case '=' -> { reader.next(); yield Operator_GreaterGreaterGreaterEqual; }
                         default  -> {                yield Operator_GreaterGreaterGreater; }
                     };
@@ -240,8 +240,8 @@ public final class Lexer implements Iterator<Token> {
             reader.next();
             reader.next();
 
-            while (reader.peek() != '*' || reader.peekNext() != '/') {
-                if (reader.peek() == '/' && reader.peekNext() == '*') {
+            while (reader.peek() != '*' || reader.getNext() != '/') {
+                if (reader.peek() == '/' && reader.getNext() == '*') {
                     logger.warn(line, column, "found opening comment inside of comment");
                 } else if (Character.isEndOfStream(reader.peek())) {
                     throw new LexException(line, column, "unclosed comment");
