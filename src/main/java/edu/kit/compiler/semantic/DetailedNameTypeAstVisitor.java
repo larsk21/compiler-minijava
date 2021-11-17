@@ -26,7 +26,7 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
  * Postconditions:
  * - all used variables reference their declaration
  * - every field, method, statement and expression is correctly typed
- * - no variable is declared twice inside the same scope
+ * - no variable is declared twice inside the same method
  * - every expression node contains a valid result type
  * - static methods contain no reference to this
  * - void is not used as a field, parameter or local variable type, in a new
@@ -177,8 +177,11 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             }
         }
 
-        if (symboltable.isDefinedInCurrentScope(localVariableDeclarationStatementNode.getName())) {
-            return semanticError(localVariableDeclarationStatementNode, "variable is already defined in current scope");
+        if (symboltable.isDefined(localVariableDeclarationStatementNode.getName())) {
+            Definition definition = symboltable.lookup(localVariableDeclarationStatementNode.getName());
+            if (definition.getKind() != DefinitionKind.Field) {
+                return semanticError(localVariableDeclarationStatementNode, "variable is already defined in current scope");
+            }
         }
 
         if (localVariableDeclarationStatementNode.getExpression().isPresent()) {

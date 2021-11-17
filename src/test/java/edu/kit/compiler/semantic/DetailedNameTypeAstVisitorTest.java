@@ -158,7 +158,7 @@ public class DetailedNameTypeAstVisitorTest {
     }
 
     @Test
-    public void testAllUsedVariablesReferenceTheirDeclaration_LocalVariableDifferentScopes() {
+    public void testAllUsedVariablesReferenceTheirDeclaration_FieldAndLocalVariable() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         ErrorHandler errorHandler = new ErrorHandler(logger);
@@ -166,16 +166,15 @@ public class DetailedNameTypeAstVisitorTest {
 
         LocalVariableDeclarationStatementNode definition;
         IdentifierExpressionNode usage;
-        ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+        ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(
+            new ClassNodeField(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("varA"), false)
+        ), Arrays.asList(), Arrays.asList(
             new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
                 new BlockStatementNode(0, 0, Arrays.asList(
-                    new LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("varA"), Optional.empty(), false),
-                    new BlockStatementNode(0, 0, Arrays.asList(
-                        (definition = new LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("varA"), Optional.empty(), false)),
-                        new ExpressionStatementNode(0, 0,
-                            (usage = new IdentifierExpressionNode(0, 0, stringTable.insert("varA"), false)),
-                        false)
-                    ), false)
+                    (definition = new LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("varA"), Optional.empty(), false)),
+                    new ExpressionStatementNode(0, 0,
+                        (usage = new IdentifierExpressionNode(0, 0, stringTable.insert("varA"), false)),
+                    false)
                 ), false),
             false)
         ), false);
@@ -262,8 +261,34 @@ public class DetailedNameTypeAstVisitorTest {
 
         _class.accept(visitor);
 
-        assertFalse(errorHandler.isHasError());
-        assertFalse(localVariable.isHasError());
+        assertTrue(errorHandler.isHasError());
+        assertTrue(localVariable.isHasError());
+    }
+
+    @Test
+    public void testNoVariableIsDeclaredTwiceInsideTheSameScope_Parameter() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+
+        LocalVariableDeclarationStatementNode localVariable;
+        ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+            new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(
+                new MethodNodeParameter(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("varA"), false)
+            ), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(
+                    (localVariable = new LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("varA"), Optional.empty(), false))
+                ), false),
+            false)
+        ), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        _class.accept(visitor);
+
+        assertTrue(errorHandler.isHasError());
+        assertTrue(localVariable.isHasError());
     }
 
     @Test
