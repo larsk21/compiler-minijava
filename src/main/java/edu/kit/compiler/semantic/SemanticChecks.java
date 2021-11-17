@@ -182,6 +182,10 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
     }
 
     public Boolean visit(NewObjectExpressionNode expr) {
+        if (expr.getTypeName() == stringClass.getName()) {
+            errorHandler.receive(new SemanticError(expr,
+                "the builtin class \"String\" can not be constructed"));
+        }
         return false;
     }
 

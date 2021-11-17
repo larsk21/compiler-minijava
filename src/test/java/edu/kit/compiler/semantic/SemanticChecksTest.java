@@ -104,6 +104,14 @@ public class SemanticChecksTest {
     }
 
     @Test
+    public void testString() {
+        checkHasError("class c { public void m() { String s = new String(); } }" + main, true);
+        checkHasError("class c { public void m() { String s; } }" + main, false);
+        checkHasError("class c { public void m() { String[] s = new String[1]; } }" + main, false);
+        checkHasError("class c { public void m() { String[] s = new String[1]; s[0] = new String(); } }" + main, true);
+    }
+
+    @Test
     public void testArgs() {
         checkHasError("class Main {public static void main(String[] args) {String[] args;}}", true, true);
         checkHasError("class Main {public static void main(String[] args) {String s = args[0];}}", true, true);
