@@ -1,6 +1,7 @@
 package edu.kit.compiler;
 
 import edu.kit.compiler.data.CompilerException;
+import edu.kit.compiler.data.Positionable;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
@@ -10,12 +11,16 @@ import edu.kit.compiler.lexer.StringTable;
 import org.apache.commons.cli.*;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
+import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
+import edu.kit.compiler.semantic.ErrorHandler;
+import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
+import edu.kit.compiler.semantic.NamespaceMapper;
+import edu.kit.compiler.semantic.SemanticChecks;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
-import edu.kit.compiler.parser.Parser;
-import org.apache.commons.cli.*;
 
 import java.io.*;
+import java.util.Optional;
 
 public class JavaEasyCompiler {
     /**
@@ -64,7 +69,7 @@ public class JavaEasyCompiler {
     }
 
     /**
-     * Split the file contents in Lexer Tokens and output the representations one Token per line.
+     * Check whether the file contents are a syntactically valid MiniJava program.
      * 
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or an according error
@@ -87,7 +92,7 @@ public class JavaEasyCompiler {
     }
 
     /**
-     * Split the file contents in Lexer Tokens and output the representations one Token per line.
+     * Build an AST from the file contents and pretty print the result.
      *
      * @param filePath Path of the file (absolute or relative)
      * @return Ok or an according error
@@ -111,6 +116,32 @@ public class JavaEasyCompiler {
         }
     }
 
+    /**
+     * Build an AST from the file contents and run a semantic analysis for the result.
+     *
+     * @param filePath Path of the file (absolute or relative)
+     * @return Ok or an according error
+     */
+    private static Result checkAst(String filePath, Logger logger) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            Lexer lexer = new Lexer(new ReaderCharIterator(reader));
+            StringTable stringTable = lexer.getStringTable();
+            Parser parser = new Parser(lexer);
+            ProgramNode ast = parser.parse();
+            runSemanticAnalysis(ast, stringTable, logger);
+
+            return Result.Ok;
+        } catch (CompilerException e) {
+            logger.withName(e.getCompilerStage().orElse(null)).exception(e);
+
+            return e.getResult();
+        } catch (IOException e) {
+            logger.error("unable to read file: %s", e.getMessage());
+
+            return Result.FileInputError;
+        }
+    }
+
     public static void main(String[] args) {
         // specify supported command line options
         Options options = new Options();
@@ -121,6 +152,7 @@ public class JavaEasyCompiler {
         runOptions.addOption(new Option("l", "lextest", true, "output the tokens from the lexer"));
         runOptions.addOption(new Option("p", "parsetest", true, "try to parse the file contents"));
         runOptions.addOption(new Option("a", "print-ast", true, "try to parse the file contents and output the AST"));
+        runOptions.addOption(new Option("c", "check", true, "run a semantic analysis for the  given file"));
         options.addOptionGroup(runOptions);
 
         var verbosityOptions = new OptionGroup();
@@ -170,6 +202,10 @@ public class JavaEasyCompiler {
             String filePath = cmd.getOptionValue("a");
 
             result = prettyPrint(filePath, logger);
+        } else if (cmd.hasOption("c")) {
+            String filePath = cmd.getOptionValue("c");
+
+            result = checkAst(filePath, logger);
         } else {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 
@@ -193,6 +229,32 @@ public class JavaEasyCompiler {
         }
         
         return new Logger(verbosity, printColor);
+    }
+
+    private static void runSemanticAnalysis(ProgramNode ast, StringTable stringTable, Logger logger) {
+        var errorHandler = new ErrorHandler(logger);
+        var namespaceMapper = new NamespaceMapper();
+
+        var nameAnalysis = new NamespaceGatheringVisitor(namespaceMapper, stringTable, errorHandler);
+        ast.accept(nameAnalysis);
+
+        var typeAnalysis = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ast.accept(typeAnalysis);
+
+        SemanticChecks.applyChecks(ast, errorHandler, nameAnalysis.getStringClass());
+
+        if (errorHandler.hasError()) {
+            throw new CompilerException("program did not pass semantic analysis") {
+                @Override
+                public Optional<Positionable> getPosition() { return Optional.empty(); }
+
+                @Override
+                public Optional<String> getCompilerStage() { return Optional.empty(); }
+
+                @Override
+                public Result getResult() { return Result.SemanticError; }
+            };
+        }
     }
 
     /**
