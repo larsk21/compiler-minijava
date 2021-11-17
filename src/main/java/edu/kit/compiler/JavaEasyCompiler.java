@@ -10,6 +10,11 @@ import edu.kit.compiler.lexer.StringTable;
 import org.apache.commons.cli.*;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
+import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
+import edu.kit.compiler.semantic.ErrorHandler;
+import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
+import edu.kit.compiler.semantic.NamespaceMapper;
+import edu.kit.compiler.semantic.SemanticChecks;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
 
@@ -113,6 +118,65 @@ public class JavaEasyCompiler {
         }
     }
 
+    /**
+     * Parses the file and performs semantic analysis.
+     *
+     * @param filePath Path of the file (absolute or relative)
+     * @param logger the logger
+     * @return Ok or an according error
+     */
+    private static Result check(String filePath, Logger logger) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            NamespaceMapper namespaceMapper = new NamespaceMapper();
+            createAttributedAst(reader, logger, namespaceMapper);
+
+            return Result.Ok;
+        } catch (CompilerException e) {
+            logger.withName(e.getCompilerStage().orElse(null)).exception(e);
+
+            return e.getResult();
+        } catch (IOException e) {
+            logger.error("unable to read file: %s", e.getMessage());
+
+            return Result.FileInputError;
+        }
+    }
+
+    /**
+     * Parses the file into an AST and performs semantic analysis,
+     * filling the provided namespace mapper.
+     *
+     * @param filePath Path of the file (absolute or relative)
+     * @param logger the logger
+     * @param namespaceMapper empty namespace mapper
+     * @return the AST
+     * 
+     * @throws CompilerException
+     * @throws IOException
+     */
+    private static ProgramNode createAttributedAst(
+            Reader reader, Logger logger, NamespaceMapper namespaceMapper
+        ) throws IOException {
+        ErrorHandler errorHandler = new ErrorHandler(logger);
+        Lexer lexer = new Lexer(new ReaderCharIterator(reader));
+        StringTable stringTable = lexer.getStringTable();
+        ProgramNode ast = (new Parser(lexer)).parse();
+
+        // collect classes and methods
+        NamespaceGatheringVisitor gatheringVisitor = new NamespaceGatheringVisitor(
+            namespaceMapper, stringTable, errorHandler
+        );
+        ast.accept(gatheringVisitor);
+        // name and type analysis
+        DetailedNameTypeAstVisitor nameTypeVisitor = new DetailedNameTypeAstVisitor(
+            namespaceMapper, stringTable
+        );
+        ast.accept(nameTypeVisitor);
+        // remaining semantic checks
+        SemanticChecks.applyChecks(ast, errorHandler, gatheringVisitor.getStringClass());
+        return ast;
+    }
+
     public static void main(String[] args) {
         // specify supported command line options
         Options options = new Options();
@@ -123,6 +187,7 @@ public class JavaEasyCompiler {
         runOptions.addOption(new Option("l", "lextest", true, "output the tokens from the lexer"));
         runOptions.addOption(new Option("p", "parsetest", true, "try to parse the file contents"));
         runOptions.addOption(new Option("a", "print-ast", true, "try to parse the file contents and output the AST"));
+        runOptions.addOption(new Option("c", "check", true, "try to parse the file contents and perform semantic analysis"));
         options.addOptionGroup(runOptions);
 
         var verbosityOptions = new OptionGroup();
@@ -172,6 +237,10 @@ public class JavaEasyCompiler {
             String filePath = cmd.getOptionValue("a");
 
             result = prettyPrint(filePath, logger);
+        } else if (cmd.hasOption("c")) {
+            String filePath = cmd.getOptionValue("c");
+
+            result = check(filePath, logger);
         } else {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 
