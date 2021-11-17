@@ -24,19 +24,24 @@ import lombok.NonNull;
 
 /**
  * Post Conditions:
- * - The program does not contain classes with duplicate names
- * - Classes do not contain methods with duplicate names
- * - Classes do not contain fields with duplicate names
+ * - If any of the following conditions are not met, `hasError` will be set on the offending ASTObject(s)
+ *     - The program does not contain classes with duplicate names
+ *     - Classes do not contain fields with duplicate names
+ *     - Methods do not have parameters with duplicate names
+ *     - The program contains exactly one static method 
+ *         - which is called main
+ *         - which has return type void
+ *         - which has exactly on parameter of type String[]
  * - A predefined class String with no fields or methods exists
- * - The program contains exactly one static method ...
- *     ... which is called main
- *     ... which has return type void
- *     ... which has exactly one parameter of type String[]
- * - Methods do not have parameters with duplicate names
+ * - Non-duplicate classes, fields and methods are registered in the NamespaceMapper
+ *     - Classes are registered even if they contain duplicate fields
+ *     - Methods are registered even if they contain duplicate parameters
+ *     - At most one static method is registered
+ * - The first static method with name main is registered in mainMethod
  */
 public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
     @Getter
-    private final NamespaceMapper namespaceMapper = new NamespaceMapper();
+    private final NamespaceMapper namespaceMapper;
 
     @Getter
     private Optional<StaticMethodNode> mainMethod = Optional.empty();
@@ -47,7 +52,8 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
     @Getter
     private final ClassNode stringClass;
 
-    public NamespaceGatheringVisitor(StringTable stringTable) {
+    public NamespaceGatheringVisitor(NamespaceMapper namespaceMapper, StringTable stringTable) {
+        this.namespaceMapper = namespaceMapper;
         this.stringTable = stringTable;
 
         // Prevent classes called String from being created
