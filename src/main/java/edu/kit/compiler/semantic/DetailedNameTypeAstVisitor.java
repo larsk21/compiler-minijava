@@ -434,6 +434,10 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             resultType = new DataType(DataTypeClass.Boolean);
             break;
         case IntegerLiteral:
+            if (!valueExpressionNode.getLiteralValue().get().isIntValue()) {
+                semanticError(valueExpressionNode, "%s is not a 32-bit integer value", valueExpressionNode.getLiteralValue().get());
+            }
+
             resultType = new DataType(DataTypeClass.Int);
             break;
         case Null:
