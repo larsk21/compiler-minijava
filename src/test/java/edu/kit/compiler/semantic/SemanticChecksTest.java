@@ -1,7 +1,6 @@
 package edu.kit.compiler.semantic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -14,12 +13,20 @@ import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.Lexer;
+import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.parser.Parser;
 
 public class SemanticChecksTest {
+    private void checkHasError(ProgramNode node, boolean hasError) {
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        SemanticChecks.applyChecks(node, errorHandler);
+        assertEquals(hasError, errorHandler.hasError());
+    }
+
     @Test
     public void testAlwaysReturns() {
-        MethodCheckVisitor visitor = new MethodCheckVisitor(false);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        MethodCheckVisitor visitor = new MethodCheckVisitor(false, errorHandler);
         assertEquals(
             false,
             getMethod("class c { public void m() { } }").getStatementBlock().accept(visitor)
@@ -56,21 +63,21 @@ public class SemanticChecksTest {
 
     @Test
     public void testLValue() {
-        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { (x+y)=z; } }")).isEmpty());
-        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { (x.m())=z; } }")).isEmpty());
-        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { this=z; } }")).isEmpty());
-        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x=y=z; } }")).isEmpty());
-        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x.a.b=z; } }")).isEmpty());
-        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x[0][1]=z; } }")).isEmpty());
+        checkHasError(createAst("class c { public void m() { (x+y)=z; } }"), true);
+        checkHasError(createAst("class c { public void m() { (x.m())=z; } }"), true);
+        checkHasError(createAst("class c { public void m() { this=z; } }"), true);
+        checkHasError(createAst("class c { public void m() { x=y=z; } }"), false);
+        checkHasError(createAst("class c { public void m() { x.a.b=z; } }"), false);
+        checkHasError(createAst("class c { public void m() { x[0][1]=z; } }"), false);
     }
 
     @Test
     public void testExpressionStatement() {
-        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { this; } }")).isEmpty());
-        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { x+y; } }")).isEmpty());
-        assertFalse(SemanticChecks.applyChecks(createAst("class c { public void m() { a.z; } }")).isEmpty());
-        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x=y; } }")).isEmpty());
-        assert(SemanticChecks.applyChecks(createAst("class c { public void m() { x.m(); } }")).isEmpty());
+        checkHasError(createAst("class c { public void m() { this; } }"), true);
+        checkHasError(createAst("class c { public void m() { x+y; } }"), true);
+        checkHasError(createAst("class c { public void m() { a.z; } }"), true);
+        checkHasError(createAst("class c { public void m() { x=y; } }"), false);
+        checkHasError(createAst("class c { public void m() { x.m(); } }"), false);
     }
 
     private MethodNode getMethod(String input) {
