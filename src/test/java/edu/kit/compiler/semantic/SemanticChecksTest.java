@@ -85,6 +85,13 @@ public class SemanticChecksTest {
     }
 
     @Test
+    public void testReturnError() {
+        checkHasError("class c { public int m() { } }" + main, true);
+        checkHasError("class c { public int m() { return 0; } }" + main, false);
+        checkHasError("class c { public void m() { } }" + main, false);
+    }
+
+    @Test
     public void testLValue() {
         checkHasError("class c { public void m() { (x+y)=z; } }" + main, true);
         checkHasError("class c { public void m() { (x.m())=z; } }" + main, true);
