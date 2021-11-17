@@ -1,6 +1,7 @@
 package edu.kit.compiler.semantic;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -24,7 +25,8 @@ import lombok.NonNull;
 
 /**
  * Post Conditions:
- * - If any of the following conditions are not met, `hasError` will be set on the offending ASTObject(s)
+ * - If any of the following conditions are not met, `hasError` will be set
+ *   on the offending ASTObject(s)
  *     - The program does not contain classes with duplicate names
  *     - Classes do not contain fields with duplicate names
  *     - Methods do not have parameters with duplicate names
@@ -32,8 +34,10 @@ import lombok.NonNull;
  *         - which is called main
  *         - which has return type void
  *         - which has exactly on parameter of type String[]
+ * - If a method has duplicate parameters, `hasError` will be set on every
+ *   parameter with the same name, except for the last occurrence
  * - A predefined class String with no fields or methods exists
- * - Non-duplicate classes, fields and methods are registered in the NamespaceMapper
+ * - Non-duplicate classes, fields and methods are registered in the `NamespaceMapper`
  *     - Classes are registered even if they contain duplicate fields
  *     - Methods are registered even if they contain duplicate parameters
  *     - At most one static method is registered
@@ -85,6 +89,10 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
 
     private void semanticError(AstObject object, String format, Object... args) {
         object.setHasError(true);
+        semanticError(format, args);
+    }
+
+    private void semanticError(String format, Object... args) {
         // todo actually log some kind of error
     }
 
@@ -147,11 +155,13 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
 
         @Override
         public Void visit(DynamicMethodNode method) {
-            // ? a HashSet may be a bit heavy-handed for this purpose
-            var parameters = new HashSet<>();
+            var parameters = new HashMap<Integer, AstObject>();
             for (var parameter : method.getParameters()) {
-                if (!parameters.add(parameter.getName())) {
-                    semanticError(parameter, "parameter %s is already defined for method %s",
+                // Set `hasError` on the previous occurrence of the parameter name
+                var previousDefinition = parameters.put(parameter.getName(), parameter);
+                if (previousDefinition != null) {
+                    previousDefinition.setHasError(true);
+                    semanticError("parameter %s is already defined for method %s",
                         stringTable.retrieve(parameter.getName()),
                         stringTable.retrieve(method.getName()));
                 }
