@@ -34,6 +34,7 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
  * object or new array expression
  * - hasError is set in all nodes where an error occured
  * - user defined data types of fields and methods (incl. parameters) are valid
+ * - integer literal values are valid integer values (32-bit signed)
  * 
  * Not checked:
  * - all code paths return a value
