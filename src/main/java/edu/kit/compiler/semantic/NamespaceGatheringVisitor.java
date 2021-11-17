@@ -24,7 +24,15 @@ import lombok.NonNull;
 
 /**
  * Post Conditions:
- *   - 
+ * - The program does not contain classes with duplicate names
+ * - Classes do not contain methods with duplicate names
+ * - Classes do not contain fields with duplicate names
+ * - A predefined class String with no fields or methods exists
+ * - The program contains exactly one static method ...
+ *     ... which is called main
+ *     ... which has return type void
+ *     ... which has exactly one parameter of type String[]
+ * - Methods do not have parameters with duplicate names
  */
 public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
     @Getter
@@ -61,6 +69,11 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
                 classNode.accept(visitor);
             }
         }
+        
+        if (mainMethod.isEmpty()) {
+            semanticError(program, "the program must contain a static method with name main");
+        }
+
         return (Void)null;
     }
 
@@ -113,15 +126,15 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
             } else {
                 staticMethods.put(method.getName(), method);
                 mainMethod = Optional.of(method);
-            }
 
-            if (!method.getType().equals(new DataType(DataTypeClass.Void))) {
-                semanticError(method, "main method must have return type void");
-            } else if (method.getParameters().size() != 1
-                || !method.getParameters().get(0).getType()
-                    .equals(new DataType(new DataType(stringClass.getName())))
-            ) {
-                semanticError(method, "main method must have exactly one parameter of type String[]");
+                if (!method.getType().equals(new DataType(DataTypeClass.Void))) {
+                    semanticError(method, "main method must have return type void");
+                } else if (method.getParameters().size() != 1
+                    || !method.getParameters().get(0).getType()
+                        .equals(new DataType(new DataType(stringClass.getName())))
+                ) {
+                    semanticError(method, "main method must have exactly one parameter of type String[]");
+                }
             }
             return (Void)null;
         }
