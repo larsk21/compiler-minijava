@@ -8,14 +8,27 @@ import java.util.Optional;
 
 public class SemanticException extends CompilerException {
     private Optional<Positionable> position;
+    private boolean quiet;
 
     public SemanticException(String msg, Positionable position) {
         super(msg);
         this.position = Optional.of(position);
+        this.quiet = false;
     }
 
     public SemanticException(SemanticError error) {
         this(error.getMessage(), error);
+        this.quiet = false;
+    }
+
+    private SemanticException() {
+        super("");
+        this.position = Optional.empty();
+        this.quiet = true;
+    }
+
+    public static SemanticException quietException() {
+        return new SemanticException();
     }
 
     @Override
@@ -31,5 +44,10 @@ public class SemanticException extends CompilerException {
     @Override
     public JavaEasyCompiler.Result getResult() {
         return JavaEasyCompiler.Result.SemanticError;
+    }
+
+    @Override
+    public boolean messageIsSurpressed() {
+        return quiet;
     }
 }

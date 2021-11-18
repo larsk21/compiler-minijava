@@ -31,4 +31,11 @@ public abstract class CompilerException extends RuntimeException {
      * Return the result (and therefore exit code) that should result from this exception.
      */
     public abstract Result getResult();
+
+    /**
+     * Whether log output for the exception should be surpressed.
+     */
+    public boolean messageIsSurpressed() {
+        return false;
+    }
 }

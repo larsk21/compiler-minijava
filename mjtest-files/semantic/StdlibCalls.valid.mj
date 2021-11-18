@@ -1,0 +1,8 @@
+class Foo {
+	public static void main(String[] args) {
+		int n = System.in.read();
+		System.out.write(n);
+		System.out.flush();
+		System.out.println(n);
+	}
+}

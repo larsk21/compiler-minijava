@@ -1,0 +1,10 @@
+class c {
+    public int i;
+    public void i(int i) {
+        this.i = i;
+        this.i(this.i);
+        i(this.i);
+    }
+
+    public static void main(String[] args) {}
+}

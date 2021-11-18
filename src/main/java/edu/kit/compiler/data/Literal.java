@@ -47,6 +47,13 @@ public final class Literal {
     }
 
     /**
+     * Returns the same literal, but with a prepended unary minus.
+     */
+    public Literal negated() {
+        return new Literal("-" + value);
+    }
+
+    /**
      * Create a literal using the textual representation of the given integer.
      * 
      * @param value the integer to be represented.

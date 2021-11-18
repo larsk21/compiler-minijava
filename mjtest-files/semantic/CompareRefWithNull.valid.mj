@@ -1,0 +1,21 @@
+class Foo {
+    public static void main(String[] args) {
+        Foo f;
+        if (f == null) {}
+        if (f != null) {}
+        if (null == f) {}
+        if (null != f) {}
+        if (f == f) {}
+        if (f != f) {}
+
+        int i;
+        if (i == i) {}
+        if (0 == i) {}
+        if (i == 0) {}
+
+        boolean b;
+        if (b    == b    ) {}
+        if (true == b    ) {}
+        if (b    == false) {}
+    }
+}

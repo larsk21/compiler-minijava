@@ -1,0 +1,12 @@
+class c {
+    public static void main(String[] args) {
+        d obj = new d();
+        obj.args = 0;
+        obj.args(obj.args);
+    }
+}
+
+class d {
+    public int args;
+    public void args(int args) { }
+}

@@ -1,0 +1,22 @@
+class c {
+    public static void main(String[] args) {
+        c c = new c();
+        d[] array = c.createArray();
+        array[0].createC().createArray();
+    }
+
+    public d[] createArray() {
+        d[] array = new d[3];
+        int i = 0;
+        while (i < 3) {
+            array[i] = new d();
+        }
+        return array;
+    }
+}
+
+class d {
+    public c createC() {
+        return new c();
+    }
+}

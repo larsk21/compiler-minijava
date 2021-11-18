@@ -1,11 +1,9 @@
 package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.logger.Logger;
-import lombok.Getter;
 import lombok.NonNull;
 
 public class ErrorHandler {
-    @Getter
     private boolean hasError;
     @NonNull
     private Logger logger;
@@ -18,5 +16,20 @@ public class ErrorHandler {
     public void receive(SemanticError error) {
         hasError = true;
         logger.error(error.getLine(), error.getColumn(), error.getMessage());
+    }
+
+    public boolean hasError() {
+        return hasError;
+    }
+
+    /**
+     * Throws an exception if any error is present.
+     * 
+     * @throws SemanticException
+     */
+    public void checkForErrors() {
+        if (hasError) {
+            throw SemanticException.quietException();
+        }
     }
 }

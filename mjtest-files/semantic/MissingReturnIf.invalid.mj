@@ -1,0 +1,9 @@
+class c {
+    public static void main(String[] args) {}
+
+    public int m() {
+        if (true) {
+            return 0;
+        }
+    }
+}
