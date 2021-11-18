@@ -100,12 +100,6 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         currentClassNamespace = Optional.empty();
         symboltable.enterScope();
 
-        for (MethodNode methodNode : classNode.getStaticMethods()) {
-            methodNode.accept(this);
-        }
-
-        currentClassNamespace = Optional.of(namespaceMapper.getClassNamespace(classNode));
-
         for (ClassNodeField field : classNode.getFields()) {
             if (!isValidDataType(field.getType())) {
                 if (field.getType().getType() == DataTypeClass.Void) {
@@ -119,6 +113,12 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
                 symboltable.insert(field);
             }
         }
+
+        for (MethodNode methodNode : classNode.getStaticMethods()) {
+            methodNode.accept(this);
+        }
+
+        currentClassNamespace = Optional.of(namespaceMapper.getClassNamespace(classNode));
 
         for (MethodNode methodNode : classNode.getDynamicMethods()) {
             methodNode.accept(this);
@@ -420,6 +420,10 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             semanticError(identifierExpressionNode, "`%s` cannot be resolved", stringTable.retrieve(identifierExpressionNode.getIdentifier()));
         }
         Definition definition = symboltable.lookup(identifierExpressionNode.getIdentifier());
+
+        if (!currentClassNamespace.isPresent() && definition.getKind() == DefinitionKind.Field) {
+            semanticError(identifierExpressionNode, "field access is not allowed in static contexts");
+        }
 
         identifierExpressionNode.setDefinition(definition);
 
