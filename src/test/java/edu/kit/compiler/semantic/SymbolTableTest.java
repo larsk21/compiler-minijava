@@ -1,10 +1,13 @@
 package edu.kit.compiler.semantic;
 
+import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.StatementNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class SymbolTableTest {
 
@@ -39,7 +42,55 @@ public class SymbolTableTest {
     }
 
     @Test
-    public void testLookupComplicated() {
+    public void testLookupInsideScope() {
+        Definition definition = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 0, null, false);
 
+        SymbolTable symbolTable = new SymbolTable();
+        symbolTable.enterScope();
+        symbolTable.insert(definition);
+
+        assertNotNull(symbolTable.lookup(0));
     }
+
+    @Test
+    public void testLookupLeaveScope() {
+        Definition definition = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 0, null, false);
+
+        SymbolTable symbolTable = new SymbolTable();
+        symbolTable.enterScope();
+        symbolTable.insert(definition);
+        symbolTable.leaveScope();
+
+        assertNull(symbolTable.lookup(0));
+    }
+
+    @Test
+    public void testLookupLeaveInnerScope() {
+        Definition definition = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 0, null, false);
+
+        SymbolTable symbolTable = new SymbolTable();
+        symbolTable.enterScope();
+        symbolTable.enterScope();
+        symbolTable.insert(definition);
+        symbolTable.leaveScope();
+
+        assertNull(symbolTable.lookup(0));
+    }
+
+    @Test
+    public void testLookupLeaveInnerScopeTwoVariables() {
+        Definition definition0 = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 0, null, false);
+        Definition definition1 = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 1, null, false);
+
+        SymbolTable symbolTable = new SymbolTable();
+        symbolTable.enterScope();
+        symbolTable.enterScope();
+        symbolTable.insert(definition0);
+        symbolTable.insert(definition1);
+        symbolTable.leaveScope();
+
+        assertNull(symbolTable.lookup(0));
+        assertNull(symbolTable.lookup(1));
+    }
+
 }

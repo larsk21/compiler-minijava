@@ -100,7 +100,7 @@ public class SymbolTable  {
             // check if we leave our defining scope then remove symbol entirely from table
             if (c.previousScope == null) {
                 symbolStringTable.remove(c.sym.name);
-                return;
+                continue;
             }
             c.sym.currentDefinition = c.previousDefinition;
             c.sym.currentScope = c.previousScope;
