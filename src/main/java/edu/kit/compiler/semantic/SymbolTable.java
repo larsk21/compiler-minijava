@@ -57,23 +57,21 @@ public class SymbolTable  {
          * @return The symbol for which this name is mapped otherwise null
          */
         public Symbol find(int name) {
-            return table.get(name);
+            return this.table.get(name);
         }
 
         /**
          * Returns a symbol that has yet to be initialized with current scope and current definition
+         * <p>
+         * insert is only called with new names
+         *
          * @param name The name of the symbol
          * @return If there exists a symbol in the string table return the symbol otherwise create a new symbol
          */
         public Symbol insert(int name) {
-            if(table.get(name) == null) {
-                Symbol s = new Symbol(name);
-                table.put(name, s);
-                return s;
-            }
-            else {
-                return table.get(name);
-            }
+            Symbol s = new Symbol(name);
+            this.table.put(name, s);
+            return s;
         }
 
         /**
@@ -81,7 +79,7 @@ public class SymbolTable  {
          * @param name The name of the symbol mapped by our global String table
          */
         public void remove(int name) {
-            table.remove(name);
+            this.table.remove(name);
         }
 
     }
@@ -91,21 +89,25 @@ public class SymbolTable  {
      * <b>Note that enter scope has to be called once before interacting with the symbol table.</b>
      */
     public void enterScope() {
-        currentScope = new Scope(currentScope, changes.size());
+        this.currentScope = new Scope(this.currentScope, this.changes.size());
     }
+
     public void leaveScope() {
+        if (this.currentScope == null) {
+            return;
+        }
         // revert all previous changes
-        while (changes.size() > currentScope.oldSize) {
-            Change c = changes.pop();
+        while (this.changes.size() > this.currentScope.oldSize) {
+            Change c = this.changes.pop();
             // check if we leave our defining scope then remove symbol entirely from table
             if (c.previousScope == null) {
-                symbolStringTable.remove(c.sym.name);
+                this.symbolStringTable.remove(c.sym.name);
                 continue;
             }
             c.sym.currentDefinition = c.previousDefinition;
             c.sym.currentScope = c.previousScope;
         }
-        currentScope = currentScope.parent;
+        this.currentScope = this.currentScope.parent;
     }
 
     /**
@@ -113,21 +115,20 @@ public class SymbolTable  {
      */
     public Symbol insert(Definition definition) {
         int name = definition.getName();
-        Symbol s = symbolStringTable.find(name);
-        if(isDefinedInCurrentScope(name)) {
+        Symbol s = this.symbolStringTable.find(name);
+        if (this.isDefinedInCurrentScope(name)) {
             // this should never happen, make sure to check in upper level to get line number and column
             throw new SemanticException("symbol is already defined in scope!", definition);
         }
-        if(s == null) {
-            s = symbolStringTable.insert(name);
+        if (s == null) {
+            s = this.symbolStringTable.insert(name);
+            s.currentDefinition = null;
+            s.currentScope = null;
         }
 
-        s.currentDefinition = null;
-        s.currentScope = null;
-
         // last change resets the symbol
-        changes.push(new Change(s, null, null));
-        s.currentScope = currentScope;
+        this.changes.push(new Change(s, s.currentDefinition, s.currentScope));
+        s.currentScope = this.currentScope;
         s.currentDefinition = definition;
 
         return s;
@@ -148,11 +149,10 @@ public class SymbolTable  {
      * @return Definition if there exists a symbol otherwise null
      */
     public Definition lookup(int symbol) {
-        Symbol s = symbolStringTable.find(symbol);
-        if(symbolStringTable.find(symbol) == null) {
+        Symbol s = this.symbolStringTable.find(symbol);
+        if (this.symbolStringTable.find(symbol) == null) {
             return null;
-        }
-        else {
+        } else {
             return s.currentDefinition;
         }
     }
@@ -162,11 +162,11 @@ public class SymbolTable  {
      * @param symbol The symbol to be checked
      */
     public boolean isDefinedInCurrentScope(int symbol) {
-        Symbol s = symbolStringTable.find(symbol);
+        Symbol s = this.symbolStringTable.find(symbol);
         if(s == null) {
             return false;
         }
-        return s.currentScope == currentScope;
+        return s.currentScope == this.currentScope;
     }
 
     /**
@@ -175,7 +175,7 @@ public class SymbolTable  {
      * @param symbol The symbol to be checked
      */
     public boolean isDefined(int symbol) {
-        return symbolStringTable.find(symbol) != null;
+        return this.symbolStringTable.find(symbol) != null;
     }
 
 }
