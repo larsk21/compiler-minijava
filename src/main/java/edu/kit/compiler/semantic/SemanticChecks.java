@@ -200,10 +200,6 @@ class MethodCheckVisitor implements AstVisitor<Boolean> {
     }
 
     public Boolean visit(ThisExpressionNode expr) {
-        if (this.isMain) {
-            errorHandler.receive(new SemanticError(expr,
-                 "this-pointer not allowed in main"));
-        }
         return false;
     }
 
