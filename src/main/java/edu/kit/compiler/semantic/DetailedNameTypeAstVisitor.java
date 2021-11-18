@@ -189,7 +189,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
 
         if (symboltable.isDefined(localVariableDeclarationStatementNode.getName())) {
             Definition definition = symboltable.lookup(localVariableDeclarationStatementNode.getName());
-            if (definition.getKind() != DefinitionKind.Field) {
+            if (definition.getKind() == DefinitionKind.Parameter || definition.getKind() == DefinitionKind.LocalVariable) {
                 semanticError(localVariableDeclarationStatementNode, "variable is already defined in current scope");
             }
         }

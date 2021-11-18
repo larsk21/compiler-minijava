@@ -55,7 +55,7 @@ public class StandardLibrary implements Definition {
 
     @Override
     public DefinitionKind getKind() {
-        return DefinitionKind.Field;
+        return DefinitionKind.GlobalVariable;
     }
 
     /**
