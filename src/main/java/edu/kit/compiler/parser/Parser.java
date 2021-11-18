@@ -1,6 +1,7 @@
 package edu.kit.compiler.parser;
 
 import edu.kit.compiler.data.DataType;
+import edu.kit.compiler.data.Literal;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.data.DataType.DataTypeClass;
@@ -452,10 +453,19 @@ public class Parser {
             }
         case Operator_Minus: {
                 tokenStream.next();
-                ExpressionNode expr = parseUnaryExpression();
-                return new UnaryExpressionNode(
-                    token.getLine(), token.getColumn(), UnaryOperator.ArithmeticNegation, expr, false
-                );
+                if (tokenStream.get().getType() == TokenType.IntegerLiteral) {
+                    // special case: a negated literal is parsed as a single node of the AST
+                    Literal literal = tokenStream.get().getLiteralValue().get().negated();
+                    tokenStream.next();
+                    return new ValueExpressionNode(
+                        token.getLine(), token.getColumn(), ValueExpressionType.IntegerLiteral, literal, false
+                    );
+                } else {
+                    ExpressionNode expr = parseUnaryExpression();
+                    return new UnaryExpressionNode(
+                        token.getLine(), token.getColumn(), UnaryOperator.ArithmeticNegation, expr, false
+                    );
+                }
             }
         default: {
                 return parsePostfixExpression();
