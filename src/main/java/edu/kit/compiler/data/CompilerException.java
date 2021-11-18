@@ -35,7 +35,7 @@ public abstract class CompilerException extends RuntimeException {
     /**
      * Whether log output for the exception should be surpressed.
      */
-    public boolean surpressMessage() {
+    public boolean messageIsSurpressed() {
         return false;
     }
 }

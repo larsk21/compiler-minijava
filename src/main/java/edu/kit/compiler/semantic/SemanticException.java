@@ -46,7 +46,8 @@ public class SemanticException extends CompilerException {
         return JavaEasyCompiler.Result.SemanticError;
     }
 
-    public boolean surpressMessage() {
+    @Override
+    public boolean messageIsSurpressed() {
         return quiet;
     }
 }
