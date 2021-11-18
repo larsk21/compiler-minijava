@@ -205,6 +205,32 @@ public class DetailedNameTypeAstVisitorTest {
     }
 
     @Test
+    public void testAllUsedVariablesReferenceTheirDeclaration_LocalVariableInOwnExpression() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        LocalVariableDeclarationStatementNode definition;
+        IdentifierExpressionNode usage;
+        ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+            new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(
+                    (definition = new LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("varA"), Optional.of(
+                        (usage = new IdentifierExpressionNode(0, 0, stringTable.insert("varA"), false))
+                    ), false))
+                ), false),
+            false)
+        ), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        _class.accept(visitor);
+
+        assertEquals(definition, usage.getDefinition());
+        assertFalse(usage.isHasError());
+    }
+
+    @Test
     public void testNoVariableIsDeclaredTwiceInsideTheSameScope_SameScope() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();

@@ -194,6 +194,8 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             }
         }
 
+        symboltable.insert(localVariableDeclarationStatementNode);
+
         if (localVariableDeclarationStatementNode.getExpression().isPresent()) {
             DataType rightSideType = localVariableDeclarationStatementNode.getExpression().get().accept(this);
 
@@ -205,8 +207,6 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
                 );
             }
         }
-
-        symboltable.insert(localVariableDeclarationStatementNode);
 
         return VoidType;
     }
