@@ -80,14 +80,17 @@ public class DataType {
      * given other data type.
      * 
      * A data type can be assigned to another data type if both data types are
-     * equal or one or both of the data types are Any.
+     * equal or one or both of the data types are Any. The Void data type is
+     * not compatible to any data type (not even itself).
      */
     public boolean isCompatibleTo(DataType other) {
-        if (type == DataTypeClass.Any || other.type == DataTypeClass.Any) {
+        if (type == DataTypeClass.Void || other.type == DataTypeClass.Void) {
+            return false;
+        } else if (type == DataTypeClass.Any || other.type == DataTypeClass.Any) {
             return true;
+        } else {
+            return equals(other);
         }
-
-        return equals(other);
     }
 
     @Override
@@ -136,6 +139,8 @@ public class DataType {
             );
         case Void:
             return "void";
+        case Any:
+            return "<any>";
         default:
             throw new IllegalStateException("unsupported data type");
         }
