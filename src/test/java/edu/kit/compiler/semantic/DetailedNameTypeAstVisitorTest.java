@@ -1,31 +1,33 @@
 package edu.kit.compiler.semantic;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import edu.kit.compiler.data.DataType;
+import edu.kit.compiler.data.DataType.DataTypeClass;
+import edu.kit.compiler.data.Literal;
+import edu.kit.compiler.data.ast_nodes.ClassNode;
+import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
+import edu.kit.compiler.data.ast_nodes.ExpressionNode.IdentifierExpressionNode;
+import edu.kit.compiler.data.ast_nodes.ExpressionNode.ThisExpressionNode;
+import edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionNode;
+import edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionType;
+import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
+import edu.kit.compiler.data.ast_nodes.MethodNode.MethodNodeParameter;
+import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
+import edu.kit.compiler.data.ast_nodes.StatementNode.BlockStatementNode;
+import edu.kit.compiler.data.ast_nodes.StatementNode.ExpressionStatementNode;
+import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationStatementNode;
+import edu.kit.compiler.lexer.StringTable;
+import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Optional;
 
-import org.junit.jupiter.api.Test;
-
-import edu.kit.compiler.data.DataType;
-import edu.kit.compiler.data.Literal;
-import edu.kit.compiler.data.DataType.DataTypeClass;
-import edu.kit.compiler.data.ast_nodes.ClassNode;
-import edu.kit.compiler.data.ast_nodes.ClassNode.*;
-import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
-import edu.kit.compiler.data.ast_nodes.MethodNode.*;
-import edu.kit.compiler.data.ast_nodes.StatementNode.*;
-import edu.kit.compiler.lexer.StringTable;
-import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DetailedNameTypeAstVisitorTest {
 
     private void initializeNamespace(NamespaceMapper namespaceMapper, ClassNode classNode) {
-        ClassNamespace namespace = namespaceMapper.insertSymbolTable(classNode);
+        ClassNamespace namespace = namespaceMapper.insertClassNode(classNode);
 
         for (ClassNodeField field : classNode.getFields()) {
             namespace.getClassSymbols().put(field.getName(), field);
@@ -60,7 +62,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -88,7 +90,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -117,7 +119,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -144,7 +146,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -173,7 +175,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -198,7 +200,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(usage.isHasError());
@@ -222,7 +224,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -246,7 +248,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(localVariable.isHasError());
@@ -270,7 +272,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(localVariable.isHasError());
@@ -293,7 +295,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(localVariable.isHasError());
@@ -316,7 +318,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), Arrays.asList(), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(_this.isHasError());
@@ -341,7 +343,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), Arrays.asList(), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(identifier.isHasError());
@@ -364,7 +366,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), Arrays.asList(), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(integerValue.isHasError());
@@ -387,7 +389,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), Arrays.asList(), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(integerValue.isHasError());
@@ -410,7 +412,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), Arrays.asList(), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(integerValue.isHasError());
@@ -433,7 +435,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), Arrays.asList(), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(integerValue.isHasError());
@@ -456,7 +458,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), Arrays.asList(), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(integerValue.isHasError());
@@ -479,7 +481,7 @@ public class DetailedNameTypeAstVisitorTest {
             false)
         ), Arrays.asList(), false);
 
-        initializeNamespace(namespaceMapper, _class);
+        this.initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(integerValue.isHasError());

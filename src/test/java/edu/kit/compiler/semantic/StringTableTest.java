@@ -1,4 +1,4 @@
-package lexer;
+package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.lexer.StringTable;
 import org.junit.jupiter.api.Assertions;
@@ -11,13 +11,13 @@ public class StringTableTest {
 
     @BeforeEach
     public void setup() {
-        table = new StringTable();
+        this.table = new StringTable();
     }
 
     @Test
     public void testInsertAndGet() {
-        int index = table.insert("muhh");
-        String s = table.retrieve(index);
+        int index = this.table.insert("muhh");
+        String s = this.table.retrieve(index);
 
         Assertions.assertEquals("muhh", s);
     }
