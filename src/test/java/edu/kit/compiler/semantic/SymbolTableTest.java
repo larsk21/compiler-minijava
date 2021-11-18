@@ -13,7 +13,7 @@ public class SymbolTableTest {
 
     @BeforeEach
     public void setup() {
-        this.symbolTable = new SymbolTable();
+        symbolTable = new SymbolTable();
     }
 
     /**
@@ -21,10 +21,10 @@ public class SymbolTableTest {
      */
     @Test
     public void testBasicFunctionality() {
-        SymbolTable.Scope expected = this.symbolTable.getCurrentScope();
-        this.symbolTable.enterScope();
-        this.symbolTable.leaveScope();
-        SymbolTable.Scope actual = this.symbolTable.getCurrentScope();
+        SymbolTable.Scope expected = symbolTable.getCurrentScope();
+        symbolTable.enterScope();
+        symbolTable.leaveScope();
+        SymbolTable.Scope actual = symbolTable.getCurrentScope();
         assertEquals(actual, expected);
     }
 

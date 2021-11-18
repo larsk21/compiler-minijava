@@ -64,7 +64,7 @@ public class DetailedNameTypeAstVisitorSystem {
             ), false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
@@ -95,7 +95,7 @@ public class DetailedNameTypeAstVisitorSystem {
             ), Arrays.asList(), false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
@@ -126,7 +126,7 @@ public class DetailedNameTypeAstVisitorSystem {
             ), false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
@@ -159,7 +159,7 @@ public class DetailedNameTypeAstVisitorSystem {
             ), false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
@@ -192,7 +192,7 @@ public class DetailedNameTypeAstVisitorSystem {
             ), Arrays.asList(), false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
@@ -225,7 +225,7 @@ public class DetailedNameTypeAstVisitorSystem {
             ), false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
@@ -257,7 +257,7 @@ public class DetailedNameTypeAstVisitorSystem {
             ), false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
@@ -289,7 +289,7 @@ public class DetailedNameTypeAstVisitorSystem {
             ), false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 

@@ -50,7 +50,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
         ), Arrays.asList(), Arrays.asList(), false);
         assertFalse(field.isHasError());
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(field.isHasError());
@@ -67,7 +67,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             (field = new ClassNodeField(0, 0, new DataType(stringTable.insert("ClassA")), stringTable.insert("fieldA"), false))
         ), Arrays.asList(), Arrays.asList(), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(field.isHasError());
@@ -84,7 +84,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             (field = new ClassNodeField(0, 0, new DataType(stringTable.insert("ClassB")), stringTable.insert("fieldA"), false))
         ), Arrays.asList(), Arrays.asList(), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(field.isHasError());
@@ -101,7 +101,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             (field = new ClassNodeField(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("fieldA"), false))
         ), Arrays.asList(), Arrays.asList(), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(field.isHasError());
@@ -120,7 +120,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(method.isHasError());
@@ -139,7 +139,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(method.isHasError());
@@ -158,7 +158,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(method.isHasError());
@@ -177,7 +177,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false))
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(method.isHasError());
@@ -198,7 +198,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(parameter.isHasError());
@@ -219,7 +219,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(parameter.isHasError());
@@ -240,7 +240,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(parameter.isHasError());
@@ -261,7 +261,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(parameter.isHasError());
@@ -282,7 +282,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(localVariable.isHasError());
@@ -303,7 +303,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(localVariable.isHasError());
@@ -324,7 +324,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(localVariable.isHasError());
@@ -345,7 +345,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(localVariable.isHasError());
@@ -368,7 +368,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(localVariable.isHasError());
@@ -391,7 +391,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(localVariable.isHasError());
@@ -415,7 +415,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(ifStatement.isHasError());
@@ -439,7 +439,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(ifStatement.isHasError());
@@ -463,7 +463,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(whileStatement.isHasError());
@@ -487,7 +487,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(whileStatement.isHasError());
@@ -508,7 +508,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(returnStatement.isHasError());
@@ -531,7 +531,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(returnStatement.isHasError());
@@ -552,7 +552,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(returnStatement.isHasError());
@@ -575,7 +575,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(returnStatement.isHasError());
@@ -598,7 +598,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(returnStatement.isHasError());
@@ -624,7 +624,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(binaryExpression.isHasError());
@@ -650,7 +650,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(binaryExpression.isHasError());
@@ -676,7 +676,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(binaryExpression.isHasError());
@@ -702,7 +702,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(binaryExpression.isHasError());
@@ -729,7 +729,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(binaryExpression.isHasError());
@@ -756,7 +756,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(binaryExpression.isHasError());
@@ -783,7 +783,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(binaryExpression.isHasError());
@@ -810,7 +810,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(binaryExpression.isHasError());
@@ -835,7 +835,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(unaryExpression.isHasError());
@@ -860,7 +860,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(unaryExpression.isHasError());
@@ -883,7 +883,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(methodInvocation.isHasError());
@@ -906,7 +906,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), Arrays.asList(), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(methodInvocation.isHasError());
@@ -929,7 +929,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(methodInvocation.isHasError());
@@ -957,7 +957,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(methodInvocation.isHasError());
@@ -986,7 +986,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(methodInvocation.isHasError());
@@ -1015,7 +1015,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(methodInvocation.isHasError());
@@ -1041,7 +1041,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(methodInvocation.isHasError());
@@ -1067,7 +1067,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(methodInvocation.isHasError());
@@ -1093,7 +1093,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(methodInvocation.isHasError());
@@ -1118,7 +1118,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(fieldAccess.isHasError());
@@ -1146,7 +1146,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(fieldAccess.isHasError());
@@ -1174,7 +1174,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(fieldAccess.isHasError());
@@ -1201,7 +1201,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(arrayAccess.isHasError());
@@ -1228,7 +1228,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(arrayAccess.isHasError());
@@ -1255,7 +1255,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(arrayAccess.isHasError());
@@ -1278,7 +1278,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(newObject.isHasError());
@@ -1301,7 +1301,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(newObject.isHasError());
@@ -1326,7 +1326,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(newArray.isHasError());
@@ -1351,7 +1351,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(newArray.isHasError());
@@ -1376,7 +1376,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(newArray.isHasError());
@@ -1401,7 +1401,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertDoesNotThrow(() -> _class.accept(visitor));
         assertFalse(newArray.isHasError());
@@ -1426,7 +1426,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         assertThrows(SemanticException.class, () -> _class.accept(visitor));
         assertTrue(newArray.isHasError());

@@ -11,13 +11,13 @@ public class StringTableTest {
 
     @BeforeEach
     public void setup() {
-        this.table = new StringTable();
+        table = new StringTable();
     }
 
     @Test
     public void testInsertAndGet() {
-        int index = this.table.insert("muhh");
-        String s = this.table.retrieve(index);
+        int index = table.insert("muhh");
+        String s = table.retrieve(index);
 
         Assertions.assertEquals("muhh", s);
     }

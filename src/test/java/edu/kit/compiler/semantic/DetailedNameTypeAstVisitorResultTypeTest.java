@@ -60,7 +60,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -89,7 +89,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -118,7 +118,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -145,7 +145,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -170,7 +170,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -195,7 +195,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -225,7 +225,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -254,7 +254,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -283,7 +283,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -309,7 +309,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -335,7 +335,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -360,7 +360,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -385,7 +385,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -410,7 +410,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -435,7 +435,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -460,7 +460,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -487,7 +487,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
@@ -514,7 +514,7 @@ public class DetailedNameTypeAstVisitorResultTypeTest {
             false)
         ), false);
 
-        this.initializeNamespace(namespaceMapper, _class);
+        initializeNamespace(namespaceMapper, _class);
 
         _class.accept(visitor);
 
