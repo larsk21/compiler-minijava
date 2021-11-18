@@ -2,6 +2,7 @@ package edu.kit.compiler.semantic;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -196,6 +197,39 @@ public class DetailedNameTypeAstVisitorSystem {
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
         assertThrows(SemanticException.class, () -> program.accept(visitor));
+    }
+
+    @Test
+    public void testSystemCall_Void() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+
+        ClassNode _class;
+        MethodInvocationExpressionNode methodInvocation;
+        ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
+            (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+                new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                    new BlockStatementNode(0, 0, Arrays.asList(
+                        new ExpressionStatementNode(0, 0,
+                            (methodInvocation = new MethodInvocationExpressionNode(0, 0, Optional.of(
+                                new FieldAccessExpressionNode(0, 0,
+                                    new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
+                                stringTable.insert("out"), false)
+                            ), stringTable.insert("println"), Arrays.asList(
+                                new MethodInvocationExpressionNode(0, 0, Optional.empty(), stringTable.insert("methodA"), Arrays.asList(), false)
+                            ), false)),
+                        false)
+                    ), false),
+                false)
+            ), false))
+        ), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(methodInvocation.isHasError());
     }
 
 }
