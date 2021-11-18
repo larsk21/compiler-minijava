@@ -323,6 +323,31 @@ public class DetailedNameTypeAstVisitorTest {
     }
 
     @Test
+    public void testStaticMethodCannotReferenceFields() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        IdentifierExpressionNode identifier;
+        ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(
+            new ClassNode.ClassNodeField(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("fieldA"), false)
+        ), Arrays.asList(
+            new StaticMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(
+                    new ExpressionStatementNode(0, 0,
+                        (identifier = new IdentifierExpressionNode(0, 0, stringTable.insert("fieldA"), false)),
+                    false)
+                ), false),
+            false)
+        ), Arrays.asList(), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        assertTrue(identifier.isHasError());
+    }
+
+    @Test
     public void testIntegerLiteralValueIsValid_SmallPositive() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
