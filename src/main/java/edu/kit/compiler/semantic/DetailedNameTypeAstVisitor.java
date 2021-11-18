@@ -33,11 +33,11 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
  * object or new array expression
  * - hasError is set in all nodes where an error occured
  * - user defined data types of fields and methods (incl. parameters) are valid
+ * - integer literal values are valid integer values (32-bit signed)
  * 
  * Not checked:
  * - all code paths return a value
  * - left side of an assignment is an l-value
- * - integer literal values are valid integer values (32-bit signed)
  */
 public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
 
@@ -448,6 +448,10 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             resultType = new DataType(DataTypeClass.Boolean);
             break;
         case IntegerLiteral:
+            if (!valueExpressionNode.getLiteralValue().get().isIntValue()) {
+                semanticError(valueExpressionNode, "%s is not a 32-bit integer value", valueExpressionNode.getLiteralValue().get());
+            }
+
             resultType = new DataType(DataTypeClass.Int);
             break;
         case Null:
