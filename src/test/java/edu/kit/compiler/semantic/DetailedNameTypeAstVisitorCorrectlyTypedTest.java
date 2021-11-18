@@ -377,7 +377,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testLocalVariableStatement_InalidExpression() {
+    public void testLocalVariableStatement_InvalidExpression() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -607,7 +607,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testBinaryStatement_ArgumentsMatchOperator() {
+    public void testBinaryExpression_ArgumentsMatchOperator() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -633,7 +633,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testBinaryStatement_LeftArgumentDoesNotMatchOperator() {
+    public void testBinaryExpression_LeftArgumentDoesNotMatchOperator() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -659,7 +659,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testBinaryStatement_RightArgumentDoesNotMatchOperator() {
+    public void testBinaryExpression_RightArgumentDoesNotMatchOperator() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -685,7 +685,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testBinaryStatement_BothArgumentsDoNotMatchOperator() {
+    public void testBinaryExpression_BothArgumentsDoNotMatchOperator() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -711,7 +711,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testBinaryStatement_VariableTypedArgsMatchOperator() {
+    public void testBinaryExpression_VariableTypedArgsMatchOperator() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -738,7 +738,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testBinaryStatement_VariableTypedArgsDoNotMatchOperator() {
+    public void testBinaryExpression_VariableTypedArgsDoNotMatchOperator() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -765,7 +765,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testBinaryStatement_VariableTypedArgsMatchOperatorWithAny() {
+    public void testBinaryExpression_VariableTypedArgsMatchOperatorWithAny() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -792,7 +792,34 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testUnaryStatement_ArgumentMatchesOperator() {
+    public void testBinaryExpression_VariableTypedArgsMatchOperatorWithAnyAndPrimitiveType() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        BinaryExpressionNode binaryExpression;
+        ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+            new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(
+                    new LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("varA"), Optional.empty(), false),
+                    new ExpressionStatementNode(0, 0,
+                        (binaryExpression = new BinaryExpressionNode(0, 0, Operator.BinaryOperator.Assignment,
+                            new IdentifierExpressionNode(0, 0, stringTable.insert("varA"), false),
+                            new ValueExpressionNode(0, 0, ValueExpressionType.Null, false),
+                        false)),
+                    false)
+                ), false),
+            false)
+        ), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        assertTrue(binaryExpression.isHasError());
+    }
+
+    @Test
+    public void testUnaryExpression_ArgumentMatchesOperator() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -817,7 +844,7 @@ public class DetailedNameTypeAstVisitorCorrectlyTypedTest {
     }
 
     @Test
-    public void testUnaryStatement_ArgumentDoesNotMatchOperator() {
+    public void testUnaryExpression_ArgumentDoesNotMatchOperator() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
