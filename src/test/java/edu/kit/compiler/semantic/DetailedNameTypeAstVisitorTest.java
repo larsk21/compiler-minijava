@@ -394,7 +394,53 @@ public class DetailedNameTypeAstVisitorTest {
     }
 
     @Test
-    public void testIntegerLiteralValueIsValid_LargePositive() {
+    public void testIntegerLiteralValueIsValid_LargePositiveValid() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        ValueExpressionNode integerValue;
+        ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
+            new StaticMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(
+                    new ExpressionStatementNode(0, 0,
+                        (integerValue = new ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, new Literal("2147483647"), false)),
+                    false)
+                ), false),
+            false)
+        ), Arrays.asList(), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        assertDoesNotThrow(() -> _class.accept(visitor));
+        assertFalse(integerValue.isHasError());
+    }
+
+    @Test
+    public void testIntegerLiteralValueIsValid_LargeNegativeValid() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        ValueExpressionNode integerValue;
+        ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
+            new StaticMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                new BlockStatementNode(0, 0, Arrays.asList(
+                    new ExpressionStatementNode(0, 0,
+                        (integerValue = new ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, new Literal("-2147483648"), false)),
+                    false)
+                ), false),
+            false)
+        ), Arrays.asList(), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        assertDoesNotThrow(() -> _class.accept(visitor));
+        assertFalse(integerValue.isHasError());
+    }
+
+    @Test
+    public void testIntegerLiteralValueIsValid_LargePositiveInvalid() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
@@ -417,7 +463,7 @@ public class DetailedNameTypeAstVisitorTest {
     }
 
     @Test
-    public void testIntegerLiteralValueIsValid_LargeNegative() {
+    public void testIntegerLiteralValueIsValid_LargeNegativeInvalid() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
