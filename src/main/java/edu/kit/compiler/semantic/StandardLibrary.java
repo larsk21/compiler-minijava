@@ -113,7 +113,7 @@ public class StandardLibrary implements Definition {
                 new DataType(DataType.DataTypeClass.Void),
                 stringTable.insert("write"),
                 Arrays.asList(
-                    new MethodNode.MethodNodeParameter(-1, -1, new DataType(DataTypeClass.Any), stringTable.insert("object"), false)
+                    new MethodNode.MethodNodeParameter(-1, -1, new DataType(DataTypeClass.Int), stringTable.insert("object"), false)
                 ),
                 StandardLibraryMethod.Write
             ),
@@ -121,7 +121,7 @@ public class StandardLibrary implements Definition {
                 new DataType(DataType.DataTypeClass.Void),
                 stringTable.insert("println"),
                 Arrays.asList(
-                    new MethodNode.MethodNodeParameter(-1, -1, new DataType(DataTypeClass.Any), stringTable.insert("object"), false)
+                    new MethodNode.MethodNodeParameter(-1, -1, new DataType(DataTypeClass.Int), stringTable.insert("object"), false)
                 ),
                 StandardLibraryMethod.PrintLn
             ),
