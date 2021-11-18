@@ -49,17 +49,20 @@ public class SemanticChecks {
     public static void applyChecks(ProgramNode ast, ErrorHandler errorHandler, ClassNode stringClass) {
         for (ClassNode currentClass: ast.getClasses()) {
             for (MethodNode method: currentClass.getDynamicMethods()) {
-                MethodCheckVisitor visitor = new MethodCheckVisitor(false, errorHandler, stringClass);
-                boolean returns = method.getStatementBlock().accept(visitor);
-                if (!returns && !method.getType().equals(voidType)) {
-                    errorHandler.receive(new SemanticError(method,
-                        "return statement for all branches required"));
-                }
+                checkMethod(method, errorHandler, stringClass, false);
             }
             for (MethodNode method: currentClass.getStaticMethods()) {
-                MethodCheckVisitor visitor = new MethodCheckVisitor(true, errorHandler, stringClass);
-                method.getStatementBlock().accept(visitor);
+                checkMethod(method, errorHandler, stringClass, true);
             }
+        }
+    }
+
+    private static void checkMethod(MethodNode method, ErrorHandler errorHandler, ClassNode stringClass, boolean isMain) {
+        MethodCheckVisitor visitor = new MethodCheckVisitor(isMain, errorHandler, stringClass);
+        boolean returns = method.getStatementBlock().accept(visitor);
+        if (!returns && !method.getType().equals(voidType)) {
+            errorHandler.receive(new SemanticError(method,
+                "return statement for all branches required"));
         }
     }
 }
