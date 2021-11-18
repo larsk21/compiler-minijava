@@ -1,0 +1,6 @@
+class Foo {
+    public static void main(String[] args) {
+        int hey = System.in.read();
+        System.out.println(System.in.read());
+    }
+}

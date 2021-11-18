@@ -1,0 +1,6 @@
+class Foo {
+	public static void main(String[] args) {
+		int bar = 2147483647;
+		int baz = -2147483648;
+	}
+}

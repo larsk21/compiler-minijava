@@ -1,0 +1,15 @@
+class Foo {
+    public String asField;
+
+    public void foo() {
+        String localVar;
+        localVar = null;
+    }
+
+    public void bar(String asParameter) {
+        asParameter = null;
+        asField = null;
+    }
+
+    public static void main(String[] args) {}
+}

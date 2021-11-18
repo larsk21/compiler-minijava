@@ -1,0 +1,89 @@
+class Sieve {
+	public int isPrimeLength;
+	public boolean[] isPrime;
+
+	public Sieve init(int upTo) {
+		isPrimeLength = upTo;
+		isPrime = new boolean[isPrimeLength];
+
+		/* The number 1 is never a prime */
+		isPrime[0] = false;
+
+		/* All other numbers are prime candidates */
+		int i = 1;
+		while (i < isPrimeLength) {
+			isPrime[i] = true;
+			i = i + 1;
+		}
+
+		return this;
+	}
+
+	public void sieve() {
+		/* We can skip 1 since it's never a prime */
+		int current = 2;
+		while (true) {
+			/* Skip to next prime candidate */
+			while (!isPrime[current-1]) {
+				current = current + 1;
+				if (current > isPrimeLength) {
+					/* We've reached the end of our sieve and are done */
+					return;
+				}
+			}
+
+			/* Un-prime all multiples */
+			int i = 2 * current;
+			while (i <= isPrimeLength) {
+				isPrime[i] = false;
+				i = i + current;
+			}
+		}
+	}
+
+	public int countPrimes() {
+		int amount = 0;
+
+		int i = 0;
+		while (i < isPrimeLength) {
+			if (isPrime[i]) {
+				amount = amount + 1;
+			}
+			i = i + 1;
+		}
+
+		return amount;
+	}
+
+	public int[] collectPrimes() {
+		int[] primes = new int[countPrimes()];
+		int primesFound = 0;
+
+		int i = 0;
+		while (i < isPrimeLength) {
+			if (isPrime[i]) {
+				primes[primesFound] = i + 1;
+				primesFound = primesFound + 1;
+			}
+			i = i + 1;
+		}
+
+		return primes;
+	}
+
+	public static void main(String[] args) {
+		int upTo = System.in.read();
+
+		Sieve sieve = new Sieve().init(upTo);
+		sieve.sieve();
+
+		int amount = sieve.countPrimes();
+		int[] primes = sieve.collectPrimes();
+
+		int i = 0;
+		while (i < amount) {
+			System.out.println(primes[i]);
+			i = i + 1;
+		}
+	}
+}

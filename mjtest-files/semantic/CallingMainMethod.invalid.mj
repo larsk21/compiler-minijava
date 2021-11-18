@@ -1,0 +1,8 @@
+class Foo {
+	public void callMain() {
+		main(null);
+	}
+	public static void main(String[] args) {
+		new Foo().callMain();
+	}
+}
