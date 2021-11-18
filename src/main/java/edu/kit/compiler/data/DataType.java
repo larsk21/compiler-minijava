@@ -79,14 +79,19 @@ public class DataType {
      * Returns whether this data type is compatible (can be asigned) to the
      * given other data type.
      * 
-     * A data type can be assigned to another data type if both data types are
-     * equal or one or both of the data types are Any. The Void data type is
-     * not compatible to any data type (not even itself).
+     * Rules for compatibility:
+     * - Void is not compatible to any data type (not even itself)
+     * - Any is compatible to itself and any reference type
+     * - equal data type are compatible to each other (expect Void)
      */
     public boolean isCompatibleTo(DataType other) {
         if (type == DataTypeClass.Void || other.type == DataTypeClass.Void) {
             return false;
-        } else if (type == DataTypeClass.Any || other.type == DataTypeClass.Any) {
+        } else if (type == DataTypeClass.Any && other.type == DataTypeClass.Any) {
+            return true;
+        } else if (type == DataTypeClass.Any && (other.type == DataTypeClass.UserDefined || other.type == DataTypeClass.Array)) {
+            return true;
+        } else if ((type == DataTypeClass.UserDefined || type == DataTypeClass.Array) && other.type == DataTypeClass.Any) {
             return true;
         } else {
             return equals(other);
