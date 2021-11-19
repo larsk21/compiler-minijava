@@ -453,7 +453,11 @@ public class Parser {
             }
         case Operator_Minus: {
                 tokenStream.next();
-                if (tokenStream.get().getType() == TokenType.IntegerLiteral) {
+                TokenType followToken = tokenStream.get(1).getType();
+                if (tokenStream.get().getType() == TokenType.IntegerLiteral &&
+                        // we need to exclude the case that the literal is part of a postfix expression
+                        !(followToken == Operator_Dot || followToken == Operator_BracketL)
+                    ) {
                     // special case: a negated literal is parsed as a single node of the AST
                     Literal literal = tokenStream.get().getLiteralValue().get().negated();
                     tokenStream.next();
