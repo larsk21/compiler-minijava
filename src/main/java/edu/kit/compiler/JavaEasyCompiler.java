@@ -157,7 +157,7 @@ public class JavaEasyCompiler {
             Reader reader, Logger logger, NamespaceMapper namespaceMapper
         ) throws IOException {
         ErrorHandler errorHandler = new ErrorHandler(logger);
-        Lexer lexer = new Lexer(new ReaderCharIterator(reader));
+        Lexer lexer = new Lexer(reader);
         StringTable stringTable = lexer.getStringTable();
         ProgramNode ast = (new Parser(lexer)).parse();
 

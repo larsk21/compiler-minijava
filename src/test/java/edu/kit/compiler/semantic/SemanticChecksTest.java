@@ -11,7 +11,6 @@ import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
-import edu.kit.compiler.io.ReaderCharIterator;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.parser.Parser;
@@ -21,7 +20,7 @@ public class SemanticChecksTest {
 
     private void checkHasError(String input, boolean hasError, boolean nameTypeCheck) {
         ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
-        Lexer lexer = new Lexer(getIterator(input));
+        Lexer lexer = new Lexer(getReader(input));
         ProgramNode node =  new Parser(lexer).parse();
 
         NamespaceMapper namespaceMapper = new NamespaceMapper();
@@ -135,15 +134,11 @@ public class SemanticChecksTest {
     }
 
     private ProgramNode createAst(String input) {
-        var parser = new Parser(new Lexer(getIterator(input)));
+        var parser = new Parser(new Lexer(getReader(input)));
         return parser.parse();
     }
 
-    private static ReaderCharIterator getIterator(String input) {
-        return getIterator(new StringReader(input));
-    }
-
-    private static ReaderCharIterator getIterator(Reader reader) {
-        return new ReaderCharIterator(reader);
+    private static Reader getReader(String input) {
+        return new StringReader(input);
     }
 }
