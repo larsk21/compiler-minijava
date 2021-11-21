@@ -1,4 +1,4 @@
-package lexer;
+package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.lexer.StringTable;
 import org.junit.jupiter.api.Assertions;

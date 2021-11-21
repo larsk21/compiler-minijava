@@ -1,12 +1,10 @@
 package edu.kit.compiler.semantic;
 
-import java.util.Arrays;
-
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.DataType.DataTypeClass;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
-import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
+import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StandardLibraryMethod;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StandardLibraryMethodNode;
@@ -15,11 +13,13 @@ import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
 import lombok.Getter;
 
+import java.util.Arrays;
+
 /**
  * Represents the standard library "System" of MiniJava. StandardLibrary
  * implements Definition to allow for a global (outside of any class) variable
  * called System with StandardLibrary as its definition.
- * 
+ *
  * The standard library provides:
  * - class @System
  *   - field @System_in in
@@ -39,9 +39,9 @@ public class StandardLibrary implements Definition {
     }
 
     @Getter
-    private int name;
+    private final int name;
     @Getter
-    private DataType type;
+    private final DataType type;
 
     @Override
     public int getLine() {
@@ -76,7 +76,7 @@ public class StandardLibrary implements Definition {
     }
 
     private static void initializeNamespace(NamespaceMapper namespaceMapper, ClassNode classNode) {
-        ClassNamespace namespace = namespaceMapper.insertSymbolTable(classNode);
+        ClassNamespace namespace = namespaceMapper.insertClassNode(classNode);
 
         for (ClassNodeField field : classNode.getFields()) {
             namespace.getClassSymbols().put(field.getName(), field);

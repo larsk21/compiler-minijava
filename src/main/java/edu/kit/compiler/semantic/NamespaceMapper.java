@@ -2,7 +2,6 @@ package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
-
 import lombok.Data;
 
 import java.util.HashMap;
@@ -27,12 +26,13 @@ public class NamespaceMapper {
 
     /**
      * Create a new symbol table once a new class is visited during recursive descent.
+     *
      * @param classNode The classnode for which the new namespaces are created.
      * @return classNamespace The class namespace which contains a reference to the class node and methods/fields
      */
-    public ClassNamespace insertSymbolTable(ClassNode classNode) {
+    public ClassNamespace insertClassNode(ClassNode classNode) {
         int classNodeName = classNode.getName();
-        if(this.symbolTableMap.containsKey(classNodeName)) {
+        if (this.symbolTableMap.containsKey(classNodeName)) {
             // this should never happend make sure to fix all issues where the same class would get added twice
             throw new SemanticException("Cannot insert same class twice into namespace map", classNode);
         }

@@ -1,24 +1,24 @@
 package edu.kit.compiler.semantic;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
 import edu.kit.compiler.data.AstObject;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.DataType.DataTypeClass;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
-import edu.kit.compiler.data.ast_nodes.MethodNode;
-import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
+import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
+import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
 import lombok.Getter;
 import lombok.NonNull;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 // todo we really need a map for static methods?
 
@@ -70,10 +70,10 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
         this.errorHandler = errorHandler;
 
         // Prevent classes called String from being created
-        stringClass = new ClassNode(0, 0, stringTable.insert("String"),
-            Collections.emptyList(), Collections.emptyList(),
-            Collections.emptyList(), false);
-        namespaceMapper.insertSymbolTable(stringClass);
+        this.stringClass = new ClassNode(0, 0, stringTable.insert("String"),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), false);
+        namespaceMapper.insertClassNode(stringClass);
     }
 
     @Override
@@ -81,19 +81,19 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
         for (var classNode: program.getClasses()) {
             if (namespaceMapper.containsClassNamespace(classNode.getName())) {
                 semanticError(classNode, "duplicate class %s",
-                    stringTable.retrieve(classNode.getName()));
+                        stringTable.retrieve(classNode.getName()));
             } else {
-                var namespace = namespaceMapper.insertSymbolTable(classNode);
+                var namespace = namespaceMapper.insertClassNode(classNode);
                 var visitor = new ClassGatherer(namespace);
                 classNode.accept(visitor);
             }
         }
-        
+
         if (mainMethod.isEmpty()) {
             semanticError(program, "the program must contain a static method with name main");
         }
 
-        return (Void)null;
+        return (Void) null;
     }
 
     private void semanticError(AstObject object, String format, Object... args) {
@@ -138,13 +138,13 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
 
             if (hasMethod(method.getName())) {
                 semanticError(method, "method %s is already defined in class %s",
-                    stringTable.retrieve(method.getName()),
-                    stringTable.retrieve(classNode.getName()));
+                        stringTable.retrieve(method.getName()),
+                        stringTable.retrieve(classNode.getName()));
             } else if (mainMethod.isPresent()) {
                 semanticError(method, "only a single static method is allowed in the entire program");
             } else if (!stringTable.retrieve(method.getName()).equals("main")) {
                 semanticError(method, "only a single static method, which must "
-                    + "be called main, is allowed in the entire program");
+                        + "be called main, is allowed in the entire program");
             } else {
                 staticMethods.put(method.getName(), method);
                 mainMethod = Optional.of(method);
@@ -152,7 +152,7 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
                 if (!method.getType().equals(new DataType(DataTypeClass.Void))) {
                     semanticError(method, "main method must have return type void");
                 } else if (method.getParameters().size() != 1
-                    || !method.getParameters().get(0).getType()
+                        || !method.getParameters().get(0).getType()
                         .equals(new DataType(new DataType(stringClass.getName())))
                 ) {
                     semanticError(method, "main method must have exactly one parameter of type String[]");
@@ -167,13 +167,13 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
 
             if (hasMethod(method.getName())) {
                 semanticError(method, "method %s is already defined in class %s",
-                    stringTable.retrieve(method.getName()),
-                    stringTable.retrieve(classNode.getName())
+                        stringTable.retrieve(method.getName()),
+                        stringTable.retrieve(classNode.getName())
                 );
             } else {
                 dynamicMethods.put(method.getName(), method);
             }
-            return (Void)null;
+            return (Void) null;
         }
 
         private void visitMethodNode(MethodNode method) {
@@ -184,9 +184,9 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
                 if (previousDefinition != null) {
                     previousDefinition.setHasError(true);
                     semanticError(parameter.getLine(), parameter.getColumn(),
-                        "parameter %s is already defined for method %s",
-                        stringTable.retrieve(parameter.getName()),
-                        stringTable.retrieve(method.getName()));
+                            "parameter %s is already defined for method %s",
+                            stringTable.retrieve(parameter.getName()),
+                            stringTable.retrieve(method.getName()));
                 }
             }
         }
@@ -196,14 +196,14 @@ public final class NamespaceGatheringVisitor implements AstVisitor<Void> {
                 fields.put(field.getName(), field);
             } else {
                 semanticError(field, "field %s is already defined in class %s",
-                    stringTable.retrieve(field.getName()),
-                    stringTable.retrieve(classNode.getName()));
+                        stringTable.retrieve(field.getName()),
+                        stringTable.retrieve(classNode.getName()));
             }
         }
 
         private boolean hasMethod(int name) {
             return dynamicMethods.containsKey(name)
-                || staticMethods.containsKey(name);
+                    || staticMethods.containsKey(name);
         }
     }
 }

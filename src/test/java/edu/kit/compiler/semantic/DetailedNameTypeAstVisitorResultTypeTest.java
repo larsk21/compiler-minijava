@@ -1,29 +1,31 @@
 package edu.kit.compiler.semantic;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import edu.kit.compiler.data.DataType;
+import edu.kit.compiler.data.DataType.DataTypeClass;
+import edu.kit.compiler.data.Literal;
+import edu.kit.compiler.data.Operator;
+import edu.kit.compiler.data.ast_nodes.ClassNode;
+import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
+import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
+import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
+import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
+import edu.kit.compiler.data.ast_nodes.StatementNode.BlockStatementNode;
+import edu.kit.compiler.data.ast_nodes.StatementNode.ExpressionStatementNode;
+import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationStatementNode;
+import edu.kit.compiler.lexer.StringTable;
+import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Optional;
 
-import org.junit.jupiter.api.Test;
-
-import edu.kit.compiler.data.DataType;
-import edu.kit.compiler.data.Literal;
-import edu.kit.compiler.data.Operator;
-import edu.kit.compiler.data.DataType.DataTypeClass;
-import edu.kit.compiler.data.ast_nodes.ClassNode;
-import edu.kit.compiler.data.ast_nodes.ClassNode.*;
-import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
-import edu.kit.compiler.data.ast_nodes.MethodNode.*;
-import edu.kit.compiler.data.ast_nodes.StatementNode.*;
-import edu.kit.compiler.lexer.StringTable;
-import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class DetailedNameTypeAstVisitorResultTypeTest {
 
     private void initializeNamespace(NamespaceMapper namespaceMapper, ClassNode classNode) {
-        ClassNamespace namespace = namespaceMapper.insertSymbolTable(classNode);
+        ClassNamespace namespace = namespaceMapper.insertClassNode(classNode);
 
         for (ClassNodeField field : classNode.getFields()) {
             namespace.getClassSymbols().put(field.getName(), field);
