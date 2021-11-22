@@ -15,12 +15,11 @@ popd > /dev/null
 # change directory to libfirm submodule
 pushd "${SCRIPT_PATH}/libfirm" > /dev/null
 
-# by default firm is built using debug variant. Other variants
-# can be passed as parameter to this script (e.g. optimize)
-FIRM_VARIANT="${1:-debug}"
+# use debug variant to build libfirm
+FIRM_VARIANT="debug"
 
 # build libfirm using the provided makefile
-make variant="$FIRM_VARIANT"
+make -j variant="$FIRM_VARIANT"
 
 popd > /dev/null
 
