@@ -240,7 +240,7 @@ public final class Lexer implements Iterator<Token> {
             reader.next();
             reader.next();
 
-            while (reader.peek() != '*' || reader.getNext() != '/') {
+            while (reader.peek() != '*' || reader.previewNext() != '/') {
                 if (reader.peek() == '/' && reader.getNext() == '*') {
                     logger.warn(line, column, "found opening comment inside of comment");
                 } else if (Character.isEndOfStream(reader.peek())) {
@@ -249,6 +249,8 @@ public final class Lexer implements Iterator<Token> {
                     reader.next();
                 }
             }
+
+            reader.next();
             reader.next();
             return true;
         } else {
