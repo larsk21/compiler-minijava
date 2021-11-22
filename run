@@ -13,7 +13,10 @@ SCRIPT_PATH="`pwd`";
 popd > /dev/null
 
 # find the compiler executable (EXE_PATH)
-EXE_PATH=$(find $SCRIPT_PATH/target/java-compiler-*-with-dependencies.jar) || exit $?
+EXE_PATH=$(find "${SCRIPT_PATH}"/target/java-compiler-*-with-dependencies.jar) || exit $?
+
+# ensure that jFirm can find libfirm library
+export LD_LIBRARY_PATH="${SCRIPT_PATH}/lib/"
 
 # enable colored logging if stderr is a terminal
 if [[ -t 2 ]]; then

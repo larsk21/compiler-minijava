@@ -12,6 +12,23 @@ cd "`dirname "${SCRIPT_PATH}"`" > /dev/null
 SCRIPT_PATH="`pwd`";
 popd > /dev/null
 
+# change directory to libfirm submodule
+pushd "${SCRIPT_PATH}/libfirm" > /dev/null
+
+# by default firm is built using debug variant. Other variants
+# can be passed as parameter to this script (e.g. optimize)
+FIRM_VARIANT="${1:-debug}"
+
+# build libfirm using the provided makefile
+make variant="$FIRM_VARIANT"
+
+popd > /dev/null
+
+# copy library, so the run script can find it
+mkdir -p lib
+cp "${SCRIPT_PATH}/libfirm/build/${FIRM_VARIANT}/libfirm.so" "${SCRIPT_PATH}/lib"
+
+
 # change the working directory to the project
 # (mvn -f <path> is not as flexible)
 pushd "$SCRIPT_PATH" > /dev/null
