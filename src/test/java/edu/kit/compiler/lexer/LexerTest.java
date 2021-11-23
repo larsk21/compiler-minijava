@@ -208,6 +208,12 @@ public class LexerTest {
     }
 
     @Test
+    public void testWeirdComment() {
+        var lexer = new Lexer(getReader("/***/"));
+        assertEquals(EndOfStream, lexer.getNextToken().getType());
+    }
+
+    @Test
     public void testWebsiteExample() {
         var stream = classLoader.getResourceAsStream("edu/kit/compiler/lexer/example.java");
         var lexer = new Lexer(new BufferedReader(new InputStreamReader(stream)));
