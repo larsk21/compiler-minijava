@@ -20,13 +20,13 @@ FIRM_VARIANT="debug"
 
 # build libfirm using the provided makefile
 make -j variant="$FIRM_VARIANT"
+make_exit=$?
 
 popd > /dev/null
 
 # copy library, so the run script can find it
-mkdir -p lib
-cp "${SCRIPT_PATH}/libfirm/build/${FIRM_VARIANT}/libfirm.so" "${SCRIPT_PATH}/lib"
-
+mkdir -p "${SCRIPT_PATH}/lib" > /dev/null
+cp "${SCRIPT_PATH}/libfirm/build/${FIRM_VARIANT}/libfirm.so" "${SCRIPT_PATH}/lib/"
 
 # change the working directory to the project
 # (mvn -f <path> is not as flexible)
@@ -34,8 +34,9 @@ pushd "$SCRIPT_PATH" > /dev/null
 
 # build the executable with Maven
 mvn package "$@"
-return_code=$?
+mvn_exit=$?
 
 # change the working directory back to where we came from
 popd > /dev/null
-exit $return_code
+
+! (( make_exit || mvn_exit ))
