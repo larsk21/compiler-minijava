@@ -2,7 +2,7 @@ package edu.kit.compiler.data;
 
 import java.util.Optional;
 
-import edu.kit.compiler.JavaEasyCompiler.Result;
+import edu.kit.compiler.Result;
 
 /**
  * Base for all custom exceptions thrown in any phase of the compiler.

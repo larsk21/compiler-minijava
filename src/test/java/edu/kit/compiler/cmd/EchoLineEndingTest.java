@@ -1,7 +1,7 @@
 package edu.kit.compiler.cmd;
 
 import edu.kit.compiler.JavaEasyCompiler;
-import edu.kit.compiler.JavaEasyCompiler.Result;
+import edu.kit.compiler.Result;
 import edu.kit.compiler.logger.Logger;
 
 import org.junit.jupiter.api.Test;
