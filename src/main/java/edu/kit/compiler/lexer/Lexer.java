@@ -234,15 +234,16 @@ public final class Lexer implements Iterator<Token> {
      * @return true if a comment was skipped, false otherwise.
      */
     private boolean skipComment() {
-        if (reader.peek() == '/' && reader.previewNext() == '*') {
+        if (Character.isCommentStart(reader.peek(), reader.previewNext())) {
             int line = reader.getLine();
             int column = reader.getColumn();
             reader.next();
             reader.next();
 
-            while (reader.peek() != '*' || reader.previewNext() != '/') {
-                if (reader.peek() == '/' && reader.getNext() == '*') {
-                    logger.warn(line, column, "found opening comment inside of comment");
+            while (!Character.isCommentEnd(reader.peek(), reader.previewNext())) {
+                if (Character.isCommentStart(reader.peek(), reader.previewNext())) {
+                    logger.warn(reader.getLine(), reader.getColumn(),
+                        "found opening comment inside of comment");
                 } else if (Character.isEndOfStream(reader.peek())) {
                     throw new LexException(line, column, "unclosed comment");
                 } else {
