@@ -1,13 +1,14 @@
 package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.JavaEasyCompiler;
+import edu.kit.compiler.Result;
 import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Positionable;
 
 import java.util.Optional;
 
 public class SemanticException extends CompilerException {
-    private Optional<Positionable> position;
+    private final Optional<Positionable> position;
     private boolean quiet;
 
     public SemanticException(String msg, Positionable position) {
@@ -42,8 +43,8 @@ public class SemanticException extends CompilerException {
     }
 
     @Override
-    public JavaEasyCompiler.Result getResult() {
-        return JavaEasyCompiler.Result.SemanticError;
+    public Result getResult() {
+        return Result.SemanticError;
     }
 
     @Override

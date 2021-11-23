@@ -3,7 +3,7 @@ package edu.kit.compiler.data;
 import java.io.IOException;
 import java.util.Optional;
 
-import edu.kit.compiler.JavaEasyCompiler.Result;
+import edu.kit.compiler.Result;
 
 public class FileInputException extends CompilerException {
     public FileInputException(IOException exception) {
