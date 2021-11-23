@@ -93,7 +93,6 @@ public class SymbolTableTest {
     @Test
     public void testLookupDefinitionInLowerScope() {
         Definition definition0 = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 0, null, false);
-        SymbolTable table = new SymbolTable();
         this.symbolTable.enterScope();
         this.symbolTable.insert(definition0);
         for (int i = 0; i < 10; i++) {
@@ -109,7 +108,6 @@ public class SymbolTableTest {
         Definition definition0 = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 1, null, false);
         Definition definition1 = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 1, null, false);
 
-        SymbolTable table = new SymbolTable();
         this.symbolTable.enterScope();
         this.symbolTable.insert(definition0);
         for (int i = 0; i < 10; i++) {
@@ -134,7 +132,6 @@ public class SymbolTableTest {
         Definition definition0 = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 1, null, false);
         Definition definition1 = new StatementNode.LocalVariableDeclarationStatementNode(0, 0, null, 1, null, false);
 
-        SymbolTable table = new SymbolTable();
         this.symbolTable.enterScope();
         this.symbolTable.insert(definition0);
         for (int i = 0; i < 10; i++) {
