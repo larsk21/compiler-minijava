@@ -51,24 +51,6 @@ public class Character {
     }
 
     /**
-     * A comment in MiniJava is opened by the characters '/*'.
-     * 
-     * @return true if c1 and c2 are the start of a comment.
-     */
-    public static boolean isCommentStart(int c1, int c2) {
-        return c1 == '/' && c2 == '*';
-    }
-
-    /**
-     * A comment in MiniJava is opened by the characters '*\/'.
-     *
-     * @return true if c1 and c2 are the end of a comment.
-     */
-    public static boolean isCommentEnd(int c1, int c2) {
-        return c1 == '*' && c2 == '/';
-    }
-
-    /**
      * @return true if c is smaller than zero.
      */
     public static boolean isEndOfStream(int c) {
