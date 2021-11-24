@@ -4,11 +4,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.DataType.DataTypeClass;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
+import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.MethodNodeParameter;
+import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
@@ -35,7 +38,8 @@ public final class TypeMapper {
     private final TypeFactory typeFactory;
 
     /**
-     * Set up the type system for a MiniJava program.
+     * Set up the type system for a MiniJava program. Registers a `ClassEntry`
+     * for each class in the namespace mapper.
      * 
      * @param namespaceMapper the class namespaces of the program.
      * @param stringTable the `stringTable` used for the program.
@@ -51,7 +55,7 @@ public final class TypeMapper {
     }
 
     /**
-     * Returns the corresponding Firm type for the given data type.
+     * Returns the corresponding Firm type for the given data type. 
      * 
      * @param type
      * @return
@@ -83,7 +87,8 @@ public final class TypeMapper {
             constructFields(namespace);
 
             // Create and register entity for each dynamic method of the class
-            constructMethods(namespace);
+            constructMethods(namespace.getClassNodeRef(), namespace.getDynamicMethods());
+            constructMethods(namespace.getClassNodeRef(), namespace.getStaticMethods());
 
             // ? maybe do later (after possible optimizations)
             type.layoutFields();
@@ -119,9 +124,10 @@ public final class TypeMapper {
             }
         }
 
-        private void constructMethods(ClassNamespace namespace) {
-            var classNode = namespace.getClassNodeRef();
-            for (var methodNode : namespace.getDynamicMethods().values()) {
+        private <T extends MethodNode> void constructMethods(
+            ClassNode classNode, Map<Integer, T> methodNodes
+        ) {
+            for (var methodNode : methodNodes.values()) {
                 var methodName = stringTable.retrieve(methodNode.getName());
                 var methodType = typeFactory.getMethodType(classNode, methodNode);
 
@@ -129,9 +135,10 @@ public final class TypeMapper {
                 methodEntity.setVisibility(ir_visibility.ir_visibility_local);
                 methods.put(methodNode.getName(), methodEntity);
             }
+
         }
     }
-
+    
     private final class TypeFactory {
         private final Map<Integer, ClassType> userTypes = new HashMap<>();
 
@@ -142,11 +149,22 @@ public final class TypeMapper {
             return getUserType(new DataType(class_.getName()));
         }
 
-        private MethodType getMethodType(ClassNode classNode, DynamicMethodNode method) {
-            var parameterTypes = getParameterTypes(classNode, method.getParameters());
+        private MethodType getMethodType(ClassNode classNode, MethodNode method) {
+            var parameterTypes = method.accept(new AstVisitor<Type[]>() {
+                @Override
+                public Type[] visit(DynamicMethodNode method_) {
+                    return getParameterTypes(classNode, method.getParameters());
+                }
+
+                @Override
+                public Type[] visit(StaticMethodNode method_) {
+                    return getParameterTypes(method_.getParameters());
+                }
+            });
             var returnType = getReturnType(method.getType());
             return new MethodType(parameterTypes, returnType);
         }
+
 
         private Type getDataType(DataType type) {
             return switch (type.getType()) {
@@ -190,6 +208,15 @@ public final class TypeMapper {
             parameterTypes[0] = new PointerType(getClassType(class_));
             for (int i = 0; i < parameters.size(); i++) {
                 parameterTypes[i+1] = getDataType(parameters.get(i).getType());
+            }
+
+            return parameterTypes;
+        }
+
+        private Type[] getParameterTypes(List<MethodNodeParameter> parameters) {
+            var parameterTypes = new Type[parameters.size()];
+            for (int i = 0; i < parameters.size(); i++) {
+                parameterTypes[i] = getDataType(parameters.get(i).getType());
             }
 
             return parameterTypes;
