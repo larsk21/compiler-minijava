@@ -11,7 +11,7 @@ import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class LineEndingTestForEcho {
+public class EchoLineEndingTest {
 
     private ClassLoader classLoader = getClass().getClassLoader();
 
