@@ -14,6 +14,9 @@ import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
+import edu.kit.compiler.transform.TypeMapper;
+import firm.Dump;
+import firm.Firm;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
 
@@ -126,8 +129,44 @@ public class JavaEasyCompiler {
      */
     private static Result check(String filePath, Logger logger) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            Lexer lexer = new Lexer(reader);
             NamespaceMapper namespaceMapper = new NamespaceMapper();
-            createAttributedAst(reader, logger, namespaceMapper);
+            createAttributedAst(reader, logger, lexer, namespaceMapper);
+
+            return Result.Ok;
+        } catch (CompilerException e) {
+            logger.withName(e.getCompilerStage().orElse(null)).exception(e);
+
+            return e.getResult();
+        } catch (IOException e) {
+            logger.error("unable to read file: %s", e.getMessage());
+
+            return Result.FileInputError;
+        }
+    }
+
+    /**
+     * Parses the file and performs semantic analysis.
+     *
+     * @param filePath Path of the file (absolute or relative)
+     * @param logger the logger
+     * @return Ok or an according error
+     */
+    private static Result compileFirm(String filePath, Logger logger) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            Lexer lexer = new Lexer(reader);
+            StringTable stringTable = lexer.getStringTable();
+            NamespaceMapper namespaceMapper = new NamespaceMapper();
+            createAttributedAst(reader, logger, lexer, namespaceMapper);
+
+            Firm.init("x86_64-linux-gnu", new String[]{ "pic=1" });
+            logger.info("Initialized libFirm Version: %s.%s\n",
+                Firm.getMinorVersion(), Firm.getMajorVersion()
+            );
+
+            // todo this is debug code, remember to remove
+            var _typeMapper = new TypeMapper(namespaceMapper, stringTable);
+            Dump.dumpTypeGraph("type-system.vcg");
 
             return Result.Ok;
         } catch (CompilerException e) {
@@ -154,10 +193,9 @@ public class JavaEasyCompiler {
      * @throws IOException
      */
     private static ProgramNode createAttributedAst(
-            Reader reader, Logger logger, NamespaceMapper namespaceMapper
+            Reader reader, Logger logger, Lexer lexer, NamespaceMapper namespaceMapper
         ) throws IOException {
         ErrorHandler errorHandler = new ErrorHandler(logger);
-        Lexer lexer = new Lexer(reader);
         StringTable stringTable = lexer.getStringTable();
         ProgramNode ast = (new Parser(lexer)).parse();
 
@@ -189,6 +227,7 @@ public class JavaEasyCompiler {
         runOptions.addOption(new Option("p", "parsetest", true, "try to parse the file contents"));
         runOptions.addOption(new Option("a", "print-ast", true, "try to parse the file contents and output the AST"));
         runOptions.addOption(new Option("c", "check", true, "try to parse the file contents and perform semantic analysis"));
+        runOptions.addOption(new Option("f", "compile-firm", true, "transform the file to Firm IR and compile it using the Firm backend"));
         options.addOptionGroup(runOptions);
 
         var verbosityOptions = new OptionGroup();
@@ -242,6 +281,10 @@ public class JavaEasyCompiler {
             String filePath = cmd.getOptionValue("c");
 
             result = check(filePath, logger);
+        } else if (cmd.hasOption("f")) {
+            String filePath = cmd.getOptionValue("f");
+
+            result = compileFirm(filePath, logger);
         } else {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 
