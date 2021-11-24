@@ -22,7 +22,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class DetailedNameTypeAstVisitorSystem {
+public class DetailedNameTypeAstVisitorSystemTest {
 
     private void initializeNamespace(NamespaceMapper namespaceMapper, ClassNode classNode) {
         ClassNamespace namespace = namespaceMapper.insertClassNode(classNode);
