@@ -1,5 +1,6 @@
 package edu.kit.compiler.transform;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -204,6 +205,7 @@ public final class TypeMapper {
 
         private MethodType getMethodType(MethodNode method, boolean is_static) {
             var parameterTypes = getParameterTypes(method.getParameters(), is_static);
+            System.out.println(stringTable.retrieve(method.getName()) + " " + Arrays.toString(parameterTypes));
             var returnType = getReturnType(method.getType());
             return new MethodType(parameterTypes, returnType);
         }
@@ -219,11 +221,11 @@ public final class TypeMapper {
             var offset = is_static ? 0 : 1;
             var parameterTypes = new Type[parameters.size() + offset];
 
-            if (is_static) {
+            if (!is_static) {
                 parameterTypes[0] = new PointerType(classType);
             }
 
-            for (int i = offset; i < parameters.size(); i++) {
+            for (int i = 0; i < parameters.size(); i++) {
                 parameterTypes[i + offset] = getDataType(parameters.get(i).getType());
             }
 
