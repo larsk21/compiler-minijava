@@ -2,136 +2,118 @@ package edu.kit.compiler.semantic;
 
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.DataType.DataTypeClass;
-import edu.kit.compiler.data.ast_nodes.ClassNode;
-import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
-import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StandardLibraryMethod;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StandardLibraryMethodNode;
-import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
 import edu.kit.compiler.lexer.StringTable;
-import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
+
 import lombok.Getter;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Represents the standard library "System" of MiniJava. StandardLibrary
- * implements Definition to allow for a global (outside of any class) variable
- * called System with StandardLibrary as its definition.
- *
- * The standard library provides:
- * - class @System
- *   - field @System_in in
- *   - field @System_out out
- * - class @System_in
- *   - method read
- * - class @System_out
- *   - method write
- *   - method println
- *   - method flush
+ * Represents the standard library "System" of MiniJava.
+ * 
+ * This class provides names and method definitions for the supported
+ * standard library methods:
+ * - System.in.read
+ * - System.out.write
+ * - System.out.println
+ * - System.out.flush
  */
-public class StandardLibrary implements Definition {
-
-    private StandardLibrary(int name, DataType type) {
-        this.name = name;
-        this.type = type;
-    }
-
-    @Getter
-    private final int name;
-    @Getter
-    private final DataType type;
-
-    @Override
-    public int getLine() {
-        return -1;
-    }
-
-    @Override
-    public int getColumn() {
-        return -1;
-    }
-
-    @Override
-    public DefinitionKind getKind() {
-        return DefinitionKind.GlobalVariable;
-    }
+public class StandardLibrary {
 
     /**
-     * Initialize the standard library. If there is no other type called
-     * "System", this method adds the class namespaces "@System", "@System_in"
-     * and "@System_out". In this case it also opens a new scope with the
-     * global variable "System" of type "@System".
+     * Create the MiniJava standard library.
      */
-    public static void initialize(NamespaceMapper namespaceMapper, StringTable stringTable, SymbolTable symbolTable) {
-        if (!namespaceMapper.containsClassNamespace(stringTable.insert("System"))) {
-            initializeNamespace(namespaceMapper, StandardLibrary.getSystemClass(stringTable));
-            initializeNamespace(namespaceMapper, StandardLibrary.getSystemInClass(stringTable));
-            initializeNamespace(namespaceMapper, StandardLibrary.getSystemOutClass(stringTable));
+    public static StandardLibrary create(StringTable stringTable) {
+        StandardLibrary standardLibrary = new StandardLibrary(
+            stringTable.insert("System"),
+            stringTable.insert("in"),
+            stringTable.insert("out")
+        );
 
-            symbolTable.enterScope();
-            symbolTable.insert(new StandardLibrary(stringTable.insert("System"), new DataType(stringTable.insert("@System"))));
-        }
-    }
-
-    private static void initializeNamespace(NamespaceMapper namespaceMapper, ClassNode classNode) {
-        ClassNamespace namespace = namespaceMapper.insertClassNode(classNode);
-
-        for (ClassNodeField field : classNode.getFields()) {
-            namespace.getClassSymbols().put(field.getName(), field);
-        }
-        for (DynamicMethodNode method : classNode.getDynamicMethods()) {
-            namespace.getDynamicMethods().put(method.getName(), method);
-        }
-        for (StaticMethodNode method : classNode.getStaticMethods()) {
-            namespace.getStaticMethods().put(method.getName(), method);
-        }
-    }
-
-    private static ClassNode getSystemClass(StringTable stringTable) {
-        return new ClassNode(-1, -1, stringTable.insert("@System"), Arrays.asList(
-            new ClassNode.ClassNodeField(-1, -1, new DataType(stringTable.insert("@System_in")), stringTable.insert("in"), false),
-            new ClassNode.ClassNodeField(-1, -1, new DataType(stringTable.insert("@System_out")), stringTable.insert("out"), false)
-        ), Arrays.asList(), Arrays.asList(), false);
-    }
-
-    private static ClassNode getSystemInClass(StringTable stringTable) {
-        return new ClassNode(-1, -1, stringTable.insert("@System_in"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+        standardLibrary.systemInMethods.put(
+            stringTable.insert("read"),
             new StandardLibraryMethodNode(
                 new DataType(DataType.DataTypeClass.Int),
                 stringTable.insert("read"),
                 Arrays.asList(),
                 StandardLibraryMethod.Read
             )
-        ), false);
-    }
+        );
 
-    private static ClassNode getSystemOutClass(StringTable stringTable) {
-        return new ClassNode(-1, -1, stringTable.insert("@System_out"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+        standardLibrary.systemOutMethods.put(
+            stringTable.insert("write"),
             new StandardLibraryMethodNode(
                 new DataType(DataType.DataTypeClass.Void),
                 stringTable.insert("write"),
                 Arrays.asList(
-                    new MethodNode.MethodNodeParameter(-1, -1, new DataType(DataTypeClass.Int), stringTable.insert("object"), false)
+                    new MethodNode.MethodNodeParameter(-1, -1, new DataType(DataTypeClass.Int), stringTable.insert("value"), false)
                 ),
                 StandardLibraryMethod.Write
-            ),
+            )
+        );
+        standardLibrary.systemOutMethods.put(
+            stringTable.insert("println"),
             new StandardLibraryMethodNode(
                 new DataType(DataType.DataTypeClass.Void),
                 stringTable.insert("println"),
                 Arrays.asList(
-                    new MethodNode.MethodNodeParameter(-1, -1, new DataType(DataTypeClass.Int), stringTable.insert("object"), false)
+                    new MethodNode.MethodNodeParameter(-1, -1, new DataType(DataTypeClass.Int), stringTable.insert("value"), false)
                 ),
                 StandardLibraryMethod.PrintLn
-            ),
+            )
+        );
+        standardLibrary.systemOutMethods.put(
+            stringTable.insert("flush"),
             new StandardLibraryMethodNode(
                 new DataType(DataType.DataTypeClass.Void),
                 stringTable.insert("flush"),
                 Arrays.asList(),
                 StandardLibraryMethod.Flush
             )
-        ), false);
+        );
+
+        return standardLibrary;
     }
+
+    private StandardLibrary(int systemName, int systemInName, int systemOutName) {
+        this.systemName = systemName;
+        this.systemInName = systemInName;
+        this.systemOutName = systemOutName;
+
+        this.systemInMethods = new HashMap<>();
+        this.systemOutMethods = new HashMap<>();
+    }
+
+    /**
+     * Get the name "System".
+     */
+    @Getter
+    private int systemName;
+    /**
+     * Get the name "in".
+     */
+    @Getter
+    private int systemInName;
+    /**
+     * Get the name "out".
+     */
+    @Getter
+    private int systemOutName;
+
+    /**
+     * Get the supported methods of `System.in`.
+     */
+    @Getter
+    private Map<Integer, MethodNode> systemInMethods;
+    /**
+     * Get the supported methods of `System.out`.
+     */
+    @Getter
+    private Map<Integer, MethodNode> systemOutMethods;
 
 }
