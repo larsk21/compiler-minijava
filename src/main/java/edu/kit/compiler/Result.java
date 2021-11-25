@@ -10,7 +10,8 @@ public enum Result {
     LexError(1),
     ParseError(1),
     SemanticError(1),
-    StandardLibraryError(1);
+    StandardLibraryError(1),
+    TransformError(1);
 
     /**
      * @param code The exit code associated with this Result
