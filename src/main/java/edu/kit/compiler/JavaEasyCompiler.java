@@ -25,6 +25,7 @@ import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
+import edu.kit.compiler.transform.FirmGraphFactory;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
@@ -181,6 +182,9 @@ public class JavaEasyCompiler {
             );
 
             TypeMapper typeMapper = new TypeMapper(namespaceMapper, stringTable);
+            FirmGraphFactory firmGraphFactory = new FirmGraphFactory(namespaceMapper, stringTable);
+            firmGraphFactory.createGraphFromAst();
+            firmGraphFactory.dumpGraph();
 
             // todo insert Firm graph generation here
 
@@ -224,7 +228,7 @@ public class JavaEasyCompiler {
      * @throws CompilerException
      * @throws IOException
      */
-    private static ProgramNode createAttributedAst(
+    public static ProgramNode createAttributedAst(
             Reader reader, Logger logger, Lexer lexer, NamespaceMapper namespaceMapper
         ) throws IOException {
         ErrorHandler errorHandler = new ErrorHandler(logger);
