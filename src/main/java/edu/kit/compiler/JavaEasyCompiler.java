@@ -14,6 +14,7 @@ import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
+import edu.kit.compiler.transform.Lower;
 import edu.kit.compiler.transform.TypeMapper;
 import firm.Dump;
 import firm.Firm;
@@ -165,7 +166,8 @@ public class JavaEasyCompiler {
             );
 
             // todo this is debug code, remember to remove
-            var _typeMapper = new TypeMapper(namespaceMapper, stringTable);
+            var typeMapper = new TypeMapper(namespaceMapper, stringTable);
+            Lower.lowerMethods(typeMapper);
             Dump.dumpTypeGraph("type-system.vcg");
 
             return Result.Ok;

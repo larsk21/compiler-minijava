@@ -1,5 +1,7 @@
 package edu.kit.compiler.transform;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,6 +108,15 @@ public final class TypeMapper {
     }
 
     /**
+     * Returns an immutable view of all classes registered in the type mapper.
+     * 
+     * @return an unmodifiable collection of all `ClassEntry`s
+     */
+    public Collection<ClassEntry> getClassEntries() {
+        return Collections.unmodifiableCollection(classes.values());
+    }
+
+    /**
      * Represents all types and entities related to a single class in a MiniJava
      * program. This includes the type of the class itself, as well as an entity
      * for each field and method of the class. Types of fields and methods can
@@ -143,6 +154,15 @@ public final class TypeMapper {
         }
 
         /**
+         * Returns an immutable view of all field entities of this class.
+         * 
+         * @return an unmodifiable collection of all field `Entity`s
+         */
+        public Collection<Entity> getFields() {
+            return Collections.unmodifiableCollection(fields.values());
+        }
+
+        /**
          * Returns the Firm entity representing the method with the given name.
          * 
          * @param methodId the name of the method whose entity is to be returned
@@ -160,6 +180,15 @@ public final class TypeMapper {
          */
         public Entity getMethod(MethodNode method) {
             return getMethod(method.getName());
+        }
+
+        /**
+         * Returns an immutable view of all method entities of this class.
+         * 
+         * @return an unmodifiable collection of all method `Entity`s
+         */
+        public Collection<Entity> getMethods() {
+            return Collections.unmodifiableCollection(methods.values());
         }
 
         /**
@@ -217,7 +246,6 @@ public final class TypeMapper {
          * user defined types if necessary.
          */
         private Type initDataType(DataType type) {
-
             return switch (type.getType()) {
                 case Array -> {
                     var innerType = initDataType(type.getInnerType().get());
