@@ -25,8 +25,9 @@ make_exit=$?
 popd > /dev/null
 
 # copy library, so the run script can find it
-mkdir -p "${SCRIPT_PATH}/lib" > /dev/null
-cp "${SCRIPT_PATH}/libfirm/build/${FIRM_VARIANT}/libfirm.so" "${SCRIPT_PATH}/lib/"
+LIBRARY_PATH="${SCRIPT_PATH}/target/lib/"
+mkdir -p "${LIBRARY_PATH}" > /dev/null
+cp "${SCRIPT_PATH}/libfirm/build/${FIRM_VARIANT}/libfirm.so" "${LIBRARY_PATH}"
 
 # change the working directory to the project
 # (mvn -f <path> is not as flexible)

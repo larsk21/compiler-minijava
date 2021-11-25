@@ -16,12 +16,10 @@ popd > /dev/null
 EXE_PATH=$(find "${SCRIPT_PATH}"/target/java-compiler-*-with-dependencies.jar) || exit $?
 
 # ensure that jFirm can find libfirm library
-export LD_LIBRARY_PATH="${SCRIPT_PATH}/lib/"
+export LD_LIBRARY_PATH="${SCRIPT_PATH}/target/lib/"
 
 # enable colored logging if stderr is a terminal
-if [[ -t 2 ]]; then
-    export COLOR="on"
-fi
+test -t 2 && export COLOR="on"
 
 # execute the compiler with the provided arguments and return the exit code
 java -jar "$EXE_PATH" "$@"
