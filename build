@@ -33,6 +33,9 @@ cp "${SCRIPT_PATH}/libfirm/build/${FIRM_VARIANT}/libfirm.so" "${LIBRARY_PATH}"
 # (mvn -f <path> is not as flexible)
 pushd "$SCRIPT_PATH" > /dev/null
 
+# ensure that jFirm can find libfirm library
+export LD_LIBRARY_PATH="${SCRIPT_PATH}/target/lib/"
+
 # build the executable with Maven
 mvn package "$@"
 mvn_exit=$?
