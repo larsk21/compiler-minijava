@@ -1,3 +1,6 @@
 [submodule "mjtest"]
 	path = mjtest
 	url = https://git.scc.kit.edu/IPDSnelting/mjtest.git
+[submodule "libfirm"]
+	path = libfirm
+	url = https://pp.ipd.kit.edu/git/libfirm.git

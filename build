@@ -12,14 +12,32 @@ cd "`dirname "${SCRIPT_PATH}"`" > /dev/null
 SCRIPT_PATH="`pwd`";
 popd > /dev/null
 
+# change directory to libfirm submodule
+pushd "${SCRIPT_PATH}/libfirm" > /dev/null
+
+# use debug variant to build libfirm
+FIRM_VARIANT="debug"
+
+# build libfirm using the provided makefile
+make -j variant="$FIRM_VARIANT"
+make_exit=$?
+
+popd > /dev/null
+
+# copy library, so the run script can find it
+LIBRARY_PATH="${SCRIPT_PATH}/target/lib/"
+mkdir -p "${LIBRARY_PATH}" > /dev/null
+cp "${SCRIPT_PATH}/libfirm/build/${FIRM_VARIANT}/libfirm.so" "${LIBRARY_PATH}"
+
 # change the working directory to the project
 # (mvn -f <path> is not as flexible)
 pushd "$SCRIPT_PATH" > /dev/null
 
 # build the executable with Maven
 mvn package "$@"
-return_code=$?
+mvn_exit=$?
 
 # change the working directory back to where we came from
 popd > /dev/null
-exit $return_code
+
+! (( make_exit || mvn_exit ))
