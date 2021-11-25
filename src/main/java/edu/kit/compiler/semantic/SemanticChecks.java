@@ -44,8 +44,6 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.WhileStatementNode;
  * - in the main method, no parameters are accessed (args)
  */
 public class SemanticChecks {
-    private static final DataType voidType = new DataType(DataTypeClass.Void);
-
     public static void applyChecks(ProgramNode ast, ErrorHandler errorHandler, ClassNode stringClass) {
         for (ClassNode currentClass: ast.getClasses()) {
             for (MethodNode method: currentClass.getDynamicMethods()) {
@@ -60,7 +58,7 @@ public class SemanticChecks {
     private static void checkMethod(MethodNode method, ErrorHandler errorHandler, ClassNode stringClass, boolean isMain) {
         MethodCheckVisitor visitor = new MethodCheckVisitor(isMain, errorHandler, stringClass);
         boolean returns = method.getStatementBlock().accept(visitor);
-        if (!returns && !method.getType().equals(voidType)) {
+        if (!returns && !method.getType().equals(DataType.voidType())) {
             errorHandler.receive(new SemanticError(method,
                 "return statement for all branches required"));
         }

@@ -11,6 +11,7 @@ import edu.kit.compiler.lexer.StringTable;
  * constructed and user-defined types.
  */
 public class DataType {
+    private static final DataType voidType = new DataType(DataTypeClass.Void);
 
     /**
      * Create a predefined data type.
@@ -42,6 +43,15 @@ public class DataType {
 
         this.innerType = Optional.empty();
         this.identifier = Optional.of(identifier);
+    }
+
+    /**
+     * Get the void data type
+     * 
+     * @return void data type
+     */
+    public static DataType voidType() {
+        return voidType;
     }
 
     /**
