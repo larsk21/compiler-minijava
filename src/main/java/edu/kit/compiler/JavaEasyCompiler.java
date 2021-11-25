@@ -1,12 +1,29 @@
 package edu.kit.compiler;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.Reader;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
+import org.apache.commons.cli.Options;
+
 import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
-import org.apache.commons.cli.*;
+import edu.kit.compiler.logger.Logger;
+import edu.kit.compiler.logger.Logger.Verbosity;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
@@ -14,14 +31,7 @@ import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
-import edu.kit.compiler.transform.Lower;
-import edu.kit.compiler.transform.TypeMapper;
-import firm.Dump;
 import firm.Firm;
-import edu.kit.compiler.logger.Logger;
-import edu.kit.compiler.logger.Logger.Verbosity;
-
-import java.io.*;
 
 public class JavaEasyCompiler {
     /**
@@ -165,10 +175,7 @@ public class JavaEasyCompiler {
                 Firm.getMinorVersion(), Firm.getMajorVersion()
             );
 
-            // todo this is debug code, remember to remove
-            var typeMapper = new TypeMapper(namespaceMapper, stringTable);
-            Lower.lowerMethods(typeMapper);
-            Dump.dumpTypeGraph("type-system.vcg");
+            // todo actually implement code generation
 
             return Result.Ok;
         } catch (CompilerException e) {

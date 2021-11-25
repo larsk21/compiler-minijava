@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
@@ -250,7 +249,7 @@ public final class TypeMapper {
                 methods.put(methodNode.getName(), methodEntity);
 
                 if (is_static) {
-                    if (mainMethod != null || methodName != "main") {
+                    if (mainMethod != null || !methodName.equals("main")) {
                         throw new IllegalStateException(
                             "found illegal static method; program is invalid");
                     } else {
