@@ -1,6 +1,5 @@
 package edu.kit.compiler.transform;
 
-import firm.Backend;
 import firm.Ident;
 import firm.Program;
 

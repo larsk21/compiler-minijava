@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
@@ -38,6 +39,9 @@ public final class TypeMapper {
 
     private final StringTable stringTable;
 
+    @Getter
+    private Entity mainMethod;
+
     /**
      * Set up the type system for a MiniJava program. Registers a `ClassEntry`
      * for each class in the namespace mapper and populates it with entities
@@ -55,6 +59,12 @@ public final class TypeMapper {
             var classId = namespace.getClassNodeRef().getName();
             var classEntry = classes.computeIfAbsent(classId, ClassEntry::new);
             classEntry.construct(namespace);
+        }
+
+        if (mainMethod == null) {
+            // Semantic analysis would already have detected this
+            throw new IllegalStateException(
+                "did not find a main method; program is invalid");
         }
     }
 
@@ -218,6 +228,7 @@ public final class TypeMapper {
                 var fieldType = initDataType(fieldNode.getType());
 
                 var fieldEntity = new Entity(classType, fieldName, fieldType);
+                // ? is this actually needed for non global entity?
                 fieldEntity.setVisibility(ir_visibility.ir_visibility_local);
                 fields.put(fieldNode.getName(), fieldEntity);
             }
@@ -235,9 +246,17 @@ public final class TypeMapper {
                 var methodType = getMethodType(methodNode, is_static);
 
                 var methodEntity = new Entity(classType, methodName, methodType);
-                // ? is this actually need for non global entity?
                 methodEntity.setVisibility(ir_visibility.ir_visibility_local);
                 methods.put(methodNode.getName(), methodEntity);
+
+                if (is_static) {
+                    if (mainMethod != null || methodName != "main") {
+                        throw new IllegalStateException(
+                            "found illegal static method; program is invalid");
+                    } else {
+                        mainMethod = methodEntity;
+                    }
+                }
             }
         }
 
