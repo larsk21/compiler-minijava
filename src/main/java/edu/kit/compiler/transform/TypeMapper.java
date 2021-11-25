@@ -1,6 +1,5 @@
 package edu.kit.compiler.transform;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,7 @@ import lombok.Getter;
 
 /**
  * Provides the type system for a MiniJava program. Each class is mapped to a
- * `ClassEntry`.
+ * `ClassEntry` which holds Firm entities for each of the classes members.
  */
 public final class TypeMapper {
 
@@ -39,7 +38,8 @@ public final class TypeMapper {
 
     /**
      * Set up the type system for a MiniJava program. Registers a `ClassEntry`
-     * for each class in the namespace mapper.
+     * for each class in the namespace mapper and populates it with entities
+     * for each of the classes members.
      * 
      * @param namespaceMapper the class namespaces of the program
      * @param stringTable the `stringTable` used for the program
@@ -47,15 +47,11 @@ public final class TypeMapper {
     public TypeMapper(NamespaceMapper namespaceMapper, StringTable stringTable) {
         this.stringTable = stringTable;
 
-        // Register an empty ClassEntry for each class
-        for (var classId : namespaceMapper.getNamespaceMap().keySet()) {
-            this.classes.put(classId, new ClassEntry(classId));
-        }
-
-        // Initialize the entries with fields and methods
+        // Create an entry for every class and initialize it with entities for
+        // fields and methods.
         for (var namespace : namespaceMapper.getNamespaceMap().values()) {
             var classId = namespace.getClassNodeRef().getName();
-            var classEntry = classes.get(classId);
+            var classEntry = classes.computeIfAbsent(classId, ClassEntry::new);
             classEntry.construct(namespace);
         }
     }
@@ -113,7 +109,7 @@ public final class TypeMapper {
      * Represents all types and entities related to a single class in a MiniJava
      * program. This includes the type of the class itself, as well as an entity
      * for each field and method of the class. Types of fields and methods can
-     * be accessed via the corresponding entities.
+     * be accessed via the respective entities.
      */
     public final class ClassEntry {
         @Getter
@@ -157,7 +153,7 @@ public final class TypeMapper {
         }
 
         /**
-         * Returns the Firm entity representing the given name.
+         * Returns the Firm entity representing the given method.
          * 
          * @param methodId the method whose entity is to be returned
          * @return the entity corresponding to the given method
@@ -166,11 +162,15 @@ public final class TypeMapper {
             return getMethod(method.getName());
         }
 
+        /**
+         * Constructs this `ClassEntry` with the fields and methods from the
+         * given namespace.
+         */
         private void construct(ClassNamespace namespace) {
             // Create and register entity for each field of the class
             constructFields(namespace);
 
-            // Create and register entity for each dynamic method of the class
+            // Create and register entity for each method of the class
             constructMethods(namespace.getClassNodeRef(), namespace.getDynamicMethods(), false);
             constructMethods(namespace.getClassNodeRef(), namespace.getStaticMethods(), true);
 
@@ -179,10 +179,14 @@ public final class TypeMapper {
             classType.finishLayout();
         }
 
+        /**
+         * Only called during construction. Creates an entity for each field in
+         * the given namespace.
+         */
         private void constructFields(ClassNamespace namespace) {
             for (var fieldNode : namespace.getClassSymbols().values()) {
                 var fieldName = stringTable.retrieve(fieldNode.getName());
-                var fieldType = getDataType(fieldNode.getType());
+                var fieldType = initDataType(fieldNode.getType());
 
                 var fieldEntity = new Entity(classType, fieldName, fieldType);
                 fieldEntity.setVisibility(ir_visibility.ir_visibility_local);
@@ -190,6 +194,10 @@ public final class TypeMapper {
             }
         }
 
+        /**
+         * Only called during construction. Creates an entity for each static
+         * and dynamic method in the given namespace.
+         */
         private <T extends MethodNode> void constructMethods(
             ClassNode classNode, Map<Integer, T> methodNodes, boolean is_static
         ) {
@@ -198,25 +206,56 @@ public final class TypeMapper {
                 var methodType = getMethodType(methodNode, is_static);
 
                 var methodEntity = new Entity(classType, methodName, methodType);
+                // ? is this actually need for non global entity?
                 methodEntity.setVisibility(ir_visibility.ir_visibility_local);
                 methods.put(methodNode.getName(), methodEntity);
             }
         }
 
+        /**
+         * Only called during construction of TypeMapper. Creates entries for
+         * user defined types if necessary.
+         */
+        private Type initDataType(DataType type) {
+
+            return switch (type.getType()) {
+                case Array -> {
+                    var innerType = initDataType(type.getInnerType().get());
+                    yield new PointerType(innerType);
+                }
+                case UserDefined -> {
+                    var classId = type.getIdentifier().get();
+                    var classEntry = classes.computeIfAbsent(classId, ClassEntry::new);
+                    yield new PointerType(classEntry.getClassType());
+                } 
+                default -> getDataType(type);
+            };
+        }
+
+        /**
+         * Only called during construction.
+         */
         private MethodType getMethodType(MethodNode method, boolean is_static) {
             var parameterTypes = getParameterTypes(method.getParameters(), is_static);
-            System.out.println(stringTable.retrieve(method.getName()) + " " + Arrays.toString(parameterTypes));
             var returnType = getReturnType(method.getType());
             return new MethodType(parameterTypes, returnType);
         }
 
+        /**
+         * Only called during construction. Returns an empty array if the given
+         * type is void.
+         */
         private Type[] getReturnType(DataType type) {
             return switch (type.getType()) {
                 case Void -> new Type[] {};
-                default   -> new Type[] { getDataType(type) };
+                default   -> new Type[] { initDataType(type) };
             };
         }
 
+        /**
+         * Only called during construction. Adds an artificial first parameter
+         * for `this` if `is_static is false.
+         */
         private Type[] getParameterTypes(List<MethodNodeParameter> parameters, boolean is_static) {
             var offset = is_static ? 0 : 1;
             var parameterTypes = new Type[parameters.size() + offset];
@@ -226,7 +265,7 @@ public final class TypeMapper {
             }
 
             for (int i = 0; i < parameters.size(); i++) {
-                parameterTypes[i + offset] = getDataType(parameters.get(i).getType());
+                parameterTypes[i + offset] = initDataType(parameters.get(i).getType());
             }
 
             return parameterTypes;
