@@ -238,17 +238,17 @@ public final class TypeMapper {
          * and dynamic method in the given namespace.
          */
         private <T extends MethodNode> void constructMethods(
-            ClassNode classNode, Map<Integer, T> methodNodes, boolean is_static
+            ClassNode classNode, Map<Integer, T> methodNodes, boolean isStatic
         ) {
             for (var methodNode : methodNodes.values()) {
                 var methodName = stringTable.retrieve(methodNode.getName());
-                var methodType = getMethodType(methodNode, is_static);
+                var methodType = getMethodType(methodNode, isStatic);
 
                 var methodEntity = new Entity(classType, methodName, methodType);
                 methodEntity.setVisibility(ir_visibility.ir_visibility_local);
                 methods.put(methodNode.getName(), methodEntity);
 
-                if (is_static) {
+                if (isStatic) {
                     if (mainMethod != null || !methodName.equals("main")) {
                         throw new IllegalStateException(
                             "found illegal static method; program is invalid");
@@ -281,8 +281,8 @@ public final class TypeMapper {
         /**
          * Only called during construction.
          */
-        private MethodType getMethodType(MethodNode method, boolean is_static) {
-            var parameterTypes = getParameterTypes(method.getParameters(), is_static);
+        private MethodType getMethodType(MethodNode method, boolean isStatic) {
+            var parameterTypes = getParameterTypes(method.getParameters(), isStatic);
             var returnType = getReturnType(method.getType());
             return new MethodType(parameterTypes, returnType);
         }
@@ -300,13 +300,13 @@ public final class TypeMapper {
 
         /**
          * Only called during construction. Adds an artificial first parameter
-         * for `this` if `is_static is false.
+         * for `this` if `isStatic is false.
          */
-        private Type[] getParameterTypes(List<MethodNodeParameter> parameters, boolean is_static) {
-            var offset = is_static ? 0 : 1;
+        private Type[] getParameterTypes(List<MethodNodeParameter> parameters, boolean isStatic) {
+            var offset = isStatic ? 0 : 1;
             var parameterTypes = new Type[parameters.size() + offset];
 
-            if (!is_static) {
+            if (!isStatic) {
                 parameterTypes[0] = new PointerType(classType);
             }
 
