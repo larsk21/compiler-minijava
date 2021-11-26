@@ -19,7 +19,7 @@ import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.BlockStatementNode;
 
-public class ParameterContextTest {
+public class ParameterCounterTest {
     private static final DataType type = new DataType(DataTypeClass.Int);
 
     @Test
