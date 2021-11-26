@@ -1,15 +1,24 @@
 package edu.kit.compiler.transform;
 
+import firm.Backend;
 import firm.Ident;
 import firm.Program;
+import firm.Util;
 
 public class Lower {
+
+    public static void lower(TypeMapper typeMapper) {
+        lowerMethods(typeMapper);
+        Backend.lowerForTarget();
+        Util.lowerSels();
+    }
+
     /**
      * Moves all methods in the given `TypeMapper` to the program's global type.
      * Also makes sure their labels are unique and comply with the conventions
      * of the target architecture.
      */
-    public static void lowerMethods(TypeMapper typeMapper) {
+    private static void lowerMethods(TypeMapper typeMapper) {
         var globalType = Program.getGlobalType();
         var uid = 0;
 
@@ -21,5 +30,8 @@ public class Lower {
                 method.setOwner(globalType);
             }
         }
+
+        // Rename main method, so gcc recognizes it
+        typeMapper.getMainMethod().setLdIdent(Ident.mangleGlobal("main"));
     }
 }
