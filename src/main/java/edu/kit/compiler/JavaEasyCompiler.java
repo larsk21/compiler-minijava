@@ -174,7 +174,7 @@ public class JavaEasyCompiler {
             Lexer lexer = new Lexer(reader);
             StringTable stringTable = lexer.getStringTable();
             NamespaceMapper namespaceMapper = new NamespaceMapper();
-            createAttributedAst(reader, logger, lexer, namespaceMapper);
+            ProgramNode ast = createAttributedAst(reader, logger, lexer, namespaceMapper);
 
             JFirmSingleton.initializeFirmLinux();
             logger.info("Initialized libFirm Version: %s.%s",
@@ -183,8 +183,8 @@ public class JavaEasyCompiler {
 
             TypeMapper typeMapper = new TypeMapper(namespaceMapper, stringTable);
             FirmGraphFactory firmGraphFactory = new FirmGraphFactory(namespaceMapper, stringTable);
-            firmGraphFactory.createGraphFromAst();
-            firmGraphFactory.dumpGraph();
+            firmGraphFactory.createGraphFromAst(ast);
+            firmGraphFactory.dumpTypeGraph();
 
             // todo insert Firm graph generation here
 
