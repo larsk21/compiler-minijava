@@ -1,6 +1,7 @@
 package edu.kit.compiler;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,6 +32,9 @@ import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
+import edu.kit.compiler.transform.Lower;
+import edu.kit.compiler.transform.TypeMapper;
+import firm.Backend;
 import firm.Firm;
 
 public class JavaEasyCompiler {
@@ -171,12 +175,30 @@ public class JavaEasyCompiler {
             createAttributedAst(reader, logger, lexer, namespaceMapper);
 
             Firm.init("x86_64-linux-gnu", new String[]{ "pic=1" });
-            logger.info("Initialized libFirm Version: %s.%s\n",
+            logger.info("Initialized libFirm Version: %s.%s",
                 Firm.getMinorVersion(), Firm.getMajorVersion()
             );
 
-            // todo actually implement code generation
+            TypeMapper typeMapper = new TypeMapper(namespaceMapper, stringTable);
 
+            // todo insert Firm graph generation here
+
+            Lower.lower(typeMapper);
+
+            var sourceFile = new File(filePath).getName();
+            var assemblyFile = sourceFile + ".s";
+            logger.info("assembling program: '%s'", assemblyFile);
+            Backend.createAssembler(assemblyFile, sourceFile);
+
+            var stdLibrary = System.getenv("STD_LIBRARY_PATH");
+            if (stdLibrary == null || !new File(stdLibrary).exists()) {
+                logger.error("standard library implementation not found");
+                return Result.StandardLibraryError;
+            }
+
+            logger.info("compiling program: 'gcc \"%s\" \"%s\"'", assemblyFile, stdLibrary);
+            Runtime.getRuntime().exec(new String[]{ "gcc", assemblyFile, stdLibrary });
+            
             return Result.Ok;
         } catch (CompilerException e) {
             logger.withName(e.getCompilerStage().orElse(null)).exception(e);
@@ -328,7 +350,8 @@ public class JavaEasyCompiler {
         FileInputError(1),
         LexError(1),
         ParseError(1),
-        SemanticError(1);
+        SemanticError(1),
+        StandardLibraryError(1);
 
         /**
          * @param code The exit code associated with this Result

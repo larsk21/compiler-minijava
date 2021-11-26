@@ -18,6 +18,8 @@ EXE_PATH=$(find "${SCRIPT_PATH}"/target/java-compiler-*-with-dependencies.jar) |
 # ensure that jFirm can find libfirm library
 export LD_LIBRARY_PATH="${SCRIPT_PATH}/target/lib/"
 
+export STD_LIBRARY_PATH="${SCRIPT_PATH}/lib/stdlib.c"
+
 # enable colored logging if stderr is a terminal
 test -t 2 && export COLOR="on"
 
