@@ -135,7 +135,43 @@ public class Statements implements AstVisitor<Boolean> {
             return false;
         }
 
-        public Boolean visit(WhileStatementNode whileStmt) { throw new UnsupportedOperationException(); }
+        public Boolean visit(WhileStatementNode whileStmt) {
+            Construction con = context.getConstruction();
+            Node jmp = con.newJmp();
+            Block loopHeader = con.newBlock();
+            loopHeader.addPred(jmp);
+            con.setCurrentBlock(loopHeader);
+
+            // endless loop: ensure construction of mem node and keep block
+            con.getCurrentMem();
+            con.getGraph().keepAlive(loopHeader);
+
+            // TODO: proper condition evaluation
+            ExpressionNode cond = whileStmt.getCondition();
+            Node left = evalExpression(cond);
+            Node right = con.newConst(0, getMode(cond.getResultType()));
+            Node cmp = con.newCmp(left, right, Relation.LessGreater);
+            Node getCond = con.newCond(cmp);
+            Node projTrue = con.newProj(getCond, Mode.getX(), 1);
+            Node projFalse = con.newProj(getCond, Mode.getX(), 0);
+
+            Block loopBody = con.newBlock();
+            loopBody.addPred(projTrue);
+            loopBody.mature();
+            con.setCurrentBlock(loopBody);
+            if (!whileStmt.getStatement().accept(this)) {
+                // block does not return
+                Node backJmp = con.newJmp();
+                loopHeader.addPred(backJmp);
+            }
+            loopHeader.mature();
+
+            Block nextBlock = con.newBlock();
+            nextBlock.addPred(projFalse);
+            nextBlock.mature();
+            con.setCurrentBlock(nextBlock);
+            return false;
+         }
 
         private Node evalExpression(ExpressionNode expr) {
             Construction con = context.getConstruction();

@@ -83,6 +83,12 @@ public class StatementsTest {
         Statements.apply(context);
     }
 
+    @Test
+    public void testWhile() throws IOException {
+        var context = initContext("class c { public int m(int x) { while (x == 0) { if (x > 0) return 1; } return x; } }" + main);
+        Statements.apply(context);
+    }
+
     private static Reader getReader(String input) {
         return new StringReader(input);
     }
