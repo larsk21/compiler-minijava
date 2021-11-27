@@ -7,7 +7,6 @@ import java.io.StringReader;
 import org.junit.jupiter.api.Test;
 
 import edu.kit.compiler.data.ast_nodes.ClassNode;
-import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.lexer.Lexer;
@@ -76,7 +75,12 @@ public class StatementsTest {
     public void testSimpleIf() throws IOException {
         var context = initContext("class c { public void m(int x) { if (x == 0) return; } }" + main);
         Statements.apply(context);
-        Dump.dumpGraph(context.getGraph(), "test_simple_if");
+    }
+
+    @Test
+    public void testIfInt() throws IOException {
+        var context = initContext("class c { public int m(int x) { int y; if (x == 0) { return x;} else {return 0;} } }" + main);
+        Statements.apply(context);
     }
 
     private static Reader getReader(String input) {

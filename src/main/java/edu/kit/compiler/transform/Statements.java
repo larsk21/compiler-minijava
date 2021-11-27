@@ -23,9 +23,8 @@ import firm.nodes.Node;
 import lombok.AllArgsConstructor;
 
 /**
- * Return value: whether the visited statement was a return statement.
+ * Return value: whether the visited statement always returns.
  */
-// TODO: maturing
 public class Statements implements AstVisitor<Boolean> {
 
     public static void apply(TransformContext context) {
@@ -62,7 +61,6 @@ public class Statements implements AstVisitor<Boolean> {
                 assignedVal = evalExpression(stmt.getExpression().get());
             } else {
                 // zero-initialize the variable
-                // TODO: does this work for reference types?
                 // Note: for debugging, me might want to make no assignment
                 assignedVal = con.newConst(0, getMode(stmt.getType()));
             }
@@ -96,8 +94,9 @@ public class Statements implements AstVisitor<Boolean> {
             Node left = evalExpression(cond);
             Node right = con.newConst(0, getMode(cond.getResultType()));
             Node cmp = con.newCmp(left, right, Relation.LessGreater);
-            Node projTrue = con.newProj(cmp, Mode.getX(), 0);
-            Node projFalse = con.newProj(cmp, Mode.getX(), 1);
+            Node getCond = con.newCond(cmp);
+            Node projTrue = con.newProj(getCond, Mode.getX(), 1);
+            Node projFalse = con.newProj(getCond, Mode.getX(), 0);
 
             Block finalBlock = con.newBlock();
 
@@ -108,7 +107,7 @@ public class Statements implements AstVisitor<Boolean> {
                 elseBlock.addPred(projFalse);
                 elseBlock.mature();
                 con.setCurrentBlock(elseBlock);
-                if (!ifStmt.getElseStatement().get().accept(this)){
+                if (!ifStmt.getElseStatement().get().accept(this)) {
                     // block does not return
                     Node elseJmp = con.newJmp();
                     finalBlock.addPred(elseJmp);
