@@ -2,6 +2,7 @@ package edu.kit.compiler.transform;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import edu.kit.compiler.data.DataType;
@@ -29,12 +30,12 @@ public class TransformContext {
     /**
      * Mapping of local variable names to indizes.
      */
-    private HashMap<Integer, Integer> variableMapping;
+    private Map<Integer, Integer> variableMapping;
 
     /**
      * Mapping of method parameter names to indizes.
      */
-    private HashMap<Integer, Integer> paramMapping;
+    private Map<Integer, Integer> paramMapping;
 
     /**
      * Firm types of the method parameters.
@@ -68,7 +69,7 @@ public class TransformContext {
     private Construction construction;
 
     public TransformContext(TypeMapper typeMapper, ClassNode classNode, MethodNode methodNode, Entity methodEntity,
-                            HashMap<Integer, Integer> variableMapping, int n_vars, boolean isStatic) {
+                            Map<Integer, Integer> variableMapping, int n_vars, boolean isStatic) {
         this.typeMapper = typeMapper;
         this.classNode = classNode;
         this.methodNode = methodNode;
