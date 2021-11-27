@@ -143,6 +143,10 @@ public class TransformContext {
         return construction.getGraph().getEndBlock();
     }
 
+    public Graph getGraph() {
+        return construction.getGraph();
+    }
+
     /**
      * Creates a node for accessing a method parameter.
      * 
