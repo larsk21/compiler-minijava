@@ -72,6 +72,13 @@ public class StatementsTest {
         Statements.apply(context);
     }
 
+    @Test
+    public void testSimpleIf() throws IOException {
+        var context = initContext("class c { public void m(int x) { if (x == 0) return; } }" + main);
+        Statements.apply(context);
+        Dump.dumpGraph(context.getGraph(), "test_simple_if");
+    }
+
     private static Reader getReader(String input) {
         return new StringReader(input);
     }
