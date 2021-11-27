@@ -68,7 +68,7 @@ public class TransformContext {
     @Getter
     private Construction construction;
 
-    public TransformContext(TypeMapper typeMapper, ClassNode classNode, MethodNode methodNode, Entity methodEntity,
+    public TransformContext(TypeMapper typeMapper, ClassNode classNode, MethodNode methodNode,
                             Map<Integer, Integer> variableMapping, int n_vars, boolean isStatic) {
         this.typeMapper = typeMapper;
         this.classNode = classNode;
@@ -91,6 +91,7 @@ public class TransformContext {
         if (!methodNode.getType().equals(DataType.voidType())) {
             this.returnType = Optional.of(typeMapper.getDataType(methodNode.getType()));
         }
+        Entity methodEntity = typeMapper.getClassEntry(classNode).getMethod(methodNode);
         Graph graph = new Graph(methodEntity, n_vars);
         this.construction = new Construction(graph);
         this.projArgs = construction.newProj(graph.getStart(), Mode.getT(), 2);
@@ -167,7 +168,6 @@ public class TransformContext {
         if (isStatic) {
             throw new IllegalStateException("'this' is not available in static methods");
         }
-        Mode mode = typeMapper.getClassPointerType(classNode.getName()).getMode();
-        return construction.newProj(projArgs, mode, 0);
+        return construction.newProj(projArgs, getThisPtrType().getMode(), 0);
     }
 }

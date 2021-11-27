@@ -34,7 +34,6 @@ public class TransformContextTest {
     private TypeMapper typeMapper;
     private StringTable stringTable;
     private ClassNode classNode;
-    private Entity methodEntity;
 
     private MethodNode initMethod(String input) {
         ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
@@ -52,7 +51,6 @@ public class TransformContextTest {
             ClassEntry entry = typeMapper.getClassEntry(classNode);
             for (DynamicMethodNode m: classNode.getDynamicMethods()) {
                 this.classNode = classNode;
-                this.methodEntity = entry.getMethod(m);
                 return m;
             }
         }
@@ -62,14 +60,14 @@ public class TransformContextTest {
     @Test
     public void testCreation() {
         MethodNode method = initMethod("class c { public void m() { } }" + main);
-        new TransformContext(typeMapper, classNode, method, methodEntity, new HashMap<>(), 0, false);
+        new TransformContext(typeMapper, classNode, method, new HashMap<>(), 0, false);
     }
 
     @Test
     public void testParams() {
         MethodNode method = initMethod("class c { public void m(int x, int y) { } }" + main);
         TransformContext context =  new TransformContext(
-            typeMapper, classNode, method, methodEntity, new HashMap<>(), 0, false
+            typeMapper, classNode, method, new HashMap<>(), 0, false
         );
         int x_name = stringTable.insert("x");
         int y_name = stringTable.insert("y");
