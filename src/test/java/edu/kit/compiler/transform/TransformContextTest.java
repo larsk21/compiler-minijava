@@ -22,6 +22,8 @@ import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.transform.TypeMapper.ClassEntry;
 import firm.Entity;
 import firm.Firm;
+import firm.Mode;
+import firm.PrimitiveType;
 
 public class TransformContextTest {
     static {
@@ -69,8 +71,12 @@ public class TransformContextTest {
         TransformContext context =  new TransformContext(
             typeMapper, classNode, method, methodEntity, new HashMap<>(), 0, false
         );
-        context.createParamNode(stringTable.insert("x"));
-        context.createParamNode(stringTable.insert("y"));
+        int x_name = stringTable.insert("x");
+        int y_name = stringTable.insert("y");
+        assertEquals(1, context.getParamIndex(x_name));
+        context.createParamNode(x_name);
+        assertEquals(2, context.getParamIndex(y_name));
+        context.createParamNode(y_name);
         context.createThisNode();
     }
 

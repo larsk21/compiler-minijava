@@ -8,7 +8,6 @@ import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.MethodNodeParameter;
-import edu.kit.compiler.transform.TypeMapper.ClassEntry;
 import firm.Construction;
 import firm.Entity;
 import firm.Graph;
@@ -77,10 +76,14 @@ public class TransformContext {
         this.isStatic = isStatic;
         this.paramMapping = new HashMap<>();
         ArrayList<Type> params = new ArrayList<>();
+        if (!isStatic) {
+            // determine type for 'this'
+            params.add(typeMapper.getClassPointerType(classNode.getName()));
+        }
         for (int i = 0; i < methodNode.getParameters().size(); i++) {
             MethodNodeParameter param = methodNode.getParameters().get(i);
             params.add(typeMapper.getDataType(param.getType()));
-            this.paramMapping.put(param.getName(), i);
+            this.paramMapping.put(param.getName(), i + (isStatic ? 0 : 1));
         }
         this.paramTypes = params.toArray(new Type[]{});
         this.returnType = Optional.empty();
@@ -92,8 +95,37 @@ public class TransformContext {
         this.projArgs = construction.newProj(graph.getStart(), Mode.getT(), 2);
     }
 
+    /**
+     * Type of the 'this'-Pointer.
+     * 
+     * @return the type
+     */
+    public Type getThisPtrType() {
+        if (isStatic) {
+            throw new IllegalStateException("'this' is not available in static methods");
+        }
+        return paramTypes[0];
+    }
+
+    /**
+     * Type of a parameter.
+     * 
+     * @param name parameter name
+     * @return the type
+     */
     public Type getParamType(int name) {
         return paramTypes[paramMapping.get(name)];
+    }
+
+    /**
+     * Index of a parameter.
+     * For dynamic methods, index 0 is the implicit 'this' parameter. 
+     * 
+     * @param name parameter name
+     * @return the index
+     */
+    public int getParamIndex(int name) {
+        return paramMapping.get(name);
     }
 
     /**
@@ -118,7 +150,7 @@ public class TransformContext {
      */
     public Node createParamNode(int name) {
         int param = paramMapping.get(name);
-        return construction.newProj(projArgs, paramTypes[param].getMode(), param + (isStatic ? 0 : 1));
+        return construction.newProj(projArgs, paramTypes[param].getMode(), param);
     }
 
     /**
