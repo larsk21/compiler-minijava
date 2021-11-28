@@ -45,7 +45,7 @@ public class TransformVisitor implements AstVisitor<Void> {
             TransformContext transformContext = new TransformContext(typeMapper, classNode, method, variableMapping, false);
 
             methodContexts.put(method.getName(), transformContext);
-            IRExpressionVisitor irExpressionVisitor = new IRExpressionVisitor(typeMapper, transformContext);
+            IRExpressionVisitor irExpressionVisitor = new IRExpressionVisitor(transformContext);
             for (var statement : method.getStatementBlock().getStatements()) {
                 /*
                   continue visiting statements with the IR visitor for this method
