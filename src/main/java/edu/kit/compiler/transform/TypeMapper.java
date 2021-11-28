@@ -201,6 +201,15 @@ public final class TypeMapper {
         }
 
         /**
+         * Returns the corresponding Firm `PointerType` for the class.
+         * 
+         * @return the corresponding Firm type
+         */
+        public Type getPointerType() {
+            return new PointerType(this.classType);
+        }
+
+        /**
          * Constructs this `ClassEntry` with the fields and methods from the
          * given namespace.
          */
