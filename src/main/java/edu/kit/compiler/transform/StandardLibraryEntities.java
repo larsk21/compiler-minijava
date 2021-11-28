@@ -10,6 +10,10 @@ import firm.Type;
 import firm.bindings.binding_typerep.ir_visibility;
 import lombok.Getter;
 
+/**
+ * A Singleton holding reference to the standard library methods.
+ * Each method is a Entity in the global type of the program.
+ */
 public enum StandardLibraryEntities {
     INSTANCE;
 
@@ -27,13 +31,17 @@ public enum StandardLibraryEntities {
         var intType = new PrimitiveType(Mode.getIs());
 
         this.read = new Entity(globalType, Ident.mangleGlobal("read"),
-            new MethodType(new Type[] {}, new Type[] { intType }));
+            new MethodType(new Type[] {}, new Type[] { intType })
+        );
         this.print = new Entity(globalType, Ident.mangleGlobal("print"),
-            new MethodType(new Type[] { intType }, new Type[] {}));
+            new MethodType(new Type[] { intType }, new Type[] {})
+        );
         this.write = new Entity(globalType, Ident.mangleGlobal("write"),
-            new MethodType(new Type[] { intType }, new Type[] {}));
+            new MethodType(new Type[] { intType }, new Type[] {})
+        );
         this.flush = new Entity(globalType, Ident.mangleGlobal("flush"),
-            new MethodType(new Type[] {}, new Type[] {}));
+            new MethodType(new Type[] {}, new Type[] {})
+        );
 
         read.setVisibility(ir_visibility.ir_visibility_external);
         print.setVisibility(ir_visibility.ir_visibility_external);
