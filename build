@@ -36,6 +36,9 @@ pushd "$SCRIPT_PATH" > /dev/null
 # ensure that jFirm can find libfirm library
 export LD_LIBRARY_PATH="${SCRIPT_PATH}/target/lib/"
 
+# ensure compiler can find the standard library implementation
+export STD_LIBRARY_PATH="${SCRIPT_PATH}/lib/stdlib.c"
+
 # build the executable with Maven
 mvn package "$@"
 mvn_exit=$?
