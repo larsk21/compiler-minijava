@@ -3,13 +3,11 @@ package edu.kit.compiler.transform;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
-import edu.kit.compiler.data.ast_nodes.StatementNode;
+import edu.kit.compiler.semantic.DefinitionKind;
 import firm.Construction;
 import firm.Mode;
 import firm.TargetValue;
 import firm.nodes.Node;
-
-import javax.swing.plaf.basic.BasicTreeUI;
 
 import static edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionType.IntegerLiteral;
 import static edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionType.Null;
@@ -18,67 +16,10 @@ import static edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionType
  * return firm nodes for our ast nodes
  */
 public class IRExpressionVisitor implements AstVisitor<Node> {
+    private final TransformContext context;
 
-    private final TypeMapper typeMapper;
-    private final TransformContext transformContext;
-
-    public IRExpressionVisitor(TypeMapper typeMapper, TransformContext transformContext) {
-        this.typeMapper = typeMapper;
-        this.transformContext = transformContext;
-    }
-
-    @Override
-    public Node visit(StatementNode.LocalVariableDeclarationStatementNode statementNode) {
-        Construction con = getConstruction();
-        Node assignedVal;
-        if (statementNode.getExpression().isPresent()) {
-            assignedVal = statementNode.getExpression().get().accept(this);
-        } else {
-            // zero-initialize the variable
-            // Note: for debugging, me might want to make no assignment
-            assignedVal = con.newConst(0, getMode(statementNode.getType()));
-        }
-        con.setVariable(transformContext.getVariableIndex(statementNode.getName()), assignedVal);
-        con.getGraph().keepAlive(assignedVal);
-        return (Node) null;
-    }
-
-    @Override
-    public Node visit(StatementNode.WhileStatementNode statementNode) {
-        ExpressionNode ex = statementNode.getCondition();
-        Node n = ex.accept(this);
-        statementNode.getStatement().accept(this);
-
-        return (Node) null;
-    }
-
-    @Override
-    public Node visit(StatementNode.BlockStatementNode blockStatementNode) {
-        // visit all sub statements here
-        for (var statement : blockStatementNode.getStatements()) {
-            statement.accept(this);
-        }
-        return (Node) null;
-    }
-
-    @Override
-    public Node visit(StatementNode.IfStatementNode statementNode) {
-        Node n = statementNode.getCondition().accept(this);
-        return (Node) null;
-    }
-
-    @Override
-    public Node visit(StatementNode.ExpressionStatementNode statementNode) {
-        Node n = statementNode.getExpression().accept(this);
-        return (Node) null;
-    }
-
-    @Override
-    public Node visit(StatementNode.ReturnStatementNode statementNode) {
-        statementNode.getResult().ifPresent(ex -> {
-            ex.accept(this);
-        });
-        return (Node) null;
+    public IRExpressionVisitor(TransformContext context) {
+        this.context = context;
     }
 
     @Override
@@ -108,7 +49,15 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
     @Override
     public Node visit(ExpressionNode.IdentifierExpressionNode identifierExpressionNode) {
-        return null;
+        Construction con = context.getConstruction();
+        if (identifierExpressionNode.getDefinition().getKind() == DefinitionKind.LocalVariable) {
+            Mode mode = getMode(identifierExpressionNode.getResultType());
+            return con.getVariable(context.getVariableIndex(identifierExpressionNode.getIdentifier()), mode);
+        } else if (identifierExpressionNode.getDefinition().getKind() == DefinitionKind.Parameter) {
+            return context.createParamNode(identifierExpressionNode.getIdentifier());
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 
     @Override
@@ -126,15 +75,15 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         switch (valueExpressionNode.getValueType()) {
             case Null: {
                 n = handleNullExpressionNode(valueExpressionNode);
+                break;
             }
-            case False: {
-                throw new UnsupportedOperationException();
-            }
+            case False:
             case True: {
                 throw new UnsupportedOperationException();
             }
             case IntegerLiteral: {
                 n = handleIntegerExpressionNode(valueExpressionNode);
+                break;
             }
         }
 
@@ -173,10 +122,10 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     }
 
     private Construction getConstruction() {
-        return transformContext.getConstruction();
+        return context.getConstruction();
     }
 
     private Mode getMode(DataType type) {
-        return transformContext.getTypeMapper().getDataType(type).getMode();
+        return context.getTypeMapper().getDataType(type).getMode();
     }
 }
