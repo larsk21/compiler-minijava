@@ -27,6 +27,8 @@ public enum StandardLibraryEntities {
     private final Entity flush;
 
     private StandardLibraryEntities() {
+        JFirmSingleton.initializeFirmLinux();
+
         var globalType = Program.getGlobalType();
         var intType = new PrimitiveType(Mode.getIs());
 
