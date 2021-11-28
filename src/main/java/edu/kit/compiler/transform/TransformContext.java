@@ -9,6 +9,7 @@ import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.MethodNodeParameter;
+import edu.kit.compiler.transform.TypeMapper.ClassEntry;
 import firm.Construction;
 import firm.Entity;
 import firm.Graph;
@@ -76,10 +77,11 @@ public class TransformContext {
         this.variableMapping = variableMapping;
         this.isStatic = isStatic;
         this.paramMapping = new HashMap<>();
+        ClassEntry classEntry = typeMapper.getClassEntry(classNode);
         ArrayList<Type> params = new ArrayList<>();
         if (!isStatic) {
             // determine type for 'this'
-            params.add(typeMapper.getClassPointerType(classNode.getName()));
+            params.add(classEntry.getPointerType());
         }
         for (int i = 0; i < methodNode.getParameters().size(); i++) {
             MethodNodeParameter param = methodNode.getParameters().get(i);
@@ -91,10 +93,10 @@ public class TransformContext {
         if (!methodNode.getType().equals(DataType.voidType())) {
             this.returnType = Optional.of(typeMapper.getDataType(methodNode.getType()));
         }
-        Entity methodEntity = typeMapper.getClassEntry(classNode).getMethod(methodNode);
+        Entity methodEntity = classEntry.getMethod(methodNode);
         Graph graph = new Graph(methodEntity, n_vars);
         this.construction = new Construction(graph);
-        this.projArgs = construction.newProj(graph.getStart(), Mode.getT(), 2);
+        this.projArgs =  graph.getArgs();
     }
 
     /**

@@ -97,17 +97,6 @@ public final class TypeMapper {
     }
 
     /**
-     * Returns the corresponding Firm `PointerType` for the given class.
-     * 
-     * @param name the class name
-     * @return the corresponding Firm type
-     */
-    public Type getClassPointerType(int name) {
-        var classEntry = classes.get(name);
-        return new PointerType(classEntry.getClassType());
-    }
-
-    /**
      * Returns the entry corresponding to the class with the given name.
      * 
      * @param classId the name of the class whose entry is to be returned
@@ -209,6 +198,15 @@ public final class TypeMapper {
          */
         public Collection<Entity> getMethods() {
             return Collections.unmodifiableCollection(methods.values());
+        }
+
+        /**
+         * Returns the corresponding Firm `PointerType` for the class.
+         * 
+         * @return the corresponding Firm type
+         */
+        public Type getPointerType() {
+            return new PointerType(this.classType);
         }
 
         /**
