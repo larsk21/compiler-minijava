@@ -58,14 +58,14 @@ public class TransformContextTest {
     @Test
     public void testCreation() {
         MethodNode method = initMethod("class c { public void m() { } }" + main);
-        new TransformContext(typeMapper, classNode, method, new HashMap<>(), 0, false);
+        new TransformContext(typeMapper, classNode, method, new HashMap<>(), false);
     }
 
     @Test
     public void testParams() {
         MethodNode method = initMethod("class c { public void m(int x, int y) { } }" + main);
         TransformContext context =  new TransformContext(
-            typeMapper, classNode, method, new HashMap<>(), 0, false
+            typeMapper, classNode, method, new HashMap<>(), false
         );
         int x_name = stringTable.insert("x");
         int y_name = stringTable.insert("y");
