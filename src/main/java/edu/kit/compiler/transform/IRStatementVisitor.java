@@ -24,9 +24,11 @@ import firm.nodes.Node;
  */
 public class IRStatementVisitor implements AstVisitor<Boolean> {
     private final TransformContext context;
+    private final IRExpressionVisitor irExpressionVisitor;
 
     public IRStatementVisitor(TransformContext context) {
         this.context = context;
+        this.irExpressionVisitor = new IRExpressionVisitor(context);
     }
 
     @Override
@@ -143,20 +145,7 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
     }
 
     private Node evalExpression(ExpressionNode expr) {
-        Construction con = context.getConstruction();
-        if (expr instanceof ExpressionNode.IdentifierExpressionNode) {
-            ExpressionNode.IdentifierExpressionNode id = (ExpressionNode.IdentifierExpressionNode)expr;
-            if (id.getDefinition().getKind() == DefinitionKind.LocalVariable) {
-                Mode mode = getMode(id.getResultType());
-                return con.getVariable(context.getVariableIndex(id.getIdentifier()), mode);
-            } else if (id.getDefinition().getKind() == DefinitionKind.Parameter) {
-                return context.createParamNode(id.getIdentifier());
-            } else {
-                throw new UnsupportedOperationException();
-            }
-        }
-        // TODO: call expression visitor
-        return con.newConst(1, getMode(expr.getResultType()));
+        return expr.accept(irExpressionVisitor);
     }
 
     private Mode getMode(DataType type) {
