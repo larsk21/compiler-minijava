@@ -25,7 +25,7 @@ import lombok.AllArgsConstructor;
 /**
  * Return value: whether the visited statement always returns.
  */
-public class Statements implements AstVisitor<Boolean> {
+public class IRVisitor implements AstVisitor<Boolean> {
 
     public static void apply(TransformContext context) {
         Construction con = context.getConstruction();
