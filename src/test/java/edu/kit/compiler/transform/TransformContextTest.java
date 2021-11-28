@@ -26,16 +26,14 @@ import firm.Mode;
 import firm.PrimitiveType;
 
 public class TransformContextTest {
-    static {
-        Firm.init("x86_64-linux-gnu", new String[]{ "pic=1" });
-    }
-
     private static final String main = "class Main {public static void main(String[] args) {}}";
     private TypeMapper typeMapper;
     private StringTable stringTable;
     private ClassNode classNode;
 
     private MethodNode initMethod(String input) {
+        JFirmSingleton.initializeFirmLinux();
+
         ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
         Lexer lexer = new Lexer(getReader(input));
         ProgramNode node =  new Parser(lexer).parse();
