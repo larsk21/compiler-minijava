@@ -84,8 +84,44 @@ public class IRStatementVisitorTest {
     }
 
     @Test
+    public void testIfConst() throws IOException {
+        var context = initContext("class c { public int m(int x) { if (true) { return x;} else {return 0;} } }" + main);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
+    }
+
+    @Test
+    public void testIfFalse() throws IOException {
+        var context = initContext("class c { public int m(int x) { if (false) { } return 0; } }" + main);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
+    }
+
+    @Test
+    public void testIfTrue() throws IOException {
+        var context = initContext("class c { public int m(int x) { if (true) { } return 0; } }" + main);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
+    }
+
+    @Test
     public void testWhile() throws IOException {
         var context = initContext("class c { public int m(int x) { while (x == 0) { if (x > 0) return 1; } return x; } }" + main);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
+    }
+
+    @Test
+    public void testWhileTrue() throws IOException {
+        var context = initContext("class c { public int m(int x) { while (true) { } return x; } }" + main);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
+    }
+
+    @Test
+    public void testWhileFalse() throws IOException {
+        var context = initContext("class c { public int m(int x) { while (false) { if (x > 0) return 1; } return x; } }" + main);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
+    }
+
+    @Test
+    public void shortCircuit() throws IOException {
+        var context = initContext("class c { public int m(int x) { if (x > 0 && (1 == 0 || false)) return 1; else return x; } }" + main);
         context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
     }
 
