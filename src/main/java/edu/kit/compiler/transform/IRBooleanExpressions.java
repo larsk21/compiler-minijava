@@ -13,31 +13,10 @@ public class IRBooleanExpressions {
         throw new UnsupportedOperationException();
     }
 
-    public static BranchPair asConditional(TransformContext context, ExpressionNode expr) {
+    public static void asConditional(TransformContext context, ExpressionNode expr,
+                                     Block trueBranch, Block falseBranch) {
         throw new UnsupportedOperationException();
     }
 
 
-    /**
-     * Contains the Blocks for two branches of a conditional jump.
-     */
-    public static class BranchPair {
-        @Getter
-        private Block trueBranch;
-        @Getter
-        private Block falseBranch;
-
-        public BranchPair(Block trueBranch, Block falseBranch) {
-            this.trueBranch = trueBranch;
-            this.falseBranch = falseBranch;
-        }
-
-        public static BranchPair fromConditional(Node cond, Construction constr) {
-            Block trueBranch = constr.newBlock();
-            Block falseBranch = constr.newBlock();
-            trueBranch.addPred(constr.newProj(cond, Mode.getX(), 1));
-            falseBranch.addPred(constr.newProj(cond, Mode.getX(), 0));
-            return new BranchPair(trueBranch, falseBranch);
-        }
-    }
 }
