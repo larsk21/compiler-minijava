@@ -7,7 +7,6 @@ import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import firm.Firm;
-import firm.Graph;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -37,10 +36,7 @@ public class FirmGraphTest {
         final String FILE = "edu/kit/compiler/transform/FullClass.java";
 
         var path = Objects.requireNonNull(classLoader.getResource(FILE)).getPath();
-        Graph g = createFirmGraph(path);
-
-        FirmGraphFactory.dumpTypeGraph();
-        FirmGraphFactory.dumpGraph(g);
+        createIRFromFile(path);
     }
 
     @Test
@@ -48,12 +44,16 @@ public class FirmGraphTest {
         final String FILE = "edu/kit/compiler/transform/LiteralExpressionNodes.java";
 
         var path = Objects.requireNonNull(classLoader.getResource(FILE)).getPath();
-        Graph g = createFirmGraph(path);
-
-        FirmGraphFactory.dumpTypeGraph();
-        FirmGraphFactory.dumpGraph(g);
+        createIRFromFile(path);
     }
 
+    @Test
+    public void testFirmArrayAccess() throws IOException {
+        final String FILE = "edu/kit/compiler/transform/ArrayAccess.java";
+
+        var path = Objects.requireNonNull(classLoader.getResource(FILE)).getPath();
+        createIRFromFile(path);
+    }
 
     /**
      * Creates firm graph and initializes firm graph factory
@@ -62,7 +62,7 @@ public class FirmGraphTest {
      * @return
      * @throws IOException
      */
-    private Graph createFirmGraph(String filePath) throws IOException {
+    private void createIRFromFile(String filePath) throws IOException {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
             Lexer lexer = new Lexer(reader);
             StringTable stringTable = lexer.getStringTable();
@@ -70,15 +70,12 @@ public class FirmGraphTest {
             FirmGraphFactory firmGraphFactory = new FirmGraphFactory(namespaceMapper, stringTable);
 
             ProgramNode programNode = JavaEasyCompiler.createAttributedAst(reader, log, lexer, firmGraphFactory.getNamespaceMapper());
-            Graph g = null;
             try {
-                g = firmGraphFactory.createGraphFromAst(programNode);
+                firmGraphFactory.visitAST(programNode);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw (e);
             }
-
-            return g;
         }
     }
 }

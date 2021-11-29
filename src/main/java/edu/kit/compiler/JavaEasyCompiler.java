@@ -183,7 +183,7 @@ public class JavaEasyCompiler {
 
             TypeMapper typeMapper = new TypeMapper(namespaceMapper, stringTable);
             FirmGraphFactory firmGraphFactory = new FirmGraphFactory(namespaceMapper, stringTable);
-            firmGraphFactory.createGraphFromAst(ast);
+            firmGraphFactory.visitAST(ast);
             firmGraphFactory.dumpTypeGraph();
 
             // todo insert Firm graph generation here
