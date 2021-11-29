@@ -6,7 +6,11 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.semantic.DefinitionKind;
 import firm.Construction;
 import firm.Mode;
+import firm.Relation;
 import firm.TargetValue;
+import firm.bindings.binding_ircons;
+import firm.nodes.Div;
+import firm.nodes.Mod;
 import firm.nodes.Node;
 
 import static edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionType.IntegerLiteral;
@@ -18,33 +22,117 @@ import static edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionType
 public class IRExpressionVisitor implements AstVisitor<Node> {
     private final TransformContext context;
 
+
     public IRExpressionVisitor(TransformContext context) {
         this.context = context;
     }
 
     @Override
     public Node visit(ExpressionNode.BinaryExpressionNode binaryExpressionNode) {
-        return null;
+        Node lhs = binaryExpressionNode.getLeftSide().accept(this);
+        Node rhs = binaryExpressionNode.getRightSide().accept(this);
+
+        Mode m = context.getTypeMapper().getDataType(binaryExpressionNode.getLeftSide().getResultType()).getMode();
+
+        switch(binaryExpressionNode.getOperator()) {
+            case Assignment -> {
+                // lhs is variable we have to visit for lvalues
+                final AstVisitor<Node> lValueVisitor = new AstVisitor<>() {
+                    @Override
+                    public Node visit(ExpressionNode.FieldAccessExpressionNode fieldAccessExpressionNode) {
+                        return AstVisitor.super.visit(fieldAccessExpressionNode);
+                    }
+
+                    @Override
+                    public Node visit(ExpressionNode.ArrayAccessExpressionNode arrayAccessExpressionNode) {
+                        return AstVisitor.super.visit(arrayAccessExpressionNode);
+                    }
+
+                    @Override
+                    public Node visit(ExpressionNode.IdentifierExpressionNode identifierExpressionNode) {
+                        return AstVisitor.super.visit(identifierExpressionNode);
+                    }
+                };
+                return binaryExpressionNode.getLeftSide().accept(lValueVisitor);
+
+            }
+            case Equal -> {
+                return getConstruction().newCmp(lhs, rhs, Relation.Equal);
+            }
+            case Modulo -> {
+                Node mem = getConstruction().getCurrentMem();
+                Node mod = getConstruction().newMod(mem, lhs, rhs, binding_ircons.op_pin_state.op_pin_state_pinned);
+                Node projRes = getConstruction().newProj(mod, m, Mod.pnRes);
+                Node projMem = getConstruction().newProj(mod, m, Mod.pnM);
+
+                // TODO: map control flow exceptions too?
+
+                getConstruction().setCurrentMem(projMem);
+                return projRes;
+            }
+            case Addition -> {
+                return getConstruction().newAdd(lhs, rhs);
+            }
+            case Division -> {
+                Node mem = getConstruction().getCurrentMem();
+                Node div = getConstruction().newDiv(mem, lhs, rhs, binding_ircons.op_pin_state.op_pin_state_pinned);
+                Node projRes = getConstruction().newProj(div, m, Div.pnRes);
+                Node projMem = getConstruction().newProj(div, m, Div.pnM);
+
+                // TODO: map control flow exceptions too?
+
+                getConstruction().setCurrentMem(projMem);
+                return projRes;
+            }
+            case LessThan -> {
+                return getConstruction().newCmp(lhs, rhs, Relation.Less);
+            }
+            case NotEqual -> {
+                return getConstruction().newCmp(lhs, rhs, Relation.LessGreater);
+            }
+            case LogicalOr -> {
+                return getConstruction().newOr(lhs, rhs);
+            }
+            case LogicalAnd -> {
+                return getConstruction().newAnd(lhs, rhs);
+            }
+            case GreaterThan -> {
+                return getConstruction().newCmp(lhs, rhs, Relation.Greater);
+            }
+            case LessThanOrEqual -> {
+                return getConstruction().newCmp(lhs, rhs, Relation.LessEqual);
+            }
+            case Subtraction -> {
+                return getConstruction().newSub(lhs, rhs);
+            }
+            case Multiplication -> {
+                return getConstruction().newMul(lhs, rhs);
+            }
+            case GreaterThanOrEqual -> {
+                return getConstruction().newCmp(lhs, rhs, Relation.GreaterEqual);
+            }
+        }
+        return getConstruction().newConst(Mode.getIs().getNull());
     }
 
     @Override
     public Node visit(ExpressionNode.UnaryExpressionNode unaryExpressionNode) {
-        return null;
+        return getConstruction().newConst(Mode.getIs().getNull());
     }
 
     @Override
     public Node visit(ExpressionNode.MethodInvocationExpressionNode methodInvocationExpressionNode) {
-        return null;
+        return getConstruction().newConst(Mode.getIs().getNull());
     }
 
     @Override
     public Node visit(ExpressionNode.FieldAccessExpressionNode fieldAccessExpressionNode) {
-        return null;
+        return getConstruction().newConst(Mode.getIs().getNull());
     }
 
     @Override
     public Node visit(ExpressionNode.ArrayAccessExpressionNode arrayAccessExpressionNode) {
-        return null;
+        return getConstruction().newConst(Mode.getIs().getNull());
     }
 
     @Override
@@ -62,7 +150,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
     @Override
     public Node visit(ExpressionNode.ThisExpressionNode thisExpressionNode) {
-        return null;
+        return getConstruction().newConst(Mode.getIs().getNull());
     }
 
     @Override
@@ -73,17 +161,14 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         // the new node that should be craeted here
         Node n = null;
         switch (valueExpressionNode.getValueType()) {
-            case Null: {
+            case Null -> {
                 n = handleNullExpressionNode(valueExpressionNode);
-                break;
             }
-            case False:
-            case True: {
+            case False, True -> {
                 throw new UnsupportedOperationException();
             }
-            case IntegerLiteral: {
+            case IntegerLiteral -> {
                 n = handleIntegerExpressionNode(valueExpressionNode);
-                break;
             }
         }
 
