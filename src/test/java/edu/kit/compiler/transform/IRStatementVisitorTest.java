@@ -17,7 +17,7 @@ import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 
-public class IRVisitorTest{
+public class IRStatementVisitorTest {
     private static final String main = "class Main {public static void main(String[] args) {}}";
     private TypeMapper typeMapper;
 
@@ -50,43 +50,43 @@ public class IRVisitorTest{
     @Test
     public void testEmpty() throws IOException {
         var context = initContext("class c { public void m() { } }" + main);
-        IRVisitor.apply(context);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
     }
 
     @Test
     public void testWithReturn() throws IOException {
         var context = initContext("class c { public int m() { int i; return i; } }" + main);
-        IRVisitor.apply(context);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
     }
 
     @Test
     public void testWithRefReturn() throws IOException {
         var context = initContext("class c { public c m() { c ref; return ref; } }" + main);
-        IRVisitor.apply(context);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
     }
 
     @Test
     public void testWithParReturn() throws IOException {
         var context = initContext("class c { public int m(int x) { return x; } }" + main);
-        IRVisitor.apply(context);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
     }
 
     @Test
     public void testSimpleIf() throws IOException {
         var context = initContext("class c { public void m(int x) { if (x == 0) return; } }" + main);
-        IRVisitor.apply(context);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
     }
 
     @Test
     public void testIfInt() throws IOException {
         var context = initContext("class c { public int m(int x) { int y; if (x == 0) { return x;} else {return 0;} } }" + main);
-        IRVisitor.apply(context);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
     }
 
     @Test
     public void testWhile() throws IOException {
         var context = initContext("class c { public int m(int x) { while (x == 0) { if (x > 0) return 1; } return x; } }" + main);
-        IRVisitor.apply(context);
+        context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
     }
 
     private static Reader getReader(String input) {
