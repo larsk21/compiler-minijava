@@ -79,22 +79,13 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
     @Override
     public Boolean visit(IfStatementNode ifStmt) {
         Construction con = context.getConstruction();
-        // TODO: proper condition evaluation
-        ExpressionNode cond = ifStmt.getCondition();
-        Node left = evalExpression(cond);
-        Node right = con.newConst(0, getMode(cond.getResultType()));
-        Node cmp = con.newCmp(left, right, Relation.LessGreater);
-        Node getCond = con.newCond(cmp);
-        Node projTrue = con.newProj(getCond, Mode.getX(), 1);
-        Node projFalse = con.newProj(getCond, Mode.getX(), 0);
 
         Block finalBlock = con.newBlock();
-
+        Block thenBlock = con.newBlock();
         boolean hasElse = ifStmt.getElseStatement().isPresent();
         if (hasElse) {
-            // else block
             Block elseBlock = con.newBlock();
-            elseBlock.addPred(projFalse);
+            IRBooleanExpressions.asConditional(context, ifStmt.getCondition(), thenBlock, elseBlock);
             elseBlock.mature();
             con.setCurrentBlock(elseBlock);
             if (!ifStmt.getElseStatement().get().accept(this)) {
@@ -103,12 +94,9 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
                 finalBlock.addPred(elseJmp);
             }
         } else {
-            finalBlock.addPred(projFalse);
+            IRBooleanExpressions.asConditional(context, ifStmt.getCondition(), thenBlock, finalBlock);
         }
 
-        // then block
-        Block thenBlock = con.newBlock();
-        thenBlock.addPred(projTrue);
         thenBlock.mature();
         con.setCurrentBlock(thenBlock);
         if (!ifStmt.getThenStatement().accept(this)) {
@@ -117,7 +105,6 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
             finalBlock.addPred(thenJmp);
         }
 
-        // final block
         finalBlock.mature();
         con.setCurrentBlock(finalBlock);
 
@@ -137,17 +124,10 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
         con.getCurrentMem();
         con.getGraph().keepAlive(loopHeader);
 
-        // TODO: proper condition evaluation
-        ExpressionNode cond = whileStmt.getCondition();
-        Node left = evalExpression(cond);
-        Node right = con.newConst(0, getMode(cond.getResultType()));
-        Node cmp = con.newCmp(left, right, Relation.LessGreater);
-        Node getCond = con.newCond(cmp);
-        Node projTrue = con.newProj(getCond, Mode.getX(), 1);
-        Node projFalse = con.newProj(getCond, Mode.getX(), 0);
-
         Block loopBody = con.newBlock();
-        loopBody.addPred(projTrue);
+        Block loopExit = con.newBlock();
+        IRBooleanExpressions.asConditional(context, whileStmt.getCondition(), loopBody, loopExit);
+
         loopBody.mature();
         con.setCurrentBlock(loopBody);
         if (!whileStmt.getStatement().accept(this)) {
@@ -157,10 +137,8 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
         }
         loopHeader.mature();
 
-        Block nextBlock = con.newBlock();
-        nextBlock.addPred(projFalse);
-        nextBlock.mature();
-        con.setCurrentBlock(nextBlock);
+        loopExit.mature();
+        con.setCurrentBlock(loopExit);
         return false;
     }
 
