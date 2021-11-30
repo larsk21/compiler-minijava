@@ -44,10 +44,24 @@ public class IRBooleanExpressions {
     private static class ValueVisitor implements AstVisitor<Node> {
         private TransformContext context;
 
-        public Node visit(BinaryExpressionNode expr) { 
-            return fromConditional(expr);
+        @Override
+        public Node visit(BinaryExpressionNode expr) {
+            return switch (expr.getOperator()) {
+                case Assignment -> {
+                    ExpressionNode left = expr.getLeftSide();
+                    ExpressionNode right = expr.getRightSide();
+                    if (preferAsValue(right)) {
+                        Node rValue = evalExpression(context, right);
+                        throw new UnsupportedOperationException();
+                    } else {
+                        yield fromConditional(expr);
+                    }
+                }
+                default -> fromConditional(expr);
+            };
         }
 
+        @Override
         public Node visit(UnaryExpressionNode expr) {
             if (expr.getOperator() != UnaryOperator.LogicalNegation) {
                 throw new IllegalArgumentException();
@@ -58,20 +72,21 @@ public class IRBooleanExpressions {
              * optimizing conditionals/branches afterwards is not that simple.
              */
             ExpressionNode inner = expr.getExpression();
-            if (inner instanceof BinaryExpressionNode) {
-                return fromConditional(expr);
-            } else if (inner instanceof UnaryExpressionNode) {
+            if (inner instanceof UnaryExpressionNode) {
                 return evalExpression(context, ((UnaryExpressionNode)inner).getExpression());
-            } else {
+            } else if (preferAsValue(inner)) {
                 // calculate inverse via XOR
                 // This assumes that a boolean one is always the integer '1'!
                 Construction con = context.getConstruction();
-                Node value = evalExpression(context, expr);
+                Node value = evalExpression(context, inner);
                 Node constOne = con.newConst(1, Mode.getBu());
                 return con.newEor(value, constOne);
+            } else {
+                return fromConditional(expr);
             }
         }
 
+        @Override
         public Node visit(ValueExpressionNode expr) {
             Construction con = context.getConstruction();
             return switch (expr.getValueType()) {
@@ -98,10 +113,11 @@ public class IRBooleanExpressions {
             Node jmpB = con.newJmp();
 
             Block finalBlock = con.newBlock();
-            finalBlock.addPred(trueBranch);
-            finalBlock.addPred(falseBranch);
+            finalBlock.addPred(jmpA);
+            finalBlock.addPred(jmpB);
             finalBlock.mature();
-            return con.newPhi(new Node[] {trueBranch, falseBranch}, Mode.getBu());
+            con.setCurrentBlock(finalBlock);
+            return con.newPhi(new Node[] {constOne, constZero}, Mode.getBu());
         }
     }
 
@@ -149,7 +165,7 @@ public class IRBooleanExpressions {
                 throw new IllegalArgumentException();
             }
             // swap branches
-            return asConditional(expr, falseBranch, trueBranch);
+            return asConditional(expr.getExpression(), falseBranch, trueBranch);
         }
 
         @Override
@@ -214,7 +230,43 @@ public class IRBooleanExpressions {
         }
     }
 
+    /**
+     * Returns whether evaluation as value (instead of as conditional) is preferable,
+     * in a context where a value should be returned.
+     */
+    private static class ValueOrConditionalDecisionVisitor implements AstVisitor<Boolean> {
+        public Boolean visit(BinaryExpressionNode expr) {
+            return switch (expr.getOperator()) {
+                // recursive inspection of right side of assignment
+                case Assignment -> expr.getRightSide().accept(this);
+                // comparisons are always conditionals
+                default -> false;
+            };
+        }
+
+        public Boolean visit(UnaryExpressionNode expr) {
+            // recursive inspection
+            return expr.getExpression().accept(this);
+        }
+
+        public Boolean visit(MethodInvocationExpressionNode expr) { return true; }
+        public Boolean visit(FieldAccessExpressionNode expr) { return true; }
+        public Boolean visit(ArrayAccessExpressionNode expr) { return true; }
+        public Boolean visit(IdentifierExpressionNode expr) { return true; }
+        public Boolean visit(ValueExpressionNode expr) { return true; }
+    }
+
+    private static boolean preferAsValue(ExpressionNode expr) {
+        return expr.accept(new ValueOrConditionalDecisionVisitor());
+    }
+
     private static Node evalExpression(TransformContext context, ExpressionNode expr) {
+        // TODO: replace all of this with expression visitor
+        if (expr.getResultType().equals(boolType) &&
+            (expr instanceof BinaryExpressionNode || expr instanceof UnaryExpressionNode)
+        ) {
+            return IRBooleanExpressions.asValue(context, expr);
+        }
         return context.getConstruction().newConst(1, Mode.getBu());
     }
 }
