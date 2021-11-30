@@ -498,6 +498,23 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
         return nothing;
     }
 
+    public void printLiteralStringValue(String literal) {
+        if (literal.startsWith("-")) {
+            if (!topLevelExpression) {
+                print("(");
+            }
+
+            print("-");
+            printLiteralStringValue(literal.substring(1));
+
+            if (!topLevelExpression) {
+                print(")");
+            }
+        } else {
+            print(literal);
+        }
+    }
+
     @Override
     public Void visit(ValueExpressionNode valueExpressionNode) {
         switch (valueExpressionNode.getValueType()) {
@@ -505,11 +522,11 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
             print("false");
             break;
         case IntegerLiteral:
-            print(valueExpressionNode.getLiteralValue().map(
-                value -> value.toString()
-            ).orElseThrow(
-                () -> new IllegalStateException("integer literal primary expression without associated integer literal")
-            ));
+            if (valueExpressionNode.getLiteralValue().isPresent()) {
+                printLiteralStringValue(valueExpressionNode.getLiteralValue().get().toString());
+            } else {
+                new IllegalStateException("integer literal primary expression without associated integer literal");
+            }
             break;
         case Null:
             print("null");
