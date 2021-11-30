@@ -34,6 +34,7 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
  * - hasError is set in all nodes where an error occured
  * - user defined data types of fields and methods (incl. parameters) are valid
  * - integer literal values are valid integer values (32-bit signed)
+ * - calls to the standard library are identified
  * 
  * Not checked:
  * - all code paths return a value
@@ -47,8 +48,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         this.namespaceMapper = namespaceMapper;
         this.stringTable = stringTable;
         this.symboltable = new SymbolTable();
-
-        StandardLibrary.initialize(namespaceMapper, stringTable, symboltable);
+        this.standardLibrary = StandardLibrary.create(stringTable);
 
         currentClassNamespace = Optional.empty();
         expectedReturnType = null;
@@ -57,6 +57,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
     private NamespaceMapper namespaceMapper;
     private StringTable stringTable;
     private SymbolTable symboltable;
+    private StandardLibrary standardLibrary;
 
     private Optional<ClassNamespace> currentClassNamespace;
     private DataType expectedReturnType;
@@ -330,28 +331,83 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         return operator.getResultType();
     }
 
-    public DataType visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
-        ClassNamespace namespace;
-        if (methodInvocationExpressionNode.getObject().isPresent()) {
-            DataType objectType = methodInvocationExpressionNode.getObject().get().accept(this);
+    private Optional<MethodNode> visitStandardLibraryMethodInvocationExpressionNode(MethodInvocationExpressionNode methodInvocationExpressionNode) {
+        // standard library is not shadowed
+        if (namespaceMapper.containsClassNamespace(standardLibrary.getSystemName())) {
+            return Optional.empty();
+        } else if (symboltable.isDefined(standardLibrary.getSystemName())) {
+            return Optional.empty();
+        }
 
-            if (objectType.getType() != DataTypeClass.UserDefined) {
-                semanticError(methodInvocationExpressionNode, "method invocation is only allowed on reference type expressions");
-            }
+        // method is called on some object (we expect System.out / System.in)
+        if (!methodInvocationExpressionNode.getObject().isPresent()) {
+            return Optional.empty();
+        }
+        ExpressionNode methodInvocationObject = methodInvocationExpressionNode.getObject().get();
 
-            namespace = namespaceMapper.getClassNamespace(objectType.getIdentifier().get());
+        // method call object is field access (we expect System.out / System.in)
+        if (!(methodInvocationObject instanceof FieldAccessExpressionNode)) {
+            return Optional.empty();
+        }
+        FieldAccessExpressionNode fieldAccess = (FieldAccessExpressionNode)methodInvocationObject;
+
+        // field access object is identifier (we expect "System")
+        if (!(fieldAccess.getObject() instanceof IdentifierExpressionNode)) {
+            return Optional.empty();
+        }
+        IdentifierExpressionNode identifier = (IdentifierExpressionNode)fieldAccess.getObject();
+
+        // identifier is "System"
+        if (identifier.getIdentifier() != standardLibrary.getSystemName()) {
+            return Optional.empty();
+        }
+
+        // field is "out" or "in"
+        if (fieldAccess.getName() == standardLibrary.getSystemInName()) {
+            return Optional.ofNullable(
+                standardLibrary.getSystemInMethods().get(methodInvocationExpressionNode.getName())
+            );
+        } else if (fieldAccess.getName() == standardLibrary.getSystemOutName()) {
+            return Optional.ofNullable(
+                standardLibrary.getSystemOutMethods().get(methodInvocationExpressionNode.getName())
+            );
         } else {
-            if (!currentClassNamespace.isPresent()) {
-                semanticError(methodInvocationExpressionNode, "method calls without object are not allowed in static methods");
+            return Optional.empty();
+        }
+    }
+
+    public DataType visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
+        MethodNode definition;
+
+        Optional<MethodNode> systemDefinition = visitStandardLibraryMethodInvocationExpressionNode(methodInvocationExpressionNode);
+        if (systemDefinition.isPresent()) {
+            methodInvocationExpressionNode.removeObject();
+
+            definition = systemDefinition.get();
+        } else {
+            ClassNamespace namespace;
+            if (methodInvocationExpressionNode.getObject().isPresent()) {
+                DataType objectType = methodInvocationExpressionNode.getObject().get().accept(this);
+
+                if (objectType.getType() != DataTypeClass.UserDefined) {
+                    semanticError(methodInvocationExpressionNode, "method invocation is only allowed on reference type expressions");
+                }
+
+                namespace = namespaceMapper.getClassNamespace(objectType.getIdentifier().get());
+            } else {
+                if (!currentClassNamespace.isPresent()) {
+                    semanticError(methodInvocationExpressionNode, "method calls without object are not allowed in static methods");
+                }
+
+                namespace = currentClassNamespace.get();
             }
 
-            namespace = currentClassNamespace.get();
-        }
+            if (!namespace.getDynamicMethods().containsKey(methodInvocationExpressionNode.getName())) {
+                semanticError(methodInvocationExpressionNode, "unknown method");
+            }
 
-        if (!namespace.getDynamicMethods().containsKey(methodInvocationExpressionNode.getName())) {
-            semanticError(methodInvocationExpressionNode, "unknown method");
+            definition = namespace.getDynamicMethods().get(methodInvocationExpressionNode.getName());
         }
-        MethodNode definition = namespace.getDynamicMethods().get(methodInvocationExpressionNode.getName());
 
         methodInvocationExpressionNode.setDefinition(definition);
 

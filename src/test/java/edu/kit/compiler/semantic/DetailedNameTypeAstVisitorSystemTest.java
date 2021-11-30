@@ -3,16 +3,13 @@ package edu.kit.compiler.semantic;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.DataType.DataTypeClass;
 import edu.kit.compiler.data.Literal;
+import edu.kit.compiler.data.Operator;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
-import edu.kit.compiler.data.ast_nodes.ClassNode.ClassNodeField;
+import edu.kit.compiler.data.ast_nodes.ClassNode.*;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
-import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
-import edu.kit.compiler.data.ast_nodes.MethodNode.MethodNodeParameter;
-import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
+import edu.kit.compiler.data.ast_nodes.MethodNode.*;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
-import edu.kit.compiler.data.ast_nodes.StatementNode.BlockStatementNode;
-import edu.kit.compiler.data.ast_nodes.StatementNode.ExpressionStatementNode;
-import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationStatementNode;
+import edu.kit.compiler.data.ast_nodes.StatementNode.*;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
 import org.junit.jupiter.api.Test;
@@ -46,18 +43,19 @@ public class DetailedNameTypeAstVisitorSystemTest {
         StringTable stringTable = new StringTable();
 
         ClassNode _class;
+        MethodInvocationExpressionNode methodInvocation;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
             (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
                 new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
                     new BlockStatementNode(0, 0, Arrays.asList(
                         new ExpressionStatementNode(0, 0,
-                            new MethodInvocationExpressionNode(0, 0, Optional.of(
+                            (methodInvocation = new MethodInvocationExpressionNode(0, 0, Optional.of(
                                 new FieldAccessExpressionNode(0, 0,
                                     new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
                                 stringTable.insert("out"), false)
                             ), stringTable.insert("println"), Arrays.asList(
                                 new ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false)
-                            ), false),
+                            ), false)),
                         false)
                     ), false),
                 false)
@@ -69,6 +67,7 @@ public class DetailedNameTypeAstVisitorSystemTest {
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
         assertDoesNotThrow(() -> program.accept(visitor));
+        assertTrue(methodInvocation.getDefinition() instanceof StandardLibraryMethodNode);
     }
 
     @Test
@@ -77,18 +76,19 @@ public class DetailedNameTypeAstVisitorSystemTest {
         StringTable stringTable = new StringTable();
 
         ClassNode _class;
+        MethodInvocationExpressionNode methodInvocation;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
             (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
                 new StaticMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
                     new BlockStatementNode(0, 0, Arrays.asList(
                         new ExpressionStatementNode(0, 0,
-                            new MethodInvocationExpressionNode(0, 0, Optional.of(
+                            (methodInvocation = new MethodInvocationExpressionNode(0, 0, Optional.of(
                                 new FieldAccessExpressionNode(0, 0,
                                     new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
                                 stringTable.insert("out"), false)
                             ), stringTable.insert("println"), Arrays.asList(
                                 new ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false)
-                            ), false),
+                            ), false)),
                         false)
                     ), false),
                 false)
@@ -100,6 +100,107 @@ public class DetailedNameTypeAstVisitorSystemTest {
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
         assertDoesNotThrow(() -> program.accept(visitor));
+        assertTrue(methodInvocation.getDefinition() instanceof StandardLibraryMethodNode);
+    }
+
+    @Test
+    public void testSystemCall_WrongNumberOfArguments() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+
+        ClassNode _class;
+        MethodInvocationExpressionNode methodInvocation;
+        ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
+            (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+                new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                    new BlockStatementNode(0, 0, Arrays.asList(
+                        new ExpressionStatementNode(0, 0,
+                            (methodInvocation = new MethodInvocationExpressionNode(0, 0, Optional.of(
+                                new FieldAccessExpressionNode(0, 0,
+                                    new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
+                                stringTable.insert("out"), false)
+                            ), stringTable.insert("println"), Arrays.asList(
+                                new ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false),
+                                new ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false)
+                            ), false)),
+                        false)
+                    ), false),
+                false)
+            ), false))
+        ), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(methodInvocation.isHasError());
+    }
+
+    @Test
+    public void testSystemCall_WrongArgumentType() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+
+        ClassNode _class;
+        MethodInvocationExpressionNode methodInvocation;
+        ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
+            (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+                new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                    new BlockStatementNode(0, 0, Arrays.asList(
+                        new ExpressionStatementNode(0, 0,
+                            (methodInvocation = new MethodInvocationExpressionNode(0, 0, Optional.of(
+                                new FieldAccessExpressionNode(0, 0,
+                                    new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
+                                stringTable.insert("out"), false)
+                            ), stringTable.insert("println"), Arrays.asList(
+                                new ValueExpressionNode(0, 0, ValueExpressionType.False, false)
+                            ), false)),
+                        false)
+                    ), false),
+                false)
+            ), false))
+        ), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(methodInvocation.isHasError());
+    }
+
+    @Test
+    public void testSystemCall_ArgumentTypeVoid() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+
+        ClassNode _class;
+        MethodInvocationExpressionNode methodInvocation;
+        ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
+            (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+                new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                    new BlockStatementNode(0, 0, Arrays.asList(
+                        new ExpressionStatementNode(0, 0,
+                            (methodInvocation = new MethodInvocationExpressionNode(0, 0, Optional.of(
+                                new FieldAccessExpressionNode(0, 0,
+                                    new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
+                                stringTable.insert("out"), false)
+                            ), stringTable.insert("println"), Arrays.asList(
+                                new MethodInvocationExpressionNode(0, 0, Optional.empty(), stringTable.insert("methodA"), Arrays.asList(), false)
+                            ), false)),
+                        false)
+                    ), false),
+                false)
+            ), false))
+        ), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(methodInvocation.isHasError());
     }
 
     @Test
@@ -265,14 +366,22 @@ public class DetailedNameTypeAstVisitorSystemTest {
     }
 
     @Test
-    public void testSystemCall_Void() {
+    public void testSystemCall_ShadowedButCorrect() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
 
         ClassNode _class;
         MethodInvocationExpressionNode methodInvocation;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
-            (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+            (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(
+                new ClassNodeField(0, 0, new DataType(stringTable.insert("ClassA")), stringTable.insert("System"), false),
+                new ClassNodeField(0, 0, new DataType(stringTable.insert("ClassA")), stringTable.insert("out"), false)
+            ), Arrays.asList(), Arrays.asList(
+                new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("println"), Arrays.asList(
+                    new MethodNodeParameter(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("value"), false)
+                ), Optional.empty(),
+                    new BlockStatementNode(0, 0, Arrays.asList(), false),
+                false),
                 new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
                     new BlockStatementNode(0, 0, Arrays.asList(
                         new ExpressionStatementNode(0, 0,
@@ -281,7 +390,7 @@ public class DetailedNameTypeAstVisitorSystemTest {
                                     new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
                                 stringTable.insert("out"), false)
                             ), stringTable.insert("println"), Arrays.asList(
-                                new MethodInvocationExpressionNode(0, 0, Optional.empty(), stringTable.insert("methodA"), Arrays.asList(), false)
+                                new ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(17), false)
                             ), false)),
                         false)
                     ), false),
@@ -293,8 +402,68 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
 
+        assertDoesNotThrow(() -> program.accept(visitor));
+        assertFalse(methodInvocation.getDefinition() instanceof StandardLibraryMethodNode);
+    }
+
+    @Test
+    public void testSystemIsNotAnObject() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+
+        ClassNode _class;
+        ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
+            (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+                new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                    new BlockStatementNode(0, 0, Arrays.asList(
+                        new ExpressionStatementNode(0, 0,
+                            new BinaryExpressionNode(0, 0, Operator.BinaryOperator.Equal,
+                                new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
+                                new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
+                            false),
+                        false)
+                    ), false),
+                false)
+            ), false))
+        ), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
         assertThrows(SemanticException.class, () -> program.accept(visitor));
-        assertTrue(methodInvocation.isHasError());
+    }
+
+    @Test
+    public void testSystemOutIsNotAnObject() {
+        NamespaceMapper namespaceMapper = new NamespaceMapper();
+        StringTable stringTable = new StringTable();
+
+        ClassNode _class;
+        ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
+            (_class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
+                new DynamicMethodNode(0, 0, new DataType(DataTypeClass.Void), stringTable.insert("methodA"), Arrays.asList(), Optional.empty(),
+                    new BlockStatementNode(0, 0, Arrays.asList(
+                        new ExpressionStatementNode(0, 0,
+                            new BinaryExpressionNode(0, 0, Operator.BinaryOperator.Equal,
+                                new FieldAccessExpressionNode(0, 0,
+                                    new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
+                                stringTable.insert("out"), false),
+                                new FieldAccessExpressionNode(0, 0,
+                                    new IdentifierExpressionNode(0, 0, stringTable.insert("System"), false),
+                                stringTable.insert("out"), false),
+                            false),
+                        false)
+                    ), false),
+                false)
+            ), false))
+        ), false);
+
+        initializeNamespace(namespaceMapper, _class);
+
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+
+        assertThrows(SemanticException.class, () -> program.accept(visitor));
     }
 
 }

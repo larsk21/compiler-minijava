@@ -113,6 +113,16 @@ public abstract class ExpressionNode extends AstNode {
             return visitor.visit(this);
         }
 
+        /**
+         * Remove the object of this method invocation.
+         * 
+         * This can be useful if the object is not needed for calling the
+         * method, for example if the method is in the standard library.
+         */
+        public void removeObject() {
+            object = Optional.empty();
+        }
+
     }
 
     public static class FieldAccessExpressionNode extends ExpressionNode implements Reference {
