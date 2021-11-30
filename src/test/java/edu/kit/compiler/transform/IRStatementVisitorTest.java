@@ -120,7 +120,7 @@ public class IRStatementVisitorTest {
     }
 
     @Test
-    public void shortCircuit() throws IOException {
+    public void testShortCircuit() throws IOException {
         var context = initContext("class c { public int m(int x) { if (x > 0 && (1 == 0 || false)) return 1; else return x; } }" + main);
         context.getMethodNode().getStatementBlock().accept(new IRStatementVisitor(context));
     }
