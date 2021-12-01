@@ -14,6 +14,7 @@ import edu.kit.compiler.data.ast_nodes.MethodNode.MethodNodeParameter;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
+import firm.ArrayType;
 import firm.ClassType;
 import firm.Entity;
 import firm.MethodType;
@@ -70,9 +71,9 @@ public final class TypeMapper {
     /**
      * Returns the corresponding Firm type for the given data type. If the given
      * type is an integer or boolean, a `PrimitiveType` is returned. An array
-     * will return a `PointerType` to the inner type. A user defined type will
-     * return a `PointerType` to the `ClassType`. Void and Any will throw an
-     * exception.
+     * will return a `PointerType` to an unsized `ArrayType` for the inner type.
+     * A user defined type will return a `PointerType` to the `ClassType`. Void
+     * and Any will throw an exception.
      * 
      * @param type the data type whose corresponding Firm type is to be returned
      * @return the corresponding Firm type
@@ -83,7 +84,8 @@ public final class TypeMapper {
             case Int -> integerType;
             case Array -> {
                 var innerType = getDataType(type.getInnerType().get());
-                yield new PointerType(innerType);
+                var arrayType = new ArrayType(innerType, 0);
+                yield new PointerType(arrayType);
             }
             case UserDefined -> {
                 var classEntry = classes.get(type.getIdentifier().get());
@@ -276,7 +278,8 @@ public final class TypeMapper {
             return switch (type.getType()) {
                 case Array -> {
                     var innerType = initDataType(type.getInnerType().get());
-                    yield new PointerType(innerType);
+                    var arrayType = new ArrayType(innerType, 0);
+                    yield new PointerType(arrayType);
                 }
                 case UserDefined -> {
                     var classId = type.getIdentifier().get();
