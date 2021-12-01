@@ -10,10 +10,8 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.IfStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.ReturnStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.WhileStatementNode;
-import edu.kit.compiler.semantic.DefinitionKind;
 import firm.Construction;
 import firm.Mode;
-import firm.Relation;
 import firm.nodes.Block;
 import firm.nodes.Node;
 
@@ -24,11 +22,11 @@ import firm.nodes.Node;
  */
 public class IRStatementVisitor implements AstVisitor<Boolean> {
     private final TransformContext context;
-    private final IRExpressionVisitor irExpressionVisitor;
+    private final IRExpressionVisitor expressionVisitor;
 
     public IRStatementVisitor(TransformContext context) {
         this.context = context;
-        this.irExpressionVisitor = new IRExpressionVisitor(context);
+        this.expressionVisitor = new IRExpressionVisitor(context);
     }
 
     @Override
@@ -145,7 +143,7 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
     }
 
     private Node evalExpression(ExpressionNode expr) {
-        return expr.accept(irExpressionVisitor);
+        return expr.accept(expressionVisitor);
     }
 
     private Mode getMode(DataType type) {

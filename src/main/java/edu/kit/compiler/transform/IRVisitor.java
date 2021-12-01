@@ -7,11 +7,15 @@ import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import firm.Construction;
 import firm.nodes.Node;
+import lombok.Getter;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class IRVisitor implements AstVisitor<Void> {
     private final TypeMapper typeMapper;
+    @Getter
+    private static final Map<Integer, TransformContext> methodContexts = new HashMap<>();
 
     /**
      * Transform visitor visits the AST recursively and calls our underlying IR visitors that create firm components for the AST
@@ -46,6 +50,7 @@ public class IRVisitor implements AstVisitor<Void> {
             Map<Integer, Integer> variableMapping = LocalVariableCounter.apply(method);
             TransformContext transformContext = new TransformContext(typeMapper, classNode, method, variableMapping, true);
 
+            methodContexts.put(method.getName(), transformContext);
             visitMethod(method, transformContext);
         }
         return (Void) null;

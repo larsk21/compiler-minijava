@@ -6,9 +6,9 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.semantic.DefinitionKind;
 import firm.Construction;
 import firm.Mode;
-import firm.Relation;
 import firm.TargetValue;
 import firm.bindings.binding_ircons;
+import firm.nodes.Call;
 import firm.nodes.Div;
 import firm.nodes.Mod;
 import firm.nodes.Node;
@@ -34,30 +34,12 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         Mode m = context.getTypeMapper().getDataType(binaryExpressionNode.getLeftSide().getResultType()).getMode();
 
-        switch(binaryExpressionNode.getOperator()) {
-            case Assignment -> {
-                // lhs is variable we have to visit for lvalues
-                final AstVisitor<Node> lValueVisitor = new AstVisitor<>() {
-                    @Override
-                    public Node visit(ExpressionNode.FieldAccessExpressionNode fieldAccessExpressionNode) {
-                        return AstVisitor.super.visit(fieldAccessExpressionNode);
-                    }
-
-                    @Override
-                    public Node visit(ExpressionNode.ArrayAccessExpressionNode arrayAccessExpressionNode) {
-                        return AstVisitor.super.visit(arrayAccessExpressionNode);
-                    }
-
-                    @Override
-                    public Node visit(ExpressionNode.IdentifierExpressionNode identifierExpressionNode) {
-                        return AstVisitor.super.visit(identifierExpressionNode);
-                    }
-                };
-                return binaryExpressionNode.getLeftSide().accept(lValueVisitor);
-
-            }
-            case Equal -> {
-                return getConstruction().newCmp(lhs, rhs, Relation.Equal);
+        switch (binaryExpressionNode.getOperator()) {
+            // handle stuff with our boolean visitor
+            case Assignment, Equal, LessThanOrEqual,
+                    LogicalAnd, GreaterThanOrEqual, GreaterThan,
+                    LogicalOr, NotEqual, LessThan -> {
+                return IRBooleanExpressions.asValue(context, binaryExpressionNode);
             }
             case Modulo -> {
                 Node mem = getConstruction().getCurrentMem();
@@ -66,7 +48,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 Node projMem = getConstruction().newProj(mod, m, Mod.pnM);
 
                 // TODO: map control flow exceptions too?
-
                 getConstruction().setCurrentMem(projMem);
                 return projRes;
             }
@@ -80,27 +61,8 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 Node projMem = getConstruction().newProj(div, m, Div.pnM);
 
                 // TODO: map control flow exceptions too?
-
                 getConstruction().setCurrentMem(projMem);
                 return projRes;
-            }
-            case LessThan -> {
-                return getConstruction().newCmp(lhs, rhs, Relation.Less);
-            }
-            case NotEqual -> {
-                return getConstruction().newCmp(lhs, rhs, Relation.LessGreater);
-            }
-            case LogicalOr -> {
-                return getConstruction().newOr(lhs, rhs);
-            }
-            case LogicalAnd -> {
-                return getConstruction().newAnd(lhs, rhs);
-            }
-            case GreaterThan -> {
-                return getConstruction().newCmp(lhs, rhs, Relation.Greater);
-            }
-            case LessThanOrEqual -> {
-                return getConstruction().newCmp(lhs, rhs, Relation.LessEqual);
             }
             case Subtraction -> {
                 return getConstruction().newSub(lhs, rhs);
@@ -108,26 +70,61 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
             case Multiplication -> {
                 return getConstruction().newMul(lhs, rhs);
             }
-            case GreaterThanOrEqual -> {
-                return getConstruction().newCmp(lhs, rhs, Relation.GreaterEqual);
+            default -> {
+                throw new UnsupportedOperationException("not supported " + binaryExpressionNode.getOperator().toString());
             }
         }
-        return getConstruction().newConst(Mode.getIs().getNull());
     }
 
     @Override
     public Node visit(ExpressionNode.UnaryExpressionNode unaryExpressionNode) {
-        return getConstruction().newConst(Mode.getIs().getNull());
+        switch (unaryExpressionNode.getOperator()) {
+            case LogicalNegation -> {
+                return IRBooleanExpressions.asValue(context, unaryExpressionNode);
+            }
+            case ArithmeticNegation -> {
+                ExpressionNode innerNode = unaryExpressionNode.getExpression();
+                Node res = innerNode.accept(this);
+                // negate res
+                return getConstruction().newMinus(res);
+            }
+            default -> {
+                throw new UnsupportedOperationException("not supported " + unaryExpressionNode.getOperator());
+            }
+        }
     }
 
     @Override
     public Node visit(ExpressionNode.MethodInvocationExpressionNode methodInvocationExpressionNode) {
-        return getConstruction().newConst(Mode.getIs().getNull());
+        Node mem = getConstruction().getCurrentMem();
+        TypeMapper.ClassEntry currentClass = context.getTypeMapper().getClassEntry(context.getClassNode());
+
+        Mode m = context.getTypeMapper().getDataType(methodInvocationExpressionNode.getResultType()).getMode();
+
+        Node addr = getConstruction().newAddress(currentClass.getMethod(methodInvocationExpressionNode.getDefinition()));
+
+        // collect arguments in list
+        Node[] arguments = new Node[methodInvocationExpressionNode.getArguments().size()];
+        for (int i = 0; i < methodInvocationExpressionNode.getArguments().size(); i++) {
+            Node n = methodInvocationExpressionNode.getArguments().get(i).accept(this);
+            arguments[i] = n;
+        }
+
+        Node call = getConstruction().newCall(mem, addr, arguments, m.getType());
+        Node tResult = getConstruction().newProj(call, m, Call.pnTResult);
+        Node res = getConstruction().newProj(tResult, m, 0);
+        Node projMem = getConstruction().newProj(call, m, Call.pnM);
+        getConstruction().setCurrentMem(projMem);
+
+        return res;
     }
 
     @Override
     public Node visit(ExpressionNode.FieldAccessExpressionNode fieldAccessExpressionNode) {
-        return getConstruction().newConst(Mode.getIs().getNull());
+        Node mem = getConstruction().getCurrentMem();
+
+        Node n = fieldAccessExpressionNode.getObject().accept(this);
+        return (Node) null;
     }
 
     @Override
