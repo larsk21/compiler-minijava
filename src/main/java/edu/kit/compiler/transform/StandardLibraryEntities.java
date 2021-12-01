@@ -1,5 +1,6 @@
 package edu.kit.compiler.transform;
 
+import edu.kit.compiler.data.ast_nodes.MethodNode;
 import firm.Entity;
 import firm.Ident;
 import firm.MethodType;
@@ -25,6 +26,26 @@ public enum StandardLibraryEntities {
     private final Entity write;
     @Getter
     private final Entity flush;
+
+    /**
+     * Return the corresponding entity for the given standard library method. This
+     * method is intended to be used in combination with the `method` attribute of
+     * `StandardLibraryMethodNode` during code generation.
+     * 
+     * @param method the standard library method, whose entity is to be returned
+     * @return the corresponding entity of method type
+     */
+    public Entity getEntity(MethodNode.StandardLibraryMethod method) {
+        return switch (method) {
+            case PrintLn -> print;
+            case Read -> read;
+            case Write -> write;
+            case Flush -> flush;
+            default -> throw new IllegalStateException(
+                "unsupported standard library method"
+            );
+        };
+    }
 
     private StandardLibraryEntities() {
         JFirmSingleton.initializeFirmLinux();
