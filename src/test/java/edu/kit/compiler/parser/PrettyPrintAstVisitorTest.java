@@ -1102,7 +1102,7 @@ public class PrettyPrintAstVisitorTest {
     }
 
     @Test
-    public void testIntegerLiteralValueExpression() {
+    public void testIntegerLiteralValueExpressionPositive() {
         StringTable stringTable = new StringTable();
         PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
 
@@ -1113,6 +1113,22 @@ public class PrettyPrintAstVisitorTest {
 
         assertEquals(
             "17",
+            result
+        );
+    }
+
+    @Test
+    public void testIntegerLiteralValueExpressionNegative() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        AstNode node = new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(-17), false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "-17",
             result
         );
     }
@@ -1266,6 +1282,60 @@ public class PrettyPrintAstVisitorTest {
 
         assertEquals(
             "17 * (((a.b)[2 + 2]) % (foo(-31, 2 < 5)))",
+            result
+        );
+    }
+
+    @Test
+    public void testMixedMinusTokensPositiveLiteralValue() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        // 2 - - -2
+        // 2 -  - -2
+        // 2 - (-(-2))
+        // where the ValueExpressionNode contains the literal "2"
+
+        AstNode node = new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Subtraction,
+            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+            new ExpressionNode.UnaryExpressionNode(0, 0, Operator.UnaryOperator.ArithmeticNegation,
+                new ExpressionNode.UnaryExpressionNode(0, 0, Operator.UnaryOperator.ArithmeticNegation,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                false),
+            false),
+        false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "2 - (-(-2))",
+            result
+        );
+    }
+
+    @Test
+    public void testMixedMinusTokensNegativeLiteralValue() {
+        StringTable stringTable = new StringTable();
+        PrettyPrintAstVisitor visitor = new PrettyPrintAstVisitor(stringTable);
+
+        // 2 - - -2
+        // 2 -  - -2
+        // 2 - (-(-2))
+        // where the ValueExpressionNode contains the literal "-2"
+
+        AstNode node = new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Subtraction,
+            new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+            new ExpressionNode.UnaryExpressionNode(0, 0, Operator.UnaryOperator.ArithmeticNegation,
+                new ExpressionNode.ValueExpressionNode(0, 0, ExpressionNode.ValueExpressionType.IntegerLiteral, Literal.ofValue(-2), false),
+            false),
+        false);
+
+        node.accept(visitor);
+        String result = stream.toString();
+
+        assertEquals(
+            "2 - (-(-2))",
             result
         );
     }
