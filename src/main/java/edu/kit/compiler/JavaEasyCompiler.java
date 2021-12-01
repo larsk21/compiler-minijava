@@ -32,6 +32,7 @@ import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
+import edu.kit.compiler.transform.JFirmSingleton;
 import edu.kit.compiler.transform.Lower;
 import edu.kit.compiler.transform.TypeMapper;
 import firm.Backend;
@@ -174,7 +175,7 @@ public class JavaEasyCompiler {
             NamespaceMapper namespaceMapper = new NamespaceMapper();
             createAttributedAst(reader, logger, lexer, namespaceMapper);
 
-            Firm.init("x86_64-linux-gnu", new String[]{ "pic=1" });
+            JFirmSingleton.initializeFirmLinux();
             logger.info("Initialized libFirm Version: %s.%s",
                 Firm.getMinorVersion(), Firm.getMajorVersion()
             );
