@@ -13,16 +13,17 @@ public class FirmGraphFactory {
 
     private final NamespaceMapper namespaceMapper;
     private StringTable stringTable;
+    private TypeMapper typeMapper;
 
     public FirmGraphFactory(NamespaceMapper namespaceMapper, StringTable stringTable) {
         this.namespaceMapper = namespaceMapper;
         this.stringTable = stringTable;
+
+        typeMapper = new TypeMapper(namespaceMapper, stringTable);
     }
 
     public void visitAST(ProgramNode ast) {
-        TypeMapper entityMapper = new TypeMapper(namespaceMapper, stringTable);
-        IRVisitor IRVisitor = new IRVisitor(entityMapper);
-        // visit program node and iterate over methods to create stubs
+        IRVisitor IRVisitor = new IRVisitor(typeMapper);
         IRVisitor.visit(ast);
     }
 

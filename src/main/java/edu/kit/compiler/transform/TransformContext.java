@@ -69,6 +69,9 @@ public class TransformContext {
     @Getter
     private Construction construction;
 
+    @Getter
+    private final Entity methodEntity;
+
     public TransformContext(TypeMapper typeMapper, ClassNode classNode, MethodNode methodNode,
                             Map<Integer, Integer> variableMapping, boolean isStatic) {
         this.typeMapper = typeMapper;
@@ -93,7 +96,7 @@ public class TransformContext {
         if (!methodNode.getType().equals(DataType.voidType())) {
             this.returnType = Optional.of(typeMapper.getDataType(methodNode.getType()));
         }
-        Entity methodEntity = classEntry.getMethod(methodNode);
+        this.methodEntity = classEntry.getMethod(methodNode);
         Graph graph = new Graph(methodEntity, variableMapping.size());
         this.construction = new Construction(graph);
         this.projArgs =  graph.getArgs();
