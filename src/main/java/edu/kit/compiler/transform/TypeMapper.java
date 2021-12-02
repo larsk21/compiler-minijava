@@ -34,8 +34,12 @@ public final class TypeMapper {
 
     private final Map<Integer, ClassEntry> classes = new HashMap<>();
 
-    private final Type booleanType = new PrimitiveType(Mode.getBu());
-    private final Type integerType = new PrimitiveType(Mode.getIs());
+    @Getter
+    private static final Type booleanType = new PrimitiveType(Mode.getBu());
+    @Getter
+    private static final Type integerType = new PrimitiveType(Mode.getIs());
+    @Getter
+    private static final Type pointerType = new PrimitiveType(Mode.getP());
 
     private final StringTable stringTable;
 
@@ -136,6 +140,8 @@ public final class TypeMapper {
     public final class ClassEntry {
         @Getter
         private final ClassType classType;
+        @Getter
+        private int size;
         private final Map<Integer, Entity> fields = new HashMap<>();
         private final Map<Integer, Entity> methods = new HashMap<>();
 
@@ -223,6 +229,10 @@ public final class TypeMapper {
             constructMethods(namespace.getClassNodeRef(), namespace.getDynamicMethods(), false);
             constructMethods(namespace.getClassNodeRef(), namespace.getStaticMethods(), true);
 
+            size = 0;
+            for (var field : this.fields.values()) {
+                size += field.getType().getSize();
+            }
             // ? maybe do later (after possible optimizations)
             classType.layoutFields();
             classType.finishLayout();
