@@ -22,28 +22,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         this.pointerVisitor = new IRPointerVisitor(context);
     }
 
-    final AstVisitor<Node> lValueVisitor = new AstVisitor<>() {
-        @Override
-        public Node visit(ExpressionNode.FieldAccessExpressionNode fieldAccessExpressionNode) {
-            return fieldAccessExpressionNode.getObject().accept(pointerVisitor);
-        }
-
-        @Override
-        public Node visit(ExpressionNode.ArrayAccessExpressionNode arrayAccessExpressionNode) {
-            return arrayAccessExpressionNode.accept(pointerVisitor);
-        }
-
-        @Override
-        public Node visit(ExpressionNode.IdentifierExpressionNode identifierExpressionNode) {
-            return identifierExpressionNode.accept(pointerVisitor);
-        }
-
-        @Override
-        public Node visit(ThisExpressionNode thisExpressionNode) {
-            return context.createThisNode();
-        }
-    };
-
     @Override
     public Node visit(BinaryExpressionNode binaryExpressionNode) {
         Node lhs = binaryExpressionNode.getLeftSide().accept(this);
