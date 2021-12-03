@@ -181,9 +181,9 @@ public class JavaEasyCompiler {
                 Firm.getMinorVersion(), Firm.getMajorVersion()
             );
 
-            TypeMapper typeMapper = new TypeMapper(namespaceMapper, stringTable);
-            ast.accept(new IRVisitor(typeMapper));
-            Lower.lower(typeMapper);
+            IRVisitor irv = new IRVisitor(namespaceMapper, stringTable);
+            ast.accept(irv);
+            Lower.lower(irv.getTypeMapper());
 
             var sourceFile = new File(filePath).getName();
             var assemblyFile = sourceFile + ".s";
