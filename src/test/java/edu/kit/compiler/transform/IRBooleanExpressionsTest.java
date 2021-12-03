@@ -91,6 +91,28 @@ public class IRBooleanExpressionsTest {
         context.getEndBlock().addPred(returnNode);
     }
 
+    @Test
+    public void testAssignVal() throws IOException {
+        ExpressionNode expr = initAndGetExpression(
+                "class c { public boolean m(boolean x, boolean y) { return x = y; } }" + main
+        );
+        Construction con = context.getConstruction();
+        Node val = IRBooleanExpressions.asValue(context, expr);
+        Node returnNode = con.newReturn(con.getCurrentMem(), new Node[]{val});
+        context.getEndBlock().addPred(returnNode);
+    }
+
+    @Test
+    public void testAssignCond() throws IOException {
+        ExpressionNode expr = initAndGetExpression(
+                "class c { public boolean m(boolean x, boolean y) { return x = !(y && true); } }" + main
+        );
+        Construction con = context.getConstruction();
+        Node val = IRBooleanExpressions.asValue(context, expr);
+        Node returnNode = con.newReturn(con.getCurrentMem(), new Node[]{val});
+        context.getEndBlock().addPred(returnNode);
+    }
+
     private static Reader getReader(String input) {
         return new StringReader(input);
     }
