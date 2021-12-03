@@ -23,19 +23,46 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         this.pointerVisitor = new IRPointerVisitor(context);
     }
 
+    final AstVisitor<Node> lValueVisitor = new AstVisitor<>() {
+        @Override
+        public Node visit(ExpressionNode.FieldAccessExpressionNode fieldAccessExpressionNode) {
+            return fieldAccessExpressionNode.getObject().accept(pointerVisitor);
+        }
+
+        @Override
+        public Node visit(ExpressionNode.ArrayAccessExpressionNode arrayAccessExpressionNode) {
+            return arrayAccessExpressionNode.accept(pointerVisitor);
+        }
+
+        @Override
+        public Node visit(ExpressionNode.IdentifierExpressionNode identifierExpressionNode) {
+            return identifierExpressionNode.accept(pointerVisitor);
+        }
+
+        @Override
+        public Node visit(ThisExpressionNode thisExpressionNode) {
+            return context.createThisNode();
+        }
+    };
+
     @Override
     public Node visit(BinaryExpressionNode binaryExpressionNode) {
-        Node lhs = binaryExpressionNode.getLeftSide().accept(this);
+        Node lhs = binaryExpressionNode.getLeftSide().accept(lValueVisitor);
         Node rhs = binaryExpressionNode.getRightSide().accept(this);
-
-        Mode m = context.getTypeMapper().getDataType(binaryExpressionNode.getLeftSide().getResultType()).getMode();
+        Type t = context.getTypeMapper().getDataType(binaryExpressionNode.getLeftSide().getResultType());
+        Mode m = t.getMode();
 
         switch (binaryExpressionNode.getOperator()) {
             // handle stuff with our boolean visitor
-            case Assignment, Equal, LessThanOrEqual,
+            case Equal, LessThanOrEqual,
                     LogicalAnd, GreaterThanOrEqual, GreaterThan,
                     LogicalOr, NotEqual, LessThan -> {
                 return IRBooleanExpressions.asValue(context, binaryExpressionNode);
+            }
+            case Assignment -> {
+                storeToAddress(lhs, rhs, t);
+                // assignemnt returns rhs
+                return rhs;
             }
             case Modulo -> {
                 Node mem = getConstruction().getCurrentMem();
@@ -43,7 +70,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 Node projRes = getConstruction().newProj(mod, m, Mod.pnRes);
                 Node projMem = getConstruction().newProj(mod, Mode.getM(), Mod.pnM);
 
-                // TODO: map control flow exceptions too?
                 getConstruction().setCurrentMem(projMem);
                 return projRes;
             }
@@ -56,7 +82,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 Node projRes = getConstruction().newProj(div, m, Div.pnRes);
                 Node projMem = getConstruction().newProj(div, Mode.getM(), Div.pnM);
 
-                // TODO: map control flow exceptions too?
                 getConstruction().setCurrentMem(projMem);
                 return projRes;
             }
@@ -66,9 +91,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
             case Multiplication -> {
                 return getConstruction().newMul(lhs, rhs);
             }
-            default -> {
-                throw new UnsupportedOperationException("not supported " + binaryExpressionNode.getOperator().toString());
-            }
+            default -> throw new UnsupportedOperationException("not supported " + binaryExpressionNode.getOperator().toString());
         }
     }
 
@@ -138,6 +161,14 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         Node res = getConstruction().newProj(load, type, Load.pnRes);
         getConstruction().setCurrentMem(resMem);
         return res;
+    }
+
+    private void storeToAddress(Node address, Node value, Type t) {
+        Node mem = getConstruction().getCurrentMem();
+        Node store = getConstruction().newStore(mem, address, value, t);
+
+        Node newMem = getConstruction().newProj(store, Mode.getM(), Load.pnM);
+        getConstruction().setCurrentMem(newMem);
     }
 
     @Override
