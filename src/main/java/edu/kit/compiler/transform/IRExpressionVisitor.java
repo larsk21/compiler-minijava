@@ -13,6 +13,7 @@ import firm.nodes.*;
  * return firm nodes for our ast nodes
  */
 public class IRExpressionVisitor implements AstVisitor<Node> {
+    private static final DataType boolType = new DataType(DataType.DataTypeClass.Boolean);
     private final TransformContext context;
     private final IRPointerVisitor pointerVisitor;
 
@@ -22,37 +23,43 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         this.pointerVisitor = new IRPointerVisitor(context);
     }
 
+    public Node handleAssignment(ExpressionNode lhs, Node rhs) {
+        Type type = context.getTypeMapper().getDataType(lhs.getResultType());
+        if (lhs instanceof IdentifierExpressionNode) {
+            var id = (ExpressionNode.IdentifierExpressionNode) lhs;
+            switch (id.getDefinition().getKind()) {
+                case LocalVariable, Parameter ->
+                        // TODO: we need to fix parameter assignments!
+                        getConstruction().setVariable(context.getVariableIndex(id.getIdentifier()), rhs);
+                case Field -> storeToAddress(id.accept(pointerVisitor), rhs, type);
+            }
+        } else {
+            storeToAddress(lhs.accept(pointerVisitor), rhs, type);
+        }
+        return rhs;
+    }
+
     @Override
     public Node visit(BinaryExpressionNode binaryExpressionNode) {
+        if (binaryExpressionNode.getResultType().equals(boolType)) {
+            switch (binaryExpressionNode.getOperator()) {
+                // handle stuff with our boolean visitor
+                case Assignment, Equal, LessThanOrEqual,
+                        LogicalAnd, GreaterThanOrEqual, GreaterThan,
+                        LogicalOr, NotEqual, LessThan -> {
+                    return IRBooleanExpressions.asValue(context, binaryExpressionNode);
+                }
+                default -> throw new UnsupportedOperationException();
+            }
+        }
+
         Node lhs = binaryExpressionNode.getLeftSide().accept(this);
         Node rhs = binaryExpressionNode.getRightSide().accept(this);
         Type t = context.getTypeMapper().getDataType(binaryExpressionNode.getLeftSide().getResultType());
         Mode m = t.getMode();
 
-        switch (binaryExpressionNode.getOperator()) {
-            // handle stuff with our boolean visitor
-            case Equal, LessThanOrEqual,
-                    LogicalAnd, GreaterThanOrEqual, GreaterThan,
-                    LogicalOr, NotEqual, LessThan -> {
-                return IRBooleanExpressions.asValue(context, binaryExpressionNode);
-            }
-            case Assignment -> {
-                if (binaryExpressionNode.getLeftSide() instanceof IdentifierExpressionNode) {
-                    ExpressionNode.IdentifierExpressionNode id = (ExpressionNode.IdentifierExpressionNode) binaryExpressionNode.getLeftSide();
-                    switch (id.getDefinition().getKind()) {
-                        case LocalVariable, Parameter ->
-                            getConstruction().setVariable(context.getVariableIndex(id.getIdentifier()), rhs);
-                        case Field -> {
-                            Node ptr = id.accept(pointerVisitor);
-                            storeToAddress(ptr, rhs, t);
-                        }
-                    }
-                } else {
-                    lhs = binaryExpressionNode.getLeftSide().accept(pointerVisitor);
-                    storeToAddress(lhs, rhs, t);
-                }
-                return rhs;
-            }
+        return switch (binaryExpressionNode.getOperator()) {
+            case Assignment -> handleAssignment(binaryExpressionNode.getLeftSide(), rhs);
             case Modulo -> {
                 Node mem = getConstruction().getCurrentMem();
                 Node mod = getConstruction().newMod(mem, lhs, rhs, binding_ircons.op_pin_state.op_pin_state_pinned);
@@ -60,10 +67,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 Node projMem = getConstruction().newProj(mod, Mode.getM(), Mod.pnM);
 
                 getConstruction().setCurrentMem(projMem);
-                return projRes;
-            }
-            case Addition -> {
-                return getConstruction().newAdd(lhs, rhs);
+                yield  projRes;
             }
             case Division -> {
                 Node mem = getConstruction().getCurrentMem();
@@ -72,16 +76,13 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 Node projMem = getConstruction().newProj(div, Mode.getM(), Div.pnM);
 
                 getConstruction().setCurrentMem(projMem);
-                return projRes;
+                yield projRes;
             }
-            case Subtraction -> {
-                return getConstruction().newSub(lhs, rhs);
-            }
-            case Multiplication -> {
-                return getConstruction().newMul(lhs, rhs);
-            }
-            default -> throw new UnsupportedOperationException("not supported " + binaryExpressionNode.getOperator().toString());
-        }
+            case Addition -> getConstruction().newAdd(lhs, rhs);
+            case Subtraction -> getConstruction().newSub(lhs, rhs);
+            case Multiplication -> getConstruction().newMul(lhs, rhs);
+            default -> throw new UnsupportedOperationException();
+        };
     }
 
     @Override
@@ -107,6 +108,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         Node objectAddress;
         if (methodInvocationExpressionNode.getObject().isEmpty()) {
             // assuming call on this
+            // TODO: fix for StandardLibrary methods
             objectAddress = context.createThisNode();
         } else {
             objectAddress = methodInvocationExpressionNode.getObject().get().accept(this);
