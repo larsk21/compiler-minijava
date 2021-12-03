@@ -35,7 +35,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         @Override
         public Node visit(ExpressionNode.IdentifierExpressionNode identifierExpressionNode) {
-            return null;
+            return identifierExpressionNode.accept(pointerVisitor);
         }
 
         @Override
@@ -46,7 +46,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
     @Override
     public Node visit(BinaryExpressionNode binaryExpressionNode) {
-        Node lhs = binaryExpressionNode.getLeftSide().accept(lValueVisitor);
+        Node lhs = binaryExpressionNode.getLeftSide().accept(this);
         Node rhs = binaryExpressionNode.getRightSide().accept(this);
         Type t = context.getTypeMapper().getDataType(binaryExpressionNode.getLeftSide().getResultType());
         Mode m = t.getMode();
@@ -74,6 +74,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                         }
                     }
                 } else {
+                    lhs = binaryExpressionNode.getLeftSide().accept(pointerVisitor);
                     storeToAddress(lhs, rhs, t);
                 }
                 return rhs;
