@@ -69,4 +69,14 @@ public class IRVisitorTest {
         createGraphsFromCode("class c { public int m(int obj) { return obj; } public int a(int obj) { return m(obj); } }" + main);
     }
 
+    @Test
+    public void testThisCall() {
+        createGraphsFromCode("class c { public int a; public int m(int obj) { this.a = 5; return obj; } public int a(int obj) { return this.m(obj); } }" + main);
+    }
+
+    @Test
+    public void testAdd() {
+        createGraphsFromCode("class c { public int a; public int z(int obj) { return obj + a; } }" + main);
+    }
+
 }
