@@ -223,7 +223,7 @@ public class JavaEasyCompiler {
      * @throws CompilerException
      * @throws IOException
      */
-    public static ProgramNode createAttributedAst(
+    private static ProgramNode createAttributedAst(
             Reader reader, Logger logger, Lexer lexer, NamespaceMapper namespaceMapper
         ) throws IOException {
         ErrorHandler errorHandler = new ErrorHandler(logger);
