@@ -40,12 +40,8 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 if (binaryExpressionNode.getLeftSide() instanceof IdentifierExpressionNode) {
                     ExpressionNode.IdentifierExpressionNode id = (ExpressionNode.IdentifierExpressionNode) binaryExpressionNode.getLeftSide();
                     switch (id.getDefinition().getKind()) {
-                        case LocalVariable -> {
+                        case LocalVariable, Parameter ->
                             getConstruction().setVariable(context.getVariableIndex(id.getIdentifier()), rhs);
-                        }
-                        case Parameter -> {
-                            getConstruction().setVariable(context.getVariableIndex(id.getIdentifier()), rhs);
-                        }
                         case Field -> {
                             Node ptr = id.accept(pointerVisitor);
                             storeToAddress(ptr, rhs, t);
@@ -146,14 +142,14 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     @Override
     public Node visit(FieldAccessExpressionNode fieldAccessExpressionNode) {
         Node fieldAddress = fieldAccessExpressionNode.accept(pointerVisitor);
-        Mode resultType = context.getTypeMapper().getDataType(fieldAccessExpressionNode.getResultType()).getMode();
+        Mode resultType = getMode(fieldAccessExpressionNode.getResultType());
         return loadFromAddress(fieldAddress, resultType);
     }
 
     @Override
     public Node visit(ArrayAccessExpressionNode arrayAccessExpressionNode) {
         Node arrayAddress = arrayAccessExpressionNode.accept(pointerVisitor);
-        Mode resultType = context.getTypeMapper().getDataType(arrayAccessExpressionNode.getResultType()).getMode();
+        Mode resultType = getMode(arrayAccessExpressionNode.getResultType());
         return loadFromAddress(arrayAddress, resultType);
 
     }
@@ -179,22 +175,19 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     @Override
     public Node visit(IdentifierExpressionNode identifierExpressionNode) {
         Construction con = context.getConstruction();
+        Mode mode = getMode(identifierExpressionNode.getResultType());
         switch (identifierExpressionNode.getDefinition().getKind()) {
             case Field -> {
                 Node fieldAddress = identifierExpressionNode.accept(pointerVisitor);
-                Mode resultType = context.getTypeMapper().getDataType(identifierExpressionNode.getResultType()).getMode();
-                return loadFromAddress(fieldAddress, resultType);
+                return loadFromAddress(fieldAddress, mode);
             }
             case Parameter -> {
                 return context.createParamNode(identifierExpressionNode.getIdentifier());
             }
             case LocalVariable -> {
-                Mode mode = getMode(identifierExpressionNode.getResultType());
                 return con.getVariable(context.getVariableIndex(identifierExpressionNode.getIdentifier()), mode);
             }
-            default -> {
-                throw new UnsupportedOperationException();
-            }
+            default -> throw new UnsupportedOperationException();
         }
     }
 
