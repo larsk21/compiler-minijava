@@ -50,7 +50,7 @@ public class IRBooleanExpressions {
                     ExpressionNode right = expr.getRightSide();
                     if (preferAsValue(right)) {
                         Node rValue = evalExpression(context, right);
-                        throw new UnsupportedOperationException();
+                        yield (new IRExpressionVisitor(context)).handleAssignment(left, rValue);
                     } else {
                         yield fromConditional(expr);
                     }
@@ -125,12 +125,33 @@ public class IRBooleanExpressions {
 
         @Override
         public Void visit(BinaryExpressionNode expr) {
+            Construction con = context.getConstruction();
             ExpressionNode left = expr.getLeftSide();
             ExpressionNode right = expr.getRightSide();
             return switch (expr.getOperator()) {
-                case Assignment -> throw new UnsupportedOperationException();
+                case Assignment -> {
+                    // Create separate assignments for both branches
+                    // Note: we need to create new blocks, because trueBranch and falseBranch
+                    // might have more predecessors.
+                    var expressionVisitor = new IRExpressionVisitor(context);
+                    Block assignTrue = con.newBlock();
+                    Block assignFalse = con.newBlock();
+                    asConditional(right, assignTrue, assignFalse);
+                    assignTrue.mature();
+                    con.setCurrentBlock(assignTrue);
+                    Node jmpTrue = con.newJmp();
+                    trueBranch.addPred(jmpTrue);
+                    trueBranch.mature();
+                    expressionVisitor.handleAssignment(left, con.newConst(1, Mode.getBu()));
+                    assignFalse.mature();
+                    con.setCurrentBlock(assignFalse);
+                    expressionVisitor.handleAssignment(left, con.newConst(0, Mode.getBu()));
+                    Node jmpFalse = con.newJmp();
+                    falseBranch.addPred(jmpFalse);
+                    falseBranch.mature();
+                    yield (Void)null;
+                }
                 case LogicalOr -> {
-                    Construction con = context.getConstruction();
                     Block rightBranch = con.newBlock();
                     asConditional(left, trueBranch, rightBranch);
                     rightBranch.mature();
@@ -138,7 +159,6 @@ public class IRBooleanExpressions {
                     yield asConditional(right, trueBranch, falseBranch);
                 }
                 case LogicalAnd -> {
-                    Construction con = context.getConstruction();
                     Block rightBranch = con.newBlock();
                     asConditional(left, rightBranch, falseBranch);
                     rightBranch.mature();
