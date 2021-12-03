@@ -1,11 +1,10 @@
 package edu.kit.compiler.transform;
 
-import com.sun.jna.Pointer;
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
-import edu.kit.compiler.semantic.DefinitionKind;
+import edu.kit.compiler.data.ast_nodes.MethodNode;
 import firm.*;
 import firm.bindings.binding_ircons;
 import firm.nodes.*;
@@ -36,7 +35,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         @Override
         public Node visit(ExpressionNode.IdentifierExpressionNode identifierExpressionNode) {
-            return identifierExpressionNode.accept(pointerVisitor);
+            return null;
         }
 
         @Override
@@ -60,8 +59,23 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 return IRBooleanExpressions.asValue(context, binaryExpressionNode);
             }
             case Assignment -> {
-                storeToAddress(lhs, rhs, t);
-                // assignemnt returns rhs
+                if (binaryExpressionNode.getLeftSide() instanceof IdentifierExpressionNode) {
+                    ExpressionNode.IdentifierExpressionNode id = (ExpressionNode.IdentifierExpressionNode) binaryExpressionNode.getLeftSide();
+                    switch (id.getDefinition().getKind()) {
+                        case LocalVariable -> {
+                            getConstruction().setVariable(context.getVariableIndex(id.getIdentifier()), rhs);
+                        }
+                        case Parameter -> {
+                            getConstruction().setVariable(context.getVariableIndex(id.getIdentifier()), rhs);
+                        }
+                        case Field -> {
+                            Node ptr = id.accept(pointerVisitor);
+                            storeToAddress(ptr, rhs, t);
+                        }
+                    }
+                } else {
+                    storeToAddress(lhs, rhs, t);
+                }
                 return rhs;
             }
             case Modulo -> {
@@ -113,23 +127,35 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     @Override
     public Node visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
         Node mem = getConstruction().getCurrentMem();
-
-        Mode m = context.getTypeMapper().getDataType(methodInvocationExpressionNode.getResultType()).getMode();
+        Type t = context.getTypeMapper().getDataType(methodInvocationExpressionNode.getResultType());
+        Mode m = t.getMode();
+        Node objectAddress;
         if (methodInvocationExpressionNode.getObject().isEmpty()) {
-            throw new IllegalArgumentException("object was null on method call");
+            // assuming call on this
+            objectAddress = context.createThisNode();
+        } else {
+            objectAddress = methodInvocationExpressionNode.getObject().get().accept(this);
         }
-        Node objectAddress = methodInvocationExpressionNode.getObject().get().accept(this);
         // collect arguments in list with this pointer
         Node[] arguments = new Node[methodInvocationExpressionNode.getArguments().size() + 1];
         arguments[0] = objectAddress;
-        for (int i = 1; i < methodInvocationExpressionNode.getArguments().size(); i++) {
-            Node n = methodInvocationExpressionNode.getArguments().get(i).accept(this);
+        for (int i = 1; i < methodInvocationExpressionNode.getArguments().size() + 1; i++) {
+            Node n = methodInvocationExpressionNode.getArguments().get(i - 1).accept(this);
             arguments[i] = n;
         }
-        int method = methodInvocationExpressionNode.getName();
-        Node methodAddress = getConstruction().newAddress(IRVisitor.getMethodContexts().get(method).getMethodEntity());
 
-        Node call = getConstruction().newCall(mem, methodAddress, arguments, m.getType());
+        MethodNode method = methodInvocationExpressionNode.getDefinition();
+        int className;
+        if (methodInvocationExpressionNode.getObject().isEmpty()) {
+            className = context.getClassNode().getName();
+        } else {
+            className = methodInvocationExpressionNode.getObject().get().getResultType().getIdentifier().get();
+        }
+        Entity methodEntity = context.getTypeMapper().getClassEntry(className).getMethod(method.getName());
+        Node methodAddress = getConstruction().newAddress(methodEntity);
+
+        t = context.getTypeMapper().getClassEntry(className).getMethodParamTypes().get(method.getName());
+        Node call = getConstruction().newCall(mem, methodAddress, arguments, t);
         Node tResult = getConstruction().newProj(call, Mode.getT(), Call.pnTResult);
         Node res = getConstruction().newProj(tResult, m, 0);
         Node projMem = getConstruction().newProj(call, Mode.getM(), Call.pnM);
@@ -174,16 +200,22 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     @Override
     public Node visit(IdentifierExpressionNode identifierExpressionNode) {
         Construction con = context.getConstruction();
-        Mode mode = getMode(identifierExpressionNode.getResultType());
-        if (identifierExpressionNode.getDefinition().getKind() == DefinitionKind.LocalVariable) {
-            return con.getVariable(context.getVariableIndex(identifierExpressionNode.getIdentifier()), mode);
-        } else if (identifierExpressionNode.getDefinition().getKind() == DefinitionKind.Parameter) {
-            return context.createParamNode(identifierExpressionNode.getIdentifier());
-        } else if (identifierExpressionNode.getDefinition().getKind() == DefinitionKind.Field) {
-            Node fieldAddress = identifierExpressionNode.accept(pointerVisitor);
-            return loadFromAddress(fieldAddress, mode);
-        } else {
-            throw new IllegalArgumentException();
+        switch (identifierExpressionNode.getDefinition().getKind()) {
+            case Field -> {
+                Node fieldAddress = identifierExpressionNode.accept(pointerVisitor);
+                Mode resultType = context.getTypeMapper().getDataType(identifierExpressionNode.getResultType()).getMode();
+                return loadFromAddress(fieldAddress, resultType);
+            }
+            case Parameter -> {
+                return context.createParamNode(identifierExpressionNode.getIdentifier());
+            }
+            case LocalVariable -> {
+                Mode mode = getMode(identifierExpressionNode.getResultType());
+                return con.getVariable(context.getVariableIndex(identifierExpressionNode.getIdentifier()), mode);
+            }
+            default -> {
+                throw new UnsupportedOperationException();
+            }
         }
     }
 
@@ -230,7 +262,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         Node callocAddress = Lower.getCallocNode(getConstruction());
 
         Node sizeNode = getConstruction().newConst(size, Mode.getIs());
-        Node[] params = new Node[] {nmemb, sizeNode};
+        Node[] params = new Node[]{nmemb, sizeNode};
         Node call = getConstruction().newCall(mem, callocAddress, params, t);
 
         Node callMem = getConstruction().newProj(call, Mode.getM(), Call.pnM);
