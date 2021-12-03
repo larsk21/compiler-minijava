@@ -41,6 +41,7 @@ public final class TypeMapper {
     @Getter
     private static final Type pointerType = new PrimitiveType(Mode.getP());
 
+    @Getter
     private final StringTable stringTable;
 
     @Getter
@@ -144,8 +145,13 @@ public final class TypeMapper {
         private int size;
         private final Map<Integer, Entity> fields = new HashMap<>();
         private final Map<Integer, Entity> methods = new HashMap<>();
+        @Getter
+        private final Map<Integer, Type> methodParamTypes = new HashMap<>();
+        @Getter
+        private int id;
 
         private ClassEntry(int classId) {
+            id = classId;
             var className = stringTable.retrieve(classId);
             this.classType = new ClassType(className);
         }
@@ -268,6 +274,7 @@ public final class TypeMapper {
                 var methodEntity = new Entity(classType, methodName, methodType);
                 methodEntity.setVisibility(ir_visibility.ir_visibility_local);
                 methods.put(methodNode.getName(), methodEntity);
+                methodParamTypes.put(methodNode.getName(), methodType);
 
                 if (isStatic) {
                     if (mainMethod != null || !methodName.equals("main")) {
