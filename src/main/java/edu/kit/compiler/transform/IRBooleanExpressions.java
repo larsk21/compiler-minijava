@@ -255,12 +255,6 @@ public class IRBooleanExpressions {
     }
 
     private static Node evalExpression(TransformContext context, ExpressionNode expr) {
-        // TODO: replace all of this with expression visitor
-        if (expr.getResultType().equals(boolType) &&
-            (expr instanceof BinaryExpressionNode || expr instanceof UnaryExpressionNode)
-        ) {
-            return IRBooleanExpressions.asValue(context, expr);
-        }
-        return context.getConstruction().newConst(1, Mode.getBu());
+        return expr.accept(new IRExpressionVisitor(context));
     }
 }

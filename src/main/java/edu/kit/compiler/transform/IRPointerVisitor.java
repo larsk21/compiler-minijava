@@ -57,16 +57,6 @@ public class IRPointerVisitor implements AstVisitor<Node> {
     }
 
     private Node handleExpression(ExpressionNode expr) {
-        // TODO: call expression visitor instead
-        Construction con = context.getConstruction();
-        if (expr instanceof ThisExpressionNode) {
-            return context.createThisNode();
-        } else if (expr instanceof IdentifierExpressionNode) {
-            return context.createParamNode(((IdentifierExpressionNode)expr).getIdentifier());
-        } else if (expr instanceof ValueExpressionNode) {
-            return con.newConst(0, Mode.getIs());
-        } else {
-            return con.newConst(0, context.getThisPtrType().getMode());
-        }
+        return expr.accept(new IRExpressionVisitor(context));
     }
 }

@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 
+import edu.kit.compiler.transform.IRVisitor;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -25,7 +26,6 @@ import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
-import edu.kit.compiler.transform.FirmGraphFactory;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
@@ -182,12 +182,7 @@ public class JavaEasyCompiler {
             );
 
             TypeMapper typeMapper = new TypeMapper(namespaceMapper, stringTable);
-            FirmGraphFactory firmGraphFactory = new FirmGraphFactory(namespaceMapper, stringTable);
-            firmGraphFactory.visitAST(ast);
-            firmGraphFactory.dumpTypeGraph();
-
-            // todo insert Firm graph generation here
-
+            ast.accept(new IRVisitor(typeMapper));
             Lower.lower(typeMapper);
 
             var sourceFile = new File(filePath).getName();

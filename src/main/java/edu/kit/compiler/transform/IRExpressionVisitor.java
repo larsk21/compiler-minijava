@@ -95,7 +95,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         if (methodInvocationExpressionNode.getObject().isEmpty()) {
             throw new IllegalArgumentException("object was null on method call");
         }
-        Node objectAddress = methodInvocationExpressionNode.getObject().get().accept(pointerVisitor);
+        Node objectAddress = methodInvocationExpressionNode.getObject().get().accept(this);
         // collect arguments in list with this pointer
         Node[] arguments = new Node[methodInvocationExpressionNode.getArguments().size() + 1];
         arguments[0] = objectAddress;
@@ -143,11 +143,14 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     @Override
     public Node visit(IdentifierExpressionNode identifierExpressionNode) {
         Construction con = context.getConstruction();
+        Mode mode = getMode(identifierExpressionNode.getResultType());
         if (identifierExpressionNode.getDefinition().getKind() == DefinitionKind.LocalVariable) {
-            Mode mode = getMode(identifierExpressionNode.getResultType());
             return con.getVariable(context.getVariableIndex(identifierExpressionNode.getIdentifier()), mode);
         } else if (identifierExpressionNode.getDefinition().getKind() == DefinitionKind.Parameter) {
             return context.createParamNode(identifierExpressionNode.getIdentifier());
+        } else if (identifierExpressionNode.getDefinition().getKind() == DefinitionKind.Field) {
+            Node fieldAddress = identifierExpressionNode.accept(pointerVisitor);
+            return loadFromAddress(fieldAddress, mode);
         } else {
             throw new IllegalArgumentException();
         }
@@ -174,7 +177,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     }
 
     private Node handleNullExpressionNode() {
-        return getConstruction().newAddress(new Entity(Pointer.NULL));
+        return getConstruction().newConst(0, Mode.getP());
     }
 
     @Override
