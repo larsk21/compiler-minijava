@@ -141,8 +141,6 @@ public final class TypeMapper {
     public final class ClassEntry {
         @Getter
         private final ClassType classType;
-        @Getter
-        private int size;
         private final Map<Integer, Entity> fields = new HashMap<>();
         private final Map<Integer, Entity> methods = new HashMap<>();
         private final Map<Integer, MethodType> methodTypes = new HashMap<>();
@@ -254,10 +252,6 @@ public final class TypeMapper {
             constructMethods(namespace.getClassNodeRef(), namespace.getDynamicMethods(), false);
             constructMethods(namespace.getClassNodeRef(), namespace.getStaticMethods(), true);
 
-            size = 0;
-            for (var field : this.fields.values()) {
-                size += field.getType().getSize();
-            }
             // ? maybe do later (after possible optimizations)
             classType.layoutFields();
             classType.finishLayout();
