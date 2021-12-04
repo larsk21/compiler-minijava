@@ -30,7 +30,7 @@ public class FirmGraphTest {
             Logger log = new Logger();
             JavaEasyCompiler.createAttributedAst(reader, log, lexer, namespaceMapper);
 
-            Firm.init("x86_64-linux-gnu", new String[]{"pic=1"});
+            JFirmSingleton.initializeFirmLinux();
             log.info("Initialized libFirm Version: %s.%s\n",
                     Firm.getMinorVersion(), Firm.getMajorVersion()
             );
