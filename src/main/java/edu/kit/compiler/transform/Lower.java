@@ -42,8 +42,8 @@ public class Lower {
 
     /**
      * Generates a virtual main method that wraps the user defined main method.
-     * The generated method always return zero to ensure that compiled programs
-     * always exit with status 0.
+     * The generated method always returns zero to ensure that compiled programs
+     * exit with status 0.
      */
     private static void setMainMethod(TypeMapper typeMapper) {
         var global = Program.getGlobalType();
