@@ -43,6 +43,10 @@ public abstract class MethodNode extends AstNode {
     @Getter
     private BlockStatementNode statementBlock;
 
+    public boolean isStandardLibraryMethod() {
+        return false;
+    }
+
     /**
      * Definitions of method node parameters can overshadow outer variables as well.
      */
@@ -113,7 +117,6 @@ public abstract class MethodNode extends AstNode {
         public <T> T accept(AstVisitor<T> visitor) {
             return visitor.visit(this);
         }
-
     }
 
     public static enum StandardLibraryMethod {
@@ -137,6 +140,11 @@ public abstract class MethodNode extends AstNode {
         @Override
         public <T> T accept(AstVisitor<T> visitor) {
             return visitor.visit(this);
+        }
+
+        @Override
+        public boolean isStandardLibraryMethod() {
+            return true;
         }
 
     }

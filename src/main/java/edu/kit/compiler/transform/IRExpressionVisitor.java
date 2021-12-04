@@ -5,12 +5,11 @@ import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
+import edu.kit.compiler.data.ast_nodes.MethodNode.StandardLibraryMethodNode;
 import edu.kit.compiler.transform.TypeMapper.ClassEntry;
 import firm.*;
 import firm.bindings.binding_ircons;
 import firm.nodes.*;
-
-import java.util.Optional;
 
 /**
  * return firm nodes for our ast nodes
@@ -104,32 +103,44 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
     @Override
     public Node visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
-        Node objectAddress;
-        if (methodInvocationExpressionNode.getObject().isEmpty()) {
-            // assuming call on this
-            // TODO: fix for StandardLibrary methods
-            objectAddress = context.getThisNode();
-        } else {
-            objectAddress = methodInvocationExpressionNode.getObject().get().accept(this);
-        }
+        MethodNode method = methodInvocationExpressionNode.getDefinition();
+        int argOffset = method.isStandardLibraryMethod() ? 0 : 1;
         // collect arguments in list with this pointer
-        Node[] arguments = new Node[methodInvocationExpressionNode.getArguments().size() + 1];
-        arguments[0] = objectAddress;
-        for (int i = 1; i < methodInvocationExpressionNode.getArguments().size() + 1; i++) {
-            Node n = methodInvocationExpressionNode.getArguments().get(i - 1).accept(this);
+        Node[] arguments = new Node[methodInvocationExpressionNode.getArguments().size() + argOffset];
+        if (!method.isStandardLibraryMethod()) {
+            Node objectAddress;
+            if (methodInvocationExpressionNode.getObject().isEmpty()) {
+                // assuming call on this
+                objectAddress = context.getThisNode();
+            } else {
+                objectAddress = methodInvocationExpressionNode.getObject().get().accept(this);
+            }
+            arguments[0] = objectAddress;
+        }
+        for (int i = argOffset; i < arguments.length; i++) {
+            Node n = methodInvocationExpressionNode.getArguments().get(i - argOffset).accept(this);
             arguments[i] = n;
         }
 
-        MethodNode method = methodInvocationExpressionNode.getDefinition();
-        int className;
-        if (methodInvocationExpressionNode.getObject().isEmpty()) {
-            className = context.getClassNode().getName();
+        Node methodAddress;
+        MethodType methodType;
+        if (method.isStandardLibraryMethod()) {
+            var stdMethod = (StandardLibraryMethodNode)method;
+            var methodInstance = StandardLibraryEntities.INSTANCE.getEntity(stdMethod.getMethod());
+            methodAddress = getConstruction().newAddress(methodInstance);
+            methodType = (MethodType)methodInstance.getType();
         } else {
-            className = methodInvocationExpressionNode.getObject().get().getResultType().getIdentifier().get();
+            // lookup method in the according class
+            int className;
+            if (methodInvocationExpressionNode.getObject().isEmpty()) {
+                className = context.getClassNode().getName();
+            } else {
+                className = methodInvocationExpressionNode.getObject().get().getResultType().getIdentifier().get();
+            }
+            ClassEntry classEntry = context.getTypeMapper().getClassEntry(className);
+            methodAddress = getConstruction().newAddress(classEntry.getMethod(method.getName()));
+            methodType = classEntry.getMethodType(method.getName());
         }
-        ClassEntry classEntry = context.getTypeMapper().getClassEntry(className);
-        Node methodAddress = getConstruction().newAddress(classEntry.getMethod(method.getName()));
-        MethodType methodType = classEntry.getMethodType(method.getName());
         Node call = getConstruction().newCall(getConstruction().getCurrentMem(), methodAddress, arguments, methodType);
         Node projMem = getConstruction().newProj(call, Mode.getM(), Call.pnM);
         getConstruction().setCurrentMem(projMem);
