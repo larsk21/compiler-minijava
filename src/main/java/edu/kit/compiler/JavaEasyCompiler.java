@@ -198,13 +198,8 @@ public class JavaEasyCompiler {
             logger.info("compiling program: 'gcc \"%s\" \"%s\"'", assemblyFile, stdLibrary);
             var process = Runtime.getRuntime().exec(new String[]{ "gcc", assemblyFile, stdLibrary });
 
-            try {
-                if (process.waitFor() != 0) {
-                    logger.error("gcc failed with exit code %s", process.exitValue());
-                    return Result.GccError;
-                }
-            } catch (InterruptedException e) {
-                logger.error("gcc was interrupted: %s", e.getMessage());
+            if (process.waitFor() != 0) {
+                logger.error("gcc failed with exit code %s", process.exitValue());
                 return Result.GccError;
             }
             
@@ -217,6 +212,10 @@ public class JavaEasyCompiler {
             logger.error("unable to read file: %s", e.getMessage());
 
             return Result.FileInputError;
+        } catch (InterruptedException e) {
+            logger.error("gcc was interrupted: %s", e.getMessage());
+
+            return Result.GccError;
         }
     }
 
