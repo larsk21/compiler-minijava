@@ -5,9 +5,12 @@ import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
+import edu.kit.compiler.transform.TypeMapper.ClassEntry;
 import firm.*;
 import firm.bindings.binding_ircons;
 import firm.nodes.*;
+
+import java.util.Optional;
 
 /**
  * return firm nodes for our ast nodes
@@ -101,9 +104,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
     @Override
     public Node visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
-        Node mem = getConstruction().getCurrentMem();
-        Type t = context.getTypeMapper().getDataType(methodInvocationExpressionNode.getResultType());
-        Mode m = t.getMode();
         Node objectAddress;
         if (methodInvocationExpressionNode.getObject().isEmpty()) {
             // assuming call on this
@@ -127,17 +127,20 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         } else {
             className = methodInvocationExpressionNode.getObject().get().getResultType().getIdentifier().get();
         }
-        Entity methodEntity = context.getTypeMapper().getClassEntry(className).getMethod(method.getName());
-        Node methodAddress = getConstruction().newAddress(methodEntity);
-
-        t = context.getTypeMapper().getClassEntry(className).getMethodParamTypes().get(method.getName());
-        Node call = getConstruction().newCall(mem, methodAddress, arguments, t);
-        Node tResult = getConstruction().newProj(call, Mode.getT(), Call.pnTResult);
-        Node res = getConstruction().newProj(tResult, m, 0);
+        ClassEntry classEntry = context.getTypeMapper().getClassEntry(className);
+        Node methodAddress = getConstruction().newAddress(classEntry.getMethod(method.getName()));
+        MethodType methodType = classEntry.getMethodType(method.getName());
+        Node call = getConstruction().newCall(getConstruction().getCurrentMem(), methodAddress, arguments, methodType);
         Node projMem = getConstruction().newProj(call, Mode.getM(), Call.pnM);
         getConstruction().setCurrentMem(projMem);
 
-        return res;
+        if (methodType.getNRess() > 0) {
+            // for non-void methods: create Node for return type
+            Node tResult = getConstruction().newProj(call, Mode.getT(), Call.pnTResult);
+            return getConstruction().newProj(tResult, methodType.getResType(0).getMode(), 0);
+        }
+        // TODO: ugly, but is there a better solution?
+        return null;
     }
 
     @Override
