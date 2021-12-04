@@ -35,7 +35,6 @@ import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
 import edu.kit.compiler.transform.JFirmSingleton;
 import edu.kit.compiler.transform.Lower;
-import edu.kit.compiler.transform.TypeMapper;
 import firm.Backend;
 import firm.Firm;
 
@@ -197,7 +196,17 @@ public class JavaEasyCompiler {
             }
 
             logger.info("compiling program: 'gcc \"%s\" \"%s\"'", assemblyFile, stdLibrary);
-            Runtime.getRuntime().exec(new String[]{ "gcc", assemblyFile, stdLibrary });
+            var process = Runtime.getRuntime().exec(new String[]{ "gcc", assemblyFile, stdLibrary });
+
+            try {
+                if (process.waitFor() != 0) {
+                    logger.error("gcc failed with exit code %s", process.exitValue());
+                    return Result.GccError;
+                }
+            } catch (InterruptedException e) {
+                logger.error("gcc was interrupted: %s", e.getMessage());
+                return Result.GccError;
+            }
             
             return Result.Ok;
         } catch (CompilerException e) {
