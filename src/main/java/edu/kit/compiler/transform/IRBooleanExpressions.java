@@ -211,7 +211,7 @@ public class IRBooleanExpressions {
             Construction con = context.getConstruction();
             Node lhs = evalExpression(context, left);
             Node rhs = evalExpression(context, right);
-            Node cmp = con.newCmp(lhs, rhs, Relation.Equal);
+            Node cmp = con.newCmp(lhs, rhs, rel);
             return fromCmp(cmp);
         }
 
