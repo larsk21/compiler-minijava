@@ -8,6 +8,7 @@ import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import firm.Construction;
+import firm.bindings.binding_irgopt;
 import firm.nodes.Node;
 import lombok.Getter;
 
@@ -69,5 +70,9 @@ public class IRVisitor implements AstVisitor<Void> {
         }
 
         con.finish();
+
+        // directly call libfirm bindings for removing unreachable code
+        binding_irgopt.remove_unreachable_code(con.getGraph().ptr);
+        binding_irgopt.remove_bads(con.getGraph().ptr);
     }
 }
