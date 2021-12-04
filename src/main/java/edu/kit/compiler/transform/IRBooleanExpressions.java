@@ -18,25 +18,23 @@ import firm.Construction;
 import firm.Mode;
 import firm.Relation;
 import firm.nodes.Block;
+import firm.nodes.Cond;
 import firm.nodes.Node;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 public class IRBooleanExpressions {
     private static final DataType boolType = new DataType(DataTypeClass.Boolean);
+    private static final ValueOrConditionalDecisionVisitor vocdVisitor = new ValueOrConditionalDecisionVisitor();
 
     public static Node asValue(TransformContext context, ExpressionNode expr) {
-        if (!expr.getResultType().equals(boolType)) {
-            throw new IllegalArgumentException();
-        }
+        assert expr.getResultType().equals(boolType);
         return expr.accept(new ValueVisitor(context));
     }
 
     public static void asConditional(TransformContext context, ExpressionNode expr,
                                      Block trueBranch, Block falseBranch) {
-        if (!expr.getResultType().equals(boolType)) {
-            throw new IllegalArgumentException();
-        }
+        assert expr.getResultType().equals(boolType);
         expr.accept(new ConditionalVisitor(context, trueBranch, falseBranch));
     }
 
@@ -63,9 +61,7 @@ public class IRBooleanExpressions {
 
         @Override
         public Node visit(UnaryExpressionNode expr) {
-            if (expr.getOperator() != UnaryOperator.LogicalNegation) {
-                throw new IllegalArgumentException();
-            }
+            assert expr.getOperator() == UnaryOperator.LogicalNegation;
 
             /**
              * We try to create some optimized code here, because
@@ -161,9 +157,7 @@ public class IRBooleanExpressions {
 
         @Override
         public Void visit(UnaryExpressionNode expr) {
-            if (expr.getOperator() != UnaryOperator.LogicalNegation) {
-                throw new IllegalArgumentException();
-            }
+            assert expr.getOperator() == UnaryOperator.LogicalNegation;
             // swap branches
             return asConditional(expr.getExpression(), falseBranch, trueBranch);
         }
@@ -218,9 +212,9 @@ public class IRBooleanExpressions {
         private Void fromCmp(Node cmp) {
             Construction con = context.getConstruction();
             Node getCond = con.newCond(cmp);
-            Node projTrue = con.newProj(getCond, Mode.getX(), 1);
+            Node projTrue = con.newProj(getCond, Mode.getX(), Cond.pnTrue);
             trueBranch.addPred(projTrue);
-            Node projFalse = con.newProj(getCond, Mode.getX(), 0);
+            Node projFalse = con.newProj(getCond, Mode.getX(), Cond.pnFalse);
             falseBranch.addPred(projFalse);
             return (Void)null;
         }
@@ -257,7 +251,7 @@ public class IRBooleanExpressions {
     }
 
     private static boolean preferAsValue(ExpressionNode expr) {
-        return expr.accept(new ValueOrConditionalDecisionVisitor());
+        return expr.accept(vocdVisitor);
     }
 
     private static Node evalExpression(TransformContext context, ExpressionNode expr) {
