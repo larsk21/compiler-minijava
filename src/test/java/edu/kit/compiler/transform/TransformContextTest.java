@@ -26,6 +26,10 @@ import firm.Mode;
 import firm.PrimitiveType;
 
 public class TransformContextTest {
+    static {
+        JFirmSingleton.initializeFirmLinux();
+    }
+
     private static final String main = "class Main {public static void main(String[] args) {}}";
     private TypeMapper typeMapper;
     private StringTable stringTable;
