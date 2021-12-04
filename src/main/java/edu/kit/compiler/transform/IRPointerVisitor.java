@@ -36,7 +36,7 @@ public class IRPointerVisitor implements AstVisitor<Node> {
     public Node visit(IdentifierExpressionNode expr) {
         if (expr.getDefinition().getKind() == DefinitionKind.Field) {
             int className = context.getClassNode().getName();
-            return handleFieldAccess(context.createThisNode(), className, expr.getIdentifier());
+            return handleFieldAccess(context.getThisNode(), className, expr.getIdentifier());
         } else {
             throw new UnsupportedOperationException("not recognized kind " + expr.getDefinition().getKind());
         }

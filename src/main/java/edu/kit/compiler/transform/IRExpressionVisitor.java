@@ -29,7 +29,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
             var id = (ExpressionNode.IdentifierExpressionNode) lhs;
             switch (id.getDefinition().getKind()) {
                 case LocalVariable, Parameter ->
-                        // TODO: we need to fix parameter assignments!
                         getConstruction().setVariable(context.getVariableIndex(id.getIdentifier()), rhs);
                 case Field -> storeToAddress(id.accept(pointerVisitor), rhs, type);
             }
@@ -109,7 +108,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         if (methodInvocationExpressionNode.getObject().isEmpty()) {
             // assuming call on this
             // TODO: fix for StandardLibrary methods
-            objectAddress = context.createThisNode();
+            objectAddress = context.getThisNode();
         } else {
             objectAddress = methodInvocationExpressionNode.getObject().get().accept(this);
         }
@@ -183,10 +182,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 Node fieldAddress = identifierExpressionNode.accept(pointerVisitor);
                 return loadFromAddress(fieldAddress, mode);
             }
-            case Parameter -> {
-                return context.createParamNode(identifierExpressionNode.getIdentifier());
-            }
-            case LocalVariable -> {
+            case Parameter, LocalVariable -> {
                 return con.getVariable(context.getVariableIndex(identifierExpressionNode.getIdentifier()), mode);
             }
             default -> throw new UnsupportedOperationException();
@@ -195,7 +191,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
     @Override
     public Node visit(ThisExpressionNode thisExpressionNode) {
-        return context.createThisNode();
+        return context.getThisNode();
     }
 
     @Override
