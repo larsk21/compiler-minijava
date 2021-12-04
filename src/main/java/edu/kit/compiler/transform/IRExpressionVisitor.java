@@ -229,36 +229,37 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
     @Override
     public Node visit(NewObjectExpressionNode newObjectExpressionNode) {
-        TypeMapper.ClassEntry classNode = context.getTypeMapper().getClassEntry(newObjectExpressionNode.getTypeName());
-        int size = classNode.getSize();
-        return callCalloc(1, size, classNode.getClassType());
+        ClassEntry classNode = context.getTypeMapper().getClassEntry(newObjectExpressionNode.getTypeName());
+        return callCalloc(1, classNode.getClassType().getSize(), classNode.getPointerType());
     }
 
     @Override
     public Node visit(NewArrayExpressionNode newArrayExpressionNode) {
-        Type dataType = context.getTypeMapper().getDataType(newArrayExpressionNode.getElementType());
+        Type elementType = context.getTypeMapper().getDataType(newArrayExpressionNode.getElementType());
+        Type arrayType = context.getTypeMapper().getDataType(newArrayExpressionNode.getResultType());
         Node arrayLength = newArrayExpressionNode.getLength().accept(this);
-        return callCalloc(arrayLength, dataType.getSize(), dataType);
+        return callCalloc(arrayLength, elementType.getSize(), arrayType);
     }
 
-    private Node callCalloc(Node nmemb, int size, Type t) {
-        Node mem = getConstruction().getCurrentMem();
-        Node callocAddress = Lower.getCallocNode(getConstruction());
+    private Node callCalloc(Node nmemb, int size, Type type) {
+        var entity = StandardLibraryEntities.INSTANCE.getCalloc();
+        Node address = getConstruction().newAddress(entity);
+        MethodType methodType = (MethodType)entity.getType();
 
         Node sizeNode = getConstruction().newConst(size, Mode.getIs());
-        Node[] params = new Node[]{nmemb, sizeNode};
-        Node call = getConstruction().newCall(mem, callocAddress, params, t);
+        Node[] arguments = new Node[]{nmemb, sizeNode};
+        Node call = getConstruction().newCall(getConstruction().getCurrentMem(), address, arguments, methodType);
 
-        Node callMem = getConstruction().newProj(call, Mode.getM(), Call.pnM);
-        getConstruction().setCurrentMem(callMem);
+        Node projMem = getConstruction().newProj(call, Mode.getM(), Call.pnM);
+        getConstruction().setCurrentMem(projMem);
 
         Node tResult = getConstruction().newProj(call, Mode.getT(), Call.pnTResult);
-        return getConstruction().newProj(tResult, t.getMode(), 0);
+        return getConstruction().newProj(tResult, type.getMode(), 0);
     }
 
-    private Node callCalloc(int nmemb, int size, Type t) {
+    private Node callCalloc(int nmemb, int size, Type type) {
         Node nmembNode = getConstruction().newConst(nmemb, Mode.getIs());
-        return callCalloc(nmembNode, size, t);
+        return callCalloc(nmembNode, size, type);
     }
 
     private Construction getConstruction() {

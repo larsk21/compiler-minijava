@@ -26,6 +26,8 @@ public enum StandardLibraryEntities {
     private final Entity write;
     @Getter
     private final Entity flush;
+    @Getter
+    private final Entity calloc;
 
     /**
      * Return the corresponding entity for the given standard library method. This
@@ -47,11 +49,21 @@ public enum StandardLibraryEntities {
         };
     }
 
+    /**
+     * Return the entity for the `calloc` standard library method.
+     *
+     * @return the entity
+     */
+    public Entity getCalloc() {
+        return calloc;
+    }
+
     private StandardLibraryEntities() {
         JFirmSingleton.initializeFirmLinux();
 
         var globalType = Program.getGlobalType();
         var intType = new PrimitiveType(Mode.getIs());
+        var ptrType = new PrimitiveType(Mode.getP());
 
         this.read = new Entity(globalType, Ident.mangleGlobal("read"),
             new MethodType(new Type[] {}, new Type[] { intType })
@@ -65,10 +77,14 @@ public enum StandardLibraryEntities {
         this.flush = new Entity(globalType, Ident.mangleGlobal("flush"),
             new MethodType(new Type[] {}, new Type[] {})
         );
+        this.calloc = new Entity(globalType, Ident.mangleGlobal("calloc"),
+                new MethodType(new Type[] { intType, intType }, new Type[] { ptrType })
+        );
 
         read.setVisibility(ir_visibility.ir_visibility_external);
         print.setVisibility(ir_visibility.ir_visibility_external);
         write.setVisibility(ir_visibility.ir_visibility_external);
         flush.setVisibility(ir_visibility.ir_visibility_external);
+        calloc.setVisibility(ir_visibility.ir_visibility_external);
     }
 }

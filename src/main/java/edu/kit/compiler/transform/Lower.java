@@ -5,32 +5,11 @@ import firm.*;
 import firm.nodes.Node;
 
 public class Lower {
-
-    private static Node calloc;
-
     public static String makeLdIdent(String str) {
         if (Platform.isMac() || Platform.isWindows()) {
             str = "_" + str;
         }
         return str;
-    }
-
-    /**
-     * returns the address of calloc in this construction
-     * @param construction
-     * @return
-     */
-    public static Node getCallocNode(Construction construction) {
-        SegmentType global = Program.getGlobalType();
-        if (calloc == null) {
-            MethodType callocType = new MethodType(new Type[]{ TypeMapper.getIntegerType(), TypeMapper.getIntegerType()},
-                    new Type[]{ TypeMapper.getPointerType()});
-
-            Entity callocEntity = new Entity(global, "calloc", callocType);
-            callocEntity.setLdIdent(Lower.makeLdIdent("calloc"));
-            calloc = construction.newAddress(callocEntity);
-        }
-        return calloc;
     }
 
     public static void lower(TypeMapper typeMapper) {
