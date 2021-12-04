@@ -145,8 +145,7 @@ public final class TypeMapper {
         private int size;
         private final Map<Integer, Entity> fields = new HashMap<>();
         private final Map<Integer, Entity> methods = new HashMap<>();
-        @Getter
-        private final Map<Integer, Type> methodParamTypes = new HashMap<>();
+        private final Map<Integer, MethodType> methodTypes = new HashMap<>();
         @Getter
         private int id;
 
@@ -215,6 +214,26 @@ public final class TypeMapper {
         }
 
         /**
+         * Returns the Firm type for the method.
+         *
+         * @param methodId the method whose type is to be returned
+         * @return the Firm type for the given method
+         */
+        public MethodType getMethodType(int methodId) {
+            return methodTypes.get(methodId);
+        }
+
+        /**
+         * Returns the Firm type for the method.
+         *
+         * @param method the method whose type is to be returned
+         * @return the Firm type for the given method
+         */
+        public MethodType getMethodType(MethodNode method) {
+            return getMethodType(method.getName());
+        }
+
+        /**
          * Returns the corresponding Firm `PointerType` for the class.
          * 
          * @return the corresponding Firm type
@@ -274,7 +293,7 @@ public final class TypeMapper {
                 var methodEntity = new Entity(classType, methodName, methodType);
                 methodEntity.setVisibility(ir_visibility.ir_visibility_local);
                 methods.put(methodNode.getName(), methodEntity);
-                methodParamTypes.put(methodNode.getName(), methodType);
+                methodTypes.put(methodNode.getName(), methodType);
 
                 if (isStatic) {
                     if (mainMethod != null || !methodName.equals("main")) {
