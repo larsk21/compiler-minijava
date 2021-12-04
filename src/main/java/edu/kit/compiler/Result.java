@@ -11,6 +11,7 @@ public enum Result {
     ParseError(1),
     SemanticError(1),
     StandardLibraryError(1),
+    GccError(1),
     TransformError(1);
 
     /**
