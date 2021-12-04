@@ -3,6 +3,11 @@ package edu.kit.compiler.transform;
 import com.sun.jna.Platform;
 import firm.*;
 import firm.nodes.Node;
+import firm.Backend;
+import firm.Ident;
+import firm.Program;
+import firm.Util;
+import firm.bindings.binding_typerep.ir_visibility;
 
 public class Lower {
     public static String makeLdIdent(String str) {
@@ -37,6 +42,9 @@ public class Lower {
         }
 
         // Rename main method, so gcc recognizes it
-        typeMapper.getMainMethod().setLdIdent(Ident.mangleGlobal("main"));
+        var main = typeMapper.getMainMethod();
+        main.setLdIdent(Ident.mangleGlobal("main"));
+        main.setVisibility(ir_visibility.ir_visibility_external);
+        Program.setMainGraph(main.getGraph());
     }
 }
