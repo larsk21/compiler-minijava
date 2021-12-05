@@ -62,6 +62,11 @@ jobs:
           pwd
           ./run_mjtests.sh semantic
 
+      - name: Run Transformation Tests
+        run: |
+          pwd
+          ./run_mjtests.sh compile-firm
+
       - name: Copy Artifacts
         run: |
           pwd
