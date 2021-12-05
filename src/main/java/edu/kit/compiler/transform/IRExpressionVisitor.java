@@ -1,5 +1,7 @@
 package edu.kit.compiler.transform;
 
+import java.util.function.Supplier;
+
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.Operator.BinaryOperator;
@@ -26,18 +28,36 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         this.pointerVisitor = new IRPointerVisitor(context);
     }
 
-    public Node handleAssignment(ExpressionNode lhs, Node rhs) {
-        Type type = context.getTypeMapper().getDataType(lhs.getResultType());
-        if (lhs instanceof IdentifierExpressionNode) {
-            var id = (ExpressionNode.IdentifierExpressionNode) lhs;
+    public Node handleAssignment(ExpressionNode left, Node right) {
+        return handleAssignment(left, () -> right);
+    }
+
+    public Node handleAssignment(ExpressionNode left, ExpressionNode right) {
+        return handleAssignment(left, () -> right.accept(this));
+    }
+
+    // The Supplier is need to generate lhs and rhs in the correct order
+    private Node handleAssignment(ExpressionNode left, Supplier<Node> right) {
+        Type type = context.getTypeMapper().getDataType(left.getResultType());
+        Node rhs;
+
+        // ? refactor as Visitor to get rid of instance of
+        if (left instanceof IdentifierExpressionNode) {
+            var id = (ExpressionNode.IdentifierExpressionNode) left;
             switch (id.getDefinition().getKind()) {
-                case LocalVariable, Parameter ->
-                        getConstruction().setVariable(context.getVariableIndex(id.getIdentifier()), rhs);
-                case Field -> storeToAddress(id.accept(pointerVisitor), rhs, type);
+                case LocalVariable, Parameter -> {
+                    var variable = context.getVariableIndex(id.getIdentifier());
+                    getConstruction().setVariable(variable, (rhs = right.get()));
+                }
+                case Field -> storeToAddress(id.accept(pointerVisitor), (rhs = right.get()), type);
+                default -> throw new IllegalStateException();
             }
         } else {
-            storeToAddress(lhs.accept(pointerVisitor), rhs, type);
+            var lhs = left.accept(pointerVisitor);
+            rhs = right.get();
+            storeToAddress(lhs, rhs, type);
         }
+
         return rhs;
     }
 
@@ -49,8 +69,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
  
         // Special case for assignment to prevent lhs from being created twice
         if (binaryExpressionNode.getOperator() == BinaryOperator.Assignment) {
-            Node rhs = binaryExpressionNode.getRightSide().accept(this);
-            return handleAssignment(binaryExpressionNode.getLeftSide(), rhs);
+            return handleAssignment(binaryExpressionNode.getLeftSide(), binaryExpressionNode.getRightSide());
         }
 
         Node lhs = binaryExpressionNode.getLeftSide().accept(this);
