@@ -12,7 +12,6 @@ import firm.bindings.binding_irgopt;
 import firm.nodes.Node;
 import lombok.Getter;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class IRVisitor implements AstVisitor<Void> {

@@ -11,7 +11,6 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode.BinaryExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.FieldAccessExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.IdentifierExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.MethodInvocationExpressionNode;
-import edu.kit.compiler.data.ast_nodes.ExpressionNode.ThisExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.UnaryExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionNode;
 import firm.Construction;
@@ -21,7 +20,6 @@ import firm.nodes.Block;
 import firm.nodes.Cond;
 import firm.nodes.Node;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 public class IRBooleanExpressions {
     private static final DataType boolType = new DataType(DataTypeClass.Boolean);

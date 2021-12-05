@@ -19,15 +19,15 @@ public enum StandardLibraryEntities {
     INSTANCE;
 
     @Getter
-    private final Entity read;
+    private final TypedEntity<MethodType> read;
     @Getter
-    private final Entity print;
+    private final TypedEntity<MethodType> print;
     @Getter
-    private final Entity write;
+    private final TypedEntity<MethodType> write;
     @Getter
-    private final Entity flush;
+    private final TypedEntity<MethodType> flush;
     @Getter
-    private final Entity calloc;
+    private final TypedEntity<MethodType> calloc;
 
     /**
      * Return the corresponding entity for the given standard library method. This
@@ -37,7 +37,7 @@ public enum StandardLibraryEntities {
      * @param method the standard library method, whose entity is to be returned
      * @return the corresponding entity of method type
      */
-    public Entity getEntity(MethodNode.StandardLibraryMethod method) {
+    public TypedEntity<MethodType> getEntity(MethodNode.StandardLibraryMethod method) {
         return switch (method) {
             case PrintLn -> print;
             case Read -> read;
@@ -49,15 +49,6 @@ public enum StandardLibraryEntities {
         };
     }
 
-    /**
-     * Return the entity for the `calloc` standard library method.
-     *
-     * @return the entity
-     */
-    public Entity getCalloc() {
-        return calloc;
-    }
-
     private StandardLibraryEntities() {
         JFirmSingleton.initializeFirmLinux();
 
@@ -65,26 +56,32 @@ public enum StandardLibraryEntities {
         var intType = new PrimitiveType(Mode.getIs());
         var ptrType = new PrimitiveType(Mode.getP());
 
-        this.read = new Entity(globalType, Ident.mangleGlobal("read"),
-            new MethodType(new Type[] {}, new Type[] { intType })
+        var readType = new MethodType(new Type[] {}, new Type[] { intType });
+        var printType = new MethodType(new Type[] { intType }, new Type[] {});
+        var writeType = new MethodType(new Type[] { intType }, new Type[] {});
+        var flushType = new MethodType(new Type[] {}, new Type[] {});
+        var callocType = new MethodType(new Type[] { intType, intType }, new Type[] { ptrType });
+
+        this.read = new TypedEntity<>(
+            new Entity(globalType, Ident.mangleGlobal("read"), readType), readType
         );
-        this.print = new Entity(globalType, Ident.mangleGlobal("print"),
-            new MethodType(new Type[] { intType }, new Type[] {})
+        this.print = new TypedEntity<>(
+            new Entity(globalType, Ident.mangleGlobal("print"), printType), printType
         );
-        this.write = new Entity(globalType, Ident.mangleGlobal("write"),
-            new MethodType(new Type[] { intType }, new Type[] {})
+        this.write = new TypedEntity<>(
+            new Entity(globalType, Ident.mangleGlobal("write"), writeType), writeType
         );
-        this.flush = new Entity(globalType, Ident.mangleGlobal("flush"),
-            new MethodType(new Type[] {}, new Type[] {})
+        this.flush = new TypedEntity<>(
+            new Entity(globalType, Ident.mangleGlobal("flush"), flushType), flushType
         );
-        this.calloc = new Entity(globalType, Ident.mangleGlobal("calloc"),
-                new MethodType(new Type[] { intType, intType }, new Type[] { ptrType })
+        this.calloc = new TypedEntity<>(
+            new Entity(globalType, Ident.mangleGlobal("calloc"), callocType), callocType
         );
 
-        read.setVisibility(ir_visibility.ir_visibility_external);
-        print.setVisibility(ir_visibility.ir_visibility_external);
-        write.setVisibility(ir_visibility.ir_visibility_external);
-        flush.setVisibility(ir_visibility.ir_visibility_external);
-        calloc.setVisibility(ir_visibility.ir_visibility_external);
+        read.getEntity().setVisibility(ir_visibility.ir_visibility_external);
+        print.getEntity().setVisibility(ir_visibility.ir_visibility_external);
+        write.getEntity().setVisibility(ir_visibility.ir_visibility_external);
+        flush.getEntity().setVisibility(ir_visibility.ir_visibility_external);
+        calloc.getEntity().setVisibility(ir_visibility.ir_visibility_external);
     }
 }

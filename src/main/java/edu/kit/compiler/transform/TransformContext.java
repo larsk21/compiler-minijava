@@ -67,7 +67,7 @@ public class TransformContext {
         this.typeMapper = typeMapper;
         this.classNode = classNode;
         this.methodNode = methodNode;
-        this.methodEntity = classEntry.getMethod(methodNode);
+        this.methodEntity = classEntry.getMethod(methodNode).getEntity();
         this.variableMapping = variableMapping;
         this.isStatic = isStatic;
         this.returnType = Optional.empty();
