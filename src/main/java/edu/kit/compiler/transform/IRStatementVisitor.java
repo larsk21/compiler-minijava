@@ -58,13 +58,12 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
     @Override
     public Boolean visit(ReturnStatementNode stmt) {
         Construction con = context.getConstruction();
-        Node mem = con.getCurrentMem();
         Node returnNode;
         if (stmt.getResult().isPresent()) {
             Node returnVal = evalExpression(stmt.getResult().get());
-            returnNode = con.newReturn(mem, new Node[]{returnVal});
+            returnNode = con.newReturn(con.getCurrentMem(), new Node[]{returnVal});
         } else {
-            returnNode = con.newReturn(mem, new Node[]{});
+            returnNode = con.newReturn(con.getCurrentMem(), new Node[]{});
         }
         context.getEndBlock().addPred(returnNode);
         return true;
