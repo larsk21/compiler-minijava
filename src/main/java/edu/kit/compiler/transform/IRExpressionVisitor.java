@@ -44,15 +44,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     @Override
     public Node visit(BinaryExpressionNode binaryExpressionNode) {
         if (binaryExpressionNode.getResultType().equals(boolType)) {
-            switch (binaryExpressionNode.getOperator()) {
-                // handle stuff with our boolean visitor
-                case Assignment, Equal, LessThanOrEqual,
-                        LogicalAnd, GreaterThanOrEqual, GreaterThan,
-                        LogicalOr, NotEqual, LessThan -> {
-                    return IRBooleanExpressions.asValue(context, binaryExpressionNode);
-                }
-                default -> throw new UnsupportedOperationException();
-            }
+            return IRBooleanExpressions.asValue(context, binaryExpressionNode);
         }
  
         // Special case for assignment to prevent lhs from being created twice
