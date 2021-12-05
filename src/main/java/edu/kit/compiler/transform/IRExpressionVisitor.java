@@ -227,19 +227,13 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     public Node visit(ValueExpressionNode valueExpressionNode) {
         // determine type of value expression and value and set the expression
         return switch (valueExpressionNode.getValueType()) {
-            case Null -> handleNullExpressionNode();
+            case Null -> getConstruction().newConst(0, Mode.getP());
             case False, True -> IRBooleanExpressions.asValue(context, valueExpressionNode);
-            case IntegerLiteral -> handleIntegerExpressionNode(valueExpressionNode);
+            case IntegerLiteral -> {
+                var value = valueExpressionNode.getLiteralValue().get().intValue();
+                yield getConstruction().newConst(value, Mode.getIs());
+            }
         };
-    }
-
-    private Node handleIntegerExpressionNode(ValueExpressionNode valueExpressionNode) {
-        TargetValue tar_val = new TargetValue(valueExpressionNode.getLiteralValue().get().intValue(), Mode.getIs());
-        return getConstruction().newConst(tar_val);
-    }
-
-    private Node handleNullExpressionNode() {
-        return getConstruction().newConst(0, Mode.getP());
     }
 
     @Override
@@ -259,7 +253,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     private Node callCalloc(Node nmemb, int size, Type type) {
         var entry = StandardLibraryEntities.INSTANCE.getCalloc();
         Node address = getConstruction().newAddress(entry.getEntity());
-        MethodType methodType = (MethodType)entry.getType();
+        MethodType methodType = entry.getType();
 
         Node sizeNode = getConstruction().newConst(size, Mode.getIs());
         Node[] arguments = new Node[]{nmemb, sizeNode};
