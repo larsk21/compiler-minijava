@@ -36,29 +36,27 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         return handleAssignment(left, () -> right.accept(this));
     }
 
-    // The Supplier is need to generate lhs and rhs in the correct order
+    // The Supplier is needed to generate lhs and rhs in the correct order
     private Node handleAssignment(ExpressionNode left, Supplier<Node> right) {
         Type type = context.getTypeMapper().getDataType(left.getResultType());
-        Node rhs;
+        Node node;
 
-        // ? refactor as Visitor to get rid of instance of
+        // ? maybe refactor as Visitor to get rid of instance of
         if (left instanceof IdentifierExpressionNode) {
             var id = (ExpressionNode.IdentifierExpressionNode) left;
             switch (id.getDefinition().getKind()) {
                 case LocalVariable, Parameter -> {
                     var variable = context.getVariableIndex(id.getIdentifier());
-                    getConstruction().setVariable(variable, (rhs = right.get()));
+                    getConstruction().setVariable(variable, (node = right.get()));
                 }
-                case Field -> storeToAddress(id.accept(pointerVisitor), (rhs = right.get()), type);
+                case Field -> storeToAddress(id.accept(pointerVisitor), (node = right.get()), type);
                 default -> throw new IllegalStateException();
             }
         } else {
-            var lhs = left.accept(pointerVisitor);
-            rhs = right.get();
-            storeToAddress(lhs, rhs, type);
+            storeToAddress(left.accept(pointerVisitor), (node = right.get()), type);
         }
 
-        return rhs;
+        return node;
     }
 
     @Override
