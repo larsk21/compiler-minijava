@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 
+import edu.kit.compiler.transform.IRVisitor;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -34,7 +35,6 @@ import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
 import edu.kit.compiler.transform.JFirmSingleton;
 import edu.kit.compiler.transform.Lower;
-import edu.kit.compiler.transform.TypeMapper;
 import firm.Backend;
 import firm.Firm;
 
@@ -173,18 +173,16 @@ public class JavaEasyCompiler {
             Lexer lexer = new Lexer(reader);
             StringTable stringTable = lexer.getStringTable();
             NamespaceMapper namespaceMapper = new NamespaceMapper();
-            createAttributedAst(reader, logger, lexer, namespaceMapper);
+            ProgramNode ast = createAttributedAst(reader, logger, lexer, namespaceMapper);
 
             JFirmSingleton.initializeFirmLinux();
             logger.info("Initialized libFirm Version: %s.%s",
                 Firm.getMinorVersion(), Firm.getMajorVersion()
             );
 
-            TypeMapper typeMapper = new TypeMapper(namespaceMapper, stringTable);
-
-            // todo insert Firm graph generation here
-
-            Lower.lower(typeMapper);
+            IRVisitor irv = new IRVisitor(namespaceMapper, stringTable);
+            ast.accept(irv);
+            Lower.lower(irv.getTypeMapper());
 
             var sourceFile = new File(filePath).getName();
             var assemblyFile = sourceFile + ".s";
@@ -198,7 +196,12 @@ public class JavaEasyCompiler {
             }
 
             logger.info("compiling program: 'gcc \"%s\" \"%s\"'", assemblyFile, stdLibrary);
-            Runtime.getRuntime().exec(new String[]{ "gcc", assemblyFile, stdLibrary });
+            var process = Runtime.getRuntime().exec(new String[]{ "gcc", assemblyFile, stdLibrary });
+
+            if (process.waitFor() != 0) {
+                logger.error("gcc failed with exit code %s", process.exitValue());
+                return Result.GccError;
+            }
             
             return Result.Ok;
         } catch (CompilerException e) {
@@ -209,6 +212,10 @@ public class JavaEasyCompiler {
             logger.error("unable to read file: %s", e.getMessage());
 
             return Result.FileInputError;
+        } catch (InterruptedException e) {
+            logger.error("gcc was interrupted: %s", e.getMessage());
+
+            return Result.GccError;
         }
     }
 
@@ -340,35 +347,6 @@ public class JavaEasyCompiler {
         }
         
         return new Logger(verbosity, printColor);
-    }
-
-    /**
-     * Represents the result of a command execution.
-     */
-    public enum Result {
-        Ok(0),
-        CliInputError(1),
-        FileInputError(1),
-        LexError(1),
-        ParseError(1),
-        SemanticError(1),
-        StandardLibraryError(1);
-
-        /**
-         * @param code The exit code associated with this Result
-         */
-        private Result(int code) {
-            this.code = code;
-        }
-
-        private final int code;
-
-        /**
-         * @return The exit code associated with this Result.
-         */
-        public int getCode() {
-            return code;
-        }
     }
 
 }

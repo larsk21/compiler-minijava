@@ -11,7 +11,6 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode.BinaryExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.FieldAccessExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.IdentifierExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.MethodInvocationExpressionNode;
-import edu.kit.compiler.data.ast_nodes.ExpressionNode.ThisExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.UnaryExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionNode;
 import firm.Construction;
@@ -21,7 +20,6 @@ import firm.nodes.Block;
 import firm.nodes.Cond;
 import firm.nodes.Node;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 public class IRBooleanExpressions {
     private static final DataType boolType = new DataType(DataTypeClass.Boolean);
@@ -49,8 +47,7 @@ public class IRBooleanExpressions {
                     ExpressionNode left = expr.getLeftSide();
                     ExpressionNode right = expr.getRightSide();
                     if (preferAsValue(right)) {
-                        Node rValue = evalExpression(context, right);
-                        throw new UnsupportedOperationException();
+                        yield (new IRExpressionVisitor(context)).handleAssignment(left, right);
                     } else {
                         yield fromConditional(expr);
                     }
@@ -125,12 +122,33 @@ public class IRBooleanExpressions {
 
         @Override
         public Void visit(BinaryExpressionNode expr) {
+            Construction con = context.getConstruction();
             ExpressionNode left = expr.getLeftSide();
             ExpressionNode right = expr.getRightSide();
             return switch (expr.getOperator()) {
-                case Assignment -> throw new UnsupportedOperationException();
+                case Assignment -> {
+                    // Create separate assignments for both branches
+                    // Note: we need to create new blocks, because trueBranch and falseBranch
+                    // might have more predecessors.
+                    var expressionVisitor = new IRExpressionVisitor(context);
+                    Block assignTrue = con.newBlock();
+                    Block assignFalse = con.newBlock();
+                    asConditional(right, assignTrue, assignFalse);
+                    assignTrue.mature();
+                    con.setCurrentBlock(assignTrue);
+                    Node jmpTrue = con.newJmp();
+                    trueBranch.addPred(jmpTrue);
+                    trueBranch.mature();
+                    expressionVisitor.handleAssignment(left, con.newConst(1, Mode.getBu()));
+                    assignFalse.mature();
+                    con.setCurrentBlock(assignFalse);
+                    expressionVisitor.handleAssignment(left, con.newConst(0, Mode.getBu()));
+                    Node jmpFalse = con.newJmp();
+                    falseBranch.addPred(jmpFalse);
+                    falseBranch.mature();
+                    yield (Void)null;
+                }
                 case LogicalOr -> {
-                    Construction con = context.getConstruction();
                     Block rightBranch = con.newBlock();
                     asConditional(left, trueBranch, rightBranch);
                     rightBranch.mature();
@@ -138,7 +156,6 @@ public class IRBooleanExpressions {
                     yield asConditional(right, trueBranch, falseBranch);
                 }
                 case LogicalAnd -> {
-                    Construction con = context.getConstruction();
                     Block rightBranch = con.newBlock();
                     asConditional(left, rightBranch, falseBranch);
                     rightBranch.mature();
@@ -255,12 +272,6 @@ public class IRBooleanExpressions {
     }
 
     private static Node evalExpression(TransformContext context, ExpressionNode expr) {
-        // TODO: replace all of this with expression visitor
-        if (expr.getResultType().equals(boolType) &&
-            (expr instanceof BinaryExpressionNode || expr instanceof UnaryExpressionNode)
-        ) {
-            return IRBooleanExpressions.asValue(context, expr);
-        }
-        return context.getConstruction().newConst(1, Mode.getBu());
+        return expr.accept(new IRExpressionVisitor(context));
     }
 }

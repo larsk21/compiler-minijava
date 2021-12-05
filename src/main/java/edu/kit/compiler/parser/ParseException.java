@@ -2,7 +2,7 @@ package edu.kit.compiler.parser;
 
 import java.util.Optional;
 
-import edu.kit.compiler.JavaEasyCompiler.Result;
+import edu.kit.compiler.Result;
 import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Positionable;
 import edu.kit.compiler.data.Token;

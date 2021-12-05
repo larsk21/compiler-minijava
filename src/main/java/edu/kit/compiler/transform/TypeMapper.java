@@ -34,9 +34,14 @@ public final class TypeMapper {
 
     private final Map<Integer, ClassEntry> classes = new HashMap<>();
 
-    private final Type booleanType = new PrimitiveType(Mode.getBu());
-    private final Type integerType = new PrimitiveType(Mode.getIs());
+    @Getter
+    private static final Type booleanType = new PrimitiveType(Mode.getBu());
+    @Getter
+    private static final Type integerType = new PrimitiveType(Mode.getIs());
+    @Getter
+    private static final Type pointerType = new PrimitiveType(Mode.getP());
 
+    @Getter
     private final StringTable stringTable;
 
     @Getter
@@ -85,12 +90,35 @@ public final class TypeMapper {
             case Array -> {
                 var innerType = getDataType(type.getInnerType().get());
                 var arrayType = new ArrayType(innerType, 0);
+                arrayType.finishLayout();
                 yield new PointerType(arrayType);
             }
             case UserDefined -> {
                 var classEntry = classes.get(type.getIdentifier().get());
                 yield new PointerType(classEntry.getClassType());
             } 
+            case Void, Any -> throw new IllegalArgumentException(
+                String.format("can't construct type for %s", type.getType())
+            );
+            default -> throw new IllegalStateException("unsupported data type");
+        };
+    }
+
+    /**
+     * Returns the Firm mode of the given data type. Arrays and user defined
+     * types will return mode P, integers are mode Is, booleans are mode Bu.
+     * The result of this method is equivalent to `getDataType(type).getMode()`,
+     * but avoids unnecessary look ups.
+     * 
+     * @param type the data type whose corresponding Firm mode is to be returned
+     * @return the corresponding Firm mode
+     */
+    public Mode getMode(DataType type) {
+        return switch (type.getType()) {
+            case Array -> Mode.getP();
+            case Boolean -> Mode.getBu();
+            case Int -> Mode.getIs();
+            case UserDefined -> Mode.getP();
             case Void, Any -> throw new IllegalArgumentException(
                 String.format("can't construct type for %s", type.getType())
             );
@@ -137,9 +165,13 @@ public final class TypeMapper {
         @Getter
         private final ClassType classType;
         private final Map<Integer, Entity> fields = new HashMap<>();
-        private final Map<Integer, Entity> methods = new HashMap<>();
+        private final Map<Integer, TypedEntity<MethodType>> methods = new HashMap<>();
+        
+        @Getter
+        private int id;
 
         private ClassEntry(int classId) {
+            id = classId;
             var className = stringTable.retrieve(classId);
             this.classType = new ClassType(className);
         }
@@ -174,22 +206,22 @@ public final class TypeMapper {
         }
 
         /**
-         * Returns the Firm entity representing the method with the given name.
+         * Returns the entity representing the method with the given name.
          * 
          * @param methodId the name of the method whose entity is to be returned
          * @return the entity corresponding to the given method
          */
-        public Entity getMethod(int methodId) {
+        public TypedEntity<MethodType> getMethod(int methodId) {
             return methods.get(methodId);
         }
 
         /**
-         * Returns the Firm entity representing the given method.
+         * Returns the entity representing the given method.
          * 
          * @param methodId the method whose entity is to be returned
          * @return the entity corresponding to the given method
          */
-        public Entity getMethod(MethodNode method) {
+        public TypedEntity<MethodType> getMethod(MethodNode method) {
             return getMethod(method.getName());
         }
 
@@ -198,7 +230,7 @@ public final class TypeMapper {
          * 
          * @return an unmodifiable collection of all method `Entity`s
          */
-        public Collection<Entity> getMethods() {
+        public Collection<TypedEntity<MethodType>> getMethods() {
             return Collections.unmodifiableCollection(methods.values());
         }
 
@@ -238,8 +270,6 @@ public final class TypeMapper {
                 var fieldType = initDataType(fieldNode.getType());
 
                 var fieldEntity = new Entity(classType, fieldName, fieldType);
-                // ? is this actually needed for non global entity?
-                fieldEntity.setVisibility(ir_visibility.ir_visibility_local);
                 fields.put(fieldNode.getName(), fieldEntity);
             }
         }
@@ -257,7 +287,7 @@ public final class TypeMapper {
 
                 var methodEntity = new Entity(classType, methodName, methodType);
                 methodEntity.setVisibility(ir_visibility.ir_visibility_local);
-                methods.put(methodNode.getName(), methodEntity);
+                methods.put(methodNode.getName(), new TypedEntity<>(methodEntity, methodType));
 
                 if (isStatic) {
                     if (mainMethod != null || !methodName.equals("main")) {
@@ -279,6 +309,7 @@ public final class TypeMapper {
                 case Array -> {
                     var innerType = initDataType(type.getInnerType().get());
                     var arrayType = new ArrayType(innerType, 0);
+                    arrayType.finishLayout();
                     yield new PointerType(arrayType);
                 }
                 case UserDefined -> {

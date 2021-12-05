@@ -5,13 +5,10 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.ArrayAccessExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.FieldAccessExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.IdentifierExpressionNode;
-import edu.kit.compiler.data.ast_nodes.ExpressionNode.ThisExpressionNode;
-import edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionNode;
 import edu.kit.compiler.semantic.DefinitionKind;
 import firm.ArrayType;
 import firm.Construction;
 import firm.Entity;
-import firm.Mode;
 import firm.Type;
 import firm.nodes.Node;
 
@@ -36,9 +33,9 @@ public class IRPointerVisitor implements AstVisitor<Node> {
     public Node visit(IdentifierExpressionNode expr) {
         if (expr.getDefinition().getKind() == DefinitionKind.Field) {
             int className = context.getClassNode().getName();
-            return handleFieldAccess(context.createThisNode(), className, expr.getIdentifier());
+            return handleFieldAccess(context.getThisNode(), className, expr.getIdentifier());
         } else {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("not recognized kind " + expr.getDefinition().getKind());
         }
     }
 
@@ -57,16 +54,6 @@ public class IRPointerVisitor implements AstVisitor<Node> {
     }
 
     private Node handleExpression(ExpressionNode expr) {
-        // TODO: call expression visitor instead
-        Construction con = context.getConstruction();
-        if (expr instanceof ThisExpressionNode) {
-            return context.createThisNode();
-        } else if (expr instanceof IdentifierExpressionNode) {
-            return context.createParamNode(((IdentifierExpressionNode)expr).getIdentifier());
-        } else if (expr instanceof ValueExpressionNode) {
-            return con.newConst(0, Mode.getIs());
-        } else {
-            return con.newConst(0, context.getThisPtrType().getMode());
-        }
+        return expr.accept(new IRExpressionVisitor(context));
     }
 }

@@ -1,7 +1,5 @@
 package edu.kit.compiler.transform;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,24 +27,9 @@ import lombok.Getter;
 public class TransformContext {
 
     /**
-     * Mapping of local variable names to indizes.
+     * Mapping of local variable names to indices.
      */
     private Map<Integer, Integer> variableMapping;
-
-    /**
-     * Mapping of method parameter names to indizes.
-     */
-    private Map<Integer, Integer> paramMapping;
-
-    /**
-     * Firm types of the method parameters.
-     */
-    private Type[] paramTypes;
-
-    /**
-     * Node that projects the method parameters.
-     */
-    private Node projArgs;
 
     @Getter
     private TypeMapper typeMapper;
@@ -69,67 +52,54 @@ public class TransformContext {
     @Getter
     private Construction construction;
 
+    @Getter
+    private final Entity methodEntity;
+
+    /**
+     * Node for the this-pointer.
+     */
+    @Getter
+    private Node thisNode;
+
     public TransformContext(TypeMapper typeMapper, ClassNode classNode, MethodNode methodNode,
                             Map<Integer, Integer> variableMapping, boolean isStatic) {
+        ClassEntry classEntry = typeMapper.getClassEntry(classNode);
         this.typeMapper = typeMapper;
         this.classNode = classNode;
         this.methodNode = methodNode;
+        this.methodEntity = classEntry.getMethod(methodNode).getEntity();
         this.variableMapping = variableMapping;
         this.isStatic = isStatic;
-        this.paramMapping = new HashMap<>();
-        ClassEntry classEntry = typeMapper.getClassEntry(classNode);
-        ArrayList<Type> params = new ArrayList<>();
-        if (!isStatic) {
-            // determine type for 'this'
-            params.add(classEntry.getPointerType());
-        }
-        for (int i = 0; i < methodNode.getParameters().size(); i++) {
-            MethodNodeParameter param = methodNode.getParameters().get(i);
-            params.add(typeMapper.getDataType(param.getType()));
-            this.paramMapping.put(param.getName(), i + (isStatic ? 0 : 1));
-        }
-        this.paramTypes = params.toArray(new Type[]{});
         this.returnType = Optional.empty();
         if (!methodNode.getType().equals(DataType.voidType())) {
             this.returnType = Optional.of(typeMapper.getDataType(methodNode.getType()));
         }
-        Entity methodEntity = classEntry.getMethod(methodNode);
-        Graph graph = new Graph(methodEntity, variableMapping.size());
-        this.construction = new Construction(graph);
-        this.projArgs =  graph.getArgs();
-    }
 
-    /**
-     * Type of the 'this'-Pointer.
-     * 
-     * @return the type
-     */
-    public Type getThisPtrType() {
-        if (isStatic) {
-            throw new IllegalStateException("'this' is not available in static methods");
+        // add parameters to variable mapping
+        final int numLocalVars = variableMapping.size();
+        int currentVar = numLocalVars;
+        for (var param: methodNode.getParameters()) {
+            this.variableMapping.put(param.getName(), currentVar);
+            currentVar++;
         }
-        return paramTypes[0];
-    }
 
-    /**
-     * Type of a parameter.
-     * 
-     * @param name parameter name
-     * @return the type
-     */
-    public Type getParamType(int name) {
-        return paramTypes[paramMapping.get(name)];
-    }
+        // initialize graph
+        Graph graph = new Graph(methodEntity, currentVar);
+        this.construction = new Construction(graph);
+        Node projArgs =  graph.getArgs();
+        if (!isStatic) {
+            this.thisNode = construction.newProj(projArgs, Mode.getP(), 0);
+        }
 
-    /**
-     * Index of a parameter.
-     * For dynamic methods, index 0 is the implicit 'this' parameter. 
-     * 
-     * @param name parameter name
-     * @return the index
-     */
-    public int getParamIndex(int name) {
-        return paramMapping.get(name);
+        // initialize local variables for parameters
+        for (int i = 0; i < methodNode.getParameters().size(); i++) {
+            MethodNodeParameter param = methodNode.getParameters().get(i);
+            int paramIndex = i + (isStatic ? 0 : 1);
+            int variableIndex = numLocalVars + i;
+            Mode paramMode = typeMapper.getMode(param.getType());
+            Node paramProj = construction.newProj(projArgs, paramMode, paramIndex);
+            construction.setVariable(variableIndex, paramProj);
+        }
     }
 
     /**
@@ -148,28 +118,5 @@ public class TransformContext {
 
     public Graph getGraph() {
         return construction.getGraph();
-    }
-
-    /**
-     * Creates a node for accessing a method parameter.
-     * 
-     * @param name parameter name
-     * @return the node
-     */
-    public Node createParamNode(int name) {
-        int param = paramMapping.get(name);
-        return construction.newProj(projArgs, paramTypes[param].getMode(), param);
-    }
-
-    /**
-     * Creates a node for accessing 'this'.
-     * 
-     * @return the node
-     */
-    public Node createThisNode() {
-        if (isStatic) {
-            throw new IllegalStateException("'this' is not available in static methods");
-        }
-        return construction.newProj(projArgs, getThisPtrType().getMode(), 0);
     }
 }

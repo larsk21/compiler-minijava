@@ -5,21 +5,25 @@ import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
+import edu.kit.compiler.lexer.StringTable;
+import edu.kit.compiler.semantic.NamespaceMapper;
 import firm.Construction;
+import firm.bindings.binding_irgopt;
 import firm.nodes.Node;
+import lombok.Getter;
 
 import java.util.Map;
 
 public class IRVisitor implements AstVisitor<Void> {
+    @Getter
     private final TypeMapper typeMapper;
 
     /**
      * Transform visitor visits the AST recursively and calls our underlying IR visitors that create firm components for the AST
      *
-     * @param typeMapper Mapper that maps from our data types to firm Entities and Types.
      */
-    public IRVisitor(TypeMapper typeMapper) {
-        this.typeMapper = typeMapper;
+    public IRVisitor(NamespaceMapper namespaceMapper, StringTable stringTable) {
+        this.typeMapper = new TypeMapper(namespaceMapper, stringTable);
     }
 
     @Override
@@ -65,5 +69,9 @@ public class IRVisitor implements AstVisitor<Void> {
         }
 
         con.finish();
+
+        // directly call libfirm bindings for removing unreachable code
+        binding_irgopt.remove_unreachable_code(con.getGraph().ptr);
+        binding_irgopt.remove_bads(con.getGraph().ptr);
     }
 }

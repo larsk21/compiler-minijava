@@ -1,7 +1,6 @@
 package edu.kit.compiler.transform;
 
 import edu.kit.compiler.data.AstVisitor;
-import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.BlockStatementNode;
@@ -10,10 +9,8 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.IfStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.ReturnStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.WhileStatementNode;
-import edu.kit.compiler.semantic.DefinitionKind;
 import firm.Construction;
 import firm.Mode;
-import firm.Relation;
 import firm.nodes.Block;
 import firm.nodes.Node;
 
@@ -24,9 +21,11 @@ import firm.nodes.Node;
  */
 public class IRStatementVisitor implements AstVisitor<Boolean> {
     private final TransformContext context;
+    private final IRExpressionVisitor expressionVisitor;
 
     public IRStatementVisitor(TransformContext context) {
         this.context = context;
+        this.expressionVisitor = new IRExpressionVisitor(context);
     }
 
     @Override
@@ -49,7 +48,8 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
         } else {
             // zero-initialize the variable
             // Note: for debugging, me might want to make no assignment
-            assignedVal = con.newConst(0, getMode(stmt.getType()));
+            Mode mode = context.getTypeMapper().getMode(stmt.getType());
+            assignedVal = con.newConst(0, mode);
         }
         con.setVariable(context.getVariableIndex(stmt.getName()), assignedVal);
         return false;
@@ -58,13 +58,12 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
     @Override
     public Boolean visit(ReturnStatementNode stmt) {
         Construction con = context.getConstruction();
-        Node mem = con.getCurrentMem();
         Node returnNode;
         if (stmt.getResult().isPresent()) {
             Node returnVal = evalExpression(stmt.getResult().get());
-            returnNode = con.newReturn(mem, new Node[]{returnVal});
+            returnNode = con.newReturn(con.getCurrentMem(), new Node[]{returnVal});
         } else {
-            returnNode = con.newReturn(mem, new Node[]{});
+            returnNode = con.newReturn(con.getCurrentMem(), new Node[]{});
         }
         context.getEndBlock().addPred(returnNode);
         return true;
@@ -143,23 +142,6 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
     }
 
     private Node evalExpression(ExpressionNode expr) {
-        Construction con = context.getConstruction();
-        if (expr instanceof ExpressionNode.IdentifierExpressionNode) {
-            ExpressionNode.IdentifierExpressionNode id = (ExpressionNode.IdentifierExpressionNode)expr;
-            if (id.getDefinition().getKind() == DefinitionKind.LocalVariable) {
-                Mode mode = getMode(id.getResultType());
-                return con.getVariable(context.getVariableIndex(id.getIdentifier()), mode);
-            } else if (id.getDefinition().getKind() == DefinitionKind.Parameter) {
-                return context.createParamNode(id.getIdentifier());
-            } else {
-                throw new UnsupportedOperationException();
-            }
-        }
-        // TODO: call expression visitor
-        return con.newConst(1, getMode(expr.getResultType()));
-    }
-
-    private Mode getMode(DataType type) {
-        return context.getTypeMapper().getDataType(type).getMode();
+        return expr.accept(expressionVisitor);
     }
 }
