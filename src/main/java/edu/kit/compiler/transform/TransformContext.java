@@ -11,6 +11,7 @@ import edu.kit.compiler.transform.TypeMapper.ClassEntry;
 import firm.Construction;
 import firm.Entity;
 import firm.Graph;
+import firm.Mode;
 import firm.Type;
 import firm.nodes.Block;
 import firm.nodes.Node;
@@ -87,7 +88,7 @@ public class TransformContext {
         this.construction = new Construction(graph);
         Node projArgs =  graph.getArgs();
         if (!isStatic) {
-            this.thisNode = construction.newProj(projArgs, classEntry.getPointerType().getMode(), 0);
+            this.thisNode = construction.newProj(projArgs, Mode.getP(), 0);
         }
 
         // initialize local variables for parameters
@@ -95,8 +96,8 @@ public class TransformContext {
             MethodNodeParameter param = methodNode.getParameters().get(i);
             int paramIndex = i + (isStatic ? 0 : 1);
             int variableIndex = numLocalVars + i;
-            Type paramType = typeMapper.getDataType(param.getType());
-            Node paramProj = construction.newProj(projArgs, paramType.getMode(), paramIndex);
+            Mode paramMode = typeMapper.getMode(param.getType());
+            Node paramProj = construction.newProj(projArgs, paramMode, paramIndex);
             construction.setVariable(variableIndex, paramProj);
         }
     }

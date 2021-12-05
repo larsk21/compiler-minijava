@@ -1,7 +1,6 @@
 package edu.kit.compiler.transform;
 
 import edu.kit.compiler.data.AstVisitor;
-import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.BlockStatementNode;
@@ -49,7 +48,8 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
         } else {
             // zero-initialize the variable
             // Note: for debugging, me might want to make no assignment
-            assignedVal = con.newConst(0, getMode(stmt.getType()));
+            Mode mode = context.getTypeMapper().getMode(stmt.getType());
+            assignedVal = con.newConst(0, mode);
         }
         con.setVariable(context.getVariableIndex(stmt.getName()), assignedVal);
         return false;
@@ -144,9 +144,5 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
 
     private Node evalExpression(ExpressionNode expr) {
         return expr.accept(expressionVisitor);
-    }
-
-    private Mode getMode(DataType type) {
-        return context.getTypeMapper().getDataType(type).getMode();
     }
 }
