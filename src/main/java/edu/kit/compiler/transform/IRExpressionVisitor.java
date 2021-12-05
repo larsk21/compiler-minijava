@@ -72,15 +72,14 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         Node lhs = binaryExpressionNode.getLeftSide().accept(this);
         Node rhs = binaryExpressionNode.getRightSide().accept(this);
-        Type t = context.getTypeMapper().getDataType(binaryExpressionNode.getLeftSide().getResultType());
-        Mode m = t.getMode();
+        Mode mode = context.getTypeMapper().getMode(binaryExpressionNode.getLeftSide().getResultType());
 
         return switch (binaryExpressionNode.getOperator()) {
             case Assignment -> throw new IllegalStateException();
             case Modulo -> {
                 Node mem = getConstruction().getCurrentMem();
                 Node mod = getConstruction().newMod(mem, lhs, rhs, binding_ircons.op_pin_state.op_pin_state_pinned);
-                Node projRes = getConstruction().newProj(mod, m, Mod.pnRes);
+                Node projRes = getConstruction().newProj(mod, mode, Mod.pnRes);
                 Node projMem = getConstruction().newProj(mod, Mode.getM(), Mod.pnM);
 
                 getConstruction().setCurrentMem(projMem);
@@ -89,7 +88,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
             case Division -> {
                 Node mem = getConstruction().getCurrentMem();
                 Node div = getConstruction().newDiv(mem, lhs, rhs, binding_ircons.op_pin_state.op_pin_state_pinned);
-                Node projRes = getConstruction().newProj(div, m, Div.pnRes);
+                Node projRes = getConstruction().newProj(div, mode, Div.pnRes);
                 Node projMem = getConstruction().newProj(div, Mode.getM(), Div.pnM);
 
                 getConstruction().setCurrentMem(projMem);
@@ -283,6 +282,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     }
 
     private Mode getMode(DataType type) {
-        return context.getTypeMapper().getDataType(type).getMode();
+        return context.getTypeMapper().getMode(type);
     }
 }
