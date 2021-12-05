@@ -1,0 +1,82 @@
+class Main {
+    public static void main(String[] args) {
+        LinkedList list = new LinkedList();
+
+        int n = 1000;
+
+        int i = 0;
+        while (i < n) {
+            list.push(i);
+            i = i + 1;
+        }
+
+        list.print();
+
+        Node node;
+        while ((node = list.pop()) != null) {
+            System.out.println(node.value);
+        }
+    }
+}
+
+class LinkedList {
+    public Node head;
+
+    public void push(int x) {
+        if (head == null) {
+            head = new Node().init(x);
+        } else {
+            head.append(x);
+        }
+    }
+
+    public Node pop() {
+        if (head == null) {
+            return null;
+        } else if (head.next == null) {
+            Node result = head;
+            head = null;
+            return result;
+        } else {
+            return head.pop();
+        }
+    }
+
+    public void print() {
+        Node node = head;
+
+        while (node != null) {
+            System.out.println(node.value);
+            node = node.next;
+        }
+    }
+}
+
+class Node {
+    public Node next;
+    public int value;
+
+    public Node init(int x) {
+        value = x;
+        return this;
+    }
+
+    public Node append(int x) {
+        if (next == null) {
+            Node node = new Node().init(x);
+            return (next = node);
+        } else {
+            return next.append(x);
+        }
+    }
+
+    public Node pop() {
+        if (next.next == null) {
+            Node result = next;
+            next = null;
+            return result;
+        } else {
+            return next.pop();
+        }
+    }
+}
