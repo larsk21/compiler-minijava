@@ -380,3 +380,6 @@ TSWLatexianTemp*
 *.vcg
 # assembly files
 *.java.s
+
+*.so
+type-graph
