@@ -49,8 +49,7 @@ public class IRBooleanExpressions {
                     ExpressionNode left = expr.getLeftSide();
                     ExpressionNode right = expr.getRightSide();
                     if (preferAsValue(right)) {
-                        Node rValue = evalExpression(context, right);
-                        yield (new IRExpressionVisitor(context)).handleAssignment(left, rValue);
+                        yield (new IRExpressionVisitor(context)).handleAssignment(left, right);
                     } else {
                         yield fromConditional(expr);
                     }
