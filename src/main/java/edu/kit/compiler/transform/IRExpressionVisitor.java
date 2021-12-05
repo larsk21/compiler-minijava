@@ -2,6 +2,7 @@ package edu.kit.compiler.transform;
 
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
+import edu.kit.compiler.data.Operator.BinaryOperator;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.*;
 import edu.kit.compiler.data.ast_nodes.MethodNode;
@@ -53,6 +54,12 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
                 default -> throw new UnsupportedOperationException();
             }
         }
+ 
+        // Special case for assignment to prevent lhs from being created twice
+        if (binaryExpressionNode.getOperator() == BinaryOperator.Assignment) {
+            Node rhs = binaryExpressionNode.getRightSide().accept(this);
+            return handleAssignment(binaryExpressionNode.getLeftSide(), rhs);
+        }
 
         Node lhs = binaryExpressionNode.getLeftSide().accept(this);
         Node rhs = binaryExpressionNode.getRightSide().accept(this);
@@ -60,7 +67,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         Mode m = t.getMode();
 
         return switch (binaryExpressionNode.getOperator()) {
-            case Assignment -> handleAssignment(binaryExpressionNode.getLeftSide(), rhs);
+            case Assignment -> throw new IllegalStateException();
             case Modulo -> {
                 Node mem = getConstruction().getCurrentMem();
                 Node mod = getConstruction().newMod(mem, lhs, rhs, binding_ircons.op_pin_state.op_pin_state_pinned);
