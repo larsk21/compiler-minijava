@@ -137,13 +137,10 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
             arguments[i] = n;
         }
 
-        Node methodAddress;
-        MethodType methodType;
+        TypedEntity<MethodType> methodEntry;
         if (method.isStandardLibraryMethod()) {
             var stdMethod = (StandardLibraryMethodNode)method;
-            var methodInstance = StandardLibraryEntities.INSTANCE.getEntity(stdMethod.getMethod());
-            methodAddress = getConstruction().newAddress(methodInstance);
-            methodType = (MethodType)methodInstance.getType();
+            methodEntry = StandardLibraryEntities.INSTANCE.getEntity(stdMethod.getMethod());
         } else {
             // lookup method in the according class
             int className;
@@ -152,10 +149,13 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
             } else {
                 className = methodInvocationExpressionNode.getObject().get().getResultType().getIdentifier().get();
             }
-            ClassEntry classEntry = context.getTypeMapper().getClassEntry(className);
-            methodAddress = getConstruction().newAddress(classEntry.getMethod(method.getName()));
-            methodType = classEntry.getMethodType(method.getName());
+
+            methodEntry = context.getTypeMapper().getClassEntry(className).getMethod(method);
         }
+
+        var methodAddress = getConstruction().newAddress(methodEntry.getEntity());
+        var methodType = methodEntry.getType();
+
         Node call = getConstruction().newCall(getConstruction().getCurrentMem(), methodAddress, arguments, methodType);
         Node projMem = getConstruction().newProj(call, Mode.getM(), Call.pnM);
         getConstruction().setCurrentMem(projMem);
@@ -257,9 +257,9 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     }
 
     private Node callCalloc(Node nmemb, int size, Type type) {
-        var entity = StandardLibraryEntities.INSTANCE.getCalloc();
-        Node address = getConstruction().newAddress(entity);
-        MethodType methodType = (MethodType)entity.getType();
+        var entry = StandardLibraryEntities.INSTANCE.getCalloc();
+        Node address = getConstruction().newAddress(entry.getEntity());
+        MethodType methodType = (MethodType)entry.getType();
 
         Node sizeNode = getConstruction().newConst(size, Mode.getIs());
         Node[] arguments = new Node[]{nmemb, sizeNode};
