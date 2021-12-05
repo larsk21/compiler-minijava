@@ -90,12 +90,35 @@ public final class TypeMapper {
             case Array -> {
                 var innerType = getDataType(type.getInnerType().get());
                 var arrayType = new ArrayType(innerType, 0);
+                arrayType.finishLayout();
                 yield new PointerType(arrayType);
             }
             case UserDefined -> {
                 var classEntry = classes.get(type.getIdentifier().get());
                 yield new PointerType(classEntry.getClassType());
             } 
+            case Void, Any -> throw new IllegalArgumentException(
+                String.format("can't construct type for %s", type.getType())
+            );
+            default -> throw new IllegalStateException("unsupported data type");
+        };
+    }
+
+    /**
+     * Returns the Firm mode of the given data type. Arrays and user defined
+     * types will return mode P, integers are mode Is, booleans are mode Bu.
+     * The result of this method is equivalent to `getDataType(type).getMode()`,
+     * but avoids unnecessary look ups.
+     * 
+     * @param type the data type whose corresponding Firm mode is to be returned
+     * @return the corresponding Firm mode
+     */
+    public Mode getMode(DataType type) {
+        return switch (type.getType()) {
+            case Array -> Mode.getP();
+            case Boolean -> Mode.getBu();
+            case Int -> Mode.getIs();
+            case UserDefined -> Mode.getP();
             case Void, Any -> throw new IllegalArgumentException(
                 String.format("can't construct type for %s", type.getType())
             );
@@ -309,6 +332,7 @@ public final class TypeMapper {
                 case Array -> {
                     var innerType = initDataType(type.getInnerType().get());
                     var arrayType = new ArrayType(innerType, 0);
+                    arrayType.finishLayout();
                     yield new PointerType(arrayType);
                 }
                 case UserDefined -> {
