@@ -33,9 +33,10 @@ public class Lower {
         for (var entry : typeMapper.getClassEntries()) {
             var className = entry.getClassType().getName();
             for (var method : entry.getMethods()) {
-                var label = String.format("%s_%s_%s", className, method.getName(), uid++);
-                method.setLdIdent(Ident.mangleGlobal(label));
-                method.setOwner(globalType);
+                var entity = method.getEntity();
+                var label = String.format("%s_%s_%s", className, entity.getName(), uid++);
+                entity.setLdIdent(Ident.mangleGlobal(label));
+                entity.setOwner(globalType);
             }
         }
     }

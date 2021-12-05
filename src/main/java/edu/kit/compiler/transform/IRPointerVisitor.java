@@ -5,13 +5,10 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.ArrayAccessExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.FieldAccessExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.IdentifierExpressionNode;
-import edu.kit.compiler.data.ast_nodes.ExpressionNode.ThisExpressionNode;
-import edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionNode;
 import edu.kit.compiler.semantic.DefinitionKind;
 import firm.ArrayType;
 import firm.Construction;
 import firm.Entity;
-import firm.Mode;
 import firm.Type;
 import firm.nodes.Node;
 
