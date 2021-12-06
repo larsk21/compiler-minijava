@@ -26,6 +26,10 @@ import firm.Mode;
 import firm.PrimitiveType;
 
 public class TransformContextTest {
+    static {
+        JFirmSingleton.initializeFirmLinux();
+    }
+
     private static final String main = "class Main {public static void main(String[] args) {}}";
     private TypeMapper typeMapper;
     private StringTable stringTable;
@@ -69,11 +73,9 @@ public class TransformContextTest {
         );
         int x_name = stringTable.insert("x");
         int y_name = stringTable.insert("y");
-        assertEquals(1, context.getParamIndex(x_name));
-        context.createParamNode(x_name);
-        assertEquals(2, context.getParamIndex(y_name));
-        context.createParamNode(y_name);
-        context.createThisNode();
+        assertEquals(0, context.getVariableIndex(x_name));
+        assertEquals(1, context.getVariableIndex(y_name));
+        context.getThisNode();
     }
 
     private static Reader getReader(String input) {
