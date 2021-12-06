@@ -1,0 +1,6 @@
+class IntMax {
+    public static void main(String[] args) {
+        int NEG_INT_MAX = -2147483648;
+        System.out.println(NEG_INT_MAX / -1);
+    }
+}
