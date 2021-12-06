@@ -4,10 +4,14 @@ package edu.kit.compiler.io;
  * Represents a worklist of elements of type T.
  * 
  * A worklist accepts elements and provides these elements in *some* order.
- * Elements that are inserted more than once before they are removed from the
- * worklist are only provided once.
  */
 public interface Worklist<T> {
+
+    /**
+     * Get whether elements that are inserted more than once are only returned
+     * once.
+     */
+    boolean isUniqueElements();
 
     /**
      * Get whether this worklist is empty.
