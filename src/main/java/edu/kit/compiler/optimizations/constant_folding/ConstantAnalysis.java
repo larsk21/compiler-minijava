@@ -185,8 +185,6 @@ public class ConstantAnalysis {
             }
         }
 
-        // TODO: what to do with control flow?
-
         @Override
         public void visitUnknown(Node node) {
             updateValue(node, conflicting());
@@ -204,13 +202,11 @@ public class ConstantAnalysis {
 
         @Override
         public void visit(Bitcast node) {
-            // TODO: how to implement Bitcast?
             updateValue(node, conflicting());
         }
 
         @Override
         public void visit(Cmp node) {
-            // TODO: is this the correct way of handling Cmp?
             visitBooleanBinary(node, node.getLeft(), node.getRight(), (left, right) -> node.getRelation().contains(left.compare(right)));
         }
 
@@ -257,7 +253,6 @@ public class ConstantAnalysis {
 
         @Override
         public void visit(Mulh node) {
-            // TODO: how to implement Mulh?
             updateValue(node, conflicting());
         }
 
@@ -273,13 +268,11 @@ public class ConstantAnalysis {
 
         @Override
         public void visit(Proj node) {
-            // TODO: how to support tuples?
             updateValue(node, conflicting());
         }
 
         @Override
         public void visit(Sel node) {
-            // TODO: how to do array address calculation?
             updateValue(node, conflicting());
         }
 
@@ -305,7 +298,6 @@ public class ConstantAnalysis {
 
         @Override
         public void visit(Tuple node) {
-            // TODO: how to support tuples?
             updateValue(node, conflicting());
         }
 
