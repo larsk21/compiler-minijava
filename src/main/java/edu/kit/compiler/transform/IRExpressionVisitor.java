@@ -87,8 +87,11 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
             }
             case Division -> {
                 Node mem = getConstruction().getCurrentMem();
-                Node div = getConstruction().newDiv(mem, lhs, rhs, binding_ircons.op_pin_state.op_pin_state_pinned);
-                Node projRes = getConstruction().newProj(div, mode, Div.pnRes);
+                Node lhs64 = getConstruction().newConv(lhs, Mode.getLs());
+                Node rhs64 = getConstruction().newConv(rhs, Mode.getLs());
+                Node div = getConstruction().newDiv(mem, lhs64, rhs64, binding_ircons.op_pin_state.op_pin_state_pinned);
+                Node projRes64 = getConstruction().newProj(div, Mode.getLs(), Div.pnRes);
+                Node projRes = getConstruction().newConv(projRes64, Mode.getIs());
                 Node projMem = getConstruction().newProj(div, Mode.getM(), Div.pnM);
 
                 getConstruction().setCurrentMem(projMem);
