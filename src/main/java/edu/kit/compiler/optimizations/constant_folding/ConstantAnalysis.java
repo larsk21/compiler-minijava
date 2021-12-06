@@ -200,11 +200,6 @@ public class ConstantAnalysis {
         }
 
         @Override
-        public void visit(Bitcast node) {
-            updateValue(node, conflicting());
-        }
-
-        @Override
         public void visit(Cmp node) {
             visitBooleanBinary(node, node.getLeft(), node.getRight(), (left, right) -> node.getRelation().contains(left.compare(right)));
         }
@@ -213,11 +208,6 @@ public class ConstantAnalysis {
         public void visit(Const node) {
             TargetValue result = node.getTarval();
             updateValue(node, constant(result));
-        }
-
-        @Override
-        public void visit(Conv node) {
-            visitUnary(node, node.getOp(), operand -> operand.convertTo(node.getMode()));
         }
 
         @Override
@@ -251,11 +241,6 @@ public class ConstantAnalysis {
         }
 
         @Override
-        public void visit(Mulh node) {
-            updateValue(node, conflicting());
-        }
-
-        @Override
         public void visit(Not node) {
             visitUnary(node, node.getOp(), operand -> operand.not());
         }
@@ -267,11 +252,6 @@ public class ConstantAnalysis {
 
         @Override
         public void visit(Proj node) {
-            updateValue(node, conflicting());
-        }
-
-        @Override
-        public void visit(Sel node) {
             updateValue(node, conflicting());
         }
 
