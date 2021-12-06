@@ -7,7 +7,6 @@ import java.util.function.Function;
 
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
-import edu.kit.compiler.optimizations.PartialNodeVisitor;
 import edu.kit.compiler.optimizations.WorklistFiller;
 
 import firm.BackEdges;
@@ -103,7 +102,7 @@ public class ConstantAnalysis {
      * constant arguments, the result of the operation performed on the
      * constant values is associated with that node.
      */
-    private class ConstantAnalysisVisitor implements PartialNodeVisitor {
+    private class ConstantAnalysisVisitor extends NodeVisitor.Default {
 
         /**
          * Visit a unary operation node with a single operand, as well as an
@@ -186,7 +185,7 @@ public class ConstantAnalysis {
         }
 
         @Override
-        public void visitUnknown(Node node) {
+        public void defaultVisit(Node node) {
             updateValue(node, conflicting());
         }
 
