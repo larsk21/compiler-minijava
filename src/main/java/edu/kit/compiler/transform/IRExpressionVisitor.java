@@ -244,8 +244,9 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
     @Override
     public Node visit(NewArrayExpressionNode newArrayExpressionNode) {
-        Type elementType = context.getTypeMapper().getDataType(newArrayExpressionNode.getElementType());
+        DataType innerType = newArrayExpressionNode.getResultType().getInnerType().get();
         Type arrayType = context.getTypeMapper().getDataType(newArrayExpressionNode.getResultType());
+        Type elementType = context.getTypeMapper().getDataType(innerType);
         Node arrayLength = newArrayExpressionNode.getLength().accept(this);
         return callCalloc(arrayLength, elementType.getSize(), arrayType);
     }
