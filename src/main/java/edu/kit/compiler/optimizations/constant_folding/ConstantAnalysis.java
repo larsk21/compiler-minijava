@@ -251,11 +251,6 @@ public class ConstantAnalysis {
         }
 
         @Override
-        public void visit(Proj node) {
-            updateValue(node, conflicting());
-        }
-
-        @Override
         public void visit(Shl node) {
             visitBinary(node, node.getLeft(), node.getRight(), (left, right) -> left.shl(right));
         }
@@ -273,11 +268,6 @@ public class ConstantAnalysis {
         @Override
         public void visit(Sub node) {
             visitBinary(node, node.getLeft(), node.getRight(), (left, right) -> left.sub(right));
-        }
-
-        @Override
-        public void visit(Tuple node) {
-            updateValue(node, conflicting());
         }
 
     }
