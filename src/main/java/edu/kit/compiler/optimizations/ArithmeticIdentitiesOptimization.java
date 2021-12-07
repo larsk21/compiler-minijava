@@ -5,6 +5,7 @@ import edu.kit.compiler.io.Worklist;
 import firm.BackEdges;
 import firm.Graph;
 import firm.Mode;
+import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 import lombok.AccessLevel;
@@ -24,6 +25,9 @@ import lombok.RequiredArgsConstructor;
  * Implemented Optimizations:
  * - Remove addition / subtraction of constant 0 (left or right operand)
  * - Remove double arithmetic negation of any value
+ * - Replace addition with negated operand (left or right operand)
+ * - Replace subtraction with negated operand (right operand only)
+ * - Replace subtraction of constant as right operand (right operand only)
  * - Remove multiplication with constant 1 (left or right operand)
  * - Replace multiplication with constant 0 (left or right operand)
  * - Replace multiplication with constant -1 (left or right operand)
@@ -35,6 +39,7 @@ import lombok.RequiredArgsConstructor;
  * Optimizations better done during instruction selection:
  * - Replace multiplication by constant power of two with shifts or lea
  * - Replace division by constant power of two with shifts or lea
+ *   -> These and similar optimizations are more dependant on the target architecture
  */
 public final class ArithmeticIdentitiesOptimization implements Optimization {
     @Override
@@ -67,6 +72,20 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             } else if (isConstZero(node.getRight())) {
                 // x + 0  -->  x
                 Graph.exchange(node, node.getLeft());
+            } else if (node.getLeft().getOpCode() == ir_opcode.iro_Minus) {
+                // (-x) + y  -->  y - x
+                assert node.getLeft().getPredCount() == 1;
+                var left = node.getRight();
+                var right = node.getLeft().getPred(0);
+                var sub = graph.newSub(node.getBlock(), left, right);
+                Graph.exchange(node, enqueued(sub));
+            } else if (node.getRight().getOpCode() == ir_opcode.iro_Minus) {
+                // x + (-y)  -->  x - y
+                assert node.getRight().getPredCount() == 1;
+                var left = node.getLeft();
+                var right = node.getRight().getPred(0);
+                var sub = graph.newSub(node.getBlock(), left, right);
+                Graph.exchange(node, enqueued(sub));
             }
         }
 
@@ -80,6 +99,22 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             } else if (isConstZero(node.getRight())) {
                 // x - 0  -->  x
                 Graph.exchange(node, node.getLeft());
+            } else if (node.getRight().getOpCode() == ir_opcode.iro_Minus) {
+                // x - (-y)  -->  x + y
+                assert node.getRight().getPredCount() == 1;
+                var left = node.getLeft();
+                var right = node.getRight().getPred(0);
+                var add = graph.newAdd(node.getBlock(), left, right);
+                Graph.exchange(node, enqueued(add));
+            } else {
+                var constValue = getConstValue(node.getRight());
+                if (constValue != null) {
+                    // x - c  -->  x + (-c)
+                    var left = node.getLeft();
+                    var right = graph.newConst(constValue.neg());
+                    var add = graph.newAdd(node.getBlock(), left, right);
+                    Graph.exchange(node, enqueued(add));
+                }
             }
         }
 
@@ -102,7 +137,6 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                     Graph.exchange(node, sub);
                 }
                 default -> {
-
                 }
             }
         }
@@ -128,13 +162,11 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             } else if (isConstNegOne(node.getLeft())) {
                 // -1 * x  --> -x
                 var minus = graph.newMinus(node.getBlock(), node.getRight());
-                worklist.enqueue(minus);
-                Graph.exchange(node, minus);
+                Graph.exchange(node, enqueued(minus));
             } else if (isConstNegOne(node.getRight())) {
                 // x * -1  --> -x
                 var minus = graph.newMinus(node.getBlock(), node.getLeft());
-                worklist.enqueue(minus);
-                Graph.exchange(node, minus);
+                Graph.exchange(node, enqueued(minus));
             }
         }
 
@@ -146,8 +178,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             } else if (isConstNegOne(node.getRight())) {
                 // x / -1  -->  -x
                 var minus = graph.newMinus(node.getBlock(), node.getLeft());
-                worklist.enqueue(minus);
-                exchangeDivOrMod(node, node.getMem(), minus);
+                exchangeDivOrMod(node, node.getMem(), enqueued(minus));
             }
         }
 
@@ -178,31 +209,35 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             BackEdges.disable(graph);
         }
 
+        private static boolean isConst(Node node) {
+            return node.getOpCode() == ir_opcode.iro_Const;
+        }
+
+        private static TargetValue getConstValue(Node node) {
+            return isConst(node) ? ((Const)node).getTarval() : null;
+        }
+
         private static boolean isConstZero(Node node) {
-            return (node.getOpCode() == ir_opcode.iro_Const)
-                && ((Const)node).getTarval().isNull();
+            return isConst(node) && ((Const)node).getTarval().isNull();
         }
 
         private static boolean isConstOne(Node node) {
-            return (node.getOpCode() == ir_opcode.iro_Const)
-                && ((Const)node).getTarval().isOne();
+            return isConst(node) && ((Const)node).getTarval().isOne();
         }
 
         private static boolean isConstNegOne(Node node) {
-            return (node.getOpCode() == ir_opcode.iro_Const)
-                && ((Const)node).getTarval().neg().isOne();
+            return isConst(node) && ((Const)node).getTarval().neg().isOne();
         }
 
         private static boolean isConstAbsOne(Node node) {
-            return (node.getOpCode() == ir_opcode.iro_Const)
-                && ((Const)node).getTarval().abs().isOne();
+            return isConst(node) && ((Const)node).getTarval().abs().isOne();
         }
 
-        // private void enqueue(Node... nodes) {
-        //     for (var node : nodes) {
-        //         worklist.enqueue(node);
-        //     }
-        // }
+        private Node enqueued(Node node) {
+            worklist.enqueue(node);
+            return node;
+        }
+
 
         // --- Maybe ---
 
@@ -218,12 +253,6 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         }
 
         @Override
-        public void visit(Const arg0) {
-            // TODO Auto-generated method stub
-            
-        }
-
-        @Override
         public void visit(Not arg0) {
             // TODO Auto-generated method stub
             
@@ -233,21 +262,6 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         public void visit(Or arg0) {
             // TODO Auto-generated method stub
             
-        }
-
-        @Override
-        public void visit(Shl arg0) {
-            // TODO Auto-generated method stub
-        }
-
-        @Override
-        public void visit(Shr arg0) {
-            // TODO Auto-generated method stub
-        }
-
-        @Override
-        public void visit(Shrs arg0) {
-            // TODO Auto-generated method stub
         }
 
 
