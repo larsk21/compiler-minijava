@@ -72,6 +72,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             } else if (isConstZero(node.getRight())) {
                 // x + 0  -->  x
                 Graph.exchange(node, node.getLeft());
+
             } else if (node.getLeft().getOpCode() == ir_opcode.iro_Minus) {
                 // (-x) + y  -->  y - x
                 assert node.getLeft().getPredCount() == 1;
@@ -189,6 +190,20 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 // x % -1  -->  0
                 var zero = node.getLeft().getMode().getNull();
                 exchangeDivOrMod(node, node.getMem(), graph.newConst(zero));
+            }
+        }
+
+        @Override
+        public void visit(Conv node) {
+            if (node.getOp().getOpCode() == ir_opcode.iro_Conv) {
+                // remove casts introduced by 64 bit division where possible
+                var op = (Conv) node.getOp();
+                if (node.getMode() == Mode.getIs()
+                    && op.getMode() == Mode.getLs()
+                    && op.getOp().getMode() == Mode.getIs()
+                ) {
+                    Graph.exchange(node, op.getOp());
+                }
             }
         }
 
