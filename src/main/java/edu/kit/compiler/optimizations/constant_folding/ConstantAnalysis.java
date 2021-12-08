@@ -251,6 +251,15 @@ public class ConstantAnalysis {
         }
 
         @Override
+        public void visit(Phi node) {
+            TargetValueLatticeElement value = unknown();
+            for (Node pred : node.getPreds()) {
+                value = value.join(getValue(pred));
+            }
+            updateValue(node, value);
+        }
+
+        @Override
         public void visit(Shl node) {
             visitBinary(node, node.getLeft(), node.getRight(), (left, right) -> left.shl(right));
         }
