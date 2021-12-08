@@ -44,7 +44,7 @@ public class ConstantOptimization implements Optimization {
         // we transform the nodes in reverse postorder, i.e. we can access the
         // unchanged predecessors of a node when transforming it
         for (Node node : nodes) {
-            transform(node, nodeValues.get(node));
+            transform(node, nodeValues.getOrDefault(node, TargetValueLatticeElement.unknown()));
         }
     }
 
@@ -53,7 +53,17 @@ public class ConstantOptimization implements Optimization {
      * that element is constant.
      */
     private void transform(Node node, TargetValueLatticeElement value) {
-        if (node instanceof Proj && node.getMode().equals(Mode.getM())) {
+        if (node instanceof Proj && node.getMode().isData()) {
+            // a result projection will be replaced by a constant node with the
+            // same value as its predecessor
+
+            Node pred = node.getPred(0);
+            TargetValueLatticeElement predValue;
+            if (nodeValues.containsKey(pred) && (predValue = nodeValues.get(pred)).isConstant()) {
+                Node constantNode = graph.newConst(predValue.getValue());
+                Graph.exchange(node, constantNode);
+            }
+        } else if (node instanceof Proj && node.getMode().equals(Mode.getM())) {
             // the predecessor of a memory projection will be set to the first
             // node that does not have a constant value following the memory
             // dependecy chain
@@ -69,7 +79,7 @@ public class ConstantOptimization implements Optimization {
             }
 
             node.setPred(0, pred);
-        } else if (value.isConstant()) {
+        } else if (node.getMode().isData() && value.isConstant()) {
             Node constantNode = graph.newConst(value.getValue());
             Graph.exchange(node, constantNode);
         }
