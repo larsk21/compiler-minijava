@@ -52,6 +52,7 @@ public class IRVisitor implements AstVisitor<Void> {
 
             visitMethod(method, transformContext);
         }
+
         return (Void) null;
     }
 
