@@ -4,9 +4,14 @@ import edu.kit.compiler.intermediate_lang.data.IL_Operand;
 import edu.kit.compiler.intermediate_lang.data.IL_Type;
 import lombok.Getter;
 
+/**
+ * 0 argument operation
+ */
 @Getter
 public class IL_Op0 extends IL_Op{
     public IL_Op0(IL_Operand res, IL_Type type) {
         super(res, type);
     }
+
+
 }

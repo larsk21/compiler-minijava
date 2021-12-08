@@ -12,8 +12,14 @@ import lombok.Getter;
 @Getter
 public class IL_OpBranch extends IL_Op {
 
-    private IL_Cond cond;
-    private Block nextBlock;
+    /**
+     * condition of this branch, e.g. less than, greater than
+     */
+    private final IL_Cond cond;
+    /**
+     * if condition is fulfilled where to go to next
+     */
+    private final Block nextBlock;
 
     public IL_OpBranch(IL_Cond condititon, Block jmpTarget, IL_Operand res, IL_Type type) {
         super(res, type);

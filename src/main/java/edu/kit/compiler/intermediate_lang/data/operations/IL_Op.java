@@ -9,8 +9,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class IL_Op {
 
+    /**
+     * generator for ids
+     */
     private static int id_gen = 0;
+    /**
+     * operand that this operation writes to
+     */
     private final IL_Operand res;
+    /**
+     * type of this operation, eg. add, div, mul
+     */
     private final IL_Type type;
     private final int id;
 

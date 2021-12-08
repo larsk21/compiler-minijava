@@ -10,11 +10,14 @@ import java.util.List;
 @Getter
 public class IL_OpCall extends IL_Op {
 
-    private Pointer ptr;
-    private IL_Operand receiver;
-    private List<IL_Operand> arguments;
+    /**
+     * ptr needs to be a label that we can call
+     */
+    private final IL_Op ptr;
+    private final IL_Operand receiver;
+    private final List<IL_Operand> arguments;
 
-    public IL_OpCall(Pointer ptr, IL_Operand receiver, List<IL_Operand> arguments, IL_Operand res, IL_Type type) {
+    public IL_OpCall(IL_Op ptr, IL_Operand receiver, List<IL_Operand> arguments, IL_Operand res, IL_Type type) {
         super(res, type);
         this.ptr = ptr;
         this.receiver = receiver;

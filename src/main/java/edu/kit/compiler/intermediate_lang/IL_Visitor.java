@@ -1,56 +1,73 @@
 package edu.kit.compiler.intermediate_lang;
 
+import edu.kit.compiler.intermediate_lang.data.IL_Operand;
+import edu.kit.compiler.intermediate_lang.data.IL_Repr;
+import edu.kit.compiler.intermediate_lang.data.IL_Type;
 import edu.kit.compiler.intermediate_lang.data.operations.IL_Op;
 import edu.kit.compiler.intermediate_lang.data.operations.IL_Op2;
 import edu.kit.compiler.intermediate_lang.linscan.Interval;
 import firm.nodes.*;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * visitor that can walk our firm graph and generate intermediate representation of our backend x64 lines.
  *
  * this needs to be changed probably
  */
-public class IntermediateLangVisitor implements NodeVisitor {
+public class IL_Visitor implements NodeVisitor {
 
+    private static int virtualRegisterCounter = 0;
     private final List<IL_Op> il_ops = new LinkedList<>();
     private final List<Interval> intervals = new LinkedList<>();
 
-    public IntermediateLangVisitor() {
+    /**
+     * nodes write at most one register at a time
+     * TODO: div writes two registers
+     */
+    private final Map<Node, IL_Operand> nodeMapping = new HashMap<>();
+
+    public IL_Visitor() {
 
     }
 
-    public void defaultVisit(Node n) {
+    public void visit(Node n) {
         throw new UnsupportedOperationException("not supported firm node for backend generation " + n.toString());
     }
 
     @Override
     public void visit(Add node) {
-        Node lhs = node.getLeft();
-        lhs.accept(this);
-        IL_Op2 addNode = new IL_Op2();
+        // assume that left and right were already visited
+        IL_Operand left = nodeMapping.get(node.getLeft());
+        IL_Operand right = nodeMapping.get(node.getRight());
+
+        // spill to new virtual register
+        IL_Operand operand = new IL_Operand(IL_Repr.VIRTUAL, virtualRegisterCounter++);
+        IL_Op2 addNode = new IL_Op2(left, right, operand, IL_Type.IL_ADD);
+        il_ops.add(addNode);
     }
 
     @Override
     public void visit(Address node) {
-        defaultVisit(node);
+        // skip this only used for mem and sel
     }
 
     @Override
     public void visit(Align node) {
-        defaultVisit(node);
+        // no align nodes
     }
 
     @Override
     public void visit(Alloc node) {
-        defaultVisit(node);
+        // no alloc nodes
     }
 
     @Override
     public void visit(Anchor node) {
-        defaultVisit(node);
+        // no anchor nodes
     }
 
     @Override

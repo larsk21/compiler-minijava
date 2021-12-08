@@ -4,6 +4,9 @@ import edu.kit.compiler.intermediate_lang.data.IL_Operand;
 import edu.kit.compiler.intermediate_lang.data.IL_Type;
 import lombok.Getter;
 
+/**
+ * operation that takes exactly one argument
+ */
 @Getter
 public class IL_Op1 extends IL_Op{
 
