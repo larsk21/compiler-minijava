@@ -138,14 +138,12 @@ public class IRBooleanExpressions {
                     con.setCurrentBlock(assignTrue);
                     Node jmpTrue = con.newJmp();
                     trueBranch.addPred(jmpTrue);
-                    trueBranch.mature();
                     expressionVisitor.handleAssignment(left, con.newConst(1, Mode.getBu()));
                     assignFalse.mature();
                     con.setCurrentBlock(assignFalse);
                     expressionVisitor.handleAssignment(left, con.newConst(0, Mode.getBu()));
                     Node jmpFalse = con.newJmp();
                     falseBranch.addPred(jmpFalse);
-                    falseBranch.mature();
                     yield (Void)null;
                 }
                 case LogicalOr -> {
