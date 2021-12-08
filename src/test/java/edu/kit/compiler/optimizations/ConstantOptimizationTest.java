@@ -1,6 +1,6 @@
 package edu.kit.compiler.optimizations;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -32,7 +32,6 @@ import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.transform.IRVisitor;
 import edu.kit.compiler.transform.JFirmSingleton;
-import edu.kit.compiler.transform.Lower;
 
 import firm.Graph;
 import firm.Program;
@@ -40,22 +39,6 @@ import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 
 public class ConstantOptimizationTest {
-
-    private void initializeNamespace(NamespaceMapper namespaceMapper, ClassNode classNode) {
-        NamespaceMapper.ClassNamespace namespace = namespaceMapper.insertClassNode(classNode);
-
-        for (ClassNode.ClassNodeField field : classNode.getFields()) {
-            namespace.getClassSymbols().put(field.getName(), field);
-        }
-
-        for (MethodNode.DynamicMethodNode method : classNode.getDynamicMethods()) {
-            namespace.getDynamicMethods().put(method.getName(), method);
-        }
-
-        for (MethodNode.StaticMethodNode method : classNode.getStaticMethods()) {
-            namespace.getStaticMethods().put(method.getName(), method);
-        }
-    }
 
     private Graph build(StringTable stringTable, Iterable<StatementNode> statements) {
         JFirmSingleton.initializeFirmLinux();
@@ -72,8 +55,6 @@ public class ConstantOptimizationTest {
         false);
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(_class), false);
 
-        initializeNamespace(namespaceMapper, _class);
-
         NamespaceGatheringVisitor gatheringVisitor = new NamespaceGatheringVisitor(
             namespaceMapper, stringTable, errorHandler
         );
@@ -85,9 +66,9 @@ public class ConstantOptimizationTest {
 
         IRVisitor irv = new IRVisitor(namespaceMapper, stringTable);
         program.accept(irv);
-        Lower.lower(irv.getTypeMapper());
 
-        return StreamSupport.stream(Program.getGraphs().spliterator(), false).collect(Collectors.toList()).get(0);
+        List<Graph> graphs = StreamSupport.stream(Program.getGraphs().spliterator(), false).collect(Collectors.toList());
+        return graphs.get(graphs.size() - 1);
     }
 
     private ExpressionNode.MethodInvocationExpressionNode makeStdLibMethodInvocation(StringTable stringTable, String field, String method, List<ExpressionNode> arguments) {
@@ -107,12 +88,9 @@ public class ConstantOptimizationTest {
             ),
             statements,
             Arrays.asList(
-                new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("_y"), Optional.of(
-                    expr
-                ), false),
                 new StatementNode.ExpressionStatementNode(0, 0,
                     makeStdLibMethodInvocation(stringTable, "out", "write", Arrays.asList(
-                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("_y"), false)
+                        expr
                     )),
                 false)
             )
@@ -123,7 +101,7 @@ public class ConstantOptimizationTest {
         return surroundWithIO(stringTable, Arrays.asList(), expr);
     }
 
-    private List<Node> getFilteredNodes(Graph graph) {
+    private List<Node> getNodes(Graph graph) {
         List<Node> nodes = new ArrayList<>();
         NodeVisitor nodeVisitor = new NodeVisitor.Default() {
 
@@ -135,29 +113,15 @@ public class ConstantOptimizationTest {
         };
         graph.walkPostorder(nodeVisitor);
 
-        return nodes.stream().filter(node ->
-            node.getOpCode() != ir_opcode.iro_Block &&
-            node.getOpCode() != ir_opcode.iro_Start &&
-            node.getOpCode() != ir_opcode.iro_Proj &&
-            node.getOpCode() != ir_opcode.iro_Return &&
-            node.getOpCode() != ir_opcode.iro_End
-        ).collect(Collectors.toList());
+        return nodes;
     }
 
-    private void assertOpCodes(List<Node> nodes, ir_opcode... opcodes) {
-        if (nodes.size() != opcodes.length) {
-            StringBuilder sb = new StringBuilder("actual opcodes:");
-            for (Node node : nodes) {
-                sb.append(" ");
-                sb.append(node.getOpCode());
-            }
+    private void assertContainsOpCode(List<Node> nodes, ir_opcode opcode) {
+        assertTrue(nodes.stream().anyMatch(node -> node.getOpCode() == opcode));
+    }
 
-            assertTrue(false, sb.toString());
-        }
-
-        for (int i = 0; i < opcodes.length; i++) {
-            assertEquals(nodes.get(i).getOpCode(), opcodes[i]);
-        }
+    private void assertDoesNotContainOpCode(List<Node> nodes, ir_opcode opcode) {
+        assertFalse(nodes.stream().anyMatch(node -> node.getOpCode() == opcode));
     }
 
     @Test
@@ -175,14 +139,7 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        assertOpCodes(getFilteredNodes(graph),
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Call,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Add,
-            ir_opcode.iro_Call
-        );
+        assertContainsOpCode(getNodes(graph), ir_opcode.iro_Add);
     }
 
     @Test
@@ -197,13 +154,7 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        assertOpCodes(getFilteredNodes(graph),
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Call,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Call
-        );
+        assertContainsOpCode(getNodes(graph), ir_opcode.iro_Const);
     }
 
     @Test
@@ -220,13 +171,7 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        assertOpCodes(getFilteredNodes(graph),
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Call,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Call
-        );
+        assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Minus);
     }
 
     @Test
@@ -244,13 +189,7 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        assertOpCodes(getFilteredNodes(graph),
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Call,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Call
-        );
+        assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
     }
 
     @Test
@@ -272,13 +211,7 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        assertOpCodes(getFilteredNodes(graph),
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Call,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Call
-        );
+        assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
     }
 
     @Test
@@ -303,13 +236,7 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        assertOpCodes(getFilteredNodes(graph),
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Call,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Call
-        );
+        assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
     }
 
     @Test
@@ -327,13 +254,7 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        assertOpCodes(getFilteredNodes(graph),
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Call,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Call
-        );
+        assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Div);
     }
 
     @Test
@@ -368,18 +289,7 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        assertOpCodes(getFilteredNodes(graph),
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Call,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Cmp,
-            ir_opcode.iro_Cond,
-            ir_opcode.iro_Jmp,
-            ir_opcode.iro_Jmp,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Call
-        );
+        assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Phi);
     }
 
     @Test
@@ -410,19 +320,14 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        assertOpCodes(getFilteredNodes(graph),
-            ir_opcode.iro_Jmp,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Call,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Cmp,
-            ir_opcode.iro_Cond,
-            ir_opcode.iro_Jmp,
-            ir_opcode.iro_Phi,
-            ir_opcode.iro_Address,
-            ir_opcode.iro_Const,
-            ir_opcode.iro_Call
+        boolean containsPhi = getNodes(graph).stream().anyMatch(node ->
+            node instanceof Phi &&
+            StreamSupport.stream(node.getPreds().spliterator(), false).noneMatch(pred ->
+                pred.equals(node)
+            )
         );
+
+        assertFalse(containsPhi);
     }
 
 }
