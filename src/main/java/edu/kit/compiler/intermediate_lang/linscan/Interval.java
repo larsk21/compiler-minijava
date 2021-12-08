@@ -1,6 +1,5 @@
 package edu.kit.compiler.intermediate_lang.linscan;
 
-import edu.kit.compiler.intermediate_lang.RegisterType;
 import edu.kit.compiler.intermediate_lang.data.IL_Repr;
 import lombok.Getter;
 
