@@ -17,11 +17,11 @@ public class IL_OpBranch extends IL_Op {
      */
     private final IL_Cond cond;
     /**
-     * if condition is fulfilled where to go to next
+     * if condition is fulfilled where to go to next, has to be label
      */
-    private final Block nextBlock;
+    private final IL_Op nextBlock;
 
-    public IL_OpBranch(IL_Cond condititon, Block jmpTarget, IL_Operand res, IL_Type type) {
+    public IL_OpBranch(IL_Cond condititon, IL_Op jmpTarget, IL_Operand res, IL_Type type) {
         super(res, type);
         this.cond = condititon;
         this.nextBlock = jmpTarget;
