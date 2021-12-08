@@ -1,0 +1,84 @@
+class CellularAutomaton {
+    public static void main(String[] args) {
+        int asciiFull = 35;
+        int asciiEmpty = 39;
+        int asciiNewLine = 10;
+
+        CellularAutomaton automaton = new CellularAutomaton();
+        int[][] grid = new int[64][];
+        int i = 0;
+        while (i < 64) {
+            grid[i] = new int[64];
+            i = i + 1;
+        }
+        i = 0;
+        while (i < 64) {
+            grid[0][i] = 1;
+            i = i + 5;
+        }
+        i = 1;
+        while (i < 64) {
+            grid[0][i] = 1;
+            i = i + 7;
+        }
+        grid[0][7] = 1;
+        grid[0][8] = 1;
+        grid[0][9] = 1;
+        grid[0][10] = 1;
+        grid[0][17] = 1;
+        grid[0][18] = 1;
+        grid[0][19] = 1;
+        grid[0][37] = 1;
+        grid[0][38] = 1;
+        grid[0][39] = 1;
+        grid[0][40] = 1;
+        grid[0][42] = 1;
+
+        automaton.run(grid, 64, 64);
+
+        i = 0;
+        while (i < 64) {
+            int j = 0;
+            while (j < 64) {
+                boolean empty = grid[i][j] == 0;
+                if (empty) {
+                    System.out.write(asciiEmpty);
+                } else {
+                    System.out.write(asciiFull);
+                }
+                j = j + 1;
+            }
+            System.out.write(asciiNewLine);
+            System.out.flush();
+            i = i + 1;
+        }
+    }
+
+    public void run(int[][] grid, int width, int height) {
+        int i = 1;
+        while (i < height) {
+            int j = 0;
+            while (j < width) {
+                int left = j-1;
+                if (left < 0) {
+                    left = height-1;
+                }
+                int right = j+1;
+                if (right >= height) {
+                    right = 0;
+                }
+                grid[i][j] = rule(grid[i-1][left], grid[i-1][j], grid[i-1][right]);
+                j = j + 1;
+            }
+            i = i + 1;
+        }
+    }
+
+    /* this is a 0/1 rule */
+    public int rule(int left, int self, int right) {
+        if (left == 0 && right == 0) {
+            return self;
+        }
+        return 1 - self;
+    }
+}
