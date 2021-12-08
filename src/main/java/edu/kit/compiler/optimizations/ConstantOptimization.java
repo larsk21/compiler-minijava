@@ -62,60 +62,73 @@ public class ConstantOptimization implements Optimization {
      */
     private void transform(Node node, TargetValueLatticeElement value) {
         if (node instanceof Proj && node.getMode().isData()) {
-            // a result projection will be replaced by a constant node with the
-            // same value as its predecessor
-
-            Node pred = node.getPred(0);
-            TargetValueLatticeElement predValue;
-            if (nodeValues.containsKey(pred) && (predValue = nodeValues.get(pred)).isConstant()) {
-                Node constantNode = graph.newConst(predValue.getValue());
-                Graph.exchange(node, constantNode);
-            }
+            transformResultProj((Proj)node);
         } else if (node instanceof Proj && node.getMode().equals(Mode.getM())) {
-            // the predecessor of a memory projection will be set to the first
-            // node that does not have a constant value following the memory
-            // dependecy chain
-
-            Node pred = node.getPred(0);
-            while (nodeValues.containsKey(pred) && nodeValues.get(pred).isConstant()) {
-                inputs: for (Node input : pred.getPreds()) {
-                    if (input instanceof Proj && input.getMode().equals(Mode.getM())) {
-                        pred = input.getPred(0);
-                        break inputs;
-                    }
-                }
-            }
-
-            node.setPred(0, pred);
+            transformMemoryProj((Proj)node);
         } else if (node instanceof Proj && node.getMode().equals(Mode.getX())) {
-            // a control flow projection will be replaced by a Jmp or Bad
-            // depending on the constant value of the Cond selector
-
-            Proj proj = (Proj)node;
-
-            Node pred = node.getPred(0);
-            TargetValueLatticeElement predValue;
-            if (pred instanceof Cond && (predValue = nodeValues.get(pred)).isConstant()) {
-                if (
-                    (proj.getNum() == pn_Cond.pn_Cond_false.val && predValue.getValue().equals(TargetValue.getBFalse())) ||
-                    (proj.getNum() == pn_Cond.pn_Cond_true.val && predValue.getValue().equals(TargetValue.getBTrue()))
-                ) {
-                    Node jmpNode = graph.newJmp(node.getBlock());
-                    Graph.exchange(node, jmpNode);
-                } else if (
-                    (proj.getNum() == pn_Cond.pn_Cond_false.val && predValue.getValue().equals(TargetValue.getBTrue())) ||
-                    (proj.getNum() == pn_Cond.pn_Cond_true.val && predValue.getValue().equals(TargetValue.getBFalse()))
-                ) {
-                    Node badNode = graph.newBad(Mode.getX());
-                    Graph.exchange(node, badNode);
-                }
-            }
+            transformControlFlowProj((Proj)node);
         } else if (node.getMode().isData() && value.isConstant()) {
             Node constantNode = graph.newConst(value.getValue());
             Graph.exchange(node, constantNode);
         } else if (node.getMode().isData() && value.isUnknown()) {
             Node badNode = graph.newBad(node.getMode());
             Graph.exchange(node, badNode);
+        }
+    }
+
+    /**
+     * Replace the result projection with a Const having the same value as its
+     * predecessor.
+     */
+    private void transformResultProj(Proj node) {
+        Node pred = node.getPred(0);
+        TargetValueLatticeElement predValue;
+        if (nodeValues.containsKey(pred) && (predValue = nodeValues.get(pred)).isConstant()) {
+            Node constantNode = graph.newConst(predValue.getValue());
+            Graph.exchange(node, constantNode);
+        }
+    }
+
+    /**
+     * Replace the predecessor of the memory projection with the first node
+     * that does not have a constant value following the memory dependency
+     * chain.
+     */
+    private void transformMemoryProj(Proj node) {
+        Node pred = node.getPred(0);
+        while (nodeValues.containsKey(pred) && nodeValues.get(pred).isConstant()) {
+            inputs: for (Node input : pred.getPreds()) {
+                if (input instanceof Proj && input.getMode().equals(Mode.getM())) {
+                    pred = input.getPred(0);
+                    break inputs;
+                }
+            }
+        }
+
+        node.setPred(0, pred);
+    }
+
+    /**
+     * Replace the control flow projection with a Jmp or Bad depending on the
+     * constant value of the Cond selector.
+     */
+    private void transformControlFlowProj(Proj node) {
+        Node pred = node.getPred(0);
+        TargetValueLatticeElement predValue;
+        if (pred instanceof Cond && (predValue = nodeValues.get(pred)).isConstant()) {
+            if (
+                (node.getNum() == pn_Cond.pn_Cond_false.val && predValue.getValue().equals(TargetValue.getBFalse())) ||
+                (node.getNum() == pn_Cond.pn_Cond_true.val && predValue.getValue().equals(TargetValue.getBTrue()))
+            ) {
+                Node jmpNode = graph.newJmp(node.getBlock());
+                Graph.exchange(node, jmpNode);
+            } else if (
+                (node.getNum() == pn_Cond.pn_Cond_false.val && predValue.getValue().equals(TargetValue.getBTrue())) ||
+                (node.getNum() == pn_Cond.pn_Cond_true.val && predValue.getValue().equals(TargetValue.getBFalse()))
+            ) {
+                Node badNode = graph.newBad(Mode.getX());
+                Graph.exchange(node, badNode);
+            }
         }
     }
 
