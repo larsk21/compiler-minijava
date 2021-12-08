@@ -35,6 +35,7 @@ import edu.kit.compiler.transform.JFirmSingleton;
 
 import firm.Graph;
 import firm.Program;
+import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 
@@ -328,6 +329,258 @@ public class ConstantOptimizationTest {
         );
 
         assertFalse(containsPhi);
+    }
+
+    @Test
+    public void testCmpExclFalse() {
+        // 7 < 5 -> false
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false)
+            ), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.LessThan,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+                Optional.empty(),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
+        assertTrue(cond.getSelector() instanceof Const);
+
+        Const selector = (Const)cond.getSelector();
+        assertTrue(selector.getTarval().equals(TargetValue.getBFalse()));
+    }
+
+    @Test
+    public void testCmpExclTrue() {
+        // 5 < 7 -> true
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false)
+            ), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.LessThan,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+                Optional.empty(),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
+        assertTrue(cond.getSelector() instanceof Const);
+
+        Const selector = (Const)cond.getSelector();
+        assertTrue(selector.getTarval().equals(TargetValue.getBTrue()));
+    }
+
+    @Test
+    public void testCmpInclFalse() {
+        // 7 <= 5 -> true
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false)
+            ), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.LessThanOrEqual,
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+                Optional.empty(),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
+        assertTrue(cond.getSelector() instanceof Const);
+
+        Const selector = (Const)cond.getSelector();
+        assertTrue(selector.getTarval().equals(TargetValue.getBFalse()));
+    }
+
+    @Test
+    public void testCmpInclTrue() {
+        // 5 <= 7 -> true
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false)
+            ), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.LessThanOrEqual,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+                Optional.empty(),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
+        assertTrue(cond.getSelector() instanceof Const);
+
+        Const selector = (Const)cond.getSelector();
+        assertTrue(selector.getTarval().equals(TargetValue.getBTrue()));
+    }
+
+    @Test
+    public void testCmpInclTrueEq() {
+        // 5 <= 5 -> true
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false)
+            ), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.LessThanOrEqual,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+                Optional.empty(),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
+        assertTrue(cond.getSelector() instanceof Const);
+
+        Const selector = (Const)cond.getSelector();
+        assertTrue(selector.getTarval().equals(TargetValue.getBTrue()));
+    }
+
+    @Test
+    public void testCmpEqFalse() {
+        // 5 == 7 -> false
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false)
+            ), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Equal,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+                Optional.empty(),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
+        assertTrue(cond.getSelector() instanceof Const);
+
+        Const selector = (Const)cond.getSelector();
+        assertTrue(selector.getTarval().equals(TargetValue.getBFalse()));
+    }
+
+    @Test
+    public void testCmpEqTrue() {
+        // 5 == 5 -> false
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false)
+            ), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Equal,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+                Optional.empty(),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
+        assertTrue(cond.getSelector() instanceof Const);
+
+        Const selector = (Const)cond.getSelector();
+        assertTrue(selector.getTarval().equals(TargetValue.getBTrue()));
     }
 
 }
