@@ -34,6 +34,7 @@ import edu.kit.compiler.transform.IRVisitor;
 import edu.kit.compiler.transform.JFirmSingleton;
 
 import firm.Graph;
+import firm.Mode;
 import firm.Program;
 import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
@@ -259,7 +260,7 @@ public class ConstantOptimizationTest {
     }
 
     @Test
-    public void testIf() {
+    public void testIfEqualBranches() {
         // x < 5 ? 3 : 3 -> 3
 
         StringTable stringTable = new StringTable();
@@ -294,7 +295,7 @@ public class ConstantOptimizationTest {
     }
 
     @Test
-    public void testWhile() {
+    public void testWhileEqualBranches() {
         // y <- 3 ; while (x < 5) { y <- 3 } -> 3
 
         StringTable stringTable = new StringTable();
@@ -360,11 +361,11 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
-        assertTrue(cond.getSelector() instanceof Const);
-
-        Const selector = (Const)cond.getSelector();
-        assertTrue(selector.getTarval().equals(TargetValue.getBFalse()));
+        boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
+            .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(3, Mode.getIs())))
+            .findAny()
+            .isPresent();
+        assertFalse(containsConstFromDiscardedBranch);
     }
 
     @Test
@@ -396,16 +397,16 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
-        assertTrue(cond.getSelector() instanceof Const);
-
-        Const selector = (Const)cond.getSelector();
-        assertTrue(selector.getTarval().equals(TargetValue.getBTrue()));
+        boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
+            .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(2, Mode.getIs())))
+            .findAny()
+            .isPresent();
+        assertFalse(containsConstFromDiscardedBranch);
     }
 
     @Test
     public void testCmpInclFalse() {
-        // 7 <= 5 -> true
+        // 7 <= 5 -> false
 
         StringTable stringTable = new StringTable();
         Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
@@ -432,11 +433,11 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
-        assertTrue(cond.getSelector() instanceof Const);
-
-        Const selector = (Const)cond.getSelector();
-        assertTrue(selector.getTarval().equals(TargetValue.getBFalse()));
+        boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
+            .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(3, Mode.getIs())))
+            .findAny()
+            .isPresent();
+        assertFalse(containsConstFromDiscardedBranch);
     }
 
     @Test
@@ -468,11 +469,11 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
-        assertTrue(cond.getSelector() instanceof Const);
-
-        Const selector = (Const)cond.getSelector();
-        assertTrue(selector.getTarval().equals(TargetValue.getBTrue()));
+        boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
+            .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(2, Mode.getIs())))
+            .findAny()
+            .isPresent();
+        assertFalse(containsConstFromDiscardedBranch);
     }
 
     @Test
@@ -504,11 +505,11 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
-        assertTrue(cond.getSelector() instanceof Const);
-
-        Const selector = (Const)cond.getSelector();
-        assertTrue(selector.getTarval().equals(TargetValue.getBTrue()));
+        boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
+            .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(2, Mode.getIs())))
+            .findAny()
+            .isPresent();
+        assertFalse(containsConstFromDiscardedBranch);
     }
 
     @Test
@@ -540,16 +541,16 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
-        assertTrue(cond.getSelector() instanceof Const);
-
-        Const selector = (Const)cond.getSelector();
-        assertTrue(selector.getTarval().equals(TargetValue.getBFalse()));
+        boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
+            .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(3, Mode.getIs())))
+            .findAny()
+            .isPresent();
+        assertFalse(containsConstFromDiscardedBranch);
     }
 
     @Test
     public void testCmpEqTrue() {
-        // 5 == 5 -> false
+        // 5 == 5 -> true
 
         StringTable stringTable = new StringTable();
         Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
@@ -576,11 +577,131 @@ public class ConstantOptimizationTest {
         ConstantOptimization optimization = new ConstantOptimization();
         optimization.optimize(graph);
 
-        Cond cond = (Cond)getNodes(graph).stream().filter(node -> node instanceof Cond).findAny().get();
-        assertTrue(cond.getSelector() instanceof Const);
+        boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
+            .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(2, Mode.getIs())))
+            .findAny()
+            .isPresent();
+        assertFalse(containsConstFromDiscardedBranch);
+    }
 
-        Const selector = (Const)cond.getSelector();
-        assertTrue(selector.getTarval().equals(TargetValue.getBTrue()));
+    @Test
+    public void testIfConstantCondition() {
+        // if (7 < 5) { y <- 2 } else { y <- 3 } -> 3
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.empty(), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.LessThan,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                    false),
+                false),
+                Optional.of(new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false)),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        List<Node> nodes = getNodes(graph);
+        assertDoesNotContainOpCode(nodes, ir_opcode.iro_Cond);
+        assertDoesNotContainOpCode(nodes, ir_opcode.iro_Phi);
+    }
+
+    @Test
+    public void testWhileConstantConditionFalse() {
+        // y <- 2 ; while (7 < 5) { y <- 3 } -> 2
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                false)
+            ), false),
+            new StatementNode.WhileStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.LessThan,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        List<Node> nodes = getNodes(graph);
+        assertDoesNotContainOpCode(nodes, ir_opcode.iro_Cond);
+        assertDoesNotContainOpCode(nodes, ir_opcode.iro_Phi);
+
+        boolean containsConstFromBody = nodes.stream()
+            .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(3, Mode.getIs())))
+            .findAny()
+            .isPresent();
+        assertFalse(containsConstFromBody);
+    }
+
+    @Test
+    public void testWhileConstantConditionTrue() {
+        // y <- 2 ; while (5 < 7) { y <- 3 } -> infinite loop
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                false)
+            ), false),
+            new StatementNode.WhileStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.LessThan,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        List<Node> nodes = getNodes(graph);
+        assertDoesNotContainOpCode(nodes, ir_opcode.iro_Cond);
+
+        boolean containsConsts = nodes.stream()
+            .filter(node -> node instanceof Const)
+            .findAny()
+            .isPresent();
+        assertFalse(containsConsts);
     }
 
 }

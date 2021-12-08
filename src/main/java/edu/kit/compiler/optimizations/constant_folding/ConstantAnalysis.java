@@ -205,6 +205,12 @@ public class ConstantAnalysis {
         }
 
         @Override
+        public void visit(Cond node) {
+            TargetValueLatticeElement result = getValue(node.getSelector());
+            updateValue(node, result);
+        }
+
+        @Override
         public void visit(Const node) {
             TargetValue result = node.getTarval();
             updateValue(node, constant(result));

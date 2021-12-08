@@ -9,6 +9,10 @@ import edu.kit.compiler.optimizations.constant_folding.TargetValueLatticeElement
 
 import firm.Graph;
 import firm.Mode;
+import firm.TargetValue;
+import firm.bindings.binding_irgopt;
+import firm.bindings.binding_irnode.pn_Cond;
+import firm.nodes.Cond;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
 import firm.nodes.Proj;
@@ -46,6 +50,10 @@ public class ConstantOptimization implements Optimization {
         for (Node node : nodes) {
             transform(node, nodeValues.getOrDefault(node, TargetValueLatticeElement.unknown()));
         }
+
+        binding_irgopt.remove_bads(graph.ptr);
+        binding_irgopt.remove_unreachable_code(graph.ptr);
+        binding_irgopt.remove_bads(graph.ptr);
     }
 
     /**
@@ -79,9 +87,35 @@ public class ConstantOptimization implements Optimization {
             }
 
             node.setPred(0, pred);
+        } else if (node instanceof Proj && node.getMode().equals(Mode.getX())) {
+            // a control flow projection will be replaced by a Jmp or Bad
+            // depending on the constant value of the Cond selector
+
+            Proj proj = (Proj)node;
+
+            Node pred = node.getPred(0);
+            TargetValueLatticeElement predValue;
+            if (pred instanceof Cond && (predValue = nodeValues.get(pred)).isConstant()) {
+                if (
+                    (proj.getNum() == pn_Cond.pn_Cond_false.val && predValue.getValue().equals(TargetValue.getBFalse())) ||
+                    (proj.getNum() == pn_Cond.pn_Cond_true.val && predValue.getValue().equals(TargetValue.getBTrue()))
+                ) {
+                    Node jmpNode = graph.newJmp(node.getBlock());
+                    Graph.exchange(node, jmpNode);
+                } else if (
+                    (proj.getNum() == pn_Cond.pn_Cond_false.val && predValue.getValue().equals(TargetValue.getBTrue())) ||
+                    (proj.getNum() == pn_Cond.pn_Cond_true.val && predValue.getValue().equals(TargetValue.getBFalse()))
+                ) {
+                    Node badNode = graph.newBad(Mode.getX());
+                    Graph.exchange(node, badNode);
+                }
+            }
         } else if (node.getMode().isData() && value.isConstant()) {
             Node constantNode = graph.newConst(value.getValue());
             Graph.exchange(node, constantNode);
+        } else if (node.getMode().isData() && value.isUnknown()) {
+            Node badNode = graph.newBad(node.getMode());
+            Graph.exchange(node, badNode);
         }
     }
 
