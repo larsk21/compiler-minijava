@@ -704,4 +704,42 @@ public class ConstantOptimizationTest {
         assertFalse(containsConsts);
     }
 
+    @Test
+    public void testIfConstantConditionPropagateConst() {
+        // if (7 < 5) { z <- 2 } else { z <- 3 } ; y <- z + 7 -> 10
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("z"), Optional.empty(), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.LessThan,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("z"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                    false),
+                false),
+                Optional.of(new StatementNode.ExpressionStatementNode(0, 0,
+                    new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Assignment,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("z"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false)),
+            false)
+        ),
+            new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Addition,
+                new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("z"), false),
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(7), false),
+            false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
+    }
+
 }
