@@ -43,6 +43,7 @@ import lombok.RequiredArgsConstructor;
  * - Fold nested associative expressions with const operands
  * --> e.g. 5 - (x + 10) --> -5 - x
  * --> e.g. 2 * (x * 21) --> x * 42
+ * - Fold negation of addition, subtraction or multiplication with constant
  * 
  * Optimizations better done during instruction selection:
  * - Replace multiplication by constant power of two with shifts or lea
@@ -151,6 +152,16 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                     assert operand.getPredCount() == 1;
                     Graph.exchange(node, operand.getPred(0));
                 }
+                case iro_Add -> {
+                    assert operand.getPredCount() == 2;
+                    var constValue = getConstValue(operand.getPred(1));
+                    if (constValue != null) {
+                        // - (x + c) --> -c - x
+                        var constNode = graph.newConst(constValue.neg());
+                        var subNode = graph.newSub(node.getBlock(), constNode, operand.getPred(0));
+                        Graph.exchange(node, enqueued(subNode));
+                    }
+                }
                 case iro_Sub -> {
                     // -(x - y) --> y - x
                     assert operand.getPredCount() == 2;
@@ -159,8 +170,17 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                     var sub = graph.newSub(node.getBlock(), right, left);
                     Graph.exchange(node, enqueued(sub));
                 }
+                case iro_Mul -> {
+                    assert operand.getPredCount() == 2;
+                    var constValue = getConstValue(operand.getPred(1));
+                    if (constValue != null) {
+                        // - (x * c) --> x * -c
+                        var constNode = graph.newConst(constValue.neg());
+                        var mulNode = graph.newMul(node.getBlock(), operand.getPred(0), constNode);
+                        Graph.exchange(node, enqueued(mulNode));
+                    }
+                }
                 default -> {
-                    // -(x + y)
                 }
             }
         }
