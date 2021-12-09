@@ -20,7 +20,8 @@ import firm.nodes.Proj;
 
 /**
  * Optimization that finds constant values for value nodes where possible and
- * replaces these node with constant nodes in the given graph.
+ * replaces these node with constant nodes in the given graph. In addition,
+ * control flow with constant conditions is removed.
  */
 public class ConstantOptimization implements Optimization {
 
@@ -94,7 +95,7 @@ public class ConstantOptimization implements Optimization {
      * predecessor.
      */
     private boolean transformResultProj(Proj node) {
-        Node pred = node.getPred(0);
+        Node pred = node.getPred();
         TargetValueLatticeElement predValue;
         if (nodeValues.containsKey(pred) && (predValue = nodeValues.get(pred)).isConstant()) {
             Node constantNode = graph.newConst(predValue.getValue());
@@ -112,19 +113,19 @@ public class ConstantOptimization implements Optimization {
      * chain.
      */
     private boolean transformMemoryProj(Proj node) {
-        Node pred = node.getPred(0);
+        Node pred = node.getPred();
         boolean anySteps = false;
         while (nodeValues.containsKey(pred) && nodeValues.get(pred).isConstant()) {
             inputs: for (Node input : pred.getPreds()) {
                 if (input instanceof Proj && input.getMode().equals(Mode.getM())) {
-                    pred = input.getPred(0);
+                    pred = ((Proj)input).getPred();
                     break inputs;
                 }
             }
             anySteps = true;
         }
 
-        node.setPred(0, pred);
+        node.setPred(pred);
         return anySteps;
     }
 
@@ -133,7 +134,7 @@ public class ConstantOptimization implements Optimization {
      * constant value of the Cond selector.
      */
     private boolean transformControlFlowProj(Proj node) {
-        Node pred = node.getPred(0);
+        Node pred = node.getPred();
         TargetValueLatticeElement predValue;
         if (pred instanceof Cond && (predValue = nodeValues.get(pred)).isConstant()) {
             if (
