@@ -1,5 +1,6 @@
 package edu.kit.compiler.optimizations;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -257,6 +258,28 @@ public class ConstantOptimizationTest {
         optimization.optimize(graph);
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Div);
+    }
+
+    @Test
+    public void testConv() {
+        // (int)( ((long)x) / ((long)2) ) -> (int)( ((long)x) / 2L )
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(),
+            new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Division,
+                new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("x"), false),
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+            false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        List<Node> nodes = getNodes(graph);
+        nodes = nodes.stream().filter(node -> node instanceof Const).collect(Collectors.toList());
+
+        assertEquals(1, nodes.size());
+        assertEquals(Mode.getLs(), nodes.get(0).getMode());
     }
 
     @Test

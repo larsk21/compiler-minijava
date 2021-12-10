@@ -217,6 +217,11 @@ public class ConstantAnalysis {
         }
 
         @Override
+        public void visit(Conv node) {
+            visitUnary(node, node.getOp(), operand -> operand.convertTo(node.getMode()));
+        }
+
+        @Override
         public void visit(Div node) {
             visitBinary(node, node.getLeft(), node.getRight(), (left, right) -> left.div(right));
         }
