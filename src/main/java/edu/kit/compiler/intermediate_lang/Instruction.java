@@ -4,6 +4,7 @@ import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -90,8 +91,8 @@ public class Instruction {
         this.jumpTarget = jumpTarget;
     }
 
-    public String mapRegisters(RegisterMapping mapping) {
-        assert overwriteRegister.isEmpty() || !mapping.contains(overwriteRegister.get()) ||
+    public String mapRegisters(Map<Integer, String> mapping) {
+        assert overwriteRegister.isEmpty() || !mapping.containsKey(overwriteRegister.get()) ||
                 mapping.get(overwriteRegister.get()) == mapping.get(targetRegister.get());
         // TODO ...
         return "";
