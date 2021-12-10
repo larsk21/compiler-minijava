@@ -20,7 +20,7 @@ public class Lifetime {
     private boolean lastInstrIsInput;
 
     public Lifetime(int begin, int end, boolean lastInstrIsInput) {
-        assert 0 <= begin && begin < end;
+        assert -1 <= begin && begin < end && 0 < end;
         this.begin = begin;
         this.end = end;
         this.lastInstrIsInput = lastInstrIsInput;
