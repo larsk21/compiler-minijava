@@ -50,28 +50,54 @@ public class ApplyAssignment {
                     int numTmp = countRequiredTmps(instr);
                     List<Register> tmpRegisters = tracker.getTmpRegisters(numTmp);
 
-                    // handle spilled input registers
+                    // handle spilled input registers and set names
                     int tmpIdx = 0;
                     for (int vRegister: instr.getInputRegisters()) {
                         RegisterSize size = sizes[vRegister];
+                        String registerName;
                         if (assignment[vRegister].isSpilled()) {
                             int stackSlot = assignment[vRegister].getStackSlot().get();
-                            String registerName = tmpRegisters.get(tmpIdx).asSize(size);
-                            output("mov%c %d(%%rbp), %s # reload for %s",
+                            registerName = tmpRegisters.get(tmpIdx).asSize(size);
+                            output("mov%c %d(%%rbp), %s # reload for @%s",
                                     size.getSuffix(), stackSlot, registerName, vRegister);
-                            replace.put(vRegister, registerName);
                             tmpIdx++;
                         } else {
-                            String registerName = assignment[vRegister].getRegister().get().asSize(size);
-                            replace.put(vRegister, registerName);
+                            Register r = assignment[vRegister].getRegister().get();
+                            tracker.assertMapping(vRegister, r);
+                            registerName = r.asSize(size);
                         }
+                        replace.put(vRegister, registerName);
+                    }
+                    // set name for target register
+                    if (instr.getTargetRegister().isPresent()) {
+                        int target = instr.getTargetRegister().get();
+                        RegisterSize size = sizes[target];
+                        String registerName;
+                        if (assignment[target].isSpilled()) {
+                            registerName = tmpRegisters.get(tmpRegisters.size() - 1).asSize(size);
+                        } else {
+                            registerName = assignment[target].getRegister().get().asSize(size);
+                        }
+                        replace.put(target, registerName);
                     }
 
                     // output the instruction itself
                     output(instr.mapRegisters(replace));
 
                     tracker.leaveInstruction(i);
-                    // possibly insert instructions for afterwards
+                    if (instr.getTargetRegister().isPresent()) {
+                        // possibly spill the target register again
+                        int target = instr.getTargetRegister().get();
+                        if (assignment[target].isSpilled()) {
+                            RegisterSize size = sizes[target];
+                            int stackSlot = assignment[target].getStackSlot().get();
+                            String registerName = tmpRegisters.get(tmpRegisters.size() - 1).asSize(size);
+                            output("mov%c %s, %d(%%rbp) # spill for @%s",
+                                    size.getSuffix(), registerName, stackSlot, target);
+                        } else {
+                            tracker.assertMapping(target, assignment[target].getRegister().get());
+                        }
+                    }
 
                     tracker.printState(logger);
                 }
@@ -129,8 +155,7 @@ public class ApplyAssignment {
                         int slotA = assignment[i].getStackSlot().get();
                         int slotB = assignment[j].getStackSlot().get();
                         // assert that stack slots are disjoint
-                        assert slotA >= slotB + sizes[j].getBytes();
-                        assert slotB >= slotA + sizes[i].getBytes();
+                        assert slotA >= slotB + sizes[j].getBytes() || slotB >= slotA + sizes[i].getBytes();
                     }
                 }
             }
@@ -140,7 +165,7 @@ public class ApplyAssignment {
     private static Lifetime[] completeLifetimes(int nRegisters, int nInstructions) {
         Lifetime[] lifetimes = new Lifetime[nRegisters];
         for(int i = 0; i < nRegisters; i++) {
-            lifetimes[i] = new Lifetime(0, nInstructions, false);
+            lifetimes[i] = new Lifetime(-1, nInstructions, false);
         }
         return  lifetimes;
     }
@@ -163,8 +188,8 @@ public class ApplyAssignment {
 
         LifetimeTracker() {
             this.registers = new RegisterTracker();
-            this.lifetimeStarts = sortByLifetime(lifetimes, (l1, l2) -> l1.getBegin() - l2.getBegin());
-            this.lifetimeEnds = sortByLifetime(lifetimes, (l1, l2) -> {
+            this.lifetimeStarts = sortByLifetime((l1, l2) -> l1.getBegin() - l2.getBegin());
+            this.lifetimeEnds = sortByLifetime((l1, l2) -> {
                 int val = l1.getEnd() - l2.getEnd();
                 if (val != 0) {
                     return val;
@@ -177,9 +202,9 @@ public class ApplyAssignment {
                 return 0;
             });
             this.tmpRequested = false;
-
-            assert lifetimes.length == lifetimeStarts.size();
-            assert lifetimes.length == lifetimeEnds.size();
+            while (!lifetimeStarts.isEmpty() && lifetimes[peek(lifetimeStarts)].getBegin() < 0) {
+                setRegister(pop(lifetimeStarts));
+            }
         }
 
         /**
@@ -196,7 +221,7 @@ public class ApplyAssignment {
          * sets the state before the instruction is executed
          */
         public void enterInstruction(int index) {
-            assert lifetimes[peek(lifetimeStarts)].getBegin() >= index;
+            assert lifetimeStarts.isEmpty() || lifetimes[peek(lifetimeStarts)].getBegin() >= index;
 
             tmpRequested = false;
             while (!lifetimeEnds.isEmpty() && lifetimes[peek(lifetimeEnds)].getEnd() <= index) {
@@ -208,7 +233,7 @@ public class ApplyAssignment {
          * sets the state after the instruction is executed
          */
         public void leaveInstruction(int index) {
-            assert lifetimes[peek(lifetimeEnds)].getEnd() > index;
+            assert lifetimeEnds.isEmpty() || lifetimes[peek(lifetimeEnds)].getEnd() > index;
 
             tmpRequested = false;
             while (!lifetimeEnds.isEmpty() && lifetimes[peek(lifetimeEnds)].getEnd() == index + 1 &&
@@ -217,16 +242,19 @@ public class ApplyAssignment {
                 clearRegister(pop(lifetimeEnds));
             }
             while (!lifetimeStarts.isEmpty() && lifetimes[peek(lifetimeStarts)].getBegin() <= index) {
-                int vRegister = pop(lifetimeStarts);
-                Register r = assignment[vRegister].getRegister().get();
-                registers.set(r, vRegister);
+                setRegister(pop(lifetimeStarts));
             }
         }
 
-        private List<Integer> sortByLifetime(Lifetime[] lifetimes, Comparator<Lifetime> compare) {
+        public void assertMapping(int vRegister, Register r) {
+            assert registers.get(r).isPresent();
+            assert registers.get(r).get() == vRegister;
+        }
+
+        private List<Integer> sortByLifetime(Comparator<Lifetime> compare) {
             List<Integer> result = new ArrayList<>();
             for (int i = 0; i < lifetimes.length; i++) {
-                if (!lifetimes[i].isTrivial()) {
+                if (!lifetimes[i].isTrivial() && !assignment[i].isSpilled()) {
                     result.add(i);
                 }
             }
@@ -238,6 +266,11 @@ public class ApplyAssignment {
         private void clearRegister(int vRegister) {
             Register r = assignment[vRegister].getRegister().get();
             registers.clear(r);
+        }
+
+        private void setRegister(int vRegister) {
+            Register r = assignment[vRegister].getRegister().get();
+            registers.set(r, vRegister);
         }
 
         private int pop(List<Integer> l) {
