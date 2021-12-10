@@ -1,8 +1,9 @@
 package edu.kit.compiler.intermediate_lang.x64_att_asm;
 
+import edu.kit.compiler.intermediate_lang.AsmVisitor;
 import edu.kit.compiler.intermediate_lang.data.operations.*;
 
-public class x64_Att_Visitor {
+public class x64_Att_Visitor implements AsmVisitor {
 
     public String visit(IL_Op0 op) {
         return "";
