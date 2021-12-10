@@ -1,19 +1,20 @@
 package edu.kit.compiler.register_allocation;
 
 import edu.kit.compiler.intermediate_lang.Instruction;
+import edu.kit.compiler.intermediate_lang.InstructionType;
 import edu.kit.compiler.intermediate_lang.Register;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import edu.kit.compiler.logger.Logger;
+import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class ApplyAssignment {
     private RegisterAssignment[] assignment;
     private RegisterSize[] sizes;
     private Lifetime[] lifetimes;
     private List<Instruction> ir;
+    private List<String> result;
 
     public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes,
                            Lifetime[] lifetimes, List<Instruction> ir) {
@@ -30,11 +31,78 @@ public class ApplyAssignment {
      * Assumes that all register lifetimes interfere.
      */
     public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes, List<Instruction> ir) {
-        this(assignment, sizes, trivialLifetimes(assignment.length, ir.size()), ir);
+        this(assignment, sizes, completeLifetimes(assignment.length, ir.size()), ir);
     }
 
-    public AssignmentResult doApply() {
-        throw new UnsupportedOperationException();
+    public AssignmentResult doApply(Logger logger) {
+        result = new ArrayList<>();
+        LifetimeTracker tracker = new LifetimeTracker();
+        Map<Integer, String> replace = new HashMap<>();
+        tracker.printState(logger);
+
+        for (int i = 0; i < ir.size(); i++) {
+            replace.clear();
+            Instruction instr = ir.get(i);
+
+            switch (instr.getType()) {
+                case GENERAL -> {
+                    tracker.enterInstruction(i);
+                    int numTmp = countRequiredTmps(instr);
+                    List<Register> tmpRegisters = tracker.getTmpRegisters(numTmp);
+
+                    // handle spilled input registers
+                    int tmpIdx = 0;
+                    for (int vRegister: instr.getInputRegisters()) {
+                        RegisterSize size = sizes[vRegister];
+                        if (assignment[vRegister].isSpilled()) {
+                            int stackSlot = assignment[vRegister].getStackSlot().get();
+                            String registerName = tmpRegisters.get(tmpIdx).asSize(size);
+                            output("mov%c %d(%%rbp), %s # reload for %s",
+                                    size.getSuffix(), stackSlot, registerName, vRegister);
+                            replace.put(vRegister, registerName);
+                            tmpIdx++;
+                        } else {
+                            String registerName = assignment[vRegister].getRegister().get().asSize(size);
+                            replace.put(vRegister, registerName);
+                        }
+                    }
+
+                    // output the instruction itself
+                    output(instr.mapRegisters(replace));
+
+                    tracker.leaveInstruction(i);
+                    // possibly insert instructions for afterwards
+
+                    tracker.printState(logger);
+                }
+                default -> throw new UnsupportedOperationException();
+            }
+        }
+
+        return new AssignmentResult(result, tracker.getRegisters().getUsedRegisters());
+    }
+
+    private int countRequiredTmps(Instruction instr) {
+        assert instr.getType() == InstructionType.GENERAL;
+        int n = 0;
+        for (int vRegister: instr.getInputRegisters()) {
+            if (assignment[vRegister].isSpilled()) {
+                n++;
+            }
+        }
+        if (instr.getTargetRegister().isPresent() &&
+                assignment[instr.getTargetRegister().get()].isSpilled()) {
+            n++;
+        }
+        return n;
+    }
+
+    private void output(String instr) {
+        result.add(instr);
+    }
+
+    private void output(String format, Object... args) {
+        result.add(String.format(format, args));
     }
 
     // debugging
@@ -69,7 +137,7 @@ public class ApplyAssignment {
         }
     }
 
-    private static Lifetime[] trivialLifetimes(int nRegisters, int nInstructions) {
+    private static Lifetime[] completeLifetimes(int nRegisters, int nInstructions) {
         Lifetime[] lifetimes = new Lifetime[nRegisters];
         for(int i = 0; i < nRegisters; i++) {
             lifetimes[i] = new Lifetime(0, nInstructions, false);
@@ -82,6 +150,10 @@ public class ApplyAssignment {
      * allocation in order to correctly provide free registers when needed
      */
     private class LifetimeTracker {
+        /**
+         * directly modifying `registers` should be avoided
+         */
+        @Getter
         private RegisterTracker registers;
         private List<Integer> lifetimeStarts;
         private List<Integer> lifetimeEnds;
@@ -154,7 +226,9 @@ public class ApplyAssignment {
         private List<Integer> sortByLifetime(Lifetime[] lifetimes, Comparator<Lifetime> compare) {
             List<Integer> result = new ArrayList<>();
             for (int i = 0; i < lifetimes.length; i++) {
-                result.add(i);
+                if (!lifetimes[i].isTrivial()) {
+                    result.add(i);
+                }
             }
             // We want to sort in descending order, so we can pop the last elements
             result.sort((j, k) -> compare.compare(lifetimes[k],lifetimes[j]));
