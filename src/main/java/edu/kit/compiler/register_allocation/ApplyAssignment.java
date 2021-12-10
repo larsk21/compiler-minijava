@@ -3,12 +3,11 @@ package edu.kit.compiler.register_allocation;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import edu.kit.compiler.intermediate_lang.Register;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
-import lombok.Getter;
+import edu.kit.compiler.logger.Logger;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Function;
 
 public class ApplyAssignment {
     private RegisterAssignment[] assignment;
@@ -36,6 +35,19 @@ public class ApplyAssignment {
 
     public AssignmentResult doApply() {
         throw new UnsupportedOperationException();
+    }
+
+    // debugging
+    public void testRun(Logger logger) {
+        LifetimeTracker tracker = new LifetimeTracker();
+        tracker.printState(logger);
+        for (int i = 0; i < ir.size(); i++) {
+            tracker.enterInstruction(i);
+            tracker.printState(logger);
+            logger.debug("%d: %s", i, ir.get(i));
+            tracker.leaveInstruction(i);
+            tracker.printState(logger);
+        }
     }
 
     private static void assertRegistersDontInterfere(RegisterAssignment[] assignment,
@@ -160,6 +172,20 @@ public class ApplyAssignment {
 
         private int peek(List<Integer> l) {
             return l.get(l.size()- 1);
+        }
+
+        // debugging
+        public void printState(Logger logger) {
+            logger.debug("== Register tracking state ==");
+            if (!lifetimeStarts.isEmpty()) {
+                int vR = peek(lifetimeStarts);
+                logger.debug("- starting lifetime for vRegister %d at index %d", vR, lifetimes[vR].getBegin());
+            }
+            if (!lifetimeEnds.isEmpty()) {
+                int vR = peek(lifetimeEnds);
+                logger.debug("- ending lifetime for vRegister %d at index %d", vR, lifetimes[vR].getEnd());
+            }
+            registers.printState(logger);
         }
     }
 }
