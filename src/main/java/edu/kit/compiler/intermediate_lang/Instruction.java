@@ -2,10 +2,8 @@ package edu.kit.compiler.intermediate_lang;
 
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Represents a command in semi-textual form. Virtual registers are prefixed with '@'.
@@ -35,7 +33,7 @@ public class Instruction {
     // ! inputRegisters, targetRegister and overwriteRegister must be disjoint !
 
     @Getter
-    private int[] inputRegisters;
+    private List<Integer> inputRegisters;
 
     /**
      * Virtual input register for commands where one operand is
@@ -84,7 +82,7 @@ public class Instruction {
 
         this.type = type;
         this.text = text;
-        this.inputRegisters = inputRegisters;
+        this.inputRegisters = Arrays.stream(inputRegisters).boxed().collect(Collectors.toList());
         this.overwriteRegister = overwriteRegister;
         this.targetRegister = targetRegister;
         this.dataDependencies = dataDependencies;
@@ -94,8 +92,14 @@ public class Instruction {
     public String mapRegisters(Map<Integer, String> mapping) {
         assert overwriteRegister.isEmpty() || !mapping.containsKey(overwriteRegister.get()) ||
                 mapping.get(overwriteRegister.get()) == mapping.get(targetRegister.get());
-        // TODO ...
-        return "";
+        String result = text;
+        for (int i: inputRegisters) {
+            result = result.replace("@" + i, mapping.get(i));
+        }
+        if (targetRegister.isPresent()) {
+            result = result.replace("@" + targetRegister.get(), mapping.get(targetRegister.get()));
+        }
+        return result;
     }
 
     @Override
