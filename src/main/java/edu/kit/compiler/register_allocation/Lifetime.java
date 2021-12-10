@@ -20,7 +20,7 @@ public class Lifetime {
     private boolean lastInstrIsInput;
 
     public Lifetime(int begin, int end, boolean lastInstrIsInput) {
-        assert begin < end;
+        assert 0 <= begin && begin < end;
         this.begin = begin;
         this.end = end;
         this.lastInstrIsInput = lastInstrIsInput;
@@ -29,11 +29,30 @@ public class Lifetime {
         }
     }
 
+    public Lifetime(int begin, int end) {
+        this(begin, end, false);
+    }
+
+    public Lifetime() {
+        this.begin = 0;
+        this.end = 0;
+        this.lastInstrIsInput = false;
+    }
+
+    public boolean isTrivial() {
+        return end == 0;
+    }
+
     public boolean contains(int time) {
         return begin <= time && time < end;
     }
 
+
     public boolean interferes(Lifetime other) {
+        // trivial lifetime
+        if (isTrivial()) {
+            return false;
+        }
         // check cases where one register is allowed to replace the other
         // within the same instruction
         if (other.begin + 1 == end) {
