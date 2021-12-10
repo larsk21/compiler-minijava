@@ -1,19 +1,20 @@
 package edu.kit.compiler.register_allocation;
 
 import edu.kit.compiler.intermediate_lang.Register;
+import edu.kit.compiler.logger.Logger;
+import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 
 public class RegisterTracker {
     private EnumMap<Register, Integer> registers;
+    @Getter
+    private EnumSet<Register> usedRegisters;
 
     public RegisterTracker() {
         this.registers = new EnumMap<>(Register.class);
+        this.usedRegisters = EnumSet.noneOf(Register.class);
     }
 
     public boolean isFree(Register r) {
@@ -30,6 +31,7 @@ public class RegisterTracker {
     public void set(Register r, int vRegister) {
         assert isFree(r);
         registers.put(r, vRegister);
+        usedRegisters.add(r);
     }
 
     public void clear(Register r) {
@@ -44,6 +46,9 @@ public class RegisterTracker {
 
     public List<Register> getFreeRegisters(int num) {
         List<Register> result = new ArrayList<>();
+        if (num == 0) {
+            return result;
+        }
         for (Register r: Register.values()) {
             if (!isReservedRegister(r) && isFree(r)) {
                 result.add(r);
@@ -77,5 +82,13 @@ public class RegisterTracker {
             case RSP, RBP -> true;
             default -> false;
         };
+    }
+
+    // debugging
+    public void printState(Logger logger) {
+        logger.debug("Current register assignments:");
+        registers.forEach((r, vRegister) -> {
+            logger.debug("%s => %d", r.getAsQuad(), vRegister);
+        });
     }
 }
