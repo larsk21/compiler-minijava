@@ -41,64 +41,10 @@ public class ApplyAssignment {
         tracker.printState(logger);
 
         for (int i = 0; i < ir.size(); i++) {
-            replace.clear();
-            Instruction instr = ir.get(i);
 
-            switch (instr.getType()) {
+            switch (ir.get(i).getType()) {
                 case GENERAL -> {
-                    tracker.enterInstruction(i);
-                    int numTmp = countRequiredTmps(instr);
-                    List<Register> tmpRegisters = tracker.getTmpRegisters(numTmp);
-
-                    // handle spilled input registers and set names
-                    int tmpIdx = 0;
-                    for (int vRegister: instr.getInputRegisters()) {
-                        RegisterSize size = sizes[vRegister];
-                        String registerName;
-                        if (assignment[vRegister].isSpilled()) {
-                            int stackSlot = assignment[vRegister].getStackSlot().get();
-                            registerName = tmpRegisters.get(tmpIdx).asSize(size);
-                            output("mov%c %d(%%rbp), %s # reload for @%s",
-                                    size.getSuffix(), stackSlot, registerName, vRegister);
-                            tmpIdx++;
-                        } else {
-                            Register r = assignment[vRegister].getRegister().get();
-                            tracker.assertMapping(vRegister, r);
-                            registerName = r.asSize(size);
-                        }
-                        replace.put(vRegister, registerName);
-                    }
-                    // set name for target register
-                    if (instr.getTargetRegister().isPresent()) {
-                        int target = instr.getTargetRegister().get();
-                        RegisterSize size = sizes[target];
-                        String registerName;
-                        if (assignment[target].isSpilled()) {
-                            registerName = tmpRegisters.get(tmpRegisters.size() - 1).asSize(size);
-                        } else {
-                            registerName = assignment[target].getRegister().get().asSize(size);
-                        }
-                        replace.put(target, registerName);
-                    }
-
-                    // output the instruction itself
-                    output(instr.mapRegisters(replace));
-
-                    tracker.leaveInstruction(i);
-                    if (instr.getTargetRegister().isPresent()) {
-                        // possibly spill the target register again
-                        int target = instr.getTargetRegister().get();
-                        if (assignment[target].isSpilled()) {
-                            RegisterSize size = sizes[target];
-                            int stackSlot = assignment[target].getStackSlot().get();
-                            String registerName = tmpRegisters.get(tmpRegisters.size() - 1).asSize(size);
-                            output("mov%c %s, %d(%%rbp) # spill for @%s",
-                                    size.getSuffix(), registerName, stackSlot, target);
-                        } else {
-                            tracker.assertMapping(target, assignment[target].getRegister().get());
-                        }
-                    }
-
+                    handleGeneralInstruction(tracker, replace, i);
                     tracker.printState(logger);
                 }
                 default -> throw new UnsupportedOperationException();
@@ -106,6 +52,78 @@ public class ApplyAssignment {
         }
 
         return new AssignmentResult(result, tracker.getRegisters().getUsedRegisters());
+    }
+
+    private void handleGeneralInstruction(LifetimeTracker tracker, Map<Integer, String> replace, int index) {
+        Instruction instr = ir.get(index);
+        tracker.enterInstruction(index);
+        List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(instr));
+
+        // handle spilled input registers and set names
+        int tmpIdx = 0;
+        for (int vRegister: instr.getInputRegisters()) {
+            RegisterSize size = sizes[vRegister];
+            String registerName;
+            if (assignment[vRegister].isSpilled()) {
+                int stackSlot = assignment[vRegister].getStackSlot().get();
+                registerName = tmpRegisters.get(tmpIdx).asSize(size);
+                output("mov%c %d(%%rbp), %s # reload for @%s",
+                        size.getSuffix(), stackSlot, registerName, vRegister);
+                tmpIdx++;
+            } else {
+                Register r = assignment[vRegister].getRegister().get();
+                tracker.assertMapping(vRegister, r);
+                registerName = r.asSize(size);
+            }
+            replace.put(vRegister, registerName);
+        }
+
+        if (!instr.getTargetRegister().isPresent()) {
+            // output the instruction itself
+            output(instr.mapRegisters(replace));
+            tracker.leaveInstruction(index);
+        } else {
+            int target = instr.getTargetRegister().get();
+            RegisterSize size = sizes[target];
+            Register tRegister;
+            if (assignment[target].isSpilled()) {
+                tRegister = tmpRegisters.get(tmpRegisters.size() - 1);
+            } else {
+                tRegister = assignment[target].getRegister().get();
+            }
+            String targetName = tRegister.asSize(size);
+            replace.put(target, targetName);
+
+            // handle the overwrite register
+            if (instr.getOverwriteRegister().isPresent()) {
+                int overwrite = instr.getOverwriteRegister().get();
+                if (assignment[overwrite].isSpilled()) {
+                    int stackSlot = assignment[overwrite].getStackSlot().get();
+                    output("mov%c %d(%%rbp), %s # reload for @%s [overwrite]",
+                            size.getSuffix(), stackSlot, targetName, overwrite);
+                } else {
+                    Register ovRegister = assignment[overwrite].getRegister().get();
+                    if (ovRegister != tRegister) {
+                        String ovName = assignment[overwrite].getRegister().get().asSize(size);
+                        output("mov %s, %s # move for @%s [overwrite]",
+                                ovName, targetName, overwrite);
+                    }
+                }
+            }
+
+            // output the instruction itself
+            output(instr.mapRegisters(replace));
+            tracker.leaveInstruction(index);
+
+            // possibly spill the target register
+            if (assignment[target].isSpilled()) {
+                int stackSlot = assignment[target].getStackSlot().get();
+                output("mov%c %s, %d(%%rbp) # spill for @%s",
+                        size.getSuffix(), targetName, stackSlot, target);
+            } else {
+                tracker.assertMapping(target, assignment[target].getRegister().get());
+            }
+        }
     }
 
     private int countRequiredTmps(Instruction instr) {
