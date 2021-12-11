@@ -2,10 +2,8 @@ package edu.kit.compiler.intermediate_lang;
 
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Represents a command in semi-textual form. Virtual registers are prefixed with '@'.
@@ -21,11 +19,9 @@ import java.util.Optional;
  * @1 = 0           =>   Instruction.newOp("xorl @1, @1", new int[] {}, Optional.empty(), 1)
  */
 public class Instruction {
-
-    private static int index_global = 0;
-    private final int index;
     @Getter
     private InstructionType type;
+
     /**
      * Textual representation of the instruction, with placeholders (@0, @1, ...)
      * for virtual registers
@@ -35,8 +31,9 @@ public class Instruction {
 
     // ==== all virtual registers involved in the instruction ====
     // ! inputRegisters, targetRegister and overwriteRegister must be disjoint !
+
     @Getter
-    private int[] inputRegisters;
+    private List<Integer> inputRegisters;
 
     /**
      * Virtual input register for commands where one operand is
@@ -85,21 +82,25 @@ public class Instruction {
 
         this.type = type;
         this.text = text;
-        this.inputRegisters = inputRegisters;
+        this.inputRegisters = Arrays.stream(inputRegisters).boxed().collect(Collectors.toList());
         this.overwriteRegister = overwriteRegister;
         this.targetRegister = targetRegister;
         this.dataDependencies = dataDependencies;
         this.jumpTarget = jumpTarget;
-
-        this.index = index_global++;
-
+        this.callReference = Optional.empty();
     }
 
     public String mapRegisters(Map<Integer, String> mapping) {
         assert overwriteRegister.isEmpty() || !mapping.containsKey(overwriteRegister.get()) ||
                 mapping.get(overwriteRegister.get()) == mapping.get(targetRegister.get());
-        // TODO ...
-        return "";
+        String result = text;
+        for (int i: inputRegisters) {
+            result = result.replace("@" + i, mapping.get(i));
+        }
+        if (targetRegister.isPresent()) {
+            result = result.replace("@" + targetRegister.get(), mapping.get(targetRegister.get()));
+        }
+        return result;
     }
 
     @Override
@@ -140,18 +141,57 @@ public class Instruction {
     /**
      * (implicit) input and data dependency of a jump is the last executed conditional
      */
-    public static Instruction newJmp(String text, int condInstruction) {
+    public static Instruction newJmp(String text, Optional<Integer> condInstruction) {
+        List<Integer> dataDeps = new ArrayList<>();
+        if (condInstruction.isPresent()) {
+            dataDeps.add(condInstruction.get());
+        }
         return new Instruction(InstructionType.GENERAL, text, new int[] {},
                 Optional.empty(), Optional.empty(),
-                new ArrayList<>(condInstruction), Optional.empty());
+                dataDeps, Optional.empty());
     }
 
-    // TODO: newDiv, newMod, newCall, newRet
-    public static Instruction newDiv(String text, int[] inputRegisters, int targetRegister) {
-        return new Instruction(InstructionType.DIV, text, inputRegisters, Optional.empty(), Optional.of(targetRegister), new ArrayList<>(), null);
+    /**
+     * a return takes a single virtual register as return value (if not void)
+     */
+    public static Instruction newRet(Optional<Integer> returnRegister) {
+        String text = "ret";
+        int[] input = new int[] {};
+        if (returnRegister.isPresent()) {
+            text += String.format(" @%d", returnRegister.get());
+            input = new int[] { returnRegister.get() };
+        }
+        return new Instruction(InstructionType.RET, text, input,
+                Optional.empty(), Optional.empty(),
+                new ArrayList<>(), Optional.empty());
     }
 
-    public static Instruction newMod(String text, int[] inputRegisters, int targetRegister) {
-        return new Instruction(InstructionType.MOD, text, inputRegisters, Optional.empty(), Optional.of(targetRegister), new ArrayList<>(), null);
+    public static Instruction newDiv(int dividend, int divisor, int result) {
+        String text = String.format("div @%d, @%d, @%d", dividend, divisor, result);
+        return new Instruction(InstructionType.DIV, text, new int[] { dividend, divisor },
+                Optional.empty(), Optional.of(result),
+                new ArrayList<>(), Optional.empty());
+    }
+
+    public static Instruction newMod(int dividend, int divisor, int result) {
+        String text = String.format("mod @%d, @%d, @%d", dividend, divisor, result);
+        return new Instruction(InstructionType.MOD, text, new int[] { dividend, divisor },
+                Optional.empty(), Optional.of(result),
+                new ArrayList<>(), Optional.empty());
+    }
+
+    public static Instruction newCall(int[] args, Optional<Integer> result, String callReference) {
+        String text = "call";
+        for (int arg: args) {
+            text += " @" + arg + ",";
+        }
+        if (result.isPresent()) {
+            text += " -> @" + result.get();
+        }
+        Instruction call = new Instruction(InstructionType.CALL, text, args,
+                Optional.empty(), result,
+                new ArrayList<>(), Optional.empty());
+        call.callReference = Optional.of(callReference);
+        return call;
     }
 }
