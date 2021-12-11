@@ -54,6 +54,10 @@ public class RegisterTracker {
         registers.put(r, vRegister);
     }
 
+    public void markUsed(Register r) {
+        usedRegisters.add(r);
+    }
+
     /**
      * Free registers must always ve requested together.
      */

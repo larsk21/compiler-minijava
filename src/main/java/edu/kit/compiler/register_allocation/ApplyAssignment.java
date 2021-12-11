@@ -41,10 +41,13 @@ public class ApplyAssignment {
         tracker.printState(logger);
 
         for (int i = 0; i < ir.size(); i++) {
-
+            replace.clear();
             switch (ir.get(i).getType()) {
                 case GENERAL -> {
                     handleGeneralInstruction(tracker, replace, i);
+                }
+                case DIV, MOD -> {
+                    handleDivOrMod(tracker, i);
                     tracker.printState(logger);
                 }
                 default -> throw new UnsupportedOperationException();
@@ -56,6 +59,7 @@ public class ApplyAssignment {
 
     private void handleGeneralInstruction(LifetimeTracker tracker, Map<Integer, String> replace, int index) {
         Instruction instr = ir.get(index);
+        assert instr.getType() == InstructionType.GENERAL;
         tracker.enterInstruction(index);
         List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(instr));
 
@@ -126,6 +130,50 @@ public class ApplyAssignment {
         }
     }
 
+    private void handleDivOrMod(LifetimeTracker tracker, int index) {
+        Instruction instr = ir.get(index);
+        int dividend = instr.getInputRegisters().get(0);
+        int divisor = instr.getInputRegisters().get(1);
+        int target = instr.getTargetRegister().get();
+        assert sizes[dividend] == RegisterSize.DOUBLE && sizes[divisor] == RegisterSize.DOUBLE &&
+                sizes[target] == RegisterSize.DOUBLE;
+
+        tracker.enterInstruction(index);
+        tracker.assertFreeOrEqual(Register.RAX, dividend);
+        Register divisorRegister = tracker.getDivRegister();
+
+        // move dividend to %rax
+        String getDividend = getVRegisterValue(tracker, dividend, RegisterSize.DOUBLE);
+        output("movslq %s, %%rax # get dividend", getDividend);
+        output("cqto # sign extension to octoword");
+
+        // move divisor to temporary register
+        String getDivisor = getVRegisterValue(tracker, divisor, RegisterSize.DOUBLE);
+        output("movslq %s, %s # get divisor", getDivisor, divisorRegister.getAsQuad());
+
+        // output the instruction itself
+        output("idivq %s", divisorRegister.getAsQuad());
+        tracker.registers.markUsed(Register.RAX);
+        tracker.registers.markUsed(Register.RDX);
+
+        // move the result to the target register
+        String getResult = switch (instr.getType()) {
+            case DIV -> "%rax";
+            case MOD -> "%rdx";
+            default -> throw new IllegalStateException();
+        };
+
+        if (assignment[target].isSpilled()) {
+            output("leal 0(%s), %%eax # get result of division", getResult);
+            int stackSlot = assignment[target].getStackSlot().get();
+            output("movl %%eax, %d(%%rbp) # spill for @%s", stackSlot, target);
+        } else {
+            Register r = assignment[target].getRegister().get();
+            tracker.assertMapping(target, r);
+            output("leal 0(%s), %s # get result of division", getResult, r.getAsDouble());
+        }
+    }
+
     private int countRequiredTmps(Instruction instr) {
         assert instr.getType() == InstructionType.GENERAL;
         int n = 0;
@@ -139,6 +187,17 @@ public class ApplyAssignment {
             n++;
         }
         return n;
+    }
+
+    private String getVRegisterValue(LifetimeTracker tracker, int vRegister, RegisterSize size) {
+        if (assignment[vRegister].isSpilled()) {
+            int stackSlot = assignment[vRegister].getStackSlot().get();
+            return String.format("%d(%%rbp)", stackSlot);
+        } else {
+            Register r = assignment[vRegister].getRegister().get();
+            tracker.assertMapping(vRegister, r);
+            return r.asSize(size);
+        }
     }
 
     private void output(String instr) {
@@ -235,6 +294,12 @@ public class ApplyAssignment {
             return registers.getFreeRegisters(num);
         }
 
+        public Register getDivRegister() {
+            assert !tmpRequested;
+            tmpRequested = true;
+            return registers.getFreeRegisters(1, RegisterTracker.NO_RAX_RDX_PRIO).get(0);
+        }
+
         /**
          * sets the state before the instruction is executed
          */
@@ -267,6 +332,10 @@ public class ApplyAssignment {
         public void assertMapping(int vRegister, Register r) {
             assert registers.get(r).isPresent();
             assert registers.get(r).get() == vRegister;
+        }
+
+        public void assertFreeOrEqual(Register r, int expectedVReg) {
+            assert registers.isFree(r) || registers.get(r).get() == expectedVReg;
         }
 
         private List<Integer> sortByLifetime(Comparator<Lifetime> compare) {

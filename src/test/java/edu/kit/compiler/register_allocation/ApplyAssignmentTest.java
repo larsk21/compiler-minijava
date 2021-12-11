@@ -140,4 +140,63 @@ public class ApplyAssignmentTest {
         // check that temporary registers are marked as used
         assert result.getUsedRegisters().contains(Register.R8);
     }
+
+    @Test
+    public void testDiv() {
+        RegisterAssignment[] assignment = new RegisterAssignment[] {
+                new RegisterAssignment(Register.RAX),
+                new RegisterAssignment(Register.R8),
+                new RegisterAssignment(Register.R9),
+                new RegisterAssignment(-8),
+                new RegisterAssignment(-16),
+        };
+        RegisterSize[] sizes = new RegisterSize[] {
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+        };
+        Lifetime[] lifetimes = new Lifetime[] {
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 4),
+                new Lifetime(-1, 3, true),
+                new Lifetime(-1, 4),
+                new Lifetime(-1, 4),
+        };
+        Instruction[] ir = new Instruction[] {
+                Instruction.newDiv(0, 1, 2),
+                Instruction.newDiv(1, 3, 4),
+                Instruction.newMod(4, 2, 1),
+                Instruction.newDiv(1, 3, 4),
+        };
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
+        var result = ass.doApply(logger);
+        var expected = new ArrayList<>();
+        expected.add("movslq %eax, %rax # get dividend");
+        expected.add("cqto # sign extension to octoword");
+        expected.add("movslq %r8d, %r10 # get divisor");
+        expected.add("idivq %r10");
+        expected.add("leal 0(%rax), %r9d # get result of division");
+        expected.add("movslq %r8d, %rax # get dividend");
+        expected.add("cqto # sign extension to octoword");
+        expected.add("movslq -8(%rbp), %r10 # get divisor");
+        expected.add("idivq %r10");
+        expected.add("leal 0(%rax), %eax # get result of division");
+        expected.add("movl %eax, -16(%rbp) # spill for @4");
+        expected.add("movslq -16(%rbp), %rax # get dividend");
+        expected.add("cqto # sign extension to octoword");
+        expected.add("movslq %r9d, %r10 # get divisor");
+        expected.add("idivq %r10");
+        expected.add("leal 0(%rdx), %r8d # get result of division");
+        expected.add("movslq %r8d, %rax # get dividend");
+        expected.add("cqto # sign extension to octoword");
+        expected.add("movslq -8(%rbp), %r9 # get divisor");
+        expected.add("idivq %r9");
+        expected.add("leal 0(%rax), %eax # get result of division");
+        expected.add("movl %eax, -16(%rbp) # spill for @4");
+        assertEquals(expected, result.getInstructions());
+        // check that temporary registers are marked as used
+        assert result.getUsedRegisters().contains(Register.RDX);
+    }
 }
