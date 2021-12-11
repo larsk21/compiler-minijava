@@ -21,9 +21,11 @@ import java.util.Optional;
  * @1 = 0           =>   Instruction.newOp("xorl @1, @1", new int[] {}, Optional.empty(), 1)
  */
 public class Instruction {
+
+    private static int index_global = 0;
+    private final int index;
     @Getter
     private InstructionType type;
-
     /**
      * Textual representation of the instruction, with placeholders (@0, @1, ...)
      * for virtual registers
@@ -33,7 +35,6 @@ public class Instruction {
 
     // ==== all virtual registers involved in the instruction ====
     // ! inputRegisters, targetRegister and overwriteRegister must be disjoint !
-
     @Getter
     private int[] inputRegisters;
 
@@ -89,6 +90,9 @@ public class Instruction {
         this.targetRegister = targetRegister;
         this.dataDependencies = dataDependencies;
         this.jumpTarget = jumpTarget;
+
+        this.index = index_global++;
+
     }
 
     public String mapRegisters(Map<Integer, String> mapping) {
@@ -143,4 +147,11 @@ public class Instruction {
     }
 
     // TODO: newDiv, newMod, newCall, newRet
+    public static Instruction newDiv(String text, int[] inputRegisters, int targetRegister) {
+        return new Instruction(InstructionType.DIV, text, inputRegisters, Optional.empty(), Optional.of(targetRegister), new ArrayList<>(), null);
+    }
+
+    public static Instruction newMod(String text, int[] inputRegisters, int targetRegister) {
+        return new Instruction(InstructionType.MOD, text, inputRegisters, Optional.empty(), Optional.of(targetRegister), new ArrayList<>(), null);
+    }
 }
