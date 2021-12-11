@@ -202,4 +202,54 @@ public class ApplyAssignmentTest {
         // check that temporary registers are marked as used
         assert result.getUsedRegisters().contains(Register.RDX);
     }
+
+    @Test
+    public void testCompareToFirm() {
+        RegisterAssignment[] assignment = new RegisterAssignment[] {
+                new RegisterAssignment(Register.RCX),
+                new RegisterAssignment(Register.RCX),
+                new RegisterAssignment(Register.RBX),
+                new RegisterAssignment(Register.RDI),
+        };
+        RegisterSize[] sizes = new RegisterSize[] {
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+        };
+        Lifetime[] lifetimes = new Lifetime[] {
+                new Lifetime(-1, 1),
+                new Lifetime(1, 4, true),
+                new Lifetime(2, 4, true),
+                new Lifetime(3, 4),
+        };
+        Instruction[] ir = new Instruction[] {
+                Instruction.newOp("movl $0x7, @0", new int[] { }, Optional.empty(), 0),
+                Instruction.newOp("addl $77, @1", new int[] { }, Optional.of(0), 1),
+                Instruction.newOp("movl $0x2, @2", new int[] { }, Optional.empty(), 2),
+                Instruction.newDiv(1, 2, 3),
+        };
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
+        var result = ass.doApply(logger);
+        var expected = new ArrayList<>();
+        expected.add("movl $0x7, %ecx");
+        expected.add("addl $77, %ecx");
+        expected.add("movl $0x2, %ebx");
+        expected.add("movslq %ecx, %rax # get dividend");
+        expected.add("cqto # sign extension to octoword");
+        expected.add("movslq %ebx, %rbx # get divisor");
+        expected.add("idivq %rbx");
+        expected.add("leal 0(%rax), %edi # get result of division");
+        assertEquals(expected, result.getInstructions());
+
+        // Test is based on the following firm output for RegisterTest.mj:
+        // movl $0x7, %ecx
+        // addl $77, %ecx
+        // movl %ecx, (%rax)
+        // movslq (%rax), %rax
+        // cqto
+        // movl $0x2, %ecx
+        // idivq %rcx
+        // mov %rax, %rdi
+    }
 }

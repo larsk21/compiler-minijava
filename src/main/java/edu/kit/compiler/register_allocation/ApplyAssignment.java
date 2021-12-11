@@ -162,6 +162,7 @@ public class ApplyAssignment {
         output("idivq %s", divisorRegister.getAsQuad());
         tracker.registers.markUsed(Register.RAX);
         tracker.registers.markUsed(Register.RDX);
+        tracker.leaveInstruction(index);
 
         // move the result to the target register
         String getResult = switch (instr.getType()) {
