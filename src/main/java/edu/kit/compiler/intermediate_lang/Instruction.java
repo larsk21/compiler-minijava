@@ -165,5 +165,19 @@ public class Instruction {
                 new ArrayList<>(), Optional.empty());
     }
 
-    // TODO: newDiv, newMod, newCall
+    public static Instruction newDiv(int dividend, int divisor, int result) {
+        String text = String.format("div @%d, @%d, @%d", dividend, divisor, result);
+        return new Instruction(InstructionType.DIV, text, new int[] { dividend, divisor },
+                Optional.empty(), Optional.of(result),
+                new ArrayList<>(), Optional.empty());
+    }
+
+    public static Instruction newMod(int dividend, int divisor, int result) {
+        String text = String.format("mod @%d, @%d, @%d", dividend, divisor, result);
+        return new Instruction(InstructionType.MOD, text, new int[] { dividend, divisor },
+                Optional.empty(), Optional.of(result),
+                new ArrayList<>(), Optional.empty());
+    }
+
+    // TODO: newCall
 }
