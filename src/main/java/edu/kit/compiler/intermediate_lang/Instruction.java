@@ -140,10 +140,14 @@ public class Instruction {
     /**
      * (implicit) input and data dependency of a jump is the last executed conditional
      */
-    public static Instruction newJmp(String text, int condInstruction) {
+    public static Instruction newJmp(String text, Optional<Integer> condInstruction) {
+        List<Integer> dataDeps = new ArrayList<>();
+        if (condInstruction.isPresent()) {
+            dataDeps.add(condInstruction.get());
+        }
         return new Instruction(InstructionType.GENERAL, text, new int[] {},
                 Optional.empty(), Optional.empty(),
-                new ArrayList<>(condInstruction), Optional.empty());
+                dataDeps, Optional.empty());
     }
 
     /**
