@@ -19,9 +19,11 @@ import java.util.stream.Collectors;
  * @1 = 0           =>   Instruction.newOp("xorl @1, @1", new int[] {}, Optional.empty(), 1)
  */
 public class Instruction {
+
+    private static int index_global = 0;
+    private final int index;
     @Getter
     private InstructionType type;
-
     /**
      * Textual representation of the instruction, with placeholders (@0, @1, ...)
      * for virtual registers
@@ -31,7 +33,6 @@ public class Instruction {
 
     // ==== all virtual registers involved in the instruction ====
     // ! inputRegisters, targetRegister and overwriteRegister must be disjoint !
-
     @Getter
     private List<Integer> inputRegisters;
 
@@ -89,7 +90,13 @@ public class Instruction {
         this.targetRegister = targetRegister;
         this.dataDependencies = dataDependencies;
         this.jumpTarget = jumpTarget;
+<<<<<<< HEAD
         this.callReference = Optional.empty();
+=======
+
+        this.index = index_global++;
+
+>>>>>>> dd26479 (instructions for div and mod)
     }
 
     public String mapRegisters(Map<Integer, String> mapping) {
@@ -148,47 +155,12 @@ public class Instruction {
                 new ArrayList<>(), Optional.of(targetBlockId));
     }
 
-    /**
-     * a return takes a single virtual register as return value (if not void)
-     */
-    public static Instruction newRet(Optional<Integer> returnRegister) {
-        String text = "ret";
-        List<Integer> input = List.of();
-        if (returnRegister.isPresent()) {
-            text += String.format(" @%d", returnRegister.get());
-            input = List.of(returnRegister.get());
-        }
-        return new Instruction(InstructionType.RET, text, input,
-                Optional.empty(), Optional.empty(),
-                new ArrayList<>(), Optional.empty());
+    // TODO: newDiv, newMod, newCall, newRet
+    public static Instruction newDiv(String text, int[] inputRegisters, int targetRegister) {
+        return new Instruction(InstructionType.DIV, text, inputRegisters, Optional.empty(), Optional.of(targetRegister), new ArrayList<>(), null);
     }
 
-    public static Instruction newDiv(int dividend, int divisor, int result) {
-        String text = String.format("div @%d, @%d, @%d", dividend, divisor, result);
-        return new Instruction(InstructionType.DIV, text, List.of(dividend, divisor),
-                Optional.empty(), Optional.of(result),
-                new ArrayList<>(), Optional.empty());
-    }
-
-    public static Instruction newMod(int dividend, int divisor, int result) {
-        String text = String.format("mod @%d, @%d, @%d", dividend, divisor, result);
-        return new Instruction(InstructionType.MOD, text, List.of(dividend, divisor),
-                Optional.empty(), Optional.of(result),
-                new ArrayList<>(), Optional.empty());
-    }
-
-    public static Instruction newCall(List<Integer> args, Optional<Integer> result, String callReference) {
-        String text = String.format("call \"%s\"", callReference);
-        for (int arg: args) {
-            text += ", @" + arg;
-        }
-        if (result.isPresent()) {
-            text += " -> @" + result.get();
-        }
-        Instruction call = new Instruction(InstructionType.CALL, text, args,
-                Optional.empty(), result,
-                new ArrayList<>(), Optional.empty());
-        call.callReference = Optional.of(callReference);
-        return call;
+    public static Instruction newMod(String text, int[] inputRegisters, int targetRegister) {
+        return new Instruction(InstructionType.MOD, text, inputRegisters, Optional.empty(), Optional.of(targetRegister), new ArrayList<>(), null);
     }
 }
