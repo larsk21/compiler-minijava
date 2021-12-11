@@ -146,5 +146,20 @@ public class Instruction {
                 new ArrayList<>(condInstruction), Optional.empty());
     }
 
-    // TODO: newDiv, newMod, newCall, newRet
+    /**
+     * a return takes a single virtual register as return value (if not void)
+     */
+    public static Instruction newRet(Optional<Integer> returnRegister) {
+        String text = "ret";
+        int[] input = new int[] {};
+        if (returnRegister.isPresent()) {
+            text += String.format(" @%d", returnRegister.get());
+            input = new int[] { returnRegister.get() };
+        }
+        return new Instruction(InstructionType.RET, text, input,
+                Optional.empty(), Optional.empty(),
+                new ArrayList<>(), Optional.empty());
+    }
+
+    // TODO: newDiv, newMod, newCall
 }
