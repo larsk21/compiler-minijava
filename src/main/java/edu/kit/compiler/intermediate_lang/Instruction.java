@@ -87,6 +87,7 @@ public class Instruction {
         this.targetRegister = targetRegister;
         this.dataDependencies = dataDependencies;
         this.jumpTarget = jumpTarget;
+        this.callReference = Optional.empty();
     }
 
     public String mapRegisters(Map<Integer, String> mapping) {
@@ -179,5 +180,18 @@ public class Instruction {
                 new ArrayList<>(), Optional.empty());
     }
 
-    // TODO: newCall
+    public static Instruction newCall(int[] args, Optional<Integer> result, String callReference) {
+        String text = "call";
+        for (int arg: args) {
+            text += " @" + arg + ",";
+        }
+        if (result.isPresent()) {
+            text += " -> @" + result.get();
+        }
+        Instruction call = new Instruction(InstructionType.CALL, text, args,
+                Optional.empty(), result,
+                new ArrayList<>(), Optional.empty());
+        call.callReference = Optional.of(callReference);
+        return call;
+    }
 }
