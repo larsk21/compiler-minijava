@@ -7,7 +7,17 @@ import lombok.Getter;
 import java.util.*;
 import java.util.function.Function;
 
+import static edu.kit.compiler.intermediate_lang.Register.*;
+
 public class RegisterTracker {
+    public static final Register[] DEFAULT_PRIO = new Register[] {
+            R8, R9, R10, R11, R12, R13, R14, R15,
+            RBX, RCX, RSI, RDI, RAX, RDX,
+    };
+    public static final Register[] NO_RAX_RDX_PRIO = new Register[] {
+            R8, R9, R10, R11, R12, R13, R14, R15,
+            RBX, RCX, RSI, RDI,
+    };
     private EnumMap<Register, Integer> registers;
     @Getter
     private EnumSet<Register> usedRegisters;
@@ -44,14 +54,22 @@ public class RegisterTracker {
         registers.put(r, vRegister);
     }
 
+    /**
+     * Free registers must always ve requested together.
+     */
     public List<Register> getFreeRegisters(int num) {
+        return getFreeRegisters(num, DEFAULT_PRIO);
+    }
+
+    public List<Register> getFreeRegisters(int num, Register[] prio) {
         List<Register> result = new ArrayList<>();
         if (num == 0) {
             return result;
         }
-        for (Register r: Register.values()) {
+        for (Register r: prio) {
             if (!isReservedRegister(r) && isFree(r)) {
                 result.add(r);
+                usedRegisters.add(r);
                 if (result.size() == num) {
                     return result;
                 }
@@ -60,9 +78,23 @@ public class RegisterTracker {
         throw new IllegalStateException("Not enough registers available.");
     }
 
+    public Optional<Register> tryGetFreeRegister() {
+        return tryGetFreeRegister(DEFAULT_PRIO);
+    }
+
+    public Optional<Register> tryGetFreeRegister(Register[] prio) {
+        for (Register r: prio) {
+            if (!isReservedRegister(r) && isFree(r)) {
+                usedRegisters.add(r);
+                return Optional.of(r);
+            }
+        }
+        return Optional.empty();
+    }
+
     // high value => high priority
     public Register getPrioritizedRegister(Function<Register, Integer> priorities) {
-        Register best = Register.RAX;
+        Register best = RAX;
         int maxPrio = -1;
         for (Register r: Register.values()) {
             if (!isReservedRegister(r) && isFree(r)) {
@@ -74,6 +106,7 @@ public class RegisterTracker {
             }
         }
         assert maxPrio > -1;
+        usedRegisters.add(best);
         return best;
     }
 
