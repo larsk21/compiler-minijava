@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -251,5 +252,59 @@ public class ApplyAssignmentTest {
         // movl $0x2, %ecx
         // idivq %rcx
         // mov %rax, %rdi
+    }
+
+    @Test
+    public void testCall() {
+        CallingConvention cconv = new CallingConvention(EnumSet.of(Register.RAX, Register.RBX, Register.RCX, Register.RDX),
+                new Register[]{Register.RBX, Register.RCX, Register.RDX}, Register.RAX);
+        RegisterAssignment[] assignment = new RegisterAssignment[]{
+                new RegisterAssignment(Register.RBX),
+                new RegisterAssignment(Register.R8),
+                new RegisterAssignment(-8),
+                new RegisterAssignment(-16),
+                new RegisterAssignment(Register.R9),
+                new RegisterAssignment(Register.RCX),
+                new RegisterAssignment(Register.RDI),
+        };
+        RegisterSize[] sizes = new RegisterSize[]{
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+        };
+        Lifetime[] lifetimes = new Lifetime[]{
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+                new Lifetime(0, 1),
+        };
+        Instruction[] ir = new Instruction[]{
+                Instruction.newCall(new int[] {0, 1, 2, 3, 4, 5}, Optional.of(6), "_foo"),
+        };
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir), cconv);
+        var result = ass.doApply(logger);
+        var expected = new ArrayList<>();
+        expected.add("pushq %rbx # push caller-saved register");
+        expected.add("pushq %rcx # push caller-saved register");
+        expected.add("movq 8(%rsp), %rbx # reload @0 as arg 0");
+        expected.add("mov %r8, %rcx # move @1 into arg 1");
+        expected.add("movl -8(%rbp), %edx # load @2 as arg 2");
+        expected.add("movl -16(%rbp), %rax # reload @3 ...");
+        expected.add("pushq %rax # ... and pass it as arg 3");
+        expected.add("pushq %r9 # pass @4 as arg 4");
+        expected.add("pushq 0(%rsp) # reload @5 as arg 5");
+        expected.add("call _foo");
+        expected.add("addq $24, %rsp # remove args from stack");
+        expected.add("popq %rcx # restore caller-saved register");
+        expected.add("popq %rbx # restore caller-saved register");
+        expected.add("mov %rax, %rdi # move return value into @6");
+        assertEquals(expected, result.getInstructions());
     }
 }

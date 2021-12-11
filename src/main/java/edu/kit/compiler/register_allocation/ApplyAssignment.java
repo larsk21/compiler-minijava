@@ -14,17 +14,25 @@ public class ApplyAssignment {
     private RegisterSize[] sizes;
     private Lifetime[] lifetimes;
     private List<Instruction> ir;
+    private CallingConvention cconv;
     private List<String> result;
 
     public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes,
-                           Lifetime[] lifetimes, List<Instruction> ir) {
+                           Lifetime[] lifetimes, List<Instruction> ir, CallingConvention cconv) {
         assert assignment.length == sizes.length && assignment.length == lifetimes.length;
         this.assignment = assignment;
         this.sizes = sizes;
         this.lifetimes = lifetimes;
         this.ir = ir;
+        this.cconv = cconv;
+        this.result = new ArrayList<>();
 
         assertRegistersDontInterfere(assignment, sizes, lifetimes);
+    }
+
+    public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes,
+                           Lifetime[] lifetimes, List<Instruction> ir) {
+        this(assignment, sizes, lifetimes, ir, CallingConvention.X86_64);
     }
 
     /**
@@ -38,7 +46,6 @@ public class ApplyAssignment {
         result = new ArrayList<>();
         LifetimeTracker tracker = new LifetimeTracker();
         Map<Integer, String> replace = new HashMap<>();
-        tracker.printState(logger);
 
         for (int i = 0; i < ir.size(); i++) {
             replace.clear();
@@ -48,7 +55,9 @@ public class ApplyAssignment {
                 }
                 case DIV, MOD -> {
                     handleDivOrMod(tracker, i);
-                    tracker.printState(logger);
+                }
+                case CALL -> {
+                    handleCall(tracker, i);
                 }
                 default -> throw new UnsupportedOperationException();
             }
@@ -179,6 +188,113 @@ public class ApplyAssignment {
             Register r = assignment[target].getRegister().get();
             tracker.assertMapping(target, r);
             output("leal 0(%s), %s # get result of division", getResult, r.getAsDouble());
+        }
+    }
+
+    private void handleCall(LifetimeTracker tracker, int index) {
+        Instruction instr = ir.get(index);
+        // TODO: differentiate external function call (-> stack alignment)
+        tracker.enterInstruction(index);
+
+        // handle caller-saved registers
+        int savedOffset = 0;
+        ArrayDeque<Register> saved = new ArrayDeque<>();
+        EnumMap<Register, Integer> offsets = new EnumMap<>(Register.class);
+        for (Register r: cconv.getCallerSaved()) {
+            if (!tracker.getRegisters().isFree(r)) {
+                // TODO: input registers that don't survive the call?!
+                savedOffset += 8;
+                offsets.put(r, savedOffset);
+                saved.push(r);
+                output("pushq %s # push caller-saved register", r.getAsQuad());
+            }
+        }
+
+        // handle args
+        int numArgsOnStack = 0;
+        List<Integer> args = instr.getInputRegisters();
+        for (int i = 0; i < args.size(); i++) {
+            int vRegister = args.get(i);
+            Optional<Register> argReg = cconv.getArgRegister(i);
+            if (argReg.isPresent()) {
+                // the argument is passed within a register
+                if (assignment[vRegister].isSpilled()) {
+                    int stackSlot = assignment[vRegister].getStackSlot().get();
+                    RegisterSize size = sizes[vRegister];
+                    output("mov%c %d(%%rbp), %s # load @%d as arg %d",
+                            size.getSuffix(), stackSlot, argReg.get().asSize(size), vRegister, i);
+                } else {
+                    Register r = assignment[vRegister].getRegister().get();
+                    tracker.assertMapping(vRegister, r);
+                    if (cconv.isCallerSaved(r)) {
+                        // load value from stack
+                        int offset = savedOffset - offsets.get(r);
+                        output("movq %d(%%rsp), %s # reload @%d as arg %d",
+                                offset, argReg.get().getAsQuad(), vRegister, i);
+                    } else {
+                        assert argReg.get() != r;
+                        output("mov %s, %s # move @%d into arg %d",
+                                r.getAsQuad(), argReg.get().getAsQuad(), vRegister, i);
+                    }
+                }
+            } else {
+                // the argument is passed on the stack
+                numArgsOnStack++;
+                if (assignment[vRegister].isSpilled()) {
+                    int stackSlot = assignment[vRegister].getStackSlot().get();
+                    RegisterSize size = sizes[vRegister];
+                    // to ensure that we read with correct size, we first move into a register
+                    output("mov%c %d(%%rbp), %s # reload @%d ...",
+                            size.getSuffix(), stackSlot, cconv.getReturnRegister().getAsQuad(), vRegister);
+                    output("pushq %s # ... and pass it as arg %d",
+                            cconv.getReturnRegister().getAsQuad(), i);
+                } else {
+                    Register r = assignment[vRegister].getRegister().get();
+                    tracker.assertMapping(vRegister, r);
+                    if (cconv.isCallerSaved(r)) {
+                        // load value from stack
+                        int offset = savedOffset - offsets.get(r);
+                        output("pushq %d(%%rsp) # reload @%d as arg %d", offset, vRegister, i);
+                    } else {
+                        output("pushq %s # pass @%d as arg %d", r.getAsQuad(), vRegister, i);
+                    }
+                }
+            }
+        }
+
+        // output the instruction itself
+        output("call %s", instr.getCallReference().get());
+        tracker.leaveInstruction(index);
+
+        // remove arguments
+        if (numArgsOnStack > 0) {
+            output("addq $%d, %%rsp # remove args from stack", 8 * numArgsOnStack);
+        }
+
+        // TODO: handle external calls here
+        // restore caller-saved registers
+        while (!saved.isEmpty()) {
+            Register r = saved.pop();
+            output("popq %s # restore caller-saved register", r.getAsQuad());
+        }
+
+        // read return value
+        if (instr.getTargetRegister().isPresent()) {
+            int target = instr.getTargetRegister().get();
+            // TODO: with tmp pass-through: set tmp in return register
+            if (assignment[target].isSpilled()) {
+                int stackSlot = assignment[target].getStackSlot().get();
+                RegisterSize size = sizes[target];
+                output("mov%c %s, %d(%%rbp) # spill return value for @%s",
+                        size.getSuffix(), cconv.getReturnRegister().asSize(size), stackSlot, target);
+            } else {
+                Register r = assignment[target].getRegister().get();
+                tracker.assertMapping(target, r);
+                if (cconv.getReturnRegister() != r) {
+                    output("mov %s, %s # move return value into @%s",
+                            cconv.getReturnRegister().getAsQuad(), r.getAsQuad(), target);
+                }
+            }
         }
     }
 
