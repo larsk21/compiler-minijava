@@ -25,5 +25,10 @@ public class DequeWorklist<T> implements Worklist<T> {
     public T dequeue() {
         return deque.removeFirst();
     }
+
+    @Override
+    public boolean isUniqueElements() {
+        return false;
+    }
     
 }

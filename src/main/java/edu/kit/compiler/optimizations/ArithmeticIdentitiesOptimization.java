@@ -54,9 +54,15 @@ import lombok.RequiredArgsConstructor;
 public final class ArithmeticIdentitiesOptimization implements Optimization {
     @Override
     public void optimize(Graph graph) {
+        boolean backEdgesEnabled = BackEdges.enabled(graph);
+        BackEdges.enable(graph);
+
         var visitor = new Visitor(graph);
         visitor.apply();
 
+        if (!backEdgesEnabled) {
+            BackEdges.disable(graph);
+        }
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -316,7 +322,6 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             assert node.getOpCode() == ir_opcode.iro_Div
                     || node.getOpCode() == ir_opcode.iro_Mod;
 
-            BackEdges.enable(graph);
             for (var edge : BackEdges.getOuts(node)) {
                 if (edge.node.getMode().equals(Mode.getM())) {
                     Graph.exchange(edge.node, mem);
@@ -327,7 +332,6 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                             "Div control flow projections not supported");
                 }
             }
-            BackEdges.disable(graph);
         }
 
         /**
