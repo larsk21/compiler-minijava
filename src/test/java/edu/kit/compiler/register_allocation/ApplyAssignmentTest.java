@@ -178,17 +178,20 @@ public class ApplyAssignmentTest {
         expected.add("movslq %r8d, %r10 # get divisor");
         expected.add("idivq %r10");
         expected.add("leal 0(%rax), %r9d # get result of division");
+
         expected.add("movslq %r8d, %rax # get dividend");
         expected.add("cqto # sign extension to octoword");
         expected.add("movslq -8(%rbp), %r10 # get divisor");
         expected.add("idivq %r10");
         expected.add("leal 0(%rax), %eax # get result of division");
         expected.add("movl %eax, -16(%rbp) # spill for @4");
+
         expected.add("movslq -16(%rbp), %rax # get dividend");
         expected.add("cqto # sign extension to octoword");
-        expected.add("movslq %r9d, %r10 # get divisor");
-        expected.add("idivq %r10");
+        expected.add("movslq %r9d, %r9 # get divisor");
+        expected.add("idivq %r9");
         expected.add("leal 0(%rdx), %r8d # get result of division");
+
         expected.add("movslq %r8d, %rax # get dividend");
         expected.add("cqto # sign extension to octoword");
         expected.add("movslq -8(%rbp), %r9 # get divisor");

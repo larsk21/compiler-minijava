@@ -140,7 +140,14 @@ public class ApplyAssignment {
 
         tracker.enterInstruction(index);
         tracker.assertFreeOrEqual(Register.RAX, dividend);
-        Register divisorRegister = tracker.getDivRegister();
+        Register divisorRegister;
+        if (!assignment[divisor].isSpilled() && lifetimes[divisor].isLastInstructionAndInput(index)) {
+            Register r = assignment[divisor].getRegister().get();
+            tracker.assertMapping(divisor, r);
+            divisorRegister = r;
+        } else {
+            divisorRegister = tracker.getDivRegister();
+        }
 
         // move dividend to %rax
         String getDividend = getVRegisterValue(tracker, dividend, RegisterSize.DOUBLE);

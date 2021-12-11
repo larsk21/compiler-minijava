@@ -43,10 +43,15 @@ public class Lifetime {
         return end == 0;
     }
 
-    public boolean contains(int time) {
-        return begin <= time && time < end;
+    public boolean contains(int index) {
+        return begin <= index && index < end;
     }
 
+
+    public boolean isLastInstructionAndInput(int index) {
+        assert index < end;
+        return lastInstrIsInput && index + 1 == end;
+    }
 
     public boolean interferes(Lifetime other) {
         // trivial lifetime
