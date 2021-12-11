@@ -11,9 +11,4 @@ public enum InstructionType {
     // function call / return
     CALL,
     RET,
-
-    // TODO:
-    //  Possibly, we might want to special case moves between two registers,
-    //  e.g. if they turn out to be the same hardware register (is this valid in x86?)
-    REGISTER_MOVE
 }
