@@ -40,7 +40,7 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
             var rhs = right.match(node.getPred(offset + 1), registers);
 
             if (lhs.matches() && rhs.matches()) {
-                var mode = rhs.getOperand().getMode();
+                var mode = getMode(node);
                 var destination = getDestination(registers);
                 return new BinaryInstructionMatch(lhs, rhs, destination, mode);
             } else {
@@ -57,6 +57,16 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
         } else {
             return Optional.empty();
         }
+    }
+
+    private Mode getMode(Node node) {
+        return switch (node.getOpCode()) {
+            case iro_Store -> {
+                var store = (firm.nodes.Store) node;
+                yield store.getType().getMode();
+            }
+            default -> node.getMode();
+        };
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -101,7 +111,7 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
 
         private Instruction getAsInput() {
             assert !destination.isPresent();
-            
+
             return Instruction.newInput(
                     Util.formatCmd(command, Util.getSize(mode), right.getOperand(), left.getOperand()),
                     getInputRegisters());
