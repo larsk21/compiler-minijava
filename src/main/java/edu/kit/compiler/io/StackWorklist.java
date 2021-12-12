@@ -1,12 +1,13 @@
 package edu.kit.compiler.io;
 
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Implementation of a Worklist using a Stack.
+ * Implementation of a LIFO Worklist using a Deque.
  */
 public class StackWorklist<T> implements Worklist<T> {
 
@@ -14,11 +15,11 @@ public class StackWorklist<T> implements Worklist<T> {
      * Create a new StackWorklist.
      */
     public StackWorklist() {
-        stack = new Stack<>();
+        stack = new ArrayDeque<>();
         uniqueElements = true;
     }
 
-    private Stack<T> stack;
+    private Deque<T> stack;
 
     @Getter
     @Setter
@@ -34,7 +35,7 @@ public class StackWorklist<T> implements Worklist<T> {
         if (uniqueElements) {
             stack.remove(element);
         }
-        stack.add(element);
+        stack.push(element);
     }
 
     @Override
@@ -42,7 +43,7 @@ public class StackWorklist<T> implements Worklist<T> {
         if (uniqueElements) {
             stack.remove(element);
         }
-        stack.insertElementAt(element, 0);
+        stack.add(element);
     }
 
     @Override
