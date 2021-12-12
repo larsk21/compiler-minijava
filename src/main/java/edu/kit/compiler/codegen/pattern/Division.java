@@ -22,21 +22,21 @@ public class Division implements Pattern<InstructionMatch> {
 
     @Override
     public InstructionMatch match(Node node, NodeRegisters registers) {
-        if (node.getOpCode() == ir_opcode.iro_Proj) {
-            var divNode = node.getPred(0);
-            if (divNode.getOpCode() == type.getOpcode()) {
-                assert divNode.getPredCount() == 3;
+        if (node.getOpCode() == type.getOpcode()) {
+            assert node.getPredCount() == 3;
 
-                var lhs = left.match(divNode.getPred(1), registers);
-                var rhs = right.match(divNode.getPred(2), registers);
-                var destination = registers.newRegister();
+            var lhs = left.match(node.getPred(1), registers);
+            var rhs = right.match(node.getPred(2), registers);
+            var destination = registers.newRegister();
 
-                if (lhs.matches() && rhs.matches()) {
-                    return new DivisionMatch(lhs, rhs, destination);
-                }
+            if (lhs.matches() && rhs.matches()) {
+                return new DivisionMatch(lhs, rhs, destination);
+            } else {
+                return InstructionMatch.none();
             }
+        } else {
+            return InstructionMatch.none();
         }
-        return InstructionMatch.none();
     }
 
     public static enum Type {
