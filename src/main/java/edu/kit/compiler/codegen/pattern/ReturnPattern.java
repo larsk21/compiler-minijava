@@ -25,6 +25,8 @@ public class ReturnPattern implements Pattern<InstructionMatch> {
                 if (match.matches() && pred.getMode().isData()) {
                     assert !operand.isPresent();
                     operand = Optional.of(match);
+                } else if (pred.getMode().isData()) {
+                    throw new IllegalStateException("data without register");
                 }
             }
             return new ReturnMatch(operand);

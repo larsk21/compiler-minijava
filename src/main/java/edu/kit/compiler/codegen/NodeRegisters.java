@@ -42,6 +42,11 @@ public class NodeRegisters {
         this.registerCount = clone.registerCount;
     }
 
+    @Override
+    public String toString() {
+        return registers.toString();
+    }
+
     // todo this nested class is a pretty dirty workaround
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public final class Clone extends NodeRegisters {
