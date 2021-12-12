@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
@@ -102,7 +103,7 @@ public class BasicBlocks {
 
         @Override
         public String toString() {
-            return streamInstructions().toList().toString();
+            return streamInstructions().collect(Collectors.toList()).toString();
         }
     }
 }
