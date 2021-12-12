@@ -75,15 +75,25 @@ public final class InstructionSelection {
 
         @Override
         public void visit(Proj node) {
+            // todo put this in patterns?
+
             var args = node.getGraph().getArgs();
             // todo: is comparison of Nr correct here?
             if (node.getPred().getNr() == args.getNr()) {
                 // node is a parameter projection of the function
                 registers.setRegister(node, node.getNum());
+
             } else if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {
                 // Nothing to do for sucessor of Cond
+
             } else {
-                var register = registers.getRegister(node.getPred());
+                var pred = node.getPred();
+                if (pred.getOpCode() == ir_opcode.iro_Proj) {
+                    // Deal with double projection for results
+                    pred = pred.getPred(0);
+                }
+
+                var register = registers.getRegister(pred);
                 if (node.getMode().isData() && register >= 0) {
                     registers.setRegister(node, register);
                 } else {
@@ -91,7 +101,6 @@ public final class InstructionSelection {
                 }
             }
         }
-
 
         @Override
         public void visit(Cond node) {
