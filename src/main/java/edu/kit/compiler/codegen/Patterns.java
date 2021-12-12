@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import edu.kit.compiler.codegen.pattern.BinaryInstruction;
+import edu.kit.compiler.codegen.pattern.Call;
 import edu.kit.compiler.codegen.pattern.Conversion;
 import edu.kit.compiler.codegen.pattern.Division;
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
@@ -68,6 +69,7 @@ public class Patterns {
                 Map.entry(iro_Div, Arrays.asList(new Division(Type.DIV, REGISTER, REGISTER))),
                 Map.entry(iro_Mod, Arrays.asList(new Division(Type.MOD, REGISTER, REGISTER))),
 
+                Map.entry(iro_Call, Arrays.asList(new Call(REGISTER))),
 
                 Map.entry(iro_Return, Arrays.asList(new ReturnPattern()))
 
