@@ -49,7 +49,7 @@ public class ApplyAssignmentTest {
                 Instruction.newInput("movq $0, 0(@0)", new int[] { 0 })
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
-        var result = ass.doApply(logger);
+        var result = ass.doApply();
         for (var line: result.getInstructions()) {
             logger.info("%s", line);
         }
@@ -78,7 +78,7 @@ public class ApplyAssignmentTest {
                 Instruction.newOp("addl @0, @1, @2", new int[] { 0, 1 }, Optional.empty(), 2),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
-        var result = ass.doApply(logger);
+        var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add("movq 4(%rax), %r8");
         expected.add("movq %r8, -8(%rbp) # spill for @1");
@@ -124,7 +124,7 @@ public class ApplyAssignmentTest {
                 Instruction.newOp("xorl @0, @3", new int[] { 0 }, Optional.of(5), 3),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
-        var result = ass.doApply(logger);
+        var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add("mov %rbx, %rcx # move for @1 [overwrite]");
         expected.add("addl %rax, %rcx");
@@ -172,7 +172,7 @@ public class ApplyAssignmentTest {
                 Instruction.newDiv(1, 3, 4),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
-        var result = ass.doApply(logger);
+        var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add("movslq %eax, %rax # get dividend");
         expected.add("cqto # sign extension to octoword");
@@ -231,7 +231,7 @@ public class ApplyAssignmentTest {
                 Instruction.newDiv(1, 2, 3),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
-        var result = ass.doApply(logger);
+        var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add("movl $0x7, %ecx");
         expected.add("addl $77, %ecx");
@@ -289,7 +289,7 @@ public class ApplyAssignmentTest {
                 Instruction.newCall(new int[] {0, 1, 2, 3, 4, 5}, Optional.of(6), "_foo"),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir), cconv);
-        var result = ass.doApply(logger);
+        var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add("pushq %rbx # push caller-saved register");
         expected.add("pushq %rcx # push caller-saved register");
@@ -306,5 +306,62 @@ public class ApplyAssignmentTest {
         expected.add("popq %rbx # restore caller-saved register");
         expected.add("mov %rax, %rdi # move return value into @6");
         assertEquals(expected, result.getInstructions());
+    }
+
+    @Test
+    public void testPrologEpilog() {
+        CallingConvention cconv = new CallingConvention(EnumSet.of(Register.RAX, Register.RBX, Register.RCX, Register.RDX),
+                new Register[]{Register.RBX, Register.RCX, Register.RDX}, Register.RAX);
+        RegisterAssignment[] assignment = new RegisterAssignment[]{
+                new RegisterAssignment(Register.RDX),
+                new RegisterAssignment(Register.RCX),
+                new RegisterAssignment(-8),
+                new RegisterAssignment(-12),
+                new RegisterAssignment(Register.RBX),
+                new RegisterAssignment(Register.R8),
+        };
+        RegisterSize[] sizes = new RegisterSize[]{
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+        };
+        Lifetime[] lifetimes = new Lifetime[]{
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+                new Lifetime(-1, 1, true),
+        };
+        Instruction[] ir = new Instruction[]{};
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir), cconv);
+        var prolog = ass.createFunctionProlog(6, EnumSet.of(
+                Register.RAX, Register.RBX, Register.RCX, Register.RDX, Register.R8, Register.R9, Register.R10
+        ));
+        var expectedProlog = new ArrayList<>();
+        expectedProlog.add("pushq %rbp");
+        expectedProlog.add("movq %rsp, %rbp");
+        expectedProlog.add("subq $16, %rsp # allocate activation record");
+        expectedProlog.add("pushq %r8 # push callee-saved register");
+        expectedProlog.add("pushq %r9 # push callee-saved register");
+        expectedProlog.add("pushq %r10 # push callee-saved register");
+        expectedProlog.add("movl %ebx, %edx # initialize @0 from arg");
+        expectedProlog.add("movl %edx, -8(%rbp) # initialize @2 from arg");
+        expectedProlog.add("movl 32(%rbp), -12(%rbp) # initialize @3 from arg");
+        expectedProlog.add("movl 24(%rbp), %ebx # initialize @4 from arg");
+        expectedProlog.add("movl 16(%rbp), %r8d # initialize @5 from arg");
+        assertEquals(expectedProlog, prolog);
+
+        var epilog = ass.createFunctionEpilog(6);
+        var expectedEpilog = new ArrayList<>();
+        expectedEpilog.add("popq %r10 # restore callee-saved register");
+        expectedEpilog.add("popq %r9 # restore callee-saved register");
+        expectedEpilog.add("popq %r8 # restore callee-saved register");
+        expectedEpilog.add("leave");
+        expectedEpilog.add("ret");
+        assertEquals(expectedEpilog, epilog);
     }
 }

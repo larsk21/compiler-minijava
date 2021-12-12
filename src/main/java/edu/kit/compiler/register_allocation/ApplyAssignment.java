@@ -9,6 +9,15 @@ import lombok.Getter;
 
 import java.util.*;
 
+/**
+ * For an already calculated assignment of vRegisters to concrete registers or stack slots,
+ * this class is responsible for actually generating the concrete instructions that
+ * implement the assignment.
+ *
+ * Additionally, it uses lifetime information of the vRegisters and an internal state
+ * tracker to verify the validity of the input assignment (at construction and at the
+ * different steps of instruction creation).
+ */
 public class ApplyAssignment {
     private RegisterAssignment[] assignment;
     private RegisterSize[] sizes;
@@ -16,6 +25,7 @@ public class ApplyAssignment {
     private List<Instruction> ir;
     private CallingConvention cconv;
     private List<String> result;
+    private Optional<Deque<Register>> savedRegisters;
 
     public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes,
                            Lifetime[] lifetimes, List<Instruction> ir, CallingConvention cconv) {
@@ -26,6 +36,7 @@ public class ApplyAssignment {
         this.ir = ir;
         this.cconv = cconv;
         this.result = new ArrayList<>();
+        this.savedRegisters = Optional.empty();
 
         assertRegistersDontInterfere(assignment, sizes, lifetimes);
     }
@@ -42,7 +53,7 @@ public class ApplyAssignment {
         this(assignment, sizes, completeLifetimes(assignment.length, ir.size()), ir);
     }
 
-    public AssignmentResult doApply(Logger logger) {
+    public AssignmentResult doApply() {
         result = new ArrayList<>();
         LifetimeTracker tracker = new LifetimeTracker();
         Map<Integer, String> replace = new HashMap<>();
@@ -159,12 +170,12 @@ public class ApplyAssignment {
         }
 
         // move dividend to %rax
-        String getDividend = getVRegisterValue(tracker, dividend, RegisterSize.DOUBLE);
+        String getDividend = getVRegisterValue(dividend, RegisterSize.DOUBLE);
         output("movslq %s, %%rax # get dividend", getDividend);
         output("cqto # sign extension to octoword");
 
         // move divisor to temporary register
-        String getDivisor = getVRegisterValue(tracker, divisor, RegisterSize.DOUBLE);
+        String getDivisor = getVRegisterValue(divisor, RegisterSize.DOUBLE);
         output("movslq %s, %s # get divisor", getDivisor, divisorRegister.getAsQuad());
 
         // output the instruction itself
@@ -215,14 +226,14 @@ public class ApplyAssignment {
         List<Integer> args = instr.getInputRegisters();
         for (int i = 0; i < args.size(); i++) {
             int vRegister = args.get(i);
-            Optional<Register> argReg = cconv.getArgRegister(i);
-            if (argReg.isPresent()) {
+            if (cconv.getArgRegister(i).isPresent()) {
                 // the argument is passed within a register
+                Register argReg = cconv.getArgRegister(i).get();
                 if (assignment[vRegister].isSpilled()) {
                     int stackSlot = assignment[vRegister].getStackSlot().get();
                     RegisterSize size = sizes[vRegister];
                     output("mov%c %d(%%rbp), %s # load @%d as arg %d",
-                            size.getSuffix(), stackSlot, argReg.get().asSize(size), vRegister, i);
+                            size.getSuffix(), stackSlot, argReg.asSize(size), vRegister, i);
                 } else {
                     Register r = assignment[vRegister].getRegister().get();
                     tracker.assertMapping(vRegister, r);
@@ -230,11 +241,11 @@ public class ApplyAssignment {
                         // load value from stack
                         int offset = savedOffset - offsets.get(r);
                         output("movq %d(%%rsp), %s # reload @%d as arg %d",
-                                offset, argReg.get().getAsQuad(), vRegister, i);
+                                offset, argReg.getAsQuad(), vRegister, i);
                     } else {
-                        assert argReg.get() != r;
+                        assert argReg != r;
                         output("mov %s, %s # move @%d into arg %d",
-                                r.getAsQuad(), argReg.get().getAsQuad(), vRegister, i);
+                                r.getAsQuad(), argReg.getAsQuad(), vRegister, i);
                     }
                 }
             } else {
@@ -298,6 +309,69 @@ public class ApplyAssignment {
         }
     }
 
+    /**
+     * Can only be called after applying the register allocation,
+     * because the used registers must be known.
+     */
+    public List<String> createFunctionProlog(int nArgs, EnumSet<Register> usedRegisters) {
+        this.savedRegisters = Optional.of(new ArrayDeque<>());
+        this.result = new ArrayList<>();
+
+        output("pushq %rbp");
+        output("movq %rsp, %rbp");
+
+        // allocate activation record
+        output("subq $%d, %%rsp # allocate activation record", calculateActivationRecordSize());
+
+        // save registers
+        for (Register r: usedRegisters) {
+            if (!cconv.isCallerSaved(r)) {
+                savedRegisters.get().push(r);
+                output("pushq %s # push callee-saved register", r.getAsQuad());
+            }
+        }
+
+        // initialize vRegisters that are function arguments
+        for (int vRegister = 0; vRegister < nArgs; vRegister++) {
+            RegisterSize size = sizes[vRegister];
+            String toVRegister = getVRegisterValue(vRegister, size);
+            if (cconv.getArgRegister(vRegister).isPresent()) {
+                // the argument is passed within a register
+                Register argReg = cconv.getArgRegister(vRegister).get();
+                if (assignment[vRegister].isSpilled() || assignment[vRegister].getRegister().get() != argReg) {
+                    output("mov%c %s, %s # initialize @%d from arg",
+                            size.getSuffix(), argReg.asSize(size), toVRegister, vRegister);
+                }
+            } else {
+                // the argument is passed on the stack
+                // TODO: special case for spilled registers?
+                int offset = 16 + 8 * (nArgs - vRegister - 1);
+                output("mov%c %d(%%rbp), %s # initialize @%d from arg",
+                        size.getSuffix(), offset, toVRegister, vRegister);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Can only be called after the prolog is already created.
+     */
+    public List<String> createFunctionEpilog(int nArgs) {
+        // TODO: create as separate block with special label
+        assert savedRegisters.isPresent();
+        this.result = new ArrayList<>();
+
+        // restore registers
+        while (!savedRegisters.get().isEmpty()) {
+            Register r = savedRegisters.get().pop();
+            output("popq %s # restore callee-saved register", r.getAsQuad());
+        }
+
+        output("leave");
+        output("ret");
+        return result;
+    }
+
     private int countRequiredTmps(Instruction instr) {
         assert instr.getType() == InstructionType.GENERAL;
         int n = 0;
@@ -313,15 +387,30 @@ public class ApplyAssignment {
         return n;
     }
 
-    private String getVRegisterValue(LifetimeTracker tracker, int vRegister, RegisterSize size) {
+    private String getVRegisterValue(int vRegister, RegisterSize size) {
         if (assignment[vRegister].isSpilled()) {
             int stackSlot = assignment[vRegister].getStackSlot().get();
             return String.format("%d(%%rbp)", stackSlot);
         } else {
             Register r = assignment[vRegister].getRegister().get();
-            tracker.assertMapping(vRegister, r);
             return r.asSize(size);
         }
+    }
+
+    private int calculateActivationRecordSize() {
+        int stackSize = 0;
+        for (RegisterAssignment ra: assignment) {
+            if (ra.isSpilled()) {
+                stackSize = Math.max(stackSize, -ra.getStackSlot().get());
+            }
+        }
+
+        // align to 8 byte
+        int sizeOld = stackSize;
+        stackSize += 7;
+        stackSize = stackSize - (stackSize % 8);
+        assert stackSize >= sizeOld && stackSize <= sizeOld + 8 && stackSize % 8 == 0;
+        return stackSize;
     }
 
     private void output(String instr) {
