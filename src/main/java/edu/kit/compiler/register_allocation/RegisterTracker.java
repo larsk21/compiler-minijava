@@ -27,6 +27,10 @@ public class RegisterTracker {
         this.usedRegisters = EnumSet.noneOf(Register.class);
     }
 
+    public boolean isEmpty() {
+        return registers.isEmpty();
+    }
+
     public boolean isFree(Register r) {
         return !registers.containsKey(r);
     }

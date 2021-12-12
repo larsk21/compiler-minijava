@@ -14,26 +14,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ApplyAssignmentTest {
-    private Logger logger = new Logger(Logger.Verbosity.DEBUG, true);
-
-    @Test
-    public void testTrivialInit() {
-        RegisterAssignment[] assignment = new RegisterAssignment[] {
-          new RegisterAssignment(Register.RAX)
-        };
-        RegisterSize[] sizes = new RegisterSize[] {
-          RegisterSize.QUAD
-        };
-        Lifetime[] lifetimes = new Lifetime[] {
-          new Lifetime(0, 1)
-        };
-        Instruction[] ir = new Instruction[] {
-            Instruction.newOp("xorl @0, @0", new int[] {}, Optional.empty(), 0)
-        };
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
-        ass.testRun(logger);
-    }
-
     @Test
     public void testTrivialRun() {
         RegisterAssignment[] assignment = new RegisterAssignment[] {
@@ -49,10 +29,7 @@ public class ApplyAssignmentTest {
                 Instruction.newInput("movq $0, 0(@0)", new int[] { 0 })
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
-        var result = ass.doApply();
-        for (var line: result.getInstructions()) {
-            logger.info("%s", line);
-        }
+        ass.doApply();
     }
 
     @Test
@@ -355,7 +332,7 @@ public class ApplyAssignmentTest {
         expectedProlog.add("movl 16(%rbp), %r8d # initialize @5 from arg");
         assertEquals(expectedProlog, prolog);
 
-        var epilog = ass.createFunctionEpilog(6);
+        var epilog = ass.createFunctionEpilog();
         var expectedEpilog = new ArrayList<>();
         expectedEpilog.add("popq %r10 # restore callee-saved register");
         expectedEpilog.add("popq %r9 # restore callee-saved register");

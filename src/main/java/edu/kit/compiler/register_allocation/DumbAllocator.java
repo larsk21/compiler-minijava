@@ -22,7 +22,7 @@ public class DumbAllocator implements RegisterAllocator {
         var result = apply.doApply();
         // TODO: properly integrate prolog and epilog
         List<String> prolog = apply.createFunctionProlog(nArgs, result.getUsedRegisters());
-        List<String> epilog = apply.createFunctionEpilog(nArgs);
+        List<String> epilog = apply.createFunctionEpilog();
         prolog.addAll(result.getInstructions());
         prolog.addAll(epilog);
         return prolog;

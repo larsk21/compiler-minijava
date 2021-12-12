@@ -61,18 +61,13 @@ public class ApplyAssignment {
         for (int i = 0; i < ir.size(); i++) {
             replace.clear();
             switch (ir.get(i).getType()) {
-                case GENERAL -> {
-                    handleGeneralInstruction(tracker, replace, i);
-                }
-                case DIV, MOD -> {
-                    handleDivOrMod(tracker, i);
-                }
-                case CALL -> {
-                    handleCall(tracker, i);
-                }
+                case GENERAL -> handleGeneralInstruction(tracker, replace, i);
+                case DIV, MOD -> handleDivOrMod(tracker, i);
+                case CALL -> handleCall(tracker, i);
                 default -> throw new UnsupportedOperationException();
             }
         }
+        tracker.assertFinallyEmpty(ir.size());
 
         return new AssignmentResult(result, tracker.getRegisters().getUsedRegisters());
     }
@@ -356,7 +351,7 @@ public class ApplyAssignment {
     /**
      * Can only be called after the prolog is already created.
      */
-    public List<String> createFunctionEpilog(int nArgs) {
+    public List<String> createFunctionEpilog() {
         // TODO: create as separate block with special label
         assert savedRegisters.isPresent();
         this.result = new ArrayList<>();
@@ -549,6 +544,11 @@ public class ApplyAssignment {
 
         public void assertFreeOrEqual(Register r, int expectedVReg) {
             assert registers.isFree(r) || registers.get(r).get() == expectedVReg;
+        }
+
+        public void assertFinallyEmpty(int numInstrs) {
+            enterInstruction(numInstrs);
+            assert registers.isEmpty();
         }
 
         private List<Integer> sortByLifetime(Comparator<Lifetime> compare) {
