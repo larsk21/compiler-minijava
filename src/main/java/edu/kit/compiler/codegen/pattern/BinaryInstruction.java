@@ -29,36 +29,18 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
     private final Pattern<OperandMatch<Operand.Register>> right;
     private final boolean overwritesRegister;
     private final boolean hasMemory;
-    private final boolean isProj;
 
     @Override
     public InstructionMatch match(Node node, NodeRegisters registers) {
-        if (isProj) {
-            if (node.getOpCode() == ir_opcode.iro_Proj) {
-                return matchOpNode(node, node.getPred(0), registers);
-            } else {
-                return InstructionMatch.none();
-            }
-        } else {
-            return matchOpNode(node, node, registers);
-        }
-    }
+        if (node.getOpCode() == opcode) {
+            var offset = hasMemory ? 1 : 0;
 
-    private InstructionMatch matchOpNode(Node node, Node opNode, NodeRegisters registers) {
-        if (opNode.getOpCode() == opcode) {
-            assert opNode.getPredCount() == 2 + getOffset();
-
-            var offset = getOffset();
-            var lhs = left.match(opNode.getPred(offset), registers);
-            var rhs = right.match(opNode.getPred(offset + 1), registers);
-
+            assert node.getPredCount() == 2 + offset;
+            var lhs = left.match(node.getPred(offset), registers);
+            var rhs = right.match(node.getPred(offset + 1), registers);
 
             if (lhs.matches() && rhs.matches()) {
                 var mode = rhs.getOperand().getMode();
-                if (isProj) {
-                    mode = node.getMode();
-                }
-
                 var destination = getDestination(registers);
                 return new BinaryInstructionMatch(lhs, rhs, destination, mode);
             } else {
@@ -67,10 +49,6 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
         } else {
             return InstructionMatch.none();
         }
-    } 
-
-    private int getOffset() {
-        return hasMemory ? 1 : 0;
     }
 
     private Optional<Integer> getDestination(NodeRegisters registers) {
