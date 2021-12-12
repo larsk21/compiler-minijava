@@ -63,11 +63,11 @@ public class Patterns {
 
                 Map.entry(iro_Store, Arrays.asList(
                         new BinaryInstruction(iro_Store, "mov", MEMORY, REGISTER, false, true))),
+                Map.entry(iro_Load, Arrays.asList(new LoadMemory())),
 
-                Map.entry(iro_Proj, Arrays.asList(
-                        new LoadMemory(),
-                        new Division(Type.DIV, REGISTER, REGISTER),
-                        new Division(Type.MOD, REGISTER, REGISTER))),
+                Map.entry(iro_Div, Arrays.asList(new Division(Type.DIV, REGISTER, REGISTER))),
+                Map.entry(iro_Mod, Arrays.asList(new Division(Type.MOD, REGISTER, REGISTER))),
+
 
                 Map.entry(iro_Return, Arrays.asList(new ReturnPattern()))
 

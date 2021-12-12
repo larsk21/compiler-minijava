@@ -83,8 +83,12 @@ public final class InstructionSelection {
             } else if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {
                 // Nothing to do for sucessor of Cond
             } else {
-                // todo ?
-                defaultVisit(node);
+                var register = registers.getRegister(node.getPred());
+                if (node.getMode().isData() && register >= 0) {
+                    registers.setRegister(node, register);
+                } else {
+                    defaultVisit(node);
+                }
             }
         }
 

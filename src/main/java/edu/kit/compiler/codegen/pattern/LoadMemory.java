@@ -21,17 +21,19 @@ public class LoadMemory implements Pattern<InstructionMatch> {
 
     @Override
     public InstructionMatch match(Node node, NodeRegisters registers) {
-        if (node.getOpCode() == ir_opcode.iro_Proj && node.getMode().isData()) {
-            if (node.getPred(0).getOpCode() == ir_opcode.iro_Load) {
-                var load = node.getPred(0);
-                var match = memory.match(load.getPred(1), registers);
-                if(match.matches()) {
-                    var destination = registers.newRegister();
-                    return new LoadMemoryMatch(match, destination, node.getMode());
-                }
+        if (node.getOpCode() == ir_opcode.iro_Load) {
+            var match = memory.match(node.getPred(1), registers);
+            System.out.println(node.getNr());
+            if (match.matches()) {
+                var mode = ((firm.nodes.Load) node).getLoadMode();
+                var destination = registers.newRegister();
+                return new LoadMemoryMatch(match, destination, mode);
+            } else {
+                return InstructionMatch.none();
             }
+        } else {
+            return InstructionMatch.none();
         }
-        return InstructionMatch.none();
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
