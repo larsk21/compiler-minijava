@@ -760,7 +760,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        while (optimization.optimize(graph)) { }
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
     }

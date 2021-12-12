@@ -29,37 +29,36 @@ public class ConstantOptimization implements Optimization {
     private Map<Node, TargetValueLatticeElement> nodeValues;
 
     @Override
-    public void optimize(Graph graph) {
+    public boolean optimize(Graph graph) {
         this.graph = graph;
 
-        boolean changes;
-        do {
-            ConstantAnalysis analysis = new ConstantAnalysis(graph);
-            analysis.analyze();
+        ConstantAnalysis analysis = new ConstantAnalysis(graph);
+        analysis.analyze();
 
-            this.nodeValues = analysis.getNodeValues();
+        this.nodeValues = analysis.getNodeValues();
 
-            // we transform the nodes in reverse postorder, i.e. we can access the
-            // unchanged predecessors of a node when transforming it
-            List<Node> nodes = new ArrayList<>();
-            graph.walkPostorder(new NodeVisitor.Default() {
+        // we transform the nodes in reverse postorder, i.e. we can access the
+        // unchanged predecessors of a node when transforming it
+        List<Node> nodes = new ArrayList<>();
+        graph.walkPostorder(new NodeVisitor.Default() {
 
-                @Override
-                public void defaultVisit(Node node) {
-                    nodes.add(0, node);
-                }
-
-            });
-
-            changes = false;
-            for (Node node : nodes) {
-                changes |= transform(node, nodeValues.getOrDefault(node, TargetValueLatticeElement.unknown()));
+            @Override
+            public void defaultVisit(Node node) {
+                nodes.add(0, node);
             }
 
-            binding_irgopt.remove_bads(graph.ptr);
-            binding_irgopt.remove_unreachable_code(graph.ptr);
-            binding_irgopt.remove_bads(graph.ptr);
-        } while (changes);
+        });
+
+        boolean changes = false;
+        for (Node node : nodes) {
+            changes |= transform(node, nodeValues.getOrDefault(node, TargetValueLatticeElement.unknown()));
+        }
+
+        binding_irgopt.remove_bads(graph.ptr);
+        binding_irgopt.remove_unreachable_code(graph.ptr);
+        binding_irgopt.remove_bads(graph.ptr);
+
+        return changes;
     }
 
     /**

@@ -190,8 +190,8 @@ public class JavaEasyCompiler {
             ast.accept(irv);
             Lower.lower(irv.getTypeMapper());
 
-            for (Optimization optimization : optimizations) {
-                for (Graph graph : Program.getGraphs()) {
+            for (Graph graph : Program.getGraphs()) {
+                for (Optimization optimization : optimizations) {
                     optimization.optimize(graph);
                 }
             }

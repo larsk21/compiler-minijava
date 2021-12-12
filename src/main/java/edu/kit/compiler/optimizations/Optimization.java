@@ -8,12 +8,12 @@ import firm.Graph;
 public interface Optimization {
 
     /**
-     * Optimize the given graph.
+     * Optimize the given graph and return true iff there were changes made to
+     * the graph.
      * 
-     * This includes analyzing the given graph, as well as making changes to
-     * it. Any global option that is changed in this method has to be reset
+     * Any global option that is changed in this method has to be reset
      * to its previous state before returning.
      */
-    void optimize(Graph graph);
+    boolean optimize(Graph graph);
 
 }
