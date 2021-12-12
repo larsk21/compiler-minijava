@@ -31,6 +31,7 @@ public class Call implements Pattern<InstructionMatch> {
                 if (match.matches()) {
                     arguments.add(match.getOperand().get());
                 } else {
+                    // System.out.println(node.getNr() + " " + pred.getNr() + " " + registers);
                     throw new IllegalStateException("call args must be registers");
                 }
             }
