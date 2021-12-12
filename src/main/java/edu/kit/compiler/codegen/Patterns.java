@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import edu.kit.compiler.codegen.pattern.BinaryInstruction;
+import edu.kit.compiler.codegen.pattern.Conversion;
+import edu.kit.compiler.codegen.pattern.Division;
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
 import edu.kit.compiler.codegen.pattern.LoadImmediate;
 import edu.kit.compiler.codegen.pattern.LoadMemory;
@@ -16,6 +18,7 @@ import edu.kit.compiler.codegen.pattern.Pattern;
 import edu.kit.compiler.codegen.pattern.RegisterPattern;
 import edu.kit.compiler.codegen.pattern.ReturnPattern;
 import edu.kit.compiler.codegen.pattern.UnaryInstruction;
+import edu.kit.compiler.codegen.pattern.Division.Type;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 
@@ -46,25 +49,27 @@ public class Patterns {
         map = Map.ofEntries(
                 Map.entry(iro_Const, Arrays.asList(new LoadImmediate())),
                 Map.entry(iro_Add, Arrays.asList(
-                        new BinaryInstruction(iro_Add, "add", REGISTER, REGISTER, true, false, false))),
+                        new BinaryInstruction(iro_Add, "add", REGISTER, REGISTER, true, false))),
                 Map.entry(iro_Sub, Arrays.asList(
-                        new BinaryInstruction(iro_Sub, "sub", REGISTER, REGISTER, true, false, false))),
+                        new BinaryInstruction(iro_Sub, "sub", REGISTER, REGISTER, true, false))),
                 Map.entry(iro_Mul, Arrays.asList(
-                        new BinaryInstruction(iro_Mul, "imul", REGISTER, REGISTER, true, false, false))),
-                
+                        new BinaryInstruction(iro_Mul, "imul", REGISTER, REGISTER, true, false))),
+
                 // todo div, mod
                 Map.entry(iro_Minus, Arrays.asList(
                         new UnaryInstruction(iro_Minus, "neg", REGISTER, true, false))),
 
-                Map.entry(iro_Store, Arrays.asList(
-                        new BinaryInstruction(iro_Store, "mov", MEMORY, REGISTER, false, true, false))),
+                Map.entry(iro_Conv, Arrays.asList(new Conversion())),
 
-                Map.entry(iro_Proj, Arrays.asList(new LoadMemory())),
+                Map.entry(iro_Store, Arrays.asList(
+                        new BinaryInstruction(iro_Store, "mov", MEMORY, REGISTER, false, true))),
+
+                Map.entry(iro_Proj, Arrays.asList(
+                        new LoadMemory(),
+                        new Division(Type.DIV, REGISTER, REGISTER),
+                        new Division(Type.MOD, REGISTER, REGISTER))),
 
                 Map.entry(iro_Return, Arrays.asList(new ReturnPattern()))
-
-        // Map.entry(iro_Cmp, Arrays.asList(
-        // new BinaryInstruction(iro_Cmp, "cmp", REGISTER, REGISTER, false)))
 
         );
     }

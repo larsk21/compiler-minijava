@@ -22,7 +22,7 @@ public class ReturnPattern implements Pattern<InstructionMatch> {
             Optional<OperandMatch<Register>> operand = Optional.empty();
             for (var pred : node.getPreds()) {
                 var match = pattern.match(pred, registers);
-                if (match.matches()) {
+                if (match.matches() && pred.getMode().isData()) {
                     assert !operand.isPresent();
                     operand = Optional.of(match);
                 }
