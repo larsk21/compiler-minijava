@@ -21,8 +21,6 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
     // todo get rid of the booleans in the constructor
     // todo either with builder or enums
 
-    // todo Question: is memory always 0-th predecessor?
-
     private final ir_opcode opcode;
     private final String command;
     private final Pattern<? extends OperandMatch<? extends Operand.Destination>> left;

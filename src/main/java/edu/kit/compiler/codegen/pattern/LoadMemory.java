@@ -23,7 +23,6 @@ public class LoadMemory implements Pattern<InstructionMatch> {
     public InstructionMatch match(Node node, NodeRegisters registers) {
         if (node.getOpCode() == ir_opcode.iro_Load) {
             var match = memory.match(node.getPred(1), registers);
-            System.out.println(node.getNr());
             if (match.matches()) {
                 var mode = ((firm.nodes.Load) node).getLoadMode();
                 var destination = registers.newRegister();
