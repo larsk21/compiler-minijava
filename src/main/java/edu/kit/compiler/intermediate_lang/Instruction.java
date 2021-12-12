@@ -69,7 +69,7 @@ public class Instruction {
     @Getter
     private Optional<String> callReference;
 
-    public Instruction(InstructionType type, String text, int[] inputRegisters,
+    public Instruction(InstructionType type, String text, List<Integer> inputRegisters,
                        Optional<Integer> overwriteRegister, Optional<Integer> targetRegister,
                        List<Integer> dataDependencies, Optional<Integer> jumpTarget) {
         // some input validation
@@ -82,7 +82,7 @@ public class Instruction {
 
         this.type = type;
         this.text = text;
-        this.inputRegisters = Arrays.stream(inputRegisters).boxed().collect(Collectors.toList());
+        this.inputRegisters = inputRegisters;
         this.overwriteRegister = overwriteRegister;
         this.targetRegister = targetRegister;
         this.dataDependencies = dataDependencies;
@@ -122,7 +122,7 @@ public class Instruction {
     /**
      * general (arithmetic) operation, possibly with overwrite register
      */
-    public static Instruction newOp(String text, int[] inputRegisters,
+    public static Instruction newOp(String text, List<Integer> inputRegisters,
                                     Optional<Integer> overwriteRegister, int targetRegister) {
         return new Instruction(InstructionType.GENERAL, text, inputRegisters,
                 overwriteRegister, Optional.of(targetRegister),
@@ -132,7 +132,7 @@ public class Instruction {
     /**
      * some operations (e.g. that write to memory) don't have a target register
      */
-    public static Instruction newInput(String text, int[] inputRegisters) {
+    public static Instruction newInput(String text, List<Integer> inputRegisters) {
         return new Instruction(InstructionType.GENERAL, text, inputRegisters,
                 Optional.empty(), Optional.empty(),
                 new ArrayList<>(), Optional.empty());
@@ -146,7 +146,7 @@ public class Instruction {
         if (condInstruction.isPresent()) {
             dataDeps.add(condInstruction.get());
         }
-        return new Instruction(InstructionType.GENERAL, text, new int[] {},
+        return new Instruction(InstructionType.GENERAL, text, Collections.emptyList(),
                 Optional.empty(), Optional.empty(),
                 dataDeps, Optional.empty());
     }
@@ -156,10 +156,10 @@ public class Instruction {
      */
     public static Instruction newRet(Optional<Integer> returnRegister) {
         String text = "ret";
-        int[] input = new int[] {};
+        List<Integer> input = Collections.emptyList();
         if (returnRegister.isPresent()) {
             text += String.format(" @%d", returnRegister.get());
-            input = new int[] { returnRegister.get() };
+            input = Arrays.asList(returnRegister.get());
         }
         return new Instruction(InstructionType.RET, text, input,
                 Optional.empty(), Optional.empty(),
@@ -168,19 +168,19 @@ public class Instruction {
 
     public static Instruction newDiv(int dividend, int divisor, int result) {
         String text = String.format("div @%d, @%d, @%d", dividend, divisor, result);
-        return new Instruction(InstructionType.DIV, text, new int[] { dividend, divisor },
+        return new Instruction(InstructionType.DIV, text, Arrays.asList(dividend, divisor),
                 Optional.empty(), Optional.of(result),
                 new ArrayList<>(), Optional.empty());
     }
 
     public static Instruction newMod(int dividend, int divisor, int result) {
         String text = String.format("mod @%d, @%d, @%d", dividend, divisor, result);
-        return new Instruction(InstructionType.MOD, text, new int[] { dividend, divisor },
+        return new Instruction(InstructionType.MOD, text, Arrays.asList(dividend, divisor),
                 Optional.empty(), Optional.of(result),
                 new ArrayList<>(), Optional.empty());
     }
 
-    public static Instruction newCall(int[] args, Optional<Integer> result, String callReference) {
+    public static Instruction newCall(List<Integer> args, Optional<Integer> result, String callReference) {
         String text = "call";
         for (int arg: args) {
             text += " @" + arg + ",";
