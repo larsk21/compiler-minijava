@@ -83,21 +83,22 @@ public class ApplyAssignmentTest {
                 RegisterSize.QUAD,
         };
         Lifetime[] lifetimes = new Lifetime[] {
-                new Lifetime(-1, 5),
+                new Lifetime(-1, 6),
                 new Lifetime(-1, 3, true),
-                new Lifetime(-1, 5),
-                new Lifetime(-1, 5),
-                new Lifetime(2, 5),
-                new Lifetime(-1, 5),
+                new Lifetime(-1, 6),
+                new Lifetime(-1, 6, true),
+                new Lifetime(2, 6),
+                new Lifetime(-1, 6),
         };
         Block block = new Block(List.of(
                 Instruction.newOp("addl @0, @2", List.of( 0 ), Optional.of(1), 2),
                 Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(1), 3),
                 Instruction.newOp("subl @0, @4", List.of( 0 ), Optional.of(1), 4),
                 Instruction.newOp("addl @0, @4", List.of( 0 ), Optional.of(5), 4),
-                Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(5), 3)
+                Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(5), 3),
+                Instruction.newOp("mull @0, @5", List.of( 0 ), Optional.of(3), 5)
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 5);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 6);
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add(".L0:");
@@ -112,6 +113,8 @@ public class ApplyAssignmentTest {
         expected.add("movq -16(%rbp), %r12 # reload for @5 [overwrite]");
         expected.add("xorl %rax, %r12");
         expected.add("movq %r12, -8(%rbp) # spill for @3");
+        expected.add("mull %rax, %r12");
+        expected.add("movq %r12, -16(%rbp) # spill for @5");
         assertEquals(expected, result.getInstructions());
         // check that temporary registers are marked as used
         assert result.getUsedRegisters().contains(Register.R12);

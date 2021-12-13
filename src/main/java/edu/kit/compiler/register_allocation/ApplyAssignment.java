@@ -121,7 +121,7 @@ public class ApplyAssignment {
         if (instr.getOverwriteRegister().isPresent()) {
             excluded = instr.getTargetRegister().flatMap(vRegister -> assignment[vRegister].getRegister());
         }
-        List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(tracker, instr), excluded);
+        List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(tracker, instr, index), excluded);
 
         // handle spilled input registers and set names
         int tmpIdx = 0;
@@ -150,7 +150,14 @@ public class ApplyAssignment {
             RegisterSize size = sizes[target];
             Register tRegister;
             if (isOnStack(tracker, target)) {
-                tRegister = tmpRegisters.get(tmpRegisters.size() - 1);
+                Optional<Register> oRegister = getRegisterToOverwrite(tracker, instr, index);
+                if (oRegister.isPresent()) {
+                    // we can use the overwrite register as a temporary register for target
+                    tRegister = oRegister.get();
+                } else {
+                    // we need a new temporary register
+                    tRegister = tmpRegisters.get(tmpRegisters.size() - 1);
+                }
             } else {
                 tRegister = getRegister(tracker, target, false);
             }
@@ -568,7 +575,7 @@ public class ApplyAssignment {
         return result;
     }
 
-    private int countRequiredTmps(LifetimeTracker tracker, Instruction instr) {
+    private int countRequiredTmps(LifetimeTracker tracker, Instruction instr, int index) {
         assert instr.getType() == InstructionType.GENERAL;
         int n = 0;
         for (int vRegister: instr.getInputRegisters()) {
@@ -577,12 +584,30 @@ public class ApplyAssignment {
                 n++;
             }
         }
-        if (instr.getTargetRegister().isPresent() &&
-                assignment[instr.getTargetRegister().get()].isSpilled() &&
-                !tracker.getRegisters().hasTmp(instr.getTargetRegister().get())) {
-            n++;
+        if (instr.getTargetRegister().isPresent()) {
+            int target = instr.getTargetRegister().get();
+            if (assignment[target].isSpilled()
+                    // we already have a tmp register for target
+                    && !tracker.getRegisters().hasTmp(target)
+                    // we can already use the overwrite register
+                    && !getRegisterToOverwrite(tracker, instr, index).isPresent()) {
+                n++;
+            }
         }
         return n;
+    }
+
+    /**
+     * Tries to determine whether the overwrite register of the current instruction can be reused as
+     * a temporary register for the target and returns the according register, if available.
+     */
+    private Optional<Register> getRegisterToOverwrite(LifetimeTracker tracker, Instruction instr, int index) {
+        Optional<Integer> overwrite = instr.getOverwriteRegister();
+        if (overwrite.isPresent() && lifetimes[overwrite.get()].isLastInstructionAndInput(index)
+                && !isOnStack(tracker, overwrite.get())) {
+            return Optional.of(getRegister(tracker, overwrite.get()));
+        }
+        return Optional.empty();
     }
 
     private String getVRegisterValue(LifetimeTracker tracker, int vRegister, RegisterSize size) {
