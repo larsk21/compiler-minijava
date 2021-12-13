@@ -6,10 +6,7 @@ import edu.kit.compiler.intermediate_lang.RegisterSize;
 import edu.kit.compiler.logger.Logger;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -26,7 +23,7 @@ public class ApplyAssignmentTest {
                 new Lifetime(-1, 1)
         };
         Instruction[] ir = new Instruction[] {
-                Instruction.newInput("movq $0, 0(@0)", new int[] { 0 })
+                Instruction.newInput("movq $0, 0(@0)", List.of( 0 ))
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
         ass.doApply();
@@ -50,9 +47,9 @@ public class ApplyAssignmentTest {
                 new Lifetime(-1, 3),
         };
         Instruction[] ir = new Instruction[] {
-                Instruction.newOp("movq 4(@0), @1", new int[] { 0 }, Optional.empty(), 1),
-                Instruction.newOp("incrl @1", new int[] { }, Optional.empty(), 1),
-                Instruction.newOp("addl @0, @1, @2", new int[] { 0, 1 }, Optional.empty(), 2),
+                Instruction.newOp("movq 4(@0), @1", List.of( 0 ), Optional.empty(), 1),
+                Instruction.newOp("incrl @1", List.of(), Optional.empty(), 1),
+                Instruction.newOp("addl @0, @1, @2", List.of( 0, 1 ), Optional.empty(), 2),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
         var result = ass.doApply();
@@ -94,11 +91,11 @@ public class ApplyAssignmentTest {
                 new Lifetime(-1, 5),
         };
         Instruction[] ir = new Instruction[] {
-                Instruction.newOp("addl @0, @2", new int[] { 0 }, Optional.of(1), 2),
-                Instruction.newOp("xorl @0, @3", new int[] { 0 }, Optional.of(1), 3),
-                Instruction.newOp("subl @0, @4", new int[] { 0 }, Optional.of(1), 4),
-                Instruction.newOp("addl @0, @4", new int[] { 0 }, Optional.of(5), 4),
-                Instruction.newOp("xorl @0, @3", new int[] { 0 }, Optional.of(5), 3),
+                Instruction.newOp("addl @0, @2", List.of( 0 ), Optional.of(1), 2),
+                Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(1), 3),
+                Instruction.newOp("subl @0, @4", List.of( 0 ), Optional.of(1), 4),
+                Instruction.newOp("addl @0, @4", List.of( 0 ), Optional.of(5), 4),
+                Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(5), 3),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
         var result = ass.doApply();
@@ -202,9 +199,9 @@ public class ApplyAssignmentTest {
                 new Lifetime(3, 4),
         };
         Instruction[] ir = new Instruction[] {
-                Instruction.newOp("movl $0x7, @0", new int[] { }, Optional.empty(), 0),
-                Instruction.newOp("addl $77, @1", new int[] { }, Optional.of(0), 1),
-                Instruction.newOp("movl $0x2, @2", new int[] { }, Optional.empty(), 2),
+                Instruction.newOp("movl $0x7, @0", List.of(), Optional.empty(), 0),
+                Instruction.newOp("addl $77, @1", List.of(), Optional.of(0), 1),
+                Instruction.newOp("movl $0x2, @2", List.of(), Optional.empty(), 2),
                 Instruction.newDiv(1, 2, 3),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
@@ -263,7 +260,7 @@ public class ApplyAssignmentTest {
                 new Lifetime(0, 1),
         };
         Instruction[] ir = new Instruction[]{
-                Instruction.newCall(new int[] {0, 1, 2, 3, 4, 5}, Optional.of(6), "_foo"),
+                Instruction.newCall(List.of(0, 1, 2, 3, 4, 5), Optional.of(6), "_foo"),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir), cconv);
         var result = ass.doApply();

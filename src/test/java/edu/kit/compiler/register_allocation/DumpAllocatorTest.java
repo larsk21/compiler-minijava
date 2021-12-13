@@ -21,11 +21,11 @@ public class DumpAllocatorTest {
                 RegisterSize.DOUBLE,
         };
         Instruction[] ir = new Instruction[] {
-                Instruction.newOp("movl $0x7, @0", new int[] { }, Optional.empty(), 0),
-                Instruction.newOp("addl $77, @1", new int[] { }, Optional.of(0), 1),
-                Instruction.newOp("movl $0x2, @2", new int[] { }, Optional.empty(), 2),
+                Instruction.newOp("movl $0x7, @0", List.of(), Optional.empty(), 0),
+                Instruction.newOp("addl $77, @1", List.of(), Optional.of(0), 1),
+                Instruction.newOp("movl $0x2, @2", List.of(), Optional.empty(), 2),
                 Instruction.newDiv(1, 2, 3),
-                Instruction.newCall(new int[] { 3 }, Optional.empty(), "print@PLT"),
+                Instruction.newCall(List.of(3), Optional.empty(), "print@PLT"),
         };
         RegisterAllocator alloc = new DumbAllocator();
         var result = alloc.performAllocation(0, List.of(ir), sizes);
