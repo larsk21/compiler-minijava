@@ -67,7 +67,6 @@ public class BasicBlocks {
         }
 
         public List<Instruction> getExitInstructions() {
-            assert exitCondition.isPresent();
             return Collections.unmodifiableList(exitCondition.get().getInstructions());
         }
 
