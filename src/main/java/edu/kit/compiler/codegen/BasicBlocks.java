@@ -67,7 +67,9 @@ public class BasicBlocks {
         }
 
         public List<Instruction> getExitInstructions() {
-            return Collections.unmodifiableList(exitCondition.get().getInstructions());
+            return exitCondition
+                .map(c -> Collections.unmodifiableList(c.getInstructions()))
+                .orElseGet(() -> Collections.emptyList());
         }
 
         public void setExitCondition(ExitCondition exitCondition) {
