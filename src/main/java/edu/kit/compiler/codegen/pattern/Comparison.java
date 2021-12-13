@@ -1,5 +1,7 @@
 package edu.kit.compiler.codegen.pattern;
 
+import java.util.stream.Stream;
+
 import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.NodeRegisters;
 import edu.kit.compiler.codegen.Operand;
@@ -42,6 +44,11 @@ public class Comparison implements Pattern<ConditionMatch> {
         @Override
         public ExitCondition getCondition() {
             return ExitCondition.condition(relation, left.getOperand(), right.getOperand());
+        }
+
+        @Override
+        public Stream<Node> getPredecessors() {
+            return Stream.concat(left.getPredecessors(), right.getPredecessors());
         }
 
     }

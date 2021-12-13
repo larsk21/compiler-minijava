@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.NodeRegisters;
 import edu.kit.compiler.codegen.Operand;
@@ -55,5 +56,11 @@ public class LoadMemory implements Pattern<InstructionMatch> {
         public Optional<Integer> getTargetRegister() {
             return Optional.of(register);
         }
+
+        @Override
+        public Stream<Node> getPredecessors() {
+            return match.getPredecessors();
+        }
+            
     }
 }

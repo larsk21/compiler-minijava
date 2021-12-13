@@ -3,6 +3,7 @@ package edu.kit.compiler.codegen.pattern;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.NodeRegisters;
 import edu.kit.compiler.codegen.Operand;
@@ -57,6 +58,11 @@ public class Conversion implements Pattern<InstructionMatch> {
         @Override
         public Optional<Integer> getTargetRegister() {
             return Optional.of(destination);
+        }
+
+        @Override
+        public Stream<Node> getPredecessors() {
+            return match.getPredecessors();
         }
 
         public String getCmd() {

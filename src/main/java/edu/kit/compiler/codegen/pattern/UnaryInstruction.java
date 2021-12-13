@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.NodeRegisters;
 import edu.kit.compiler.codegen.Operand;
@@ -53,7 +54,7 @@ public class UnaryInstruction implements Pattern<InstructionMatch> {
             return Optional.empty();
         }
     }
-    
+
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class UnaryInstructionMatch extends InstructionMatch.Some {
 
@@ -73,6 +74,11 @@ public class UnaryInstruction implements Pattern<InstructionMatch> {
         @Override
         public Optional<Integer> getTargetRegister() {
             return destination;
+        }
+
+        @Override
+        public Stream<Node> getPredecessors() {
+            return match.getPredecessors();
         }
 
         private Instruction getAsOperation() {

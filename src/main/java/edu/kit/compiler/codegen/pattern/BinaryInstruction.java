@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.NodeRegisters;
 import edu.kit.compiler.codegen.Operand;
@@ -120,6 +121,11 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
             input.addAll(right.getOperand().getSourceRegisters());
 
             return input;
+        }
+
+        @Override
+        public Stream<Node> getPredecessors() {
+            return Stream.concat(left.getPredecessors(), right.getPredecessors());
         }
     }
 }
