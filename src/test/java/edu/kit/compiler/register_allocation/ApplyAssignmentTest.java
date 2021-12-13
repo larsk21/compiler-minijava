@@ -57,13 +57,13 @@ public class ApplyAssignmentTest {
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
         var result = ass.doApply();
         var expected = new ArrayList<>();
-        expected.add("movq 4(%rax), %r8");
-        expected.add("movq %r8, -8(%rbp) # spill for @1");
-        expected.add("incrl %r8");
-        expected.add("movq %r8, -8(%rbp) # spill for @1");
-        expected.add("movq -8(%rbp), %r8 # reload for @1");
-        expected.add("addl %rax, %r8, %r9");
-        expected.add("movq %r9, -16(%rbp) # spill for @2");
+        expected.add("movq 4(%rax), %r10");
+        expected.add("movq %r10, -8(%rbp) # spill for @1");
+        expected.add("incrl %r10");
+        expected.add("movq %r10, -8(%rbp) # spill for @1");
+        expected.add("movq -8(%rbp), %r10 # reload for @1");
+        expected.add("addl %rax, %r10, %r11");
+        expected.add("movq %r11, -16(%rbp) # spill for @2");
         assertEquals(expected, result.getInstructions());
     }
 
@@ -105,18 +105,18 @@ public class ApplyAssignmentTest {
         var expected = new ArrayList<>();
         expected.add("mov %rbx, %rcx # move for @1 [overwrite]");
         expected.add("addl %rax, %rcx");
-        expected.add("mov %rbx, %r8 # move for @1 [overwrite]");
-        expected.add("xorl %rax, %r8");
-        expected.add("movq %r8, -8(%rbp) # spill for @3");
+        expected.add("mov %rbx, %r10 # move for @1 [overwrite]");
+        expected.add("xorl %rax, %r10");
+        expected.add("movq %r10, -8(%rbp) # spill for @3");
         expected.add("subl %rax, %rbx");
         expected.add("movq -16(%rbp), %rbx # reload for @5 [overwrite]");
         expected.add("addl %rax, %rbx");
-        expected.add("movq -16(%rbp), %r8 # reload for @5 [overwrite]");
-        expected.add("xorl %rax, %r8");
-        expected.add("movq %r8, -8(%rbp) # spill for @3");
+        expected.add("movq -16(%rbp), %r10 # reload for @5 [overwrite]");
+        expected.add("xorl %rax, %r10");
+        expected.add("movq %r10, -8(%rbp) # spill for @3");
         assertEquals(expected, result.getInstructions());
         // check that temporary registers are marked as used
-        assert result.getUsedRegisters().contains(Register.R8);
+        assert result.getUsedRegisters().contains(Register.R10);
     }
 
     @Test
@@ -172,8 +172,8 @@ public class ApplyAssignmentTest {
 
         expected.add("movslq %r8d, %rax # get dividend");
         expected.add("cqto # sign extension to octoword");
-        expected.add("movslq -8(%rbp), %r9 # get divisor");
-        expected.add("idivq %r9");
+        expected.add("movslq -8(%rbp), %r10 # get divisor");
+        expected.add("idivq %r10");
         expected.add("leal 0(%rax), %eax # get result of division");
         expected.add("movl %eax, -16(%rbp) # spill for @4");
         assertEquals(expected, result.getInstructions());

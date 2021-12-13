@@ -11,12 +11,12 @@ import static edu.kit.compiler.intermediate_lang.Register.*;
 
 public class RegisterTracker {
     public static final Register[] DEFAULT_PRIO = new Register[] {
-            R8, R9, R10, R11, R12, R13, R14, R15,
-            RBX, RCX, RSI, RDI, RAX, RDX,
+            R10, R11, R12, R13, R14, R15, RBX,
+            RSI, RDI, R8, R9, RCX, RDX, RAX,
     };
     public static final Register[] NO_RAX_RDX_PRIO = new Register[] {
-            R8, R9, R10, R11, R12, R13, R14, R15,
-            RBX, RCX, RSI, RDI,
+            R10, R11, R12, R13, R14, R15, RBX,
+            RSI, RDI, R8, R9, RCX,
     };
     private EnumMap<Register, Integer> registers;
     @Getter
