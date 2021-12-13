@@ -1,9 +1,6 @@
 package edu.kit.compiler.register_allocation;
 
-import edu.kit.compiler.intermediate_lang.Instruction;
-import edu.kit.compiler.intermediate_lang.InstructionType;
-import edu.kit.compiler.intermediate_lang.Register;
-import edu.kit.compiler.intermediate_lang.RegisterSize;
+import edu.kit.compiler.intermediate_lang.*;
 import edu.kit.compiler.logger.Logger;
 import lombok.Getter;
 
@@ -22,13 +19,13 @@ public class ApplyAssignment {
     private RegisterAssignment[] assignment;
     private RegisterSize[] sizes;
     private Lifetime[] lifetimes;
-    private List<Instruction> ir;
+    private List<Block> ir;
     private CallingConvention cconv;
     private List<String> result;
     private Optional<Deque<Register>> savedRegisters;
 
     public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes,
-                           Lifetime[] lifetimes, List<Instruction> ir, CallingConvention cconv) {
+                           Lifetime[] lifetimes, List<Block> ir, CallingConvention cconv) {
         assert assignment.length == sizes.length && assignment.length == lifetimes.length;
         this.assignment = assignment;
         this.sizes = sizes;
@@ -42,14 +39,14 @@ public class ApplyAssignment {
     }
 
     public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes,
-                           Lifetime[] lifetimes, List<Instruction> ir) {
+                           Lifetime[] lifetimes, List<Block> ir) {
         this(assignment, sizes, lifetimes, ir, CallingConvention.X86_64);
     }
 
     /**
      * Assumes that all register lifetimes interfere.
      */
-    public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes, List<Instruction> ir) {
+    public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes, List<Block> ir) {
         this(assignment, sizes, completeLifetimes(assignment.length, ir.size()), ir);
     }
 
@@ -58,13 +55,16 @@ public class ApplyAssignment {
         LifetimeTracker tracker = new LifetimeTracker();
         Map<Integer, String> replace = new HashMap<>();
 
-        for (int i = 0; i < ir.size(); i++) {
-            replace.clear();
-            switch (ir.get(i).getType()) {
-                case GENERAL -> handleGeneralInstruction(tracker, replace, i);
-                case DIV, MOD -> handleDivOrMod(tracker, i);
-                case CALL -> handleCall(tracker, i);
-                default -> throw new UnsupportedOperationException();
+        int i = 0;
+        for (Block b: ir) {
+            for (Instruction instr: b.getInstructions()) {
+                switch (instr.getType()) {
+                    case GENERAL -> handleGeneralInstruction(tracker, replace, instr, i);
+                    case DIV, MOD -> handleDivOrMod(tracker, instr, i);
+                    case CALL -> handleCall(tracker, instr, i);
+                    default -> throw new UnsupportedOperationException();
+                }
+                i++;
             }
         }
         tracker.assertFinallyEmpty(i);
@@ -72,8 +72,8 @@ public class ApplyAssignment {
         return new AssignmentResult(result, tracker.getRegisters().getUsedRegisters());
     }
 
-    private void handleGeneralInstruction(LifetimeTracker tracker, Map<Integer, String> replace, int index) {
-        Instruction instr = ir.get(index);
+    private void handleGeneralInstruction(LifetimeTracker tracker, Map<Integer, String> replace,
+                                          Instruction instr, int index) {
         assert instr.getType() == InstructionType.GENERAL;
         tracker.enterInstruction(index);
         List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(instr));
@@ -97,7 +97,7 @@ public class ApplyAssignment {
             replace.put(vRegister, registerName);
         }
 
-        if (!instr.getTargetRegister().isPresent()) {
+        if (instr.getTargetRegister().isEmpty()) {
             // output the instruction itself
             output(instr.mapRegisters(replace));
             tracker.leaveInstruction(index);
@@ -145,8 +145,7 @@ public class ApplyAssignment {
         }
     }
 
-    private void handleDivOrMod(LifetimeTracker tracker, int index) {
-        Instruction instr = ir.get(index);
+    private void handleDivOrMod(LifetimeTracker tracker, Instruction instr, int index) {
         int dividend = instr.getInputRegisters().get(0);
         int divisor = instr.getInputRegisters().get(1);
         int target = instr.getTargetRegister().get();
@@ -192,8 +191,7 @@ public class ApplyAssignment {
         }
     }
 
-    private void handleCall(LifetimeTracker tracker, int index) {
-        Instruction instr = ir.get(index);
+    private void handleCall(LifetimeTracker tracker, Instruction instr, int index) {
         // TODO: differentiate external function call (-> stack alignment)
         tracker.enterInstruction(index);
 
@@ -412,19 +410,6 @@ public class ApplyAssignment {
 
     private void output(String format, Object... args) {
         result.add(String.format(format, args));
-    }
-
-    // debugging
-    public void testRun(Logger logger) {
-        LifetimeTracker tracker = new LifetimeTracker();
-        tracker.printState(logger);
-        for (int i = 0; i < ir.size(); i++) {
-            tracker.enterInstruction(i);
-            tracker.printState(logger);
-            logger.debug("%d: %s", i, ir.get(i));
-            tracker.leaveInstruction(i);
-            tracker.printState(logger);
-        }
     }
 
     private static void assertRegistersDontInterfere(RegisterAssignment[] assignment,

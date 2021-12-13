@@ -1,5 +1,6 @@
 package edu.kit.compiler.register_allocation;
 
+import edu.kit.compiler.intermediate_lang.Block;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import edu.kit.compiler.intermediate_lang.Register;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
@@ -22,10 +23,10 @@ public class ApplyAssignmentTest {
         Lifetime[] lifetimes = new Lifetime[] {
                 new Lifetime(-1, 1)
         };
-        Instruction[] ir = new Instruction[] {
+        Block block = new Block(List.of(
                 Instruction.newInput("movq $0, 0(@0)", List.of( 0 ))
-        };
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
+        ), 0, 0);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
         ass.doApply();
     }
 
@@ -46,12 +47,12 @@ public class ApplyAssignmentTest {
                 new Lifetime(0, 3),
                 new Lifetime(-1, 3),
         };
-        Instruction[] ir = new Instruction[] {
+        Block block = new Block(List.of(
                 Instruction.newOp("movq 4(@0), @1", List.of( 0 ), Optional.empty(), 1),
                 Instruction.newOp("incrl @1", List.of(), Optional.empty(), 1),
-                Instruction.newOp("addl @0, @1, @2", List.of( 0, 1 ), Optional.empty(), 2),
-        };
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
+                Instruction.newOp("addl @0, @1, @2", List.of( 0, 1 ), Optional.empty(), 2)
+        ), 0, 0);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add("movq 4(%rax), %rbx");
@@ -90,14 +91,14 @@ public class ApplyAssignmentTest {
                 new Lifetime(2, 5),
                 new Lifetime(-1, 5),
         };
-        Instruction[] ir = new Instruction[] {
+        Block block = new Block(List.of(
                 Instruction.newOp("addl @0, @2", List.of( 0 ), Optional.of(1), 2),
                 Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(1), 3),
                 Instruction.newOp("subl @0, @4", List.of( 0 ), Optional.of(1), 4),
                 Instruction.newOp("addl @0, @4", List.of( 0 ), Optional.of(5), 4),
-                Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(5), 3),
-        };
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
+                Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(5), 3)
+        ), 0, 0);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add("mov %rbx, %rcx # move for @1 [overwrite]");
@@ -151,17 +152,17 @@ public class ApplyAssignmentTest {
                 new Lifetime(3, 6, true),
                 new Lifetime(4, 6, true),
         };
-        Instruction[] ir = new Instruction[] {
+        Block block = new Block(List.of(
                 Instruction.newOp("movslq @0, @5", List.of(0), Optional.empty(), 5),
                 Instruction.newOp("movslq @1, @6", List.of(1), Optional.empty(), 6),
                 Instruction.newDiv(5, 6, 2),
                 Instruction.newOp("movslq @1, @7", List.of(1), Optional.empty(), 7),
                 Instruction.newOp("movslq @3, @8", List.of(3), Optional.empty(), 8),
-                Instruction.newDiv(7, 8, 4),
+                Instruction.newDiv(7, 8, 4)
                 //Instruction.newMod(4, 2, 1),
                 //Instruction.newDiv(1, 3, 4),
-        };
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
+        ), 0, 0);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add("movslq %eax, %rax");
@@ -220,16 +221,19 @@ public class ApplyAssignmentTest {
                 new Lifetime(3, 6, true),
                 new Lifetime(4, 6, true),
         };
-        Instruction[] ir = new Instruction[] {
+        Block block = new Block(List.of(
                 Instruction.newOp("movl $0x7, @0", List.of(), Optional.empty(), 0),
                 Instruction.newOp("addl $77, @1", List.of(), Optional.of(0), 1),
                 Instruction.newOp("movl $0x2, @2", List.of(), Optional.empty(), 2),
                 Instruction.newOp("movslq @1, @4", List.of(1), Optional.empty(), 4),
                 Instruction.newOp("movslq @2, @5", List.of(2), Optional.empty(), 5),
-                Instruction.newDiv(4, 5, 3),
-        };
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
+                Instruction.newDiv(4, 5, 3)
+        ), 0, 0);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
         var result = ass.doApply();
+        for (String line: result.getInstructions()) {
+            System.out.println(line);
+        }
         var expected = new ArrayList<>();
         expected.add("movl $0x7, %ecx");
         expected.add("addl $77, %ecx");
@@ -283,10 +287,10 @@ public class ApplyAssignmentTest {
                 new Lifetime(-1, 1, true),
                 new Lifetime(0, 1),
         };
-        Instruction[] ir = new Instruction[]{
-                Instruction.newCall(List.of(0, 1, 2, 3, 4, 5), Optional.of(6), "_foo"),
-        };
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir), cconv);
+        Block block = new Block(List.of(
+                Instruction.newCall(List.of(0, 1, 2, 3, 4, 5), Optional.of(6), "_foo")
+        ), 0, 0);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), cconv);
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add("pushq %rbx # push caller-saved register");
@@ -334,8 +338,8 @@ public class ApplyAssignmentTest {
                 new Lifetime(-1, 1, true),
                 new Lifetime(-1, 1, true),
         };
-        Instruction[] ir = new Instruction[]{};
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir), cconv);
+        Block block = new Block(List.of(), 0, 0);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), cconv);
         var prolog = ass.createFunctionProlog(6, EnumSet.of(
                 Register.RAX, Register.RBX, Register.RCX, Register.RDX, Register.R8, Register.R9, Register.R10
         ));
