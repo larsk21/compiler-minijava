@@ -57,13 +57,13 @@ public class ApplyAssignmentTest {
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
         var result = ass.doApply();
         var expected = new ArrayList<>();
-        expected.add("movq 4(%rax), %r10");
-        expected.add("movq %r10, -8(%rbp) # spill for @1");
-        expected.add("incrl %r10");
-        expected.add("movq %r10, -8(%rbp) # spill for @1");
-        expected.add("movq -8(%rbp), %r10 # reload for @1");
-        expected.add("addl %rax, %r10, %r11");
-        expected.add("movq %r11, -16(%rbp) # spill for @2");
+        expected.add("movq 4(%rax), %rbx");
+        expected.add("movq %rbx, -8(%rbp) # spill for @1");
+        expected.add("incrl %rbx");
+        expected.add("movq %rbx, -8(%rbp) # spill for @1");
+        expected.add("movq -8(%rbp), %rbx # reload for @1");
+        expected.add("addl %rax, %rbx, %r10");
+        expected.add("movq %r10, -16(%rbp) # spill for @2");
         assertEquals(expected, result.getInstructions());
     }
 
@@ -153,14 +153,14 @@ public class ApplyAssignmentTest {
         var expected = new ArrayList<>();
         expected.add("movslq %eax, %rax # get dividend");
         expected.add("cqto # sign extension to octoword");
-        expected.add("movslq %r8d, %r10 # get divisor");
-        expected.add("idivq %r10");
+        expected.add("movslq %r8d, %rbx # get divisor");
+        expected.add("idivq %rbx");
         expected.add("leal 0(%rax), %r9d # get result of division");
 
         expected.add("movslq %r8d, %rax # get dividend");
         expected.add("cqto # sign extension to octoword");
-        expected.add("movslq -8(%rbp), %r10 # get divisor");
-        expected.add("idivq %r10");
+        expected.add("movslq -8(%rbp), %rbx # get divisor");
+        expected.add("idivq %rbx");
         expected.add("leal 0(%rax), %eax # get result of division");
         expected.add("movl %eax, -16(%rbp) # spill for @4");
 
@@ -172,8 +172,8 @@ public class ApplyAssignmentTest {
 
         expected.add("movslq %r8d, %rax # get dividend");
         expected.add("cqto # sign extension to octoword");
-        expected.add("movslq -8(%rbp), %r10 # get divisor");
-        expected.add("idivq %r10");
+        expected.add("movslq -8(%rbp), %rbx # get divisor");
+        expected.add("idivq %rbx");
         expected.add("leal 0(%rax), %eax # get result of division");
         expected.add("movl %eax, -16(%rbp) # spill for @4");
         assertEquals(expected, result.getInstructions());

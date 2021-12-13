@@ -508,7 +508,7 @@ public class ApplyAssignment {
         public Register getDivRegister() {
             assert !tmpRequested;
             tmpRequested = true;
-            return registers.getFreeRegisters(1, RegisterTracker.NO_RAX_RDX_PRIO).get(0);
+            return registers.getFreeRegisters(1, RegisterPreference.PREFER_CALLEE_SAVED_NO_DIV).get(0);
         }
 
         /**

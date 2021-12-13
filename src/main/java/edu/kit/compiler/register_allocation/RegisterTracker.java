@@ -6,18 +6,11 @@ import lombok.Getter;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static edu.kit.compiler.intermediate_lang.Register.*;
 
 public class RegisterTracker {
-    public static final Register[] DEFAULT_PRIO = new Register[] {
-            R10, R11, R12, R13, R14, R15, RBX,
-            RSI, RDI, R8, R9, RCX, RDX, RAX,
-    };
-    public static final Register[] NO_RAX_RDX_PRIO = new Register[] {
-            R10, R11, R12, R13, R14, R15, RBX,
-            RSI, RDI, R8, R9, RCX,
-    };
     private EnumMap<Register, Integer> registers;
     @Getter
     private EnumSet<Register> usedRegisters;
@@ -66,36 +59,36 @@ public class RegisterTracker {
      * Free registers must always ve requested together.
      */
     public List<Register> getFreeRegisters(int num) {
-        return getFreeRegisters(num, DEFAULT_PRIO);
+        return getFreeRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED);
     }
 
-    public List<Register> getFreeRegisters(int num, Register[] prio) {
+    public List<Register> getFreeRegisters(int num, RegisterPreference pref) {
         List<Register> result = new ArrayList<>();
         if (num == 0) {
             return result;
         }
-        for (Register r: prio) {
-            if (!isReservedRegister(r) && isFree(r)) {
-                result.add(r);
-                usedRegisters.add(r);
-                if (result.size() == num) {
-                    return result;
-                }
+        for (Register r: pref.inPreferenceOrder().filter(
+                r -> !isReservedRegister(r) && isFree(r)
+        ).collect(Collectors.toList())) {
+            result.add(r);
+            usedRegisters.add(r);
+            if (result.size() == num) {
+                return result;
             }
         }
         throw new IllegalStateException("Not enough registers available.");
     }
 
     public Optional<Register> tryGetFreeRegister() {
-        return tryGetFreeRegister(DEFAULT_PRIO);
+        return tryGetFreeRegister(RegisterPreference.PREFER_CALLEE_SAVED);
     }
 
-    public Optional<Register> tryGetFreeRegister(Register[] prio) {
-        for (Register r: prio) {
-            if (!isReservedRegister(r) && isFree(r)) {
+    public Optional<Register> tryGetFreeRegister(RegisterPreference pref) {
+        for (Register r: pref.inPreferenceOrder().filter(
+                r -> !isReservedRegister(r) && isFree(r)
+        ).collect(Collectors.toList())) {
                 usedRegisters.add(r);
                 return Optional.of(r);
-            }
         }
         return Optional.empty();
     }
