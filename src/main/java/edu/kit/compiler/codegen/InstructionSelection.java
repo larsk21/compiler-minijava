@@ -10,6 +10,7 @@ import firm.nodes.End;
 import firm.nodes.Jmp;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
+import firm.nodes.Phi;
 import firm.nodes.Proj;
 import firm.nodes.Start;
 import lombok.AccessLevel;
@@ -118,6 +119,27 @@ public final class InstructionSelection {
         public void visit(Jmp node) {
             var entry = blocks.getEntry(node.getBlock());
             entry.setExitCondition(ExitCondition.unconditional());
+        }
+
+        @Override
+        public void visit(Phi node) {
+            var target = registers.newRegister();
+            registers.setRegister(node, target);
+            var phi = new PhiInstruction(target, node.getMode());
+            
+            assert node.getPredCount() == node.getBlock().getPredCount();
+            for (int i = 0; i < node.getPredCount(); ++i) {
+                var register = registers.getRegister(node.getPred(0));
+                var predBlock = node.getBlock().getPred(i);
+
+                if (register >= 0) {
+                    phi.addEntry(predBlock, register);
+                } else {
+                    throw new IllegalStateException();
+                }
+            }
+
+            blocks.getEntry(node).addPhi(phi);
         }
 
         @Override
