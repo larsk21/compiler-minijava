@@ -150,7 +150,7 @@ public class Instruction {
      * (implicit) input and data dependency of a jump is the last executed conditional
      */
     public static Instruction newJmp(String text, int targetBlockId) {
-        return new Instruction(InstructionType.GENERAL, text, List.of(),
+        return new Instruction(InstructionType.GENERAL, text, new int[] {},
                 Optional.empty(), Optional.empty(),
                 new ArrayList<>(), Optional.of(targetBlockId));
     }
@@ -160,7 +160,32 @@ public class Instruction {
         return new Instruction(InstructionType.DIV, text, inputRegisters, Optional.empty(), Optional.of(targetRegister), new ArrayList<>(), null);
     }
 
-    public static Instruction newMod(String text, int[] inputRegisters, int targetRegister) {
-        return new Instruction(InstructionType.MOD, text, inputRegisters, Optional.empty(), Optional.of(targetRegister), new ArrayList<>(), null);
+    public static Instruction newDiv(int dividend, int divisor, int result) {
+        String text = String.format("div @%d, @%d, @%d", dividend, divisor, result);
+        return new Instruction(InstructionType.DIV, text, new int[] { dividend, divisor },
+                Optional.empty(), Optional.of(result),
+                new ArrayList<>(), Optional.empty());
+    }
+
+    public static Instruction newMod(int dividend, int divisor, int result) {
+        String text = String.format("mod @%d, @%d, @%d", dividend, divisor, result);
+        return new Instruction(InstructionType.MOD, text, new int[] { dividend, divisor },
+                Optional.empty(), Optional.of(result),
+                new ArrayList<>(), Optional.empty());
+    }
+
+    public static Instruction newCall(int[] args, Optional<Integer> result, String callReference) {
+        String text = String.format("call \"%s\"", callReference);
+        for (int arg: args) {
+            text += ", @" + arg;
+        }
+        if (result.isPresent()) {
+            text += " -> @" + result.get();
+        }
+        Instruction call = new Instruction(InstructionType.CALL, text, args,
+                Optional.empty(), result,
+                new ArrayList<>(), Optional.empty());
+        call.callReference = Optional.of(callReference);
+        return call;
     }
 }

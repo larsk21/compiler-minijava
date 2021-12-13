@@ -1,25 +1,31 @@
 package edu.kit.compiler.intermediate_lang;
 
 import lombok.Data;
+import lombok.Getter;
 
 import java.util.List;
 
 @Data
 public class Block {
+    @Getter
+    private final List<Instruction> instructions;
 
     /**
-     * List of instructions that this block contains, the last instruction has to be the jump instruction
+     * The unique id of the block.
      */
-    private final List<Instruction> instructions;
-    private final List<Block> targets;
-    private final List<Block> references;
+    @Getter
+    private final int blockId;
 
-    public Block(List<Instruction> instructions, List<Block> targets, List<Block> references) {
-        // block has to contain at least one jump instruction
-        assert instructions.size() > 1;
+    /**
+     * Number of jumps to this block along a backwards edge,
+     * i.e. where the jump appears after this block.
+     */
+    @Getter
+    private final int numBackReferences;
+
+    public Block(List<Instruction> instructions, int blockId, int numBackReferences) {
         this.instructions = instructions;
-        this.targets = targets;
-        this.references = references;
+        this.blockId = blockId;
+        this.numBackReferences = numBackReferences;
     }
-
 }
