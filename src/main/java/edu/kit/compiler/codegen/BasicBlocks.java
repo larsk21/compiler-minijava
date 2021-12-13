@@ -116,11 +116,9 @@ public class BasicBlocks {
 
         @Override
         public String toString() {
-            // todo what about Phis
             var instructions = Stream.concat(getInstructions().stream(),
                     getExitInstructions().stream()).collect(Collectors.toList());
-            return instructions.toString();
-            // return streamInstructions().collect(Collectors.toList()).toString();
+            return String.format("(%s, %s)", phiInstructions, instructions.toString());
         }
     }
 }
