@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.NodeRegisters;
 import edu.kit.compiler.codegen.Operand;
@@ -23,19 +25,18 @@ public class Call implements Pattern<InstructionMatch> {
     public InstructionMatch match(Node node, NodeRegisters registers) {
         if (node.getOpCode() == ir_opcode.iro_Call) {
 
-            var arguments = new ArrayList<Integer>();
+            var arguments = new ArrayList<OperandMatch<Operand.Register>>();
             for (int i = 2; i < node.getPredCount(); ++i) {
                 var pred = node.getPred(i);
                 var match = register.match(pred, registers);
-                
+
                 if (match.matches()) {
-                    arguments.add(match.getOperand().get());
+                    arguments.add(match);
                 } else {
-                    // System.out.println(node.getNr() + " " + pred.getNr() + " " + registers);
                     throw new IllegalStateException("call args must be registers");
                 }
             }
-            
+
             var call = (firm.nodes.Call) node;
             var destination = getDestination(call, registers);
             return new CallMatch(getName(call), arguments, destination);
@@ -60,15 +61,15 @@ public class Call implements Pattern<InstructionMatch> {
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class CallMatch extends InstructionMatch.Some {
-        
+
         private final String callName;
-        private final List<Integer> arguments;
+        private final List<OperandMatch<Operand.Register>> arguments;
         private final Optional<Integer> destination;
 
         @Override
         public List<Instruction> getInstructions() {
             return Arrays.asList(Instruction.newCall(
-                    arguments,
+                    getArguments(),
                     destination,
                     callName));
         }
@@ -78,5 +79,15 @@ public class Call implements Pattern<InstructionMatch> {
             return destination;
         }
 
+        @Override
+        public Stream<Node> getPredecessors() {
+            return arguments.stream().flatMap(m -> m.getPredecessors());
+        }
+
+        private List<Integer> getArguments() {
+            return arguments.stream()
+                    .map(m -> m.getOperand().get())
+                    .collect(Collectors.toList());
+        }
     }
 }

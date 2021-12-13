@@ -4,9 +4,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.NodeRegisters;
+import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.nodes.Node;
@@ -46,6 +47,11 @@ public class LoadImmediate implements Pattern<InstructionMatch> {
         @Override
         public Optional<Integer> getTargetRegister() {
             return Optional.of(register);
+        }
+
+        @Override
+        public Stream<Node> getPredecessors() {
+            return match.getPredecessors();
         }
     }
 }

@@ -1,9 +1,9 @@
 package edu.kit.compiler.codegen.pattern;
 
-import java.lang.StackWalker.Option;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.NodeRegisters;
 import edu.kit.compiler.codegen.Operand.Register;
@@ -20,7 +20,7 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
     @Override
     public InstructionMatch match(Node node, NodeRegisters registers) {
         if (node.getOpCode() == ir_opcode.iro_Return) {
-            Optional<OperandMatch<Register>> operand = switch(node.getPredCount()) {
+            Optional<OperandMatch<Register>> operand = switch (node.getPredCount()) {
                 case 1 -> Optional.empty();
                 case 2 -> {
                     var match = pattern.match(node.getPred(1), registers);
@@ -41,6 +41,7 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ReturnMatch extends InstructionMatch.Some {
 
+        // todo what about memory?
         private final Optional<OperandMatch<Register>> match;
 
         @Override
@@ -52,6 +53,11 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
         @Override
         public Optional<Integer> getTargetRegister() {
             return Optional.empty();
+        }
+
+        @Override
+        public Stream<Node> getPredecessors() {
+            return match.stream().flatMap(m -> m.getPredecessors());
         }
     }
 }

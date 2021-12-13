@@ -1,5 +1,7 @@
 package edu.kit.compiler.codegen.pattern;
 
+import java.util.Arrays;
+
 import edu.kit.compiler.codegen.NodeRegisters;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Operand.Memory;
@@ -13,10 +15,10 @@ public class MemoryPattern implements Pattern<OperandMatch<Operand.Memory>> {
         var register = registers.getRegister(node);
         if (node.getMode().equals(Mode.getP()) && register >= 0) {
             var operand = Operand.register(node.getMode(), register);
-            return OperandMatch.some(Operand.memory(operand));
+            var predecessors = Arrays.asList(node);
+            return OperandMatch.some(Operand.memory(operand), predecessors);
         } else {
             return OperandMatch.none();
         }
     }
-    
 }

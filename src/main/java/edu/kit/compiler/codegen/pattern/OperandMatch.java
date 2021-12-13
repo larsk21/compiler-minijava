@@ -1,14 +1,18 @@
 package edu.kit.compiler.codegen.pattern;
 
+import java.util.Collection;
+import java.util.stream.Stream;
+
 import edu.kit.compiler.codegen.Operand;
+import firm.nodes.Node;
 import lombok.RequiredArgsConstructor;
 
 public interface OperandMatch<Op extends Operand> extends Match {
 
     public Op getOperand();
 
-    public static <Op extends Operand> OperandMatch<Op> some(Op operand) {
-        return new Some<>(operand);
+    public static <Op extends Operand> OperandMatch<Op> some(Op operand, Collection<Node> preds) {
+        return new Some<>(operand, preds);
     }
 
     public static <Op extends Operand> OperandMatch<Op> none() {
@@ -24,11 +28,19 @@ public interface OperandMatch<Op extends Operand> extends Match {
 
     @RequiredArgsConstructor
     public static final class Some<Op extends Operand> extends Match.Some implements OperandMatch<Op> {
-        public final Op operand;
+
+        private final Op operand;
+        private final Collection<Node> predecessors;
+
 
         @Override
         public Op getOperand() {
             return operand;
+        }
+
+        @Override
+        public Stream<Node> getPredecessors() {
+            return predecessors.stream();
         }
     }
 }
