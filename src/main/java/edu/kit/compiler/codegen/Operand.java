@@ -39,10 +39,10 @@ public abstract class Operand {
         public String format() {
             // todo are byte and word formatting correct
             return switch (getSize()) {
-                case BYTE -> String.format("0x%x", (byte) value.asInt());
-                case WORD -> String.format("0x%x", (short) value.asInt());
-                case DOUBLE -> String.format("0x%x", value.asInt());
-                case QUAD -> String.format("0x%x", value.asLong());
+                case BYTE -> String.format("$0x%x", (byte) value.asInt());
+                case WORD -> String.format("$0x%x", (short) value.asInt());
+                case DOUBLE -> String.format("$0x%x", value.asInt());
+                case QUAD -> String.format("$0x%x", value.asLong());
                 default -> throw new IllegalStateException();
             };
         }

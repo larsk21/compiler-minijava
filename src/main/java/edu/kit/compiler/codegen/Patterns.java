@@ -5,7 +5,6 @@ import static firm.bindings.binding_irnode.ir_opcode.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import edu.kit.compiler.codegen.pattern.BinaryInstruction;
 import edu.kit.compiler.codegen.pattern.Call;
@@ -31,16 +30,14 @@ public class Patterns {
 
     public InstructionMatch match(Node node, NodeRegisters registers) {
         var patterns = map.get(node.getOpCode());
-        if (Objects.isNull(patterns)) {
-            // todo
-            return InstructionMatch.none();
-        }
-        for (var pattern : patterns) {
-            var clone = registers.clone();
-            var match = pattern.match(node, clone);
-            if (match.matches()) {
-                registers.update(clone);
-                return match;
+        if (patterns != null) {
+            for (var pattern : patterns) {
+                var clone = registers.clone();
+                var match = pattern.match(node, clone);
+                if (match.matches()) {
+                    registers.update(clone);
+                    return match;
+                }
             }
         }
         return InstructionMatch.none();
@@ -55,8 +52,9 @@ public class Patterns {
                         new BinaryInstruction(iro_Sub, "sub", REGISTER, REGISTER, true, false))),
                 Map.entry(iro_Mul, Arrays.asList(
                         new BinaryInstruction(iro_Mul, "imul", REGISTER, REGISTER, true, false))),
+                Map.entry(iro_Eor, Arrays.asList(
+                        new BinaryInstruction(iro_Eor, "xor", REGISTER, REGISTER, true, false))),
 
-                // todo div, mod
                 Map.entry(iro_Minus, Arrays.asList(
                         new UnaryInstruction(iro_Minus, "neg", REGISTER, true, false))),
 
