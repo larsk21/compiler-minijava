@@ -129,7 +129,7 @@ public final class InstructionSelection {
             
             assert node.getPredCount() == node.getBlock().getPredCount();
             for (int i = 0; i < node.getPredCount(); ++i) {
-                var register = registers.getRegister(node.getPred(0));
+                var register = registers.getRegister(node.getPred(i));
                 var predBlock = node.getBlock().getPred(i);
 
                 if (register >= 0) {
@@ -139,7 +139,7 @@ public final class InstructionSelection {
                 }
             }
 
-            blocks.getEntry(node).addPhi(phi);
+            blocks.getEntry(node.getBlock()).addPhi(phi);
         }
 
         @Override
