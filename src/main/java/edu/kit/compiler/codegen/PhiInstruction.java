@@ -3,6 +3,7 @@ package edu.kit.compiler.codegen;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import firm.Mode;
 import firm.nodes.Node;
@@ -29,6 +30,14 @@ public final class PhiInstruction {
         entries.add(new Entry(block, register));
     }
 
+    @Override
+    public String toString() {
+        var source = entries.stream().map(e -> e.toString())
+            .collect(Collectors.joining(", "));
+        
+        return String.format("phi %s -> @%d", source, destination);
+    }
+
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class Entry {
         @Getter
@@ -36,5 +45,10 @@ public final class PhiInstruction {
 
         @Getter
         private final int register;
+
+        @Override
+        public String toString() {
+            return "@" + register;
+        }
     }
 }
