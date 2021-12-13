@@ -150,50 +150,45 @@ public class ApplyAssignment {
         int dividend = instr.getInputRegisters().get(0);
         int divisor = instr.getInputRegisters().get(1);
         int target = instr.getTargetRegister().get();
-        assert sizes[dividend] == RegisterSize.DOUBLE && sizes[divisor] == RegisterSize.DOUBLE &&
+        assert sizes[dividend] == RegisterSize.QUAD && sizes[divisor] == RegisterSize.QUAD &&
                 sizes[target] == RegisterSize.DOUBLE;
 
         tracker.enterInstruction(index);
-        tracker.assertFreeOrEqual(Register.RAX, dividend);
+        tracker.assertMapping(dividend, Register.RAX);
         Register divisorRegister;
         if (!assignment[divisor].isSpilled() && lifetimes[divisor].isLastInstructionAndInput(index)) {
             Register r = assignment[divisor].getRegister().get();
             tracker.assertMapping(divisor, r);
             divisorRegister = r;
         } else {
+            // move divisor to temporary register
             divisorRegister = tracker.getDivRegister();
+            int stackSlot = assignment[divisor].getStackSlot().get();
+            output("movslq %d(%%rbp), %s # get divisor", stackSlot, divisorRegister.getAsQuad());
         }
 
-        // move dividend to %rax
-        String getDividend = getVRegisterValue(dividend, RegisterSize.DOUBLE);
-        output("movslq %s, %%rax # get dividend", getDividend);
-        output("cqto # sign extension to octoword");
-
-        // move divisor to temporary register
-        String getDivisor = getVRegisterValue(divisor, RegisterSize.DOUBLE);
-        output("movslq %s, %s # get divisor", getDivisor, divisorRegister.getAsQuad());
-
         // output the instruction itself
+        output("cqto # sign extension to octoword");
         output("idivq %s", divisorRegister.getAsQuad());
-        tracker.registers.markUsed(Register.RAX);
         tracker.registers.markUsed(Register.RDX);
         tracker.leaveInstruction(index);
 
         // move the result to the target register
-        String getResult = switch (instr.getType()) {
-            case DIV -> "%rax";
-            case MOD -> "%rdx";
+        Register result = switch (instr.getType()) {
+            case DIV -> Register.RAX;
+            case MOD -> Register.RDX;
             default -> throw new IllegalStateException();
         };
 
         if (assignment[target].isSpilled()) {
-            output("leal 0(%s), %%eax # get result of division", getResult);
             int stackSlot = assignment[target].getStackSlot().get();
-            output("movl %%eax, %d(%%rbp) # spill for @%s", stackSlot, target);
+            output("movl %s, %d(%%rbp) # spill for @%s", result.getAsDouble(), stackSlot, target);
         } else {
             Register r = assignment[target].getRegister().get();
             tracker.assertMapping(target, r);
-            output("leal 0(%s), %s # get result of division", getResult, r.getAsDouble());
+            if (result != r) {
+                output("movl %s, %s # move result to @%s", result.getAsDouble(), r.getAsDouble(), target);
+            }
         }
     }
 
@@ -541,8 +536,10 @@ public class ApplyAssignment {
         }
 
         public void assertMapping(int vRegister, Register r) {
-            assert registers.get(r).isPresent();
-            assert registers.get(r).get() == vRegister;
+            if (!registers.get(r).isPresent() || !(registers.get(r).get() == vRegister)) {
+                throw new IllegalStateException(String.format(
+                        "Expected that %s is mapped to @%d", r.getAsQuad(), vRegister));
+            }
         }
 
         public void assertFreeOrEqual(Register r, int expectedVReg) {

@@ -124,6 +124,10 @@ public class ApplyAssignmentTest {
                 new RegisterAssignment(Register.R9),
                 new RegisterAssignment(-8),
                 new RegisterAssignment(-16),
+                new RegisterAssignment(Register.RAX),
+                new RegisterAssignment(Register.RBX),
+                new RegisterAssignment(Register.RAX),
+                new RegisterAssignment(Register.RBX),
         };
         RegisterSize[] sizes = new RegisterSize[] {
                 RegisterSize.DOUBLE,
@@ -131,48 +135,60 @@ public class ApplyAssignmentTest {
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
+                RegisterSize.QUAD,
+                RegisterSize.QUAD,
+                RegisterSize.QUAD,
+                RegisterSize.QUAD,
         };
         Lifetime[] lifetimes = new Lifetime[] {
                 new Lifetime(-1, 1, true),
-                new Lifetime(-1, 4),
-                new Lifetime(-1, 3, true),
-                new Lifetime(-1, 4),
-                new Lifetime(-1, 4),
+                new Lifetime(-1, 6),
+                new Lifetime(-1, 3),
+                new Lifetime(-1, 6),
+                new Lifetime(-1, 6),
+                new Lifetime(0, 3, true),
+                new Lifetime(1, 3, true),
+                new Lifetime(3, 6, true),
+                new Lifetime(4, 6, true),
         };
         Instruction[] ir = new Instruction[] {
-                Instruction.newDiv(0, 1, 2),
-                Instruction.newDiv(1, 3, 4),
-                Instruction.newMod(4, 2, 1),
-                Instruction.newDiv(1, 3, 4),
+                Instruction.newOp("movslq @0, @5", List.of(0), Optional.empty(), 5),
+                Instruction.newOp("movslq @1, @6", List.of(1), Optional.empty(), 6),
+                Instruction.newDiv(5, 6, 2),
+                Instruction.newOp("movslq @1, @7", List.of(1), Optional.empty(), 7),
+                Instruction.newOp("movslq @3, @8", List.of(3), Optional.empty(), 8),
+                Instruction.newDiv(7, 8, 4),
+                //Instruction.newMod(4, 2, 1),
+                //Instruction.newDiv(1, 3, 4),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
         var result = ass.doApply();
         var expected = new ArrayList<>();
-        expected.add("movslq %eax, %rax # get dividend");
+        expected.add("movslq %eax, %rax");
+        expected.add("movslq %r8d, %rbx");
         expected.add("cqto # sign extension to octoword");
-        expected.add("movslq %r8d, %rbx # get divisor");
         expected.add("idivq %rbx");
-        expected.add("leal 0(%rax), %r9d # get result of division");
+        expected.add("movl %eax, %r9d # move result to @2");
 
-        expected.add("movslq %r8d, %rax # get dividend");
+        expected.add("movslq %r8d, %rax");
+        expected.add("movl -8(%rbp), %ebx # reload for @3");
+        expected.add("movslq %ebx, %rbx");
         expected.add("cqto # sign extension to octoword");
-        expected.add("movslq -8(%rbp), %rbx # get divisor");
         expected.add("idivq %rbx");
-        expected.add("leal 0(%rax), %eax # get result of division");
         expected.add("movl %eax, -16(%rbp) # spill for @4");
 
-        expected.add("movslq -16(%rbp), %rax # get dividend");
-        expected.add("cqto # sign extension to octoword");
-        expected.add("movslq %r9d, %r9 # get divisor");
-        expected.add("idivq %r9");
-        expected.add("leal 0(%rdx), %r8d # get result of division");
+        // expected.add("movslq -16(%rbp), %rax # get dividend");
+        // expected.add("cqto # sign extension to octoword");
+        // expected.add("movslq %r9d, %r9 # get divisor");
+        // expected.add("idivq %r9");
+        // expected.add("leal 0(%rdx), %r8d # get result of division");
 
-        expected.add("movslq %r8d, %rax # get dividend");
-        expected.add("cqto # sign extension to octoword");
-        expected.add("movslq -8(%rbp), %rbx # get divisor");
-        expected.add("idivq %rbx");
-        expected.add("leal 0(%rax), %eax # get result of division");
-        expected.add("movl %eax, -16(%rbp) # spill for @4");
+        // expected.add("movslq %r8d, %rax # get dividend");
+        // expected.add("cqto # sign extension to octoword");
+        // expected.add("movslq -8(%rbp), %rbx # get divisor");
+        // expected.add("idivq %rbx");
+        // expected.add("leal 0(%rax), %eax # get result of division");
+        // expected.add("movl %eax, -16(%rbp) # spill for @4");
         assertEquals(expected, result.getInstructions());
         // check that temporary registers are marked as used
         assert result.getUsedRegisters().contains(Register.RDX);
@@ -185,24 +201,32 @@ public class ApplyAssignmentTest {
                 new RegisterAssignment(Register.RCX),
                 new RegisterAssignment(Register.RBX),
                 new RegisterAssignment(Register.RDI),
+                new RegisterAssignment(Register.RAX),
+                new RegisterAssignment(Register.RBX),
         };
         RegisterSize[] sizes = new RegisterSize[] {
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
+                RegisterSize.QUAD,
+                RegisterSize.QUAD,
         };
         Lifetime[] lifetimes = new Lifetime[] {
                 new Lifetime(-1, 2, true),
-                new Lifetime(1, 4, true),
-                new Lifetime(2, 4, true),
-                new Lifetime(3, 4),
+                new Lifetime(1, 6, true),
+                new Lifetime(2, 5, true),
+                new Lifetime(3, 6),
+                new Lifetime(3, 6, true),
+                new Lifetime(4, 6, true),
         };
         Instruction[] ir = new Instruction[] {
                 Instruction.newOp("movl $0x7, @0", List.of(), Optional.empty(), 0),
                 Instruction.newOp("addl $77, @1", List.of(), Optional.of(0), 1),
                 Instruction.newOp("movl $0x2, @2", List.of(), Optional.empty(), 2),
-                Instruction.newDiv(1, 2, 3),
+                Instruction.newOp("movslq @1, @4", List.of(1), Optional.empty(), 4),
+                Instruction.newOp("movslq @2, @5", List.of(2), Optional.empty(), 5),
+                Instruction.newDiv(4, 5, 3),
         };
         ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, Arrays.asList(ir));
         var result = ass.doApply();
@@ -210,11 +234,11 @@ public class ApplyAssignmentTest {
         expected.add("movl $0x7, %ecx");
         expected.add("addl $77, %ecx");
         expected.add("movl $0x2, %ebx");
-        expected.add("movslq %ecx, %rax # get dividend");
+        expected.add("movslq %ecx, %rax");
+        expected.add("movslq %ebx, %rbx");
         expected.add("cqto # sign extension to octoword");
-        expected.add("movslq %ebx, %rbx # get divisor");
         expected.add("idivq %rbx");
-        expected.add("leal 0(%rax), %edi # get result of division");
+        expected.add("movl %eax, %edi # move result to @3");
         assertEquals(expected, result.getInstructions());
 
         // Test is based on the following firm output for RegisterTest.mj:
