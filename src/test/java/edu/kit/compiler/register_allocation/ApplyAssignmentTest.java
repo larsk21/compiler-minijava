@@ -87,7 +87,7 @@ public class ApplyAssignmentTest {
         };
         Lifetime[] lifetimes = new Lifetime[] {
                 new Lifetime(-1, 5),
-                new Lifetime(-1, 2, true),
+                new Lifetime(-1, 3, true),
                 new Lifetime(-1, 5),
                 new Lifetime(-1, 5),
                 new Lifetime(2, 5),
@@ -196,7 +196,7 @@ public class ApplyAssignmentTest {
                 RegisterSize.DOUBLE,
         };
         Lifetime[] lifetimes = new Lifetime[] {
-                new Lifetime(-1, 1),
+                new Lifetime(-1, 2, true),
                 new Lifetime(1, 4, true),
                 new Lifetime(2, 4, true),
                 new Lifetime(3, 4),

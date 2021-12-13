@@ -447,6 +447,9 @@ public class ApplyAssignment {
         }
     }
 
+    /**
+     * Returns lifetimes that contain all instructions.
+     */
     private static Lifetime[] completeLifetimes(int nRegisters, int nInstructions) {
         Lifetime[] lifetimes = new Lifetime[nRegisters];
         for(int i = 0; i < nRegisters; i++) {

@@ -61,9 +61,9 @@ public class Lifetime {
         // check cases where one register is allowed to replace the other
         // within the same instruction
         if (other.begin + 1 == end) {
-            return lastInstrIsInput;
+            return !lastInstrIsInput;
         } else if (begin + 1 == other.end) {
-            return other.lastInstrIsInput;
+            return !other.lastInstrIsInput;
         }
         return begin < other.end && other.begin < end;
     }
