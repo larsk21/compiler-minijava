@@ -92,6 +92,8 @@ public class ApplyAssignment {
         int i = 0;
         for (Block b: ir) {
             output(".L%d:", b.getBlockId());
+            tracker.getRegisters().clearAllTmps();;
+            replace.clear();
 
             for (Instruction instr: b.getInstructions()) {
                 replace.clear();
@@ -132,6 +134,7 @@ public class ApplyAssignment {
                 registerName = tmpRegisters.get(tmpIdx).asSize(size);
                 output("mov%c %d(%%rbp), %s # reload for @%s",
                         size.getSuffix(), stackSlot, registerName, vRegister);
+                tracker.getRegisters().setTmp(tmpRegisters.get(tmpIdx), vRegister);
                 tmpIdx++;
             } else {
                 Register r = assignment[vRegister].getRegister().get();
@@ -151,6 +154,7 @@ public class ApplyAssignment {
             Register tRegister;
             if (assignment[target].isSpilled()) {
                 tRegister = tmpRegisters.get(tmpRegisters.size() - 1);
+                tracker.getRegisters().setTmp(tRegister, target);
             } else {
                 tRegister = assignment[target].getRegister().get();
             }
@@ -248,6 +252,7 @@ public class ApplyAssignment {
             int stackSlot = assignment[target].getStackSlot().get();
             output("mov%c %s, %d(%%rbp) # spill for @%s",
                     size.getSuffix(), result.asSize(size), stackSlot, target);
+            tracker.getRegisters().setTmp(result, target);
         } else {
             Register r = assignment[target].getRegister().get();
             tracker.assertMapping(target, r);
@@ -400,6 +405,7 @@ public class ApplyAssignment {
                 int stackSlot = assignment[target].getStackSlot().get();
                 output("mov%c %s, %d(%%rbp) # spill return value for @%s",
                         size.getSuffix(), cconv.getReturnRegister().asSize(size), stackSlot, target);
+                tracker.getRegisters().setTmp(cconv.getReturnRegister(), target);
             } else {
                 Register r = assignment[target].getRegister().get();
                 tracker.assertMapping(target, r);
@@ -654,7 +660,7 @@ public class ApplyAssignment {
 
         LifetimeTracker() {
             this.registers = new RegisterTracker();
-            this.lifetimeStarts = sortByLifetime((l1, l2) -> l1.getBegin() - l2.getBegin());
+            this.lifetimeStarts = sortByLifetime((l1, l2) -> l1.getBegin() - l2.getBegin(), true);
             this.lifetimeEnds = sortByLifetime((l1, l2) -> {
                 int val = l1.getEnd() - l2.getEnd();
                 if (val != 0) {
@@ -666,7 +672,7 @@ public class ApplyAssignment {
                     return 1;
                 }
                 return 0;
-            });
+            }, false);
             this.tmpRequested = false;
             while (!lifetimeStarts.isEmpty() && lifetimes[peek(lifetimeStarts)].getBegin() < 0) {
                 setRegister(pop(lifetimeStarts));
@@ -736,10 +742,10 @@ public class ApplyAssignment {
             assert registers.isEmpty();
         }
 
-        private List<Integer> sortByLifetime(Comparator<Lifetime> compare) {
+        private List<Integer> sortByLifetime(Comparator<Lifetime> compare, boolean noSpilled) {
             List<Integer> result = new ArrayList<>();
             for (int i = 0; i < lifetimes.length; i++) {
-                if (!lifetimes[i].isTrivial() && !assignment[i].isSpilled()) {
+                if (!lifetimes[i].isTrivial() && (!noSpilled || !assignment[i].isSpilled())) {
                     result.add(i);
                 }
             }
@@ -749,8 +755,12 @@ public class ApplyAssignment {
         }
 
         private void clearRegister(int vRegister) {
-            Register r = assignment[vRegister].getRegister().get();
-            registers.clear(r);
+            if (assignment[vRegister].isSpilled()) {
+                registers.clearTmp(vRegister);
+            } else {
+                Register r = assignment[vRegister].getRegister().get();
+                registers.clear(r);
+            }
         }
 
         private void setRegister(int vRegister) {

@@ -28,7 +28,11 @@ public class RegisterTracker {
     }
 
     public boolean isFree(Register r) {
-        return !registers.containsKey(r);
+        return !registers.containsKey(r) || registers.get(r) < 0;
+    }
+
+    public boolean isTmp(Register r) {
+        return registers.containsKey(r) && registers.get(r) < 0;
     }
 
     public int numFree() {
@@ -68,6 +72,43 @@ public class RegisterTracker {
         registers.put(r, vRegister);
     }
 
+    public void setTmp(Register r, int vRegister) {
+        assert isFree(r);
+        registers.put(r, -vRegister - 1);
+        usedRegisters.add(r);
+    }
+
+    public boolean clearTmp(int vRegister) {
+        var reg = getTmp(vRegister);
+        if (reg.isPresent()) {
+            registers.remove(reg.get());
+            return true;
+        }
+        return false;
+    }
+
+    public void clearAllTmps() {
+        for (var entry: registers.entrySet()) {
+            if (entry.getValue() < 0) {
+                registers.remove(entry.getKey());
+            }
+        }
+    }
+
+    public Optional<Register> getTmp(int vRegister) {
+        for (var entry: registers.entrySet()) {
+            if (-entry.getValue() - 1 == vRegister) {
+                return Optional.of(entry.getKey());
+            }
+        }
+        return Optional.empty();
+    }
+
+    public void clearSlotFromTmp(Register r) {
+        assert isFree(r);
+        registers.remove(r);
+    }
+
     public void markUsed(Register r) {
         usedRegisters.add(r);
     }
@@ -87,7 +128,7 @@ public class RegisterTracker {
     }
 
     /**
-     * Free registers must always ve requested together.
+     * Free registers must always be requested together.
      */
     public List<Register> getFreeRegisters(int num, Optional<Register> exludedRegister) {
         return getFreeRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED_AVOID_DIV, exludedRegister);
@@ -112,6 +153,42 @@ public class RegisterTracker {
         throw new IllegalStateException("Not enough registers available.");
     }
 
+    /**
+     * Free registers must always be requested together.
+     *
+     * This will try to avoid killing temporary register assignments.
+     */
+    public List<Register> getTmpRegisters(int num) {
+        return getTmpRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED);
+    }
+
+    public List<Register> getTmpRegisters(int num, RegisterPreference pref) {
+        List<Register> result = new ArrayList<>();
+        if (num == 0) {
+            return result;
+        }
+        // try find completely free registers
+        for (Register r: pref.inPreferenceOrder().filter(
+                r -> !isReservedRegister(r) && isFree(r) && !isTmp(r)
+        ).collect(Collectors.toList())) {
+            result.add(r);
+            usedRegisters.add(r);
+            if (result.size() == num) {
+                return result;
+            }
+        }
+        // if not sufficient, kill temporary assignments
+        for (Register r: pref.inPreferenceOrder().filter(
+                r -> !isReservedRegister(r) && isFree(r) && isTmp(r)
+        ).collect(Collectors.toList())) {
+            result.add(r);
+            if (result.size() == num) {
+                return result;
+            }
+        }
+        throw new IllegalStateException("Not enough registers available.");
+    }
+
     public Optional<Register> tryGetFreeRegister() {
         return tryGetFreeRegister(RegisterPreference.PREFER_CALLEE_SAVED_AVOID_DIV);
     }
@@ -127,22 +204,22 @@ public class RegisterTracker {
     }
 
     // high value => high priority
-    public Register getPrioritizedRegister(Function<Register, Integer> priorities) {
-        Register best = RAX;
-        int maxPrio = -1;
-        for (Register r: Register.values()) {
-            if (!isReservedRegister(r) && isFree(r)) {
-                int prio = priorities.apply(r);
-                if (prio > maxPrio) {
-                    best = r;
-                    maxPrio = prio;
-                }
-            }
-        }
-        assert maxPrio > -1;
-        usedRegisters.add(best);
-        return best;
-    }
+//    public Register getPrioritizedRegister(Function<Register, Integer> priorities) {
+//        Register best = RAX;
+//        int maxPrio = -1;
+//        for (Register r: Register.values()) {
+//            if (!isReservedRegister(r) && isFree(r)) {
+//                int prio = priorities.apply(r);
+//                if (prio > maxPrio) {
+//                    best = r;
+//                    maxPrio = prio;
+//                }
+//            }
+//        }
+//        assert maxPrio > -1;
+//        usedRegisters.add(best);
+//        return best;
+//    }
 
     private boolean isReservedRegister(Register r) {
         return switch (r) {
