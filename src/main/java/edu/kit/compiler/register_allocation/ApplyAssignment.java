@@ -92,8 +92,7 @@ public class ApplyAssignment {
         int i = 0;
         for (Block b: ir) {
             output(".L%d:", b.getBlockId());
-            tracker.getRegisters().clearAllTmps();;
-            replace.clear();
+            tracker.getRegisters().clearAllTmps();
 
             for (Instruction instr: b.getInstructions()) {
                 replace.clear();
@@ -122,14 +121,14 @@ public class ApplyAssignment {
         if (instr.getOverwriteRegister().isPresent()) {
             excluded = instr.getTargetRegister().flatMap(vRegister -> assignment[vRegister].getRegister());
         }
-        List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(instr), excluded);
+        List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(tracker, instr), excluded);
 
         // handle spilled input registers and set names
         int tmpIdx = 0;
         for (int vRegister: instr.getInputRegisters()) {
             RegisterSize size = sizes[vRegister];
             String registerName;
-            if (assignment[vRegister].isSpilled()) {
+            if (isOnStack(tracker, vRegister)) {
                 int stackSlot = assignment[vRegister].getStackSlot().get();
                 registerName = tmpRegisters.get(tmpIdx).asSize(size);
                 output("mov%c %d(%%rbp), %s # reload for @%s",
@@ -137,9 +136,7 @@ public class ApplyAssignment {
                 tracker.getRegisters().setTmp(tmpRegisters.get(tmpIdx), vRegister);
                 tmpIdx++;
             } else {
-                Register r = assignment[vRegister].getRegister().get();
-                tracker.assertMapping(vRegister, r);
-                registerName = r.asSize(size);
+                registerName = getRegister(tracker, vRegister).asSize(size);
             }
             replace.put(vRegister, registerName);
         }
@@ -152,11 +149,10 @@ public class ApplyAssignment {
             int target = instr.getTargetRegister().get();
             RegisterSize size = sizes[target];
             Register tRegister;
-            if (assignment[target].isSpilled()) {
+            if (isOnStack(tracker, target)) {
                 tRegister = tmpRegisters.get(tmpRegisters.size() - 1);
-                tracker.getRegisters().setTmp(tRegister, target);
             } else {
-                tRegister = assignment[target].getRegister().get();
+                tRegister = getRegister(tracker, target, false);
             }
             String targetName = tRegister.asSize(size);
             replace.put(target, targetName);
@@ -172,16 +168,15 @@ public class ApplyAssignment {
 
                 int overwrite = instr.getOverwriteRegister().get();
                 replace.put(overwrite, targetName);
-                if (assignment[overwrite].isSpilled()) {
+                if (isOnStack(tracker, overwrite)) {
                     int stackSlot = assignment[overwrite].getStackSlot().get();
                     output("mov%c %d(%%rbp), %s # reload for @%s [overwrite]",
                             size.getSuffix(), stackSlot, targetName, overwrite);
                 } else {
-                    Register ovRegister = assignment[overwrite].getRegister().get();
+                    Register ovRegister = getRegister(tracker, overwrite);
                     if (ovRegister != tRegister) {
-                        String ovName = assignment[overwrite].getRegister().get().asSize(size);
                         output("mov%c %s, %s # move for @%s [overwrite]",
-                                size.getSuffix(), ovName, targetName, overwrite);
+                                size.getSuffix(), ovRegister.asSize(size), targetName, overwrite);
                     }
                 }
             }
@@ -195,6 +190,7 @@ public class ApplyAssignment {
                 int stackSlot = assignment[target].getStackSlot().get();
                 output("mov%c %s, %d(%%rbp) # spill for @%s",
                         size.getSuffix(), targetName, stackSlot, target);
+                tracker.getRegisters().setTmp(tRegister, target);
             } else {
                 tracker.assertMapping(target, assignment[target].getRegister().get());
             }
@@ -213,7 +209,7 @@ public class ApplyAssignment {
         // handle the dividend
         if (assignment[dividend].isSpilled() || assignment[dividend].getRegister().get() != Register.RAX) {
             tracker.assertFree(Register.RAX);
-            String getDividend = getVRegisterValue(dividend, RegisterSize.QUAD);
+            String getDividend = getVRegisterValue(tracker, dividend, RegisterSize.QUAD);
             output("movq %s, %%rax # get dividend", getDividend);
         } else {
             assert lifetimes[dividend].isLastInstructionAndInput(index);
@@ -224,9 +220,9 @@ public class ApplyAssignment {
         Register divisorRegister;
         if (assignment[divisor].isSpilled()) {
             // move divisor to temporary register
-            int stackSlot = assignment[divisor].getStackSlot().get();
             divisorRegister = tracker.getDivRegister();
-            output("movq %d(%%rbp), %s # get divisor", stackSlot, divisorRegister.getAsQuad());
+            String getDivisor = getVRegisterValue(tracker, divisor, RegisterSize.QUAD);
+            output("movq %s, %s # get divisor", getDivisor, divisorRegister.getAsQuad());
         } else {
             Register r = assignment[divisor].getRegister().get();
             tracker.assertMapping(divisor, r);
@@ -238,6 +234,7 @@ public class ApplyAssignment {
         output("idivq %s", divisorRegister.getAsQuad());
         tracker.registers.markUsed(Register.RAX);
         tracker.registers.markUsed(Register.RDX);
+        tracker.getRegisters().clearTmp(Register.RDX);
         tracker.leaveInstruction(index);
 
         // move the result to the target register
@@ -279,9 +276,14 @@ public class ApplyAssignment {
 
         // downcast uses same size for both operands (a downcast is a plain `movl`)
         RegisterSize sourceSize = isUpcast ? sizes[source] : sizes[target];
-        String getSource = getVRegisterValue(source, sourceSize);
+        String getSource = getVRegisterValue(tracker, source, sourceSize);
         RegisterSize targetSize = isUpcast && !isSignedUpcast ? sizes[source] : sizes[target];
-        String getTarget = getVRegisterValue(target, targetSize);
+        String getTarget;
+        if (assignment[target].isSpilled()) {
+            getTarget = String.format("%d(%%rbp)", assignment[target].getStackSlot().get());
+        } else {
+            getTarget = assignment[target].getRegister().get().asSize(targetSize);
+        }
 
         String cmd;
         if (isSignedUpcast) {
@@ -298,14 +300,16 @@ public class ApplyAssignment {
         }
 
         // output the instruction itself
-        if ((assignment[source].isSpilled() || isSignedUpcast) && assignment[target].isSpilled()) {
-            String tmpRegister = tracker.getTmpRegisters(1, Optional.empty()).get(0).asSize(targetSize);
+        if ((isOnStack(tracker, source) || isSignedUpcast) && isOnStack(tracker, target)) {
+            Register tmp = tracker.getTmpRegisters(1, Optional.empty()).get(0);
             output("%s %s, %s # load to temporary...",
-                    cmd, getSource, tmpRegister);
+                    cmd, getSource, tmp.asSize(targetSize));
             output("mov%c %s, %s # ...and spill to target",
-                    targetSize.getSuffix(), tmpRegister, getTarget);
+                    targetSize.getSuffix(), tmp.asSize(targetSize), getTarget);
+            tracker.getRegisters().setTmp(tmp, target);
         } else {
             output("%s %s, %s", cmd, getSource, getTarget);
+            tracker.getRegisters().clearTmp(target);
         }
         tracker.leaveInstruction(index);
     }
@@ -326,6 +330,8 @@ public class ApplyAssignment {
                     saved.push(r);
                     output("pushq %s # push caller-saved register", r.getAsQuad());
                 }
+            } else {
+                tracker.getRegisters().clearTmp(r);
             }
         }
 
@@ -334,6 +340,8 @@ public class ApplyAssignment {
         List<Integer> args = instr.getInputRegisters();
         PermutationSolver solver = new PermutationSolver();
         for (int i = 0; i < args.size(); i++) {
+            // TODO: register-to-register moves?
+            // TODO: can we benefit from tmps here?
             int vRegister = args.get(i);
             if (cconv.getArgRegister(i).isPresent()) {
                 // the argument is passed within a register
@@ -405,6 +413,7 @@ public class ApplyAssignment {
                 int stackSlot = assignment[target].getStackSlot().get();
                 output("mov%c %s, %d(%%rbp) # spill return value for @%s",
                         size.getSuffix(), cconv.getReturnRegister().asSize(size), stackSlot, target);
+                tracker.getRegisters().clearTmp(target);
                 tracker.getRegisters().setTmp(cconv.getReturnRegister(), target);
             } else {
                 Register r = assignment[target].getRegister().get();
@@ -429,7 +438,7 @@ public class ApplyAssignment {
             int returnVal = instr.inputRegister(0);
             if (!isAlreadyInRegister(returnVal, cconv.getReturnRegister())) {
                 RegisterSize size = sizes[returnVal];
-                String getVal = getVRegisterValue(returnVal, size);
+                String getVal = getVRegisterValue(tracker, returnVal, size);
                 output("mov%c %s, %s # set return value",
                         size.getSuffix(), getVal, cconv.getReturnRegister().asSize(size));
             }
@@ -559,32 +568,54 @@ public class ApplyAssignment {
         return result;
     }
 
-    private int countRequiredTmps(Instruction instr) {
+    private int countRequiredTmps(LifetimeTracker tracker, Instruction instr) {
         assert instr.getType() == InstructionType.GENERAL;
         int n = 0;
         for (int vRegister: instr.getInputRegisters()) {
-            if (assignment[vRegister].isSpilled()) {
+            if (assignment[vRegister].isSpilled() &&
+                    !tracker.getRegisters().hasTmp(vRegister)) {
                 n++;
             }
         }
         if (instr.getTargetRegister().isPresent() &&
-                assignment[instr.getTargetRegister().get()].isSpilled()) {
+                assignment[instr.getTargetRegister().get()].isSpilled() &&
+                !tracker.getRegisters().hasTmp(instr.getTargetRegister().get())) {
             n++;
         }
         return n;
     }
 
-    private String getVRegisterValue(int vRegister, RegisterSize size) {
-        if (assignment[vRegister].isSpilled()) {
+    private String getVRegisterValue(LifetimeTracker tracker, int vRegister, RegisterSize size) {
+        if (isOnStack(tracker, vRegister)) {
             int stackSlot = assignment[vRegister].getStackSlot().get();
             return String.format("%d(%%rbp)", stackSlot);
         } else {
+            return getRegister(tracker, vRegister).asSize(size);
+        }
+    }
+
+    private boolean isOnStack(LifetimeTracker tracker, int vRegister) {
+        return assignment[vRegister].isSpilled() && !tracker.getRegisters().hasTmp(vRegister);
+    }
+
+    private Register getRegister(LifetimeTracker tracker, int vRegister) {
+        return getRegister(tracker, vRegister, true);
+    }
+
+    private Register getRegister(LifetimeTracker tracker, int vRegister, boolean assertMapping) {
+        if (assignment[vRegister].isSpilled()) {
+            return tracker.getRegisters().getTmp(vRegister).get();
+        } else {
             Register r = assignment[vRegister].getRegister().get();
-            return r.asSize(size);
+            if (assertMapping) {
+                tracker.assertMapping(vRegister, r);
+            }
+            return r;
         }
     }
 
     private boolean isAlreadyInRegister(int vRegister, Register target) {
+        // TODO: consider tmps?!
         return !assignment[vRegister].isSpilled() &&
                 assignment[vRegister].getRegister().get() == target;
     }
@@ -686,13 +717,13 @@ public class ApplyAssignment {
         public List<Register> getTmpRegisters(int num, Optional<Register> excluded) {
             assert !tmpRequested;
             tmpRequested = true;
-            return registers.getFreeRegisters(num, excluded);
+            return registers.getTmpRegisters(num, excluded);
         }
 
         public Register getDivRegister() {
             assert !tmpRequested;
             tmpRequested = true;
-            return registers.getFreeRegisters(
+            return registers.getTmpRegisters(
                     1, RegisterPreference.PREFER_CALLEE_SAVED_NO_DIV, Optional.empty()
             ).get(0);
         }

@@ -59,7 +59,6 @@ public class ApplyAssignmentTest {
         expected.add("movq %rbx, -8(%rbp) # spill for @1");
         expected.add("incrl %rbx");
         expected.add("movq %rbx, -8(%rbp) # spill for @1");
-        expected.add("movq -8(%rbp), %rbx # reload for @1");
         expected.add("addl %rax, %rbx, %r12");
         expected.add("movq %r12, -16(%rbp) # spill for @2");
         assertEquals(expected, result.getInstructions());

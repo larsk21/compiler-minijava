@@ -87,6 +87,14 @@ public class RegisterTracker {
         return false;
     }
 
+    public boolean clearTmp(Register r) {
+        if (isTmp(r)) {
+            registers.remove(r);
+            return true;
+        }
+        return false;
+    }
+
     public void clearAllTmps() {
         for (var entry: registers.entrySet()) {
             if (entry.getValue() < 0) {
@@ -102,6 +110,10 @@ public class RegisterTracker {
             }
         }
         return Optional.empty();
+    }
+
+    public boolean hasTmp(int vRegister) {
+        return getTmp(vRegister).isPresent();
     }
 
     public void clearSlotFromTmp(Register r) {
@@ -158,18 +170,20 @@ public class RegisterTracker {
      *
      * This will try to avoid killing temporary register assignments.
      */
-    public List<Register> getTmpRegisters(int num) {
-        return getTmpRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED);
+    public List<Register> getTmpRegisters(int num, Optional<Register> exludedRegister) {
+        return getTmpRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED_AVOID_DIV, exludedRegister);
     }
 
-    public List<Register> getTmpRegisters(int num, RegisterPreference pref) {
+    public List<Register> getTmpRegisters(int num, RegisterPreference pref,
+                                          Optional<Register> exludedRegister) {
         List<Register> result = new ArrayList<>();
         if (num == 0) {
             return result;
         }
         // try find completely free registers
         for (Register r: pref.inPreferenceOrder().filter(
-                r -> !isReservedRegister(r) && isFree(r) && !isTmp(r)
+                r -> !isReservedRegister(r) && isFree(r) && !isTmp(r) &&
+                        (exludedRegister.isEmpty() || r != exludedRegister.get())
         ).collect(Collectors.toList())) {
             result.add(r);
             usedRegisters.add(r);
@@ -179,7 +193,8 @@ public class RegisterTracker {
         }
         // if not sufficient, kill temporary assignments
         for (Register r: pref.inPreferenceOrder().filter(
-                r -> !isReservedRegister(r) && isFree(r) && isTmp(r)
+                r -> !isReservedRegister(r) && isFree(r) && isTmp(r) &&
+                        (exludedRegister.isEmpty() || r != exludedRegister.get())
         ).collect(Collectors.toList())) {
             result.add(r);
             if (result.size() == num) {
