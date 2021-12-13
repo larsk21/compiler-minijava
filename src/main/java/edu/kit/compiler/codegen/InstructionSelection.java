@@ -115,6 +115,12 @@ public final class InstructionSelection {
         }
 
         @Override
+        public void visit(Jmp node) {
+            var entry = blocks.getEntry(node.getBlock());
+            entry.setExitCondition(ExitCondition.unconditional());
+        }
+
+        @Override
         public void visit(Start node) {
         }
 
