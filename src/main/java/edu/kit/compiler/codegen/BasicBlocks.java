@@ -1,6 +1,7 @@
 package edu.kit.compiler.codegen;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -45,22 +46,29 @@ public class BasicBlocks {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class BlockEntry {
 
+        @Getter
         private final Block firmBlock;
+
         private final List<Instruction> instructions = new ArrayList<>();
+        private final List<PhiInstruction> phiInstructions = new ArrayList<>();
 
         private Optional<ExitCondition> exitCondition = Optional.empty();
 
-        public Stream<Instruction> streamInstructions() {
-            if (exitCondition.isPresent()) {
-                var exit = exitCondition.get().getInstructions();
-                return Stream.concat(instructions.stream(), exit.stream());
-            } else {
-                return instructions.stream();
-            }
-        }
-
         public int getLabel() {
             return firmBlock.getNr();
+        }
+
+        public List<Instruction> getInstructions() {
+            return Collections.unmodifiableList(instructions);
+        }
+
+        public List<PhiInstruction> getPhiInstructions() {
+            return Collections.unmodifiableList(phiInstructions);
+        }
+
+        public List<Instruction> getExitInstructions() {
+            assert exitCondition.isPresent();
+            return Collections.unmodifiableList(exitCondition.get().getInstructions());
         }
 
         public void setExitCondition(ExitCondition exitCondition) {
@@ -101,9 +109,17 @@ public class BasicBlocks {
             instructions.addAll(match.getInstructions());
         }
 
+        public void addPhi(PhiInstruction instruction) {
+            phiInstructions.add(instruction);
+        }
+
         @Override
         public String toString() {
-            return streamInstructions().collect(Collectors.toList()).toString();
+            // todo what about Phis
+            var instructions = Stream.concat(getInstructions().stream(),
+                    getExitInstructions().stream()).collect(Collectors.toList());
+            return instructions.toString();
+            // return streamInstructions().collect(Collectors.toList()).toString();
         }
     }
 }
