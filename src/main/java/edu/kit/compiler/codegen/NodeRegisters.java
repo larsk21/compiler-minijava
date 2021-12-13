@@ -21,6 +21,8 @@ public class NodeRegisters {
         registerCount = numParameters;
     }
 
+    // todo checked getRegister (throws if not present)
+
     public int getRegister(Node node) {
         return registers.getOrDefault(node.getNr(), -1);
     }
