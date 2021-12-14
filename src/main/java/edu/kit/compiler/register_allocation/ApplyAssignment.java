@@ -67,7 +67,7 @@ public class ApplyAssignment {
                 default -> throw new UnsupportedOperationException();
             }
         }
-        tracker.assertFinallyEmpty(ir.size());
+        tracker.assertFinallyEmpty(i);
 
         return new AssignmentResult(result, tracker.getRegisters().getUsedRegisters());
     }
@@ -163,8 +163,8 @@ public class ApplyAssignment {
         } else {
             // move divisor to temporary register
             divisorRegister = tracker.getDivRegister();
-            int stackSlot = assignment[divisor].getStackSlot().get();
-            output("movslq %d(%%rbp), %s # get divisor", stackSlot, divisorRegister.getAsQuad());
+            String getDivisor = getVRegisterValue(divisor, RegisterSize.QUAD);
+            output("movq %s, %s # get divisor", getDivisor, divisorRegister.getAsQuad());
         }
 
         // output the instruction itself
@@ -323,21 +323,24 @@ public class ApplyAssignment {
 
         // initialize vRegisters that are function arguments
         for (int vRegister = 0; vRegister < nArgs; vRegister++) {
-            RegisterSize size = sizes[vRegister];
-            String toVRegister = getVRegisterValue(vRegister, size);
-            if (cconv.getArgRegister(vRegister).isPresent()) {
-                // the argument is passed within a register
-                Register argReg = cconv.getArgRegister(vRegister).get();
-                if (assignment[vRegister].isSpilled() || assignment[vRegister].getRegister().get() != argReg) {
-                    output("mov%c %s, %s # initialize @%d from arg",
-                            size.getSuffix(), argReg.asSize(size), toVRegister, vRegister);
+            // check whether the argument is used at all
+            if (!lifetimes[vRegister].isTrivial()) {
+                RegisterSize size = sizes[vRegister];
+                String toVRegister = getVRegisterValue(vRegister, size);
+                if (cconv.getArgRegister(vRegister).isPresent()) {
+                    // the argument is passed within a register
+                    Register argReg = cconv.getArgRegister(vRegister).get();
+                    if (assignment[vRegister].isSpilled() || assignment[vRegister].getRegister().get() != argReg) {
+                        output("mov%c %s, %s # initialize @%d from arg",
+                                size.getSuffix(), argReg.asSize(size), toVRegister, vRegister);
+                    }
+                } else {
+                    // the argument is passed on the stack
+                    // TODO: special case for spilled registers?
+                    int offset = 16 + 8 * (nArgs - vRegister - 1);
+                    output("mov%c %d(%%rbp), %s # initialize @%d from arg",
+                            size.getSuffix(), offset, toVRegister, vRegister);
                 }
-            } else {
-                // the argument is passed on the stack
-                // TODO: special case for spilled registers?
-                int offset = 16 + 8 * (nArgs - vRegister - 1);
-                output("mov%c %d(%%rbp), %s # initialize @%d from arg",
-                        size.getSuffix(), offset, toVRegister, vRegister);
             }
         }
         return result;
