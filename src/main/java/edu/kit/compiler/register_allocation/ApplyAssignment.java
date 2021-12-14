@@ -443,7 +443,7 @@ public class ApplyAssignment {
     private void handleRet(LifetimeTracker tracker, Instruction instr, int index) {
         if (!instr.getInputRegisters().isEmpty()) {
             int returnVal = instr.inputRegister(0);
-            if (!isAlreadyInRegister(returnVal, cconv.getReturnRegister())) {
+            if (!isAlreadyInRegister(tracker, returnVal, cconv.getReturnRegister())) {
                 RegisterSize size = sizes[returnVal];
                 String getVal = getVRegisterValue(tracker, returnVal, size);
                 output("mov%c %s, %s # set return value",
@@ -639,10 +639,13 @@ public class ApplyAssignment {
         }
     }
 
-    private boolean isAlreadyInRegister(int vRegister, Register target) {
-        // TODO: consider tmps?!
-        return !assignment[vRegister].isSpilled() &&
-                assignment[vRegister].getRegister().get() == target;
+    private boolean isAlreadyInRegister(LifetimeTracker tracker, int vRegister, Register target) {
+        if (assignment[vRegister].isSpilled()) {
+            Optional<Register> tmp = tracker.getRegisters().getTmp(vRegister);
+            return tmp.isPresent() && tmp.get() == target;
+        } else {
+            return assignment[vRegister].getRegister().get() == target;
+        }
     }
 
     private int calculateActivationRecordSize() {
