@@ -13,32 +13,65 @@ import java.util.*;
 public class LifetimeAnalysis {
     @Getter
     private Lifetime[] lifetimes;
-    private Instruction[] firstInstruction;
-    private Instruction[] lastInstruction;
+    private Optional<Instruction>[] firstInstruction;
+    private Optional<Instruction>[] lastInstruction;
     private int[] loopNestingDepth;
+    private boolean[] isDividend;
     private List<Integer> callsPrefixSum;
     private List<Integer> divsPrefixSum;
 
-    private LifetimeAnalysis(Lifetime[] lifetimes, Instruction[] firstInstruction, Instruction[] lastInstruction,
-                             int[] loopNestingDepth, List<Integer> callsPrefixSum, List<Integer> divsPrefixSum) {
+    private LifetimeAnalysis(Lifetime[] lifetimes, Optional<Instruction>[] firstInstruction,
+                             Optional<Instruction>[] lastInstruction, int[] loopNestingDepth, boolean[] isDividend,
+                             List<Integer> callsPrefixSum, List<Integer> divsPrefixSum) {
         this.lifetimes = lifetimes;
         this.firstInstruction = firstInstruction;
         this.lastInstruction = lastInstruction;
         this.loopNestingDepth = loopNestingDepth;
+        this.isDividend = isDividend;
         this.callsPrefixSum = callsPrefixSum;
         this.divsPrefixSum = divsPrefixSum;
     }
 
+    /**
+     * Whether the register is used at all.
+     */
     public boolean isAlive(int vRegister) {
         return !lifetimes[vRegister].isTrivial();
     }
 
-    public Instruction getFirstInstruction(int vRegister) {
+    /**
+     * The optional is not present if the vRegister is an argument.
+     */
+    public Optional<Instruction> getFirstInstruction(int vRegister) {
+        assert isAlive(vRegister);
         return firstInstruction[vRegister];
     }
 
-    public Instruction getLastInstruction(int vRegister) {
+    /**
+     * The optional is not present if the vRegister was loop-extended.
+     */
+    public Optional<Instruction> getLastInstruction(int vRegister) {
+        assert isAlive(vRegister);
         return lastInstruction[vRegister];
+    }
+
+    public Lifetime getLifetime(int vRegister) {
+        return lifetimes[vRegister];
+    }
+
+    /**
+     * The maximum nesting-depth of a loop that contains the vRegister.
+     */
+    public int getLoopDepth(int vRegister) {
+        return loopNestingDepth[vRegister];
+    }
+
+    /**
+     * Whether the vRegister appears as dividend in a `div` or `mod` instruction.
+     */
+    public boolean isDividend(int vRegister) {
+        assert isAlive(vRegister);
+        return isDividend[vRegister];
     }
 
     @Override
@@ -47,27 +80,50 @@ public class LifetimeAnalysis {
         builder.append(String.format("%-10s %-15s %-30s %-30s %-11s %-10s %-10s\n",
                 "vRegister", "Lifetime", "First Instr.", "Last Instr.", "Loop Depth", "Num calls", "Num divs"));
         for (int vRegister = 0; vRegister < lifetimes.length; vRegister++) {
-            builder.append(String.format("%-10d %-15s %-30s %-30s %-11d %-10d %-10d\n",
-                    vRegister, lifetimes[vRegister], firstInstruction[vRegister].getText(),
-                    lastInstruction[vRegister].getText(), loopNestingDepth[vRegister],
-                    0, 0));
-
+            if (!lifetimes[vRegister].isTrivial()) {
+                String firstInstr = getFirstInstruction(vRegister).map(Instruction::getText).orElse("-");
+                String lastInstr = getLastInstruction(vRegister).map(Instruction::getText).orElse("-");
+                builder.append(String.format("%-10d %-15s %-30s %-30s %-11d %-10d %-10d\n",
+                        vRegister, lifetimes[vRegister], firstInstr, lastInstr, loopNestingDepth[vRegister],
+                        numInterferingCalls(vRegister, true), numInterferingDivs(vRegister, true)));
+            }
         }
         return builder.toString();
     }
 
+    /**
+     * The number of calls within the lifetime of an vRegister.
+     * The first instruction, i.e. definition point of the register, is not included.
+     */
+    public int numInterferingCalls(int vRegister, boolean includeLastIfInput) {
+        return numInterferencesFromPrefixSum(callsPrefixSum, vRegister, includeLastIfInput);
+    }
+
+    /**
+     * The number of divs within the lifetime of an vRegister.
+     * The first instruction, i.e. definition point of the register, is not included.
+     */
+    public int numInterferingDivs(int vRegister, boolean includeLastIfInput) {
+        return numInterferencesFromPrefixSum(divsPrefixSum, vRegister, includeLastIfInput);
+    }
+
     public static LifetimeAnalysis run(List<Block> ir, int numVRegisters, int nArgs) {
         Lifetime[] lifetimes = new Lifetime[numVRegisters];
-        Instruction[] firstInstruction = new Instruction[numVRegisters];
-        Instruction[] lastInstruction = new Instruction[numVRegisters];
+        Optional<Instruction>[] firstInstruction = new Optional[numVRegisters];
+        Optional<Instruction>[] lastInstruction = new Optional[numVRegisters];
         int[] loopNestingDepth = new int[numVRegisters];
         int[] definitionNestingDepth = new int[numVRegisters];
+        boolean[] isDividend = new boolean[numVRegisters];
         List<Integer> callsPrefixSum = new ArrayList<>();
+        callsPrefixSum.add(0);
         List<Integer> divsPrefixSum = new ArrayList<>();
+        divsPrefixSum.add(0);
         List<StackEntry> stack = new ArrayList<>();
 
         for (int i = 0; i < numVRegisters; i++) {
             lifetimes[i] = new Lifetime();
+            firstInstruction[i] = Optional.empty();
+            lastInstruction[i] = Optional.empty();
         }
 
         int index = 0;
@@ -81,6 +137,7 @@ public class LifetimeAnalysis {
                     case DIV, MOD -> {
                         appendToSum(divsPrefixSum, 1);
                         appendToSum(callsPrefixSum, 0);
+                        isDividend[instr.inputRegister(0)] = true;
                     }
                     case CALL -> {
                         appendToSum(divsPrefixSum, 0);
@@ -98,18 +155,18 @@ public class LifetimeAnalysis {
                 }
                 for (int vRegister: inputRegs) {
                     if (vRegister < nArgs) {
-                        // args are already alife at the start of the function (i.e. index -1)
+                        // args are already alive at the start of the function (i.e. index -1)
                         lifetimes[vRegister] = new Lifetime(-1, index + 1, true);
                         definitionNestingDepth[vRegister] = 0;
                     } else {
                         assert !lifetimes[vRegister].isTrivial();
                         lifetimes[vRegister].extend(index, true);
                     }
-                    lastInstruction[vRegister] = instr;
+                    lastInstruction[vRegister] = Optional.of(instr);
                     loopNestingDepth[vRegister] = Math.max(loopNestingDepth[vRegister], stack.size());
 
                     if (definitionNestingDepth[vRegister] < stack.size()) {
-                        // insert vRegister to stack to be processed late when leaving the loop
+                        // insert vRegister to stack to be processed later when leaving the loop
                         stack.get(definitionNestingDepth[vRegister]).getVRegisters().add(vRegister);
                     } else {
                         assert definitionNestingDepth[vRegister] == stack.size();
@@ -121,13 +178,13 @@ public class LifetimeAnalysis {
                     if (lifetimes[target].isTrivial()) {
                         lifetimes[target] = new Lifetime(index, index + 1);
                         definitionNestingDepth[target] = stack.size();
-                        firstInstruction[target] = instr;
+                        firstInstruction[target] = Optional.of(instr);
                     }
-                    lastInstruction[target] = instr;
+                    lastInstruction[target] = Optional.of(instr);
                     loopNestingDepth[target] = Math.max(loopNestingDepth[target], stack.size());
 
                     if (definitionNestingDepth[target] < stack.size()) {
-                        // insert vRegister to stack to be processed late when leaving the loop
+                        // insert vRegister to stack to be processed later when leaving the loop
                         stack.get(definitionNestingDepth[target]).getVRegisters().add(target);
                     } else {
                         assert definitionNestingDepth[target] == stack.size();
@@ -135,11 +192,13 @@ public class LifetimeAnalysis {
                 }
 
                 Optional<Integer> backref = instr.getJumpTarget();
-                if (backref.isPresent() && backref.get() == stack.get(stack.size() - 1).getBlockId()) {
+                if (backref.isPresent() && !stack.isEmpty() &&
+                        backref.get() == stack.get(stack.size() - 1).getBlockId()) {
                     // loop-extension of register lifetimes
                     StackEntry entry = stack.remove(stack.size() - 1);
                     for (int vRegister: entry.getVRegisters()) {
                         lifetimes[vRegister].extend(index, false);
+                        lastInstruction[vRegister] = Optional.empty();
                     }
                 }
 
@@ -148,7 +207,20 @@ public class LifetimeAnalysis {
         }
         assert stack.isEmpty();
         return new LifetimeAnalysis(lifetimes, firstInstruction, lastInstruction,
-                loopNestingDepth, callsPrefixSum, divsPrefixSum);
+                loopNestingDepth, isDividend, callsPrefixSum, divsPrefixSum);
+    }
+
+    private int numInterferencesFromPrefixSum(List<Integer> prefixSum, int vRegister,
+                                              boolean includeLastIfInput) {
+        assert isAlive(vRegister);
+
+        Lifetime lt = lifetimes[vRegister];
+        int begin = lt.getBegin() + 1;
+        int end = lt.getEnd();
+        if (!includeLastIfInput && lt.isLastInstrIsInput()) {
+            end = Math.max(lt.getBegin(), end - 1);
+        }
+        return prefixSum.get(end) - prefixSum.get(begin);
     }
 
     private static void appendToSum(List<Integer> prefixSum, int val) {

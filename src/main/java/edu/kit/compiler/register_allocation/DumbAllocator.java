@@ -21,8 +21,7 @@ public class DumbAllocator implements RegisterAllocator {
         int slotIndex = 1;
         for (int i = 0; i < assignment.length; i++) {
             if (analysis.isAlive(i)) {
-                Instruction lastInstr = analysis.getLastInstruction(i);
-                if (lastInstr.isDivOrMod() && lastInstr.inputRegister(0) == i) {
+                if (analysis.isDividend(i)) {
                     // dividend must be assigned to %rax
                     assignment[i] = new RegisterAssignment(Register.RAX);
                 } else {

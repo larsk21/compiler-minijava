@@ -72,7 +72,7 @@ public class Lifetime {
      * Extends the lifetime to include the given index.
      */
     public void extend(int index, boolean lastInstrIsInput) {
-        assert !isTrivial() && index >= end;
+        assert !isTrivial() && index + 1 >= end;
         this.end = index + 1;
         this.lastInstrIsInput = lastInstrIsInput;
     }
