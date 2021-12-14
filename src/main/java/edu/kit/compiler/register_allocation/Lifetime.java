@@ -67,4 +67,22 @@ public class Lifetime {
         }
         return begin < other.end && other.begin < end;
     }
+
+    /**
+     * Extends the lifetime to include the given index.
+     */
+    public void extend(int index, boolean lastInstrIsInput) {
+        assert !isTrivial() && index >= end;
+        this.end = index + 1;
+        this.lastInstrIsInput = lastInstrIsInput;
+    }
+
+    @Override
+    public String toString() {
+        String result = String.format("%d:%d", begin, end);
+        if (lastInstrIsInput) {
+            result += '*';
+        }
+        return result;
+    }
 }
