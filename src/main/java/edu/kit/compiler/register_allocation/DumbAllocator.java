@@ -31,13 +31,7 @@ public class DumbAllocator implements RegisterAllocator {
             }
         }
 
-        ApplyAssignment apply = new ApplyAssignment(assignment, sizes, analysis.getLifetimes(), input);
-        var result = apply.doApply();
-        // TODO: properly integrate prolog and epilog
-        List<String> prolog = apply.createFunctionProlog(nArgs, result.getUsedRegisters());
-        List<String> epilog = apply.createFunctionEpilog();
-        prolog.addAll(result.getInstructions());
-        prolog.addAll(epilog);
-        return prolog;
+        return ApplyAssignment.createFunctionBody(
+                assignment, sizes, analysis.getLifetimes(), input, analysis.getNumInstructions(), nArgs);
     }
 }

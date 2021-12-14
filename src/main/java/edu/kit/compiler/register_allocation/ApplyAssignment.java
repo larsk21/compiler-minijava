@@ -16,6 +16,8 @@ import java.util.*;
  * different steps of instruction creation).
  */
 public class ApplyAssignment {
+    public static final String FINAL_BLOCK_LABEL = ".L_final";
+
     private RegisterAssignment[] assignment;
     private RegisterSize[] sizes;
     private Lifetime[] lifetimes;
@@ -23,9 +25,30 @@ public class ApplyAssignment {
     private CallingConvention cconv;
     private List<String> result;
     private Optional<Deque<Register>> savedRegisters;
+    private int numInstructions;
+
+    public static List<String> createFunctionBody(RegisterAssignment[] assignment, RegisterSize[] sizes,
+                                                  Lifetime[] lifetimes, List<Block> ir, int numInstructions,
+                                                  int nArgs, CallingConvention cconv) {
+        ApplyAssignment apply = new ApplyAssignment(
+                assignment, sizes, lifetimes, ir, numInstructions, cconv
+        );
+        AssignmentResult result = apply.doApply();
+        List<String> output = apply.createFunctionProlog(nArgs, result.getUsedRegisters());
+        output.addAll(result.getInstructions());
+        output.addAll(apply.createFunctionEpilog());
+        return output;
+    }
+
+    public static List<String> createFunctionBody(RegisterAssignment[] assignment, RegisterSize[] sizes,
+                                                  Lifetime[] lifetimes, List<Block> ir, int numInstructions,
+                                                  int nArgs) {
+        return createFunctionBody(assignment, sizes, lifetimes, ir, numInstructions, nArgs, CallingConvention.X86_64);
+    }
 
     public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes,
-                           Lifetime[] lifetimes, List<Block> ir, CallingConvention cconv) {
+                           Lifetime[] lifetimes, List<Block> ir, int numInstructions,
+                           CallingConvention cconv) {
         assert assignment.length == sizes.length && assignment.length == lifetimes.length;
         this.assignment = assignment;
         this.sizes = sizes;
@@ -34,13 +57,14 @@ public class ApplyAssignment {
         this.cconv = cconv;
         this.result = new ArrayList<>();
         this.savedRegisters = Optional.empty();
+        this.numInstructions = numInstructions;
 
         assertRegistersDontInterfere(assignment, sizes, lifetimes);
     }
 
     public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes,
-                           Lifetime[] lifetimes, List<Block> ir) {
-        this(assignment, sizes, lifetimes, ir, CallingConvention.X86_64);
+                           Lifetime[] lifetimes, List<Block> ir, int numInstructions) {
+        this(assignment, sizes, lifetimes, ir, numInstructions, CallingConvention.X86_64);
     }
 
     public AssignmentResult doApply() {
@@ -50,16 +74,19 @@ public class ApplyAssignment {
 
         int i = 0;
         for (Block b: ir) {
+            output(".L%d:", b.getBlockId());
+
             for (Instruction instr: b.getInstructions()) {
                 switch (instr.getType()) {
                     case GENERAL -> handleGeneralInstruction(tracker, replace, instr, i);
                     case DIV, MOD -> handleDivOrMod(tracker, instr, i);
                     case CALL -> handleCall(tracker, instr, i);
-                    default -> throw new UnsupportedOperationException();
+                    case RET -> handleRet(tracker, instr, i);
                 }
                 i++;
             }
         }
+        assert numInstructions == i;
         tracker.assertFinallyEmpty(i);
 
         return new AssignmentResult(result, tracker.getRegisters().getUsedRegisters());
@@ -290,6 +317,21 @@ public class ApplyAssignment {
         }
     }
 
+    private void handleRet(LifetimeTracker tracker, Instruction instr, int index) {
+        if (!instr.getInputRegisters().isEmpty()) {
+            int returnVal = instr.inputRegister(0);
+            if (!isAlreadyInRegister(returnVal, cconv.getReturnRegister())) {
+                RegisterSize size = sizes[returnVal];
+                String getVal = getVRegisterValue(returnVal, size);
+                output("mov%c %s, %s # set return value",
+                        size.getSuffix(), getVal, cconv.getReturnRegister().asSize(size));
+            }
+        }
+        if (index + 1 < numInstructions) {
+            output("jmp %s", FINAL_BLOCK_LABEL);
+        }
+    }
+
     /**
      * Can only be called after applying the register allocation,
      * because the used registers must be known.
@@ -321,7 +363,7 @@ public class ApplyAssignment {
                 if (cconv.getArgRegister(vRegister).isPresent()) {
                     // the argument is passed within a register
                     Register argReg = cconv.getArgRegister(vRegister).get();
-                    if (assignment[vRegister].isSpilled() || assignment[vRegister].getRegister().get() != argReg) {
+                    if (!isAlreadyInRegister(vRegister, argReg)) {
                         output("mov%c %s, %s # initialize @%d from arg",
                                 size.getSuffix(), argReg.asSize(size), toVRegister, vRegister);
                     }
@@ -341,9 +383,10 @@ public class ApplyAssignment {
      * Can only be called after the prolog is already created.
      */
     public List<String> createFunctionEpilog() {
-        // TODO: create as separate block with special label
         assert savedRegisters.isPresent();
         this.result = new ArrayList<>();
+
+        output(FINAL_BLOCK_LABEL + ":");
 
         // restore registers
         while (!savedRegisters.get().isEmpty()) {
@@ -379,6 +422,11 @@ public class ApplyAssignment {
             Register r = assignment[vRegister].getRegister().get();
             return r.asSize(size);
         }
+    }
+
+    private boolean isAlreadyInRegister(int vRegister, Register target) {
+        return !assignment[vRegister].isSpilled() &&
+                assignment[vRegister].getRegister().get() == target;
     }
 
     private int calculateActivationRecordSize() {

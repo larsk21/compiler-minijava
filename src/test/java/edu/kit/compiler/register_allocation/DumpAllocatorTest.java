@@ -41,6 +41,8 @@ public class DumpAllocatorTest {
         expected.add("subq $40, %rsp # allocate activation record");
         expected.add("pushq %rbx # push callee-saved register");
         expected.add("pushq %r10 # push callee-saved register");
+
+        expected.add(".L0:");
         expected.add("movl $0x7, %ebx");
         expected.add("movl %ebx, -8(%rbp) # spill for @0");
         expected.add("movl -8(%rbp), %ebx # reload for @0 [overwrite]");
@@ -59,6 +61,8 @@ public class DumpAllocatorTest {
         expected.add("movl %eax, -32(%rbp) # spill for @3");
         expected.add("movl -32(%rbp), %edi # load @3 as arg 0");
         expected.add("call print@PLT");
+
+        expected.add(ApplyAssignment.FINAL_BLOCK_LABEL + ":");
         expected.add("popq %r10 # restore callee-saved register");
         expected.add("popq %rbx # restore callee-saved register");
         expected.add("leave");

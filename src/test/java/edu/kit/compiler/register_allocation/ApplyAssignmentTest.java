@@ -26,7 +26,7 @@ public class ApplyAssignmentTest {
         Block block = new Block(List.of(
                 Instruction.newInput("movq $0, 0(@0)", List.of( 0 ))
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 1);
         ass.doApply();
     }
 
@@ -52,9 +52,10 @@ public class ApplyAssignmentTest {
                 Instruction.newOp("incrl @1", List.of(), Optional.empty(), 1),
                 Instruction.newOp("addl @0, @1, @2", List.of( 0, 1 ), Optional.empty(), 2)
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 3);
         var result = ass.doApply();
         var expected = new ArrayList<>();
+        expected.add(".L0:");
         expected.add("movq 4(%rax), %rbx");
         expected.add("movq %rbx, -8(%rbp) # spill for @1");
         expected.add("incrl %rbx");
@@ -98,9 +99,10 @@ public class ApplyAssignmentTest {
                 Instruction.newOp("addl @0, @4", List.of( 0 ), Optional.of(5), 4),
                 Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(5), 3)
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 5);
         var result = ass.doApply();
         var expected = new ArrayList<>();
+        expected.add(".L0:");
         expected.add("mov %rbx, %rcx # move for @1 [overwrite]");
         expected.add("addl %rax, %rcx");
         expected.add("mov %rbx, %r10 # move for @1 [overwrite]");
@@ -162,9 +164,11 @@ public class ApplyAssignmentTest {
                 //Instruction.newMod(4, 2, 1),
                 //Instruction.newDiv(1, 3, 4),
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 6);
         var result = ass.doApply();
         var expected = new ArrayList<>();
+        expected.add(".L0:");
+
         expected.add("movslq %eax, %rax");
         expected.add("movslq %r8d, %rbx");
         expected.add("cqto # sign extension to octoword");
@@ -229,12 +233,10 @@ public class ApplyAssignmentTest {
                 Instruction.newOp("movslq @2, @5", List.of(2), Optional.empty(), 5),
                 Instruction.newDiv(4, 5, 3)
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block));
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 6);
         var result = ass.doApply();
-        for (String line: result.getInstructions()) {
-            System.out.println(line);
-        }
         var expected = new ArrayList<>();
+        expected.add(".L0:");
         expected.add("movl $0x7, %ecx");
         expected.add("addl $77, %ecx");
         expected.add("movl $0x2, %ebx");
@@ -290,9 +292,10 @@ public class ApplyAssignmentTest {
         Block block = new Block(List.of(
                 Instruction.newCall(List.of(0, 1, 2, 3, 4, 5), Optional.of(6), "_foo")
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), cconv);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 1, cconv);
         var result = ass.doApply();
         var expected = new ArrayList<>();
+        expected.add(".L0:");
         expected.add("pushq %rbx # push caller-saved register");
         expected.add("pushq %rcx # push caller-saved register");
         expected.add("movq 8(%rsp), %rbx # reload @0 as arg 0");
@@ -307,6 +310,41 @@ public class ApplyAssignmentTest {
         expected.add("popq %rcx # restore caller-saved register");
         expected.add("popq %rbx # restore caller-saved register");
         expected.add("mov %rax, %rdi # move return value into @6");
+        assertEquals(expected, result.getInstructions());
+    }
+
+    @Test
+    public void testRet() {
+        RegisterAssignment[] assignment = new RegisterAssignment[]{
+                new RegisterAssignment(Register.RAX),
+                new RegisterAssignment(Register.RBX),
+                new RegisterAssignment(-8)
+        };
+        RegisterSize[] sizes = new RegisterSize[]{
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
+        };
+        Lifetime[] lifetimes = new Lifetime[]{
+                new Lifetime(-1, 3, true),
+                new Lifetime(-1, 3, true),
+                new Lifetime(-1, 3, true),
+        };
+        Block block = new Block(List.of(
+                Instruction.newRet(Optional.empty()),
+                Instruction.newRet(Optional.of(0)),
+                Instruction.newRet(Optional.of(1)),
+                Instruction.newRet(Optional.of(2))
+        ), 0, 0);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 4);
+        var result = ass.doApply();
+        var expected = new ArrayList<>();
+        expected.add(".L0:");
+        expected.add("jmp " + ApplyAssignment.FINAL_BLOCK_LABEL);
+        expected.add("jmp " + ApplyAssignment.FINAL_BLOCK_LABEL);
+        expected.add("movl %ebx, %eax # set return value");
+        expected.add("jmp " + ApplyAssignment.FINAL_BLOCK_LABEL);
+        expected.add("movl -8(%rbp), %eax # set return value");
         assertEquals(expected, result.getInstructions());
     }
 
@@ -339,7 +377,7 @@ public class ApplyAssignmentTest {
                 new Lifetime(-1, 1, true),
         };
         Block block = new Block(List.of(), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), cconv);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 0, cconv);
         var prolog = ass.createFunctionProlog(6, EnumSet.of(
                 Register.RAX, Register.RBX, Register.RCX, Register.RDX, Register.R8, Register.R9, Register.R10
         ));
@@ -359,6 +397,7 @@ public class ApplyAssignmentTest {
 
         var epilog = ass.createFunctionEpilog();
         var expectedEpilog = new ArrayList<>();
+        expectedEpilog.add(ApplyAssignment.FINAL_BLOCK_LABEL + ":");
         expectedEpilog.add("popq %r10 # restore callee-saved register");
         expectedEpilog.add("popq %r9 # restore callee-saved register");
         expectedEpilog.add("popq %r8 # restore callee-saved register");

@@ -19,10 +19,12 @@ public class LifetimeAnalysis {
     private boolean[] isDividend;
     private List<Integer> callsPrefixSum;
     private List<Integer> divsPrefixSum;
+    @Getter
+    private int numInstructions;
 
     private LifetimeAnalysis(Lifetime[] lifetimes, Optional<Instruction>[] firstInstruction,
                              Optional<Instruction>[] lastInstruction, int[] loopNestingDepth, boolean[] isDividend,
-                             List<Integer> callsPrefixSum, List<Integer> divsPrefixSum) {
+                             List<Integer> callsPrefixSum, List<Integer> divsPrefixSum, int numInstructions) {
         this.lifetimes = lifetimes;
         this.firstInstruction = firstInstruction;
         this.lastInstruction = lastInstruction;
@@ -30,6 +32,7 @@ public class LifetimeAnalysis {
         this.isDividend = isDividend;
         this.callsPrefixSum = callsPrefixSum;
         this.divsPrefixSum = divsPrefixSum;
+        this.numInstructions = numInstructions;
     }
 
     /**
@@ -207,7 +210,7 @@ public class LifetimeAnalysis {
         }
         assert stack.isEmpty();
         return new LifetimeAnalysis(lifetimes, firstInstruction, lastInstruction,
-                loopNestingDepth, isDividend, callsPrefixSum, divsPrefixSum);
+                loopNestingDepth, isDividend, callsPrefixSum, divsPrefixSum, index);
     }
 
     private int numInterferencesFromPrefixSum(List<Integer> prefixSum, int vRegister,
