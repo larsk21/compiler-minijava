@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 public class LoadImmediate implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Immediate>> immediate = new ImmediatePattern();
+    public final Pattern<OperandMatch<Operand.Immediate>> immediate = OperandPattern.immediate();
 
     @Override
     public InstructionMatch match(Node node, NodeRegisters registers) {

@@ -6,25 +6,28 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import edu.kit.compiler.codegen.Operand.Memory;
+import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.codegen.pattern.BinaryInstruction;
 import edu.kit.compiler.codegen.pattern.Call;
 import edu.kit.compiler.codegen.pattern.Conversion;
 import edu.kit.compiler.codegen.pattern.Division;
+import edu.kit.compiler.codegen.pattern.Division.Type;
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
 import edu.kit.compiler.codegen.pattern.LoadImmediate;
 import edu.kit.compiler.codegen.pattern.LoadMemory;
-import edu.kit.compiler.codegen.pattern.MemoryPattern;
+import edu.kit.compiler.codegen.pattern.OperandMatch;
+import edu.kit.compiler.codegen.pattern.OperandPattern;
 import edu.kit.compiler.codegen.pattern.Pattern;
-import edu.kit.compiler.codegen.pattern.RegisterPattern;
 import edu.kit.compiler.codegen.pattern.ReturnPattern;
 import edu.kit.compiler.codegen.pattern.UnaryInstruction;
-import edu.kit.compiler.codegen.pattern.Division.Type;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 
 public class Patterns {
-    private static final RegisterPattern REGISTER = new RegisterPattern();
-    private static final MemoryPattern MEMORY = new MemoryPattern();
+
+    private static final Pattern<OperandMatch<Register>> REGISTER = OperandPattern.register();
+    private static final Pattern<OperandMatch<Memory>> MEMORY = OperandPattern.memory();
 
     private final Map<ir_opcode, List<Pattern<InstructionMatch>>> map;
 
