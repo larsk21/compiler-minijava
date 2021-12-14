@@ -49,9 +49,10 @@ public class NodeRegisters {
         return registers.toString();
     }
 
+
     // todo this nested class is a pretty dirty workaround
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class Clone extends NodeRegisters {
+    private final class Clone extends NodeRegisters {
         private int registerCount;
 
         @Override

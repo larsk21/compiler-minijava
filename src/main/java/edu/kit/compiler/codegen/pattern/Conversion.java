@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 
 public class Conversion implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Register>> pattern = new RegisterPattern();
+    public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
 
     @Override
     public InstructionMatch match(Node node, NodeRegisters registers) {

@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 
 public final class ReturnPattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Register>> pattern = new RegisterPattern();
+    public final Pattern<OperandMatch<Register>> pattern = OperandPattern.register();
 
     @Override
     public InstructionMatch match(Node node, NodeRegisters registers) {

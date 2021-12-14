@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 
 public class LoadMemory implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Memory>> memory = new MemoryPattern();
+    public final Pattern<OperandMatch<Operand.Memory>> memory = OperandPattern.memory();
 
     @Override
     public InstructionMatch match(Node node, NodeRegisters registers) {

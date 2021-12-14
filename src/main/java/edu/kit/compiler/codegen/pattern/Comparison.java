@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 public class Comparison implements Pattern<ConditionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Register>> pattern = new RegisterPattern();
+    public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
 
     @Override
     public ConditionMatch match(Node node, NodeRegisters registers) {
