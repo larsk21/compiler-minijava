@@ -43,13 +43,6 @@ public class ApplyAssignment {
         this(assignment, sizes, lifetimes, ir, CallingConvention.X86_64);
     }
 
-    /**
-     * Assumes that all register lifetimes interfere.
-     */
-    public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes, List<Block> ir) {
-        this(assignment, sizes, completeLifetimes(assignment.length, ir.size()), ir);
-    }
-
     public AssignmentResult doApply() {
         result = new ArrayList<>();
         LifetimeTracker tracker = new LifetimeTracker();
@@ -146,8 +139,8 @@ public class ApplyAssignment {
     }
 
     private void handleDivOrMod(LifetimeTracker tracker, Instruction instr, int index) {
-        int dividend = instr.getInputRegisters().get(0);
-        int divisor = instr.getInputRegisters().get(1);
+        int dividend = instr.inputRegister(0);
+        int divisor = instr.inputRegister(1);
         int target = instr.getTargetRegister().get();
         assert sizes[dividend] == RegisterSize.QUAD && sizes[divisor] == RegisterSize.QUAD &&
                 sizes[target] == RegisterSize.DOUBLE;

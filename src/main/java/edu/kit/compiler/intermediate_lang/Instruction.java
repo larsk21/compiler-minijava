@@ -127,6 +127,14 @@ public class Instruction {
         return text + suffix;
     }
 
+    public boolean isDivOrMod() {
+        return type == InstructionType.DIV || type == InstructionType.MOD;
+    }
+
+    public int inputRegister(int index) {
+        return inputRegisters.get(index);
+    }
+
     // ==== some helper methods for simplifying construction ====
 
     public void addDataDependency(int instruction) {
