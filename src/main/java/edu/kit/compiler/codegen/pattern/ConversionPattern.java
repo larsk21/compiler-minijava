@@ -15,7 +15,7 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
-public class Conversion implements Pattern<InstructionMatch> {
+public class ConversionPattern implements Pattern<InstructionMatch> {
 
     public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
 

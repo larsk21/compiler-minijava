@@ -18,7 +18,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class Call implements Pattern<InstructionMatch> {
+public class CallPattern implements Pattern<InstructionMatch> {
 
     private final Pattern<OperandMatch<Operand.Register>> register = OperandPattern.register();
 

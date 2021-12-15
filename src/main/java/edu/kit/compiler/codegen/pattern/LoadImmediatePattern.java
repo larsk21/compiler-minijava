@@ -10,39 +10,30 @@ import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
-import firm.Mode;
-import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
-public class LoadMemory implements Pattern<InstructionMatch> {
+public class LoadImmediatePattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Memory>> memory = OperandPattern.memory();
+    public final Pattern<OperandMatch<Operand.Immediate>> immediate = OperandPattern.immediate();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
-        if (node.getOpCode() == ir_opcode.iro_Load) {
-            var match = memory.match(node.getPred(1), matcher);
-            if (match.matches()) {
-                var mode = ((firm.nodes.Load) node).getLoadMode();
-                var destination = matcher.getNewRegister();
-                return new LoadMemoryMatch(node, match, destination, mode);
-            } else {
-                return InstructionMatch.none();
-            }
+        var match = immediate.match(node, matcher);
+        if (match.matches()) {
+            return new LoadImmediateMatch(node, match, matcher.getNewRegister());
         } else {
             return InstructionMatch.none();
         }
     }
-
+    
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class LoadMemoryMatch extends InstructionMatch.Basic {
+    public static final class LoadImmediateMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<Operand.Memory> match;
+        private final OperandMatch<Operand.Immediate> match;
         private final int register;
-        private final Mode mode;
 
         @Override
         public Node getNode() {
@@ -51,10 +42,11 @@ public class LoadMemory implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
+            var operand = match.getOperand();
+            var mode = operand.getMode();
             var target = Operand.register(mode, register);
-
             return Arrays.asList(Instruction.newOp(
-                Util.formatCmd("mov", Util.getSize(mode), match.getOperand(), target),
+                Util.formatCmd("mov", Util.getSize(mode), operand, target),
                 Collections.emptyList(), Optional.empty(), register));
         }
 
@@ -65,7 +57,7 @@ public class LoadMemory implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            return Stream.concat(Stream.of(node.getPred(0)), match.getPredecessors());
+            return match.getPredecessors();
         }
     }
 }

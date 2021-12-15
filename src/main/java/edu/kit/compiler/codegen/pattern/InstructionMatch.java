@@ -65,6 +65,9 @@ public interface InstructionMatch extends Match {
 
     public static abstract class Block extends Some {
         @Override
+        public abstract firm.nodes.Block getNode();
+        
+        @Override
         public void accept(MatchVisitor visitor) {
             visitor.visit(this);
         }
@@ -98,10 +101,6 @@ public interface InstructionMatch extends Match {
         public void accept(MatchVisitor visitor) {
             visitor.visit(this);
         }
-    }
-
-    public static abstract class Jump extends Some {
-        // public abstract
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)

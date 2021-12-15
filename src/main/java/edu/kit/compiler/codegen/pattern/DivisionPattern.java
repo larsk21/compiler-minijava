@@ -15,7 +15,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class Division implements Pattern<InstructionMatch> {
+public class DivisionPattern implements Pattern<InstructionMatch> {
 
     private final Type type;
     private final Pattern<OperandMatch<Operand.Register>> left;
