@@ -9,6 +9,7 @@ import java.util.stream.StreamSupport;
 import edu.kit.compiler.codegen.MatcherState;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
+import firm.nodes.Block;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -17,7 +18,7 @@ public class BlockPattern implements Pattern<InstructionMatch> {
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == ir_opcode.iro_Block) {
-            return new BlockMatch(node, StreamSupport
+            return new BlockMatch((Block) node, StreamSupport
                     .stream(node.getPreds().spliterator(), false)
                     .collect(Collectors.toList()));
         } else {
@@ -28,12 +29,12 @@ public class BlockPattern implements Pattern<InstructionMatch> {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class BlockMatch extends InstructionMatch.Block {
 
-        private final Node node;
+        private final firm.nodes.Block block;
         private final List<Node> predecessors;
 
         @Override
-        public Node getNode() {
-            return node;
+        public firm.nodes.Block getNode() {
+            return block;
         }
 
         @Override
