@@ -40,7 +40,7 @@ public class BasicBlocks {
 
     @Override
     public String toString() {
-        return graph.getEntity().getName() + ": " + blocks.toString();
+        return graph.getEntity().getName() + ": " + blocks;
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

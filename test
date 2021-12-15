@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# get the absolute path to this script (SCRIPT_PATH)
+# see https://stackoverflow.com/a/12197518
+pushd . > /dev/null
+SCRIPT_PATH="${BASH_SOURCE[0]}";
+while ([ -h "${SCRIPT_PATH}" ]); do
+    cd "`dirname "${SCRIPT_PATH}"`"
+    SCRIPT_PATH="$(readlink "`basename "${SCRIPT_PATH}"`")";
+done
+cd "`dirname "${SCRIPT_PATH}"`" > /dev/null
+SCRIPT_PATH="`pwd`";
+popd > /dev/null
+
+# change directory to libfirm submodule
+pushd "${SCRIPT_PATH}/libfirm" > /dev/null
+
+# use debug variant to build libfirm
+FIRM_VARIANT="debug"
+
+# build libfirm using the provided makefile
+make -j variant="$FIRM_VARIANT"
+make_exit=$?
+
+popd > /dev/null
+
+# copy library, so the run script can find it
+LIBRARY_PATH="${SCRIPT_PATH}/target/lib/"
+mkdir -p "${LIBRARY_PATH}" > /dev/null
+cp "${SCRIPT_PATH}/libfirm/build/${FIRM_VARIANT}/libfirm.so" "${LIBRARY_PATH}"
+
+# change the working directory to the project
+# (mvn -f <path> is not as flexible)
+pushd "$SCRIPT_PATH" > /dev/null
+
+# ensure that jFirm can find libfirm library
+export LD_LIBRARY_PATH="${SCRIPT_PATH}/target/lib/"
+
+# ensure compiler can find the standard library implementation
+export STD_LIBRARY_PATH="${SCRIPT_PATH}/lib/stdlib.c"
+
+# build the executable with Maven
+mvn test "$@"
+mvn_exit=$?
+
+# change the working directory back to where we came from
+popd > /dev/null
+
+! (( make_exit || mvn_exit ))
