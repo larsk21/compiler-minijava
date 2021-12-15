@@ -3,7 +3,7 @@ package edu.kit.compiler.codegen.pattern;
 import java.util.Arrays;
 import java.util.Collections;
 
-import edu.kit.compiler.codegen.NodeRegisters;
+import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Memory;
@@ -32,7 +32,7 @@ public final class OperandPattern {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ImmediatePattern implements Pattern<OperandMatch<Immediate>> {
         @Override
-        public OperandMatch<Immediate> match(Node node, NodeRegisters registers) {
+        public OperandMatch<Immediate> match(Node node, MatcherState matcher) {
             if (node.getOpCode() == ir_opcode.iro_Const) {
                 var value = ((Const) node).getTarval();
                 var operand = Operand.immediate(value);
@@ -46,11 +46,11 @@ public final class OperandPattern {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class RegisterPattern implements Pattern<OperandMatch<Register>> {
         @Override
-        public OperandMatch<Register> match(Node node, NodeRegisters registers) {
-            var register = registers.getRegister(node);
-            if (register >= 0) {
+        public OperandMatch<Register> match(Node node, MatcherState matcher) {
+            var register = matcher.getRegister(node);
+            if (register.isPresent()) {
                 var predecessors = Arrays.asList(node);
-                var operand = Operand.register(node.getMode(), register);
+                var operand = Operand.register(node.getMode(), register.get());
                 return OperandMatch.some(operand, predecessors);
             } else {
                 return OperandMatch.none();
@@ -61,10 +61,10 @@ public final class OperandPattern {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class MemoryPattern implements Pattern<OperandMatch<Memory>> {
         @Override
-        public OperandMatch<Memory> match(Node node, NodeRegisters registers) {
-            var register = registers.getRegister(node);
-            if (node.getMode().equals(Mode.getP()) && register >= 0) {
-                var operand = Operand.register(node.getMode(), register);
+        public OperandMatch<Memory> match(Node node, MatcherState matcher) {
+            var register = matcher.getRegister(node);
+            if (node.getMode().equals(Mode.getP()) && register.isPresent()) {
+                var operand = Operand.register(node.getMode(), register.get());
                 var predecessors = Arrays.asList(node);
                 return OperandMatch.some(Operand.memory(operand), predecessors);
             } else {

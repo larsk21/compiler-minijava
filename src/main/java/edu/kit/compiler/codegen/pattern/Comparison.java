@@ -1,10 +1,14 @@
 package edu.kit.compiler.codegen.pattern;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.ExitCondition;
-import edu.kit.compiler.codegen.NodeRegisters;
+import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
+import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.Relation;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Cmp;
@@ -12,44 +16,55 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
-public class Comparison implements Pattern<ConditionMatch> {
+public class Comparison implements Pattern<InstructionMatch> {
 
     public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
 
     @Override
-    public ConditionMatch match(Node node, NodeRegisters registers) {
+    public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == ir_opcode.iro_Cmp) {
             var cmp = (Cmp) node;
             var relation = cmp.getRelation();
-            var left = pattern.match(cmp.getLeft(), registers);
-            var right = pattern.match(cmp.getRight(), registers);
+            var left = pattern.match(cmp.getLeft(), matcher);
+            var right = pattern.match(cmp.getRight(), matcher);
 
             if (left.matches() && right.matches()) {
                 return new ComparisonMatch(relation, left, right);
             } else {
-                return ConditionMatch.none();
+                return InstructionMatch.none();
             }
         } else {
-            return ConditionMatch.none();
+            return InstructionMatch.none();
         }
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class ComparisonMatch extends ConditionMatch.Some {
+    public static final class ComparisonMatch extends InstructionMatch.Some {
 
         private final Relation relation;
         private final OperandMatch<Operand.Register> left;
         private final OperandMatch<Operand.Register> right;
 
         @Override
-        public ExitCondition getCondition() {
-            return ExitCondition.condition(relation, left.getOperand(), right.getOperand());
+        public List<Instruction> getInstructions() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Optional<ExitCondition> getCondition() {
+            return Optional.of(ExitCondition.condition(relation,
+                    left.getOperand(), right.getOperand()));
         }
 
         @Override
         public Stream<Node> getPredecessors() {
+            // TODO Auto-generated method stub
             return Stream.concat(left.getPredecessors(), right.getPredecessors());
         }
 
+        @Override
+        public Optional<Integer> getTargetRegister() {
+            return Optional.empty();
+        }
     }
 }
