@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.NodeRegisters;
+import edu.kit.compiler.codegen.ExitCondition;
+import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.MethodType;
@@ -19,16 +21,16 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class Call implements Pattern<InstructionMatch> {
 
-    private final Pattern<OperandMatch<Operand.Register>> register;
+    private final Pattern<OperandMatch<Operand.Register>> register = OperandPattern.register();
 
     @Override
-    public InstructionMatch match(Node node, NodeRegisters registers) {
+    public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == ir_opcode.iro_Call) {
 
             var arguments = new ArrayList<OperandMatch<Operand.Register>>();
             for (int i = 2; i < node.getPredCount(); ++i) {
                 var pred = node.getPred(i);
-                var match = register.match(pred, registers);
+                var match = register.match(pred, matcher);
 
                 if (match.matches()) {
                     arguments.add(match);
@@ -38,8 +40,8 @@ public class Call implements Pattern<InstructionMatch> {
             }
 
             var call = (firm.nodes.Call) node;
-            var destination = getDestination(call, registers);
-            return new CallMatch(getName(call), arguments, destination);
+            var destination = getDestination(call, matcher::getNewRegister);
+            return new CallMatch(node, getName(call), arguments, destination);
         } else {
             return InstructionMatch.none();
         }
@@ -50,11 +52,10 @@ public class Call implements Pattern<InstructionMatch> {
         return addr.getEntity().getLdName();
     }
 
-    private Optional<Integer> getDestination(firm.nodes.Call node, NodeRegisters registers) {
-        var type = (MethodType) node.getType();
-        return switch (type.getNRess()) {
+    private Optional<Integer> getDestination(firm.nodes.Call node, Supplier<Integer> register) {
+        return switch (((MethodType) node.getType()).getNRess()) {
             case 0 -> Optional.empty();
-            case 1 -> Optional.of(registers.newRegister());
+            case 1 -> Optional.of(register.get());
             default -> throw new UnsupportedOperationException();
         };
     }
@@ -62,6 +63,7 @@ public class Call implements Pattern<InstructionMatch> {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class CallMatch extends InstructionMatch.Some {
 
+        private final Node node;
         private final String callName;
         private final List<OperandMatch<Operand.Register>> arguments;
         private final Optional<Integer> destination;
@@ -69,9 +71,7 @@ public class Call implements Pattern<InstructionMatch> {
         @Override
         public List<Instruction> getInstructions() {
             return Arrays.asList(Instruction.newCall(
-                    getArguments(),
-                    destination,
-                    callName));
+                    getArguments(), destination, callName));
         }
 
         @Override
@@ -81,7 +81,13 @@ public class Call implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            return arguments.stream().flatMap(m -> m.getPredecessors());
+            return Stream.concat(Stream.of(node.getPred(0)),
+                    arguments.stream().flatMap(m -> m.getPredecessors()));
+        }
+
+        @Override
+        public Optional<ExitCondition> getCondition() {
+            return Optional.empty();
         }
 
         private List<Integer> getArguments() {

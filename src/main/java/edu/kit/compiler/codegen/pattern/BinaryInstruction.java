@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.NodeRegisters;
+import edu.kit.compiler.codegen.ExitCondition;
+import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
@@ -19,9 +21,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class BinaryInstruction implements Pattern<InstructionMatch> {
 
-    // todo get rid of the booleans in the constructor
-    // todo either with builder or enums
-
     private final ir_opcode opcode;
     private final String command;
     private final Pattern<? extends OperandMatch<? extends Operand.Destination>> left;
@@ -30,18 +29,18 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
     private final boolean hasMemory;
 
     @Override
-    public InstructionMatch match(Node node, NodeRegisters registers) {
+    public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == opcode) {
             var offset = hasMemory ? 1 : 0;
 
             assert node.getPredCount() == 2 + offset;
-            var lhs = left.match(node.getPred(offset), registers);
-            var rhs = right.match(node.getPred(offset + 1), registers);
+            var lhs = left.match(node.getPred(offset), matcher);
+            var rhs = right.match(node.getPred(offset + 1), matcher);
 
             if (lhs.matches() && rhs.matches()) {
                 var mode = getMode(node);
-                var destination = getDestination(registers);
-                return new BinaryInstructionMatch(lhs, rhs, destination, mode);
+                var destination = getDestination(matcher::getNewRegister);
+                return new BinaryInstructionMatch(node, lhs, rhs, destination, mode);
             } else {
                 return InstructionMatch.none();
             }
@@ -50,12 +49,8 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
         }
     }
 
-    private Optional<Integer> getDestination(NodeRegisters registers) {
-        if (overwritesRegister) {
-            return Optional.of(registers.newRegister());
-        } else {
-            return Optional.empty();
-        }
+    private Optional<Integer> getDestination(Supplier<Integer> register) {
+        return overwritesRegister ? Optional.of(register.get()) : Optional.empty();
     }
 
     private Mode getMode(Node node) {
@@ -71,6 +66,7 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class BinaryInstructionMatch extends InstructionMatch.Some {
 
+        private final Node node;
         private final OperandMatch<? extends Operand.Destination> left;
         private final OperandMatch<Operand.Register> right;
         private final Optional<Integer> destination;
@@ -88,6 +84,19 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
         @Override
         public Optional<Integer> getTargetRegister() {
             return destination;
+        }
+
+        public Stream<Node> getPredecessors() {
+            var preds = Stream.concat(left.getPredecessors(), right.getPredecessors());
+            if (hasMemory) {
+                preds = Stream.concat(Stream.of(node.getPred(0)), preds);
+            }
+
+            return preds;
+        }
+
+        public Optional<ExitCondition> getCondition() {
+            return Optional.empty();
         }
 
         private Instruction getAsOperation() {
@@ -121,11 +130,6 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
             input.addAll(right.getOperand().getSourceRegisters());
 
             return input;
-        }
-
-        @Override
-        public Stream<Node> getPredecessors() {
-            return Stream.concat(left.getPredecessors(), right.getPredecessors());
         }
     }
 }

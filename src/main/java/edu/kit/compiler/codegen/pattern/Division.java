@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.NodeRegisters;
+import edu.kit.compiler.codegen.ExitCondition;
+import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.bindings.binding_irnode.ir_opcode;
@@ -22,16 +23,16 @@ public class Division implements Pattern<InstructionMatch> {
     private final Pattern<OperandMatch<Operand.Register>> right;
 
     @Override
-    public InstructionMatch match(Node node, NodeRegisters registers) {
+    public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == type.getOpcode()) {
             assert node.getPredCount() == 3;
 
-            var lhs = left.match(node.getPred(1), registers);
-            var rhs = right.match(node.getPred(2), registers);
-            var destination = registers.newRegister();
+            var lhs = left.match(node.getPred(1), matcher);
+            var rhs = right.match(node.getPred(2), matcher);
+            var destination = matcher.getNewRegister();
 
             if (lhs.matches() && rhs.matches()) {
-                return new DivisionMatch(lhs, rhs, destination);
+                return new DivisionMatch(node, lhs, rhs, destination);
             } else {
                 return InstructionMatch.none();
             }
@@ -70,6 +71,7 @@ public class Division implements Pattern<InstructionMatch> {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class DivisionMatch extends InstructionMatch.Some {
 
+        private final Node node;
         private final OperandMatch<Operand.Register> left;
         private final OperandMatch<Operand.Register> right;
         private final int destination;
@@ -89,7 +91,13 @@ public class Division implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            return Stream.concat(left.getPredecessors(), right.getPredecessors());
+            return Stream.concat(Stream.of(node.getPred(0)),
+                    Stream.concat(left.getPredecessors(), right.getPredecessors()));
+        }
+
+        @Override
+        public Optional<ExitCondition> getCondition() {
+            return Optional.empty();
         }
     }
 }

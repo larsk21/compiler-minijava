@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.NodeRegisters;
+import edu.kit.compiler.codegen.ExitCondition;
+import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
@@ -20,14 +21,14 @@ public class Conversion implements Pattern<InstructionMatch> {
     public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
 
     @Override
-    public InstructionMatch match(Node node, NodeRegisters registers) {
+    public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == ir_opcode.iro_Conv) {
             var pred = node.getPred(0);
-            var match = pattern.match(pred, registers);
+            var match = pattern.match(pred, matcher);
             if (match.matches()) {
                 var from = pred.getMode();
                 var to = node.getMode();
-                var destination = registers.newRegister();
+                var destination = matcher.getNewRegister();
                 return new ConversionMatch(match, destination, from, to);
             } else {
                 return InstructionMatch.none();
@@ -38,8 +39,7 @@ public class Conversion implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class ConversionMatch extends InstructionMatch.Some {
-
+    public static final class ConversionMatch extends InstructionMatch.Some {
         private final OperandMatch<Operand.Register> match;
         private final int destination;
         private final Mode from;
@@ -63,6 +63,11 @@ public class Conversion implements Pattern<InstructionMatch> {
         @Override
         public Stream<Node> getPredecessors() {
             return match.getPredecessors();
+        }
+
+        @Override
+        public Optional<ExitCondition> getCondition() {
+            return Optional.empty();
         }
 
         public String getCmd() {

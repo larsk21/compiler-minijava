@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.NodeRegisters;
+import edu.kit.compiler.codegen.ExitCondition;
+import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
@@ -26,15 +28,15 @@ public class UnaryInstruction implements Pattern<InstructionMatch> {
     private final boolean hasMemory;
 
     @Override
-    public InstructionMatch match(Node node, NodeRegisters registers) {
+    public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == opcode) {
             assert node.getPredCount() == 1 + getOffset();
-            var match = operand.match(node.getPred(getOffset()), registers);
+            var match = operand.match(node.getPred(getOffset()), matcher);
 
             if (match.matches()) {
                 var mode = match.getOperand().getMode();
-                var destination = getDestination(registers);
-                return new UnaryInstructionMatch(match, destination, mode);
+                var destination = getDestination(matcher::getNewRegister);
+                return new UnaryInstructionMatch(node, match, destination, mode);
             } else {
                 return InstructionMatch.none();
             }
@@ -47,17 +49,14 @@ public class UnaryInstruction implements Pattern<InstructionMatch> {
         return hasMemory ? 1 : 0;
     }
 
-    private Optional<Integer> getDestination(NodeRegisters registers) {
-        if (overwritesRegister) {
-            return Optional.of(registers.newRegister());
-        } else {
-            return Optional.empty();
-        }
+    private Optional<Integer> getDestination(Supplier<Integer> register) {
+        return overwritesRegister ? Optional.of(register.get()) : Optional.empty();
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class UnaryInstructionMatch extends InstructionMatch.Some {
 
+        private final Node node;
         private final OperandMatch<? extends Operand.Destination> match;
         private final Optional<Integer> destination;
         private final Mode mode;
@@ -78,7 +77,17 @@ public class UnaryInstruction implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            return match.getPredecessors();
+            var preds = match.getPredecessors();
+            if (hasMemory) {
+                preds = Stream.concat(Stream.of(node.getPred(0)), preds);
+            }
+
+            return preds;
+        }
+
+        @Override
+        public Optional<ExitCondition> getCondition() {
+            return Optional.empty();
         }
 
         private Instruction getAsOperation() {

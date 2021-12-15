@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.NodeRegisters;
+import edu.kit.compiler.codegen.ExitCondition;
+import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
@@ -19,10 +20,10 @@ public class LoadImmediate implements Pattern<InstructionMatch> {
     public final Pattern<OperandMatch<Operand.Immediate>> immediate = OperandPattern.immediate();
 
     @Override
-    public InstructionMatch match(Node node, NodeRegisters registers) {
-        var match = immediate.match(node, registers);
+    public InstructionMatch match(Node node, MatcherState matcher) {
+        var match = immediate.match(node, matcher);
         if (match.matches()) {
-            return new LoadImmediateMatch(match, registers.newRegister());
+            return new LoadImmediateMatch(match, matcher.getNewRegister());
         } else {
             return InstructionMatch.none();
         }
@@ -52,6 +53,11 @@ public class LoadImmediate implements Pattern<InstructionMatch> {
         @Override
         public Stream<Node> getPredecessors() {
             return match.getPredecessors();
+        }
+
+        @Override
+        public Optional<ExitCondition> getCondition() {
+            return Optional.empty();
         }
     }
 }
