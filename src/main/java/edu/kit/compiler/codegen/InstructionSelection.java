@@ -1,18 +1,16 @@
 package edu.kit.compiler.codegen;
 
-import edu.kit.compiler.codegen.pattern.Comparison;
+import java.util.Arrays;
+
+import edu.kit.compiler.codegen.pattern.InstructionMatch;
+import edu.kit.compiler.codegen.pattern.MatchVisitor;
 import firm.Graph;
 import firm.MethodType;
 import firm.bindings.binding_irnode.ir_opcode;
-import firm.nodes.Block;
-import firm.nodes.Cond;
-import firm.nodes.End;
 import firm.nodes.Jmp;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
-import firm.nodes.Phi;
 import firm.nodes.Proj;
-import firm.nodes.Start;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -20,57 +18,90 @@ import lombok.RequiredArgsConstructor;
 public final class InstructionSelection {
 
     @Getter
-    private final BasicBlocks blocks;
+    private final MatcherState matcher;
 
     @Getter
-    private final NodeRegisters registers;
+    private final BasicBlocks blocks;
 
     private InstructionSelection(Graph graph) {
         // todo is this the idiomatic way of getting number of parameters
         var type = (MethodType) graph.getEntity().getType();
-        registers = new NodeRegisters(type.getNParams());
+        matcher = new MatcherState(graph, type.getNParams());
         blocks = new BasicBlocks(graph);
     }
 
     public static InstructionSelection apply(Graph graph, Patterns patterns) {
         var instance = new InstructionSelection(graph);
 
-        var visitor = instance.new Visitor(patterns);
-        graph.walkTopological(visitor);
+        var matchingVisitor = instance.new MatchingVisitor(patterns);
+        graph.walkTopological(matchingVisitor);
+
+        var collectingVisitor = instance.new CollectingVisitor(instance.blocks);
+        instance.matcher.walkTopological(collectingVisitor);
 
         return instance;
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private final class Visitor extends NodeVisitor.Default {
+    private final class CollectingVisitor implements MatchVisitor {
+
+        private final BasicBlocks blocks;
+
+        @Override
+        public void visit(InstructionMatch.Block match) {
+            // a block is visited before all of the contained nodes
+            var block = match.getNode();
+            blocks.register(block);
+            for (var pred : block.getPreds()) {
+                var entry = blocks.getEntry(pred.getBlock());
+                if (pred.getOpCode() == ir_opcode.iro_Proj) {
+                    entry.setDestination((Proj) pred, block);
+                } else if (pred.getOpCode() == ir_opcode.iro_Jmp) {
+                    entry.setDestination((Jmp) pred, block);
+                }
+            }
+        }
+
+        @Override
+        public void visit(InstructionMatch.Basic match) {
+            var node = match.getNode();
+            var entry = blocks.getEntry(node.getBlock());
+            entry.append(match);
+        }
+
+        @Override
+        public void visit(InstructionMatch.Phi match) {
+            var entry = blocks.getEntry(match.getNode().getBlock());
+            entry.addPhi(match.getPhiInstruction());
+        }
+
+        @Override
+        public void visit(InstructionMatch.Condition match) {
+            var node = match.getNode();
+            switch (node.getOpCode()) {
+                case iro_Jmp, iro_Cond -> {
+                    var entry = blocks.getEntry(node.getBlock());
+                    entry.setExitCondition(match.getCondition());
+                }
+                default -> {
+                }
+            }
+        }
+    }
+
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private final class MatchingVisitor extends NodeVisitor.Default {
 
         private final Patterns patterns;
 
         @Override
         public void defaultVisit(Node node) {
-            var match = patterns.match(node, registers);
+            var match = patterns.match(node, matcher);
             if (match.matches()) {
-                blocks.getEntry(node.getBlock()).append(match);
-                var targetRegister = match.getTargetRegister();
-                if (targetRegister.isPresent()) {
-                    registers.setRegister(node, targetRegister.get());
-                }
+                matcher.setMatch(node, match);
             } else {
-                // throw new IllegalStateException();
-            }
-        }
-
-        @Override
-        public void visit(Block node) {
-            // a block is visited before all of the contained nodes
-            blocks.register(node);
-            for (var pred : node.getPreds()) {
-                var entry = blocks.getEntry(pred.getBlock());
-                if (pred.getOpCode() == ir_opcode.iro_Proj) {
-                    entry.setDestination((Proj)pred, node);
-                } else if (pred.getOpCode() == ir_opcode.iro_Jmp) {
-                    entry.setDestination((Jmp)pred, node);
-                }
+                var name = node.getGraph().getEntity().getName();
+                throw new IllegalStateException(name + ": no match for node " + node.getNr());
             }
         }
 
@@ -78,76 +109,36 @@ public final class InstructionSelection {
         public void visit(Proj node) {
             // todo put this in patterns?
 
-            var args = node.getGraph().getArgs();
             // todo: is comparison of Nr correct here?
-            if (node.getPred().getNr() == args.getNr()) {
+            if (node.getPred().getNr() == node.getGraph().getArgs().getNr()) {
                 // node is a parameter projection of the function
-                registers.setRegister(node, node.getNum());
+                matcher.setMatch(node, InstructionMatch.empty(node, node.getNum()));
 
             } else if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {
-                // Nothing to do for sucessor of Cond
+                var preds = Arrays.asList(node.getPred());
+                matcher.setMatch(node, InstructionMatch.empty(node, preds));
 
-            } else {
+            } else if (node.getMode().isData()) {
                 var pred = node.getPred();
                 if (pred.getOpCode() == ir_opcode.iro_Proj) {
                     // Deal with double projection for results
                     pred = pred.getPred(0);
                 }
 
-                var register = registers.getRegister(pred);
-                if (node.getMode().isData() && register >= 0) {
-                    registers.setRegister(node, register);
+                var predMatch = matcher.getMatch(pred);
+                if (predMatch != null) {
+                    var preds = Arrays.asList(pred);
+                    matcher.setMatch(node, predMatch.getTargetRegister()
+                            .map(r -> InstructionMatch.empty(node, preds, r))
+                            .orElseGet(() -> InstructionMatch.empty(node, preds)));
                 } else {
-                    defaultVisit(node);
+                    // todo
+                    // defaultVisit(node);
+                    // throw new UnsupportedOperationException("" + node.getNr());
                 }
-            }
-        }
-
-        @Override
-        public void visit(Cond node) {
-            var pattern = new Comparison();
-            var match = pattern.match(node.getSelector(), registers.clone());
-            if (match.matches()) {
-                var entry = blocks.getEntry(node.getBlock());
-                entry.setExitCondition(match.getCondition());
             } else {
-                throw new UnsupportedOperationException();
+                matcher.setMatch(node, InstructionMatch.empty(node, node.getPred()));
             }
-        }
-
-        @Override
-        public void visit(Jmp node) {
-            var entry = blocks.getEntry(node.getBlock());
-            entry.setExitCondition(ExitCondition.unconditional());
-        }
-
-        @Override
-        public void visit(Phi node) {
-            var target = registers.newRegister();
-            registers.setRegister(node, target);
-            var phi = new PhiInstruction(target, node.getMode());
-            
-            assert node.getPredCount() == node.getBlock().getPredCount();
-            for (int i = 0; i < node.getPredCount(); ++i) {
-                var register = registers.getRegister(node.getPred(i));
-                var predBlock = node.getBlock().getPred(i);
-
-                if (register >= 0) {
-                    phi.addEntry(predBlock, register);
-                } else {
-                    throw new IllegalStateException();
-                }
-            }
-
-            blocks.getEntry(node.getBlock()).addPhi(phi);
-        }
-
-        @Override
-        public void visit(Start node) {
-        }
-
-        @Override
-        public void visit(End node) {
         }
     }
 }
