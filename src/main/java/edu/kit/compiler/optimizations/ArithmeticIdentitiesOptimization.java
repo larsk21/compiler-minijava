@@ -11,6 +11,7 @@ import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -53,7 +54,7 @@ import lombok.RequiredArgsConstructor;
  */
 public final class ArithmeticIdentitiesOptimization implements Optimization {
     @Override
-    public void optimize(Graph graph) {
+    public boolean optimize(Graph graph) {
         boolean backEdgesEnabled = BackEdges.enabled(graph);
         BackEdges.enable(graph);
 
@@ -63,6 +64,8 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         if (!backEdgesEnabled) {
             BackEdges.disable(graph);
         }
+
+        return visitor.isChanges();
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -70,6 +73,9 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         private final Graph graph;
 
         private final Worklist<Node> worklist = new DequeWorklist<>();
+
+        @Getter
+        private boolean changes = false;
 
         private final void apply() {
             graph.walkTopological(new WorklistFiller(worklist));
@@ -83,10 +89,10 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         public void visit(Add node) {
             if (isConstZero(node.getLeft())) {
                 // 0 + x --> x
-                Graph.exchange(node, node.getRight());
+                exchange(node, node.getRight());
             } else if (isConstZero(node.getRight())) {
                 // x + 0 --> x
-                Graph.exchange(node, node.getLeft());
+                exchange(node, node.getLeft());
 
             } else if (node.getLeft().getOpCode() == ir_opcode.iro_Minus) {
                 // (-x) + y --> y - x
@@ -94,19 +100,19 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 var left = node.getRight();
                 var right = node.getLeft().getPred(0);
                 var sub = graph.newSub(node.getBlock(), left, right);
-                Graph.exchange(node, enqueued(sub));
+                exchange(node, enqueued(sub));
             } else if (node.getRight().getOpCode() == ir_opcode.iro_Minus) {
                 // x + (-y) --> x - y
                 assert node.getRight().getPredCount() == 1;
                 var left = node.getLeft();
                 var right = node.getRight().getPred(0);
                 var sub = graph.newSub(node.getBlock(), left, right);
-                Graph.exchange(node, enqueued(sub));
+                exchange(node, enqueued(sub));
 
             } else if (isOnlyLeftConst(node.getLeft(), node.getRight())) {
                 // Normalization: c + x --> x + c
                 var add = graph.newAdd(node.getBlock(), node.getRight(), node.getLeft());
-                Graph.exchange(node, enqueued(add));
+                exchange(node, enqueued(add));
 
             } else if (node.getRight().getOpCode() == ir_opcode.iro_Const) {
                 // (x + c) + d --> x + (c + d)
@@ -121,17 +127,17 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 // 0 - x --> -x
                 var minusNode = graph.newMinus(node.getBlock(), node.getRight());
                 worklist.enqueue(minusNode);
-                Graph.exchange(node, minusNode);
+                exchange(node, minusNode);
             } else if (isConstZero(node.getRight())) {
                 // x - 0 --> x
-                Graph.exchange(node, node.getLeft());
+                exchange(node, node.getLeft());
             } else if (node.getRight().getOpCode() == ir_opcode.iro_Minus) {
                 // x - (-y) --> x + y
                 assert node.getRight().getPredCount() == 1;
                 var left = node.getLeft();
                 var right = node.getRight().getPred(0);
                 var add = graph.newAdd(node.getBlock(), left, right);
-                Graph.exchange(node, enqueued(add));
+                exchange(node, enqueued(add));
 
             } else if (isOnlyLeftConst(node.getRight(), node.getLeft())) {
                 // Normalization: x - c --> x + (-c)
@@ -140,7 +146,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 var left = node.getLeft();
                 var right = graph.newConst(constValue.neg());
                 var add = graph.newAdd(node.getBlock(), left, right);
-                Graph.exchange(node, enqueued(add));
+                exchange(node, enqueued(add));
 
             } else if (node.getLeft().getOpCode() == ir_opcode.iro_Const) {
                 // c - (x + d) --> (c - d) - x
@@ -156,7 +162,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 case iro_Minus -> {
                     // -(-x) --> x
                     assert operand.getPredCount() == 1;
-                    Graph.exchange(node, operand.getPred(0));
+                    exchange(node, operand.getPred(0));
                 }
                 case iro_Add -> {
                     assert operand.getPredCount() == 2;
@@ -165,7 +171,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                         // - (x + c) --> -c - x
                         var constNode = graph.newConst(constValue.neg());
                         var subNode = graph.newSub(node.getBlock(), constNode, operand.getPred(0));
-                        Graph.exchange(node, enqueued(subNode));
+                        exchange(node, enqueued(subNode));
                     }
                 }
                 case iro_Sub -> {
@@ -174,7 +180,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                     var left = operand.getPred(0);
                     var right = operand.getPred(1);
                     var sub = graph.newSub(node.getBlock(), right, left);
-                    Graph.exchange(node, enqueued(sub));
+                    exchange(node, enqueued(sub));
                 }
                 case iro_Mul -> {
                     assert operand.getPredCount() == 2;
@@ -183,7 +189,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                         // - (x * c) --> x * -c
                         var constNode = graph.newConst(constValue.neg());
                         var mulNode = graph.newMul(node.getBlock(), operand.getPred(0), constNode);
-                        Graph.exchange(node, enqueued(mulNode));
+                        exchange(node, enqueued(mulNode));
                     }
                 }
                 default -> {
@@ -195,33 +201,33 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         public void visit(Mul node) {
             if (isConstOne(node.getLeft())) {
                 // 1 * x --> x
-                Graph.exchange(node, node.getRight());
+                exchange(node, node.getRight());
             } else if (isConstOne(node.getRight())) {
                 // x * 1 --> x
-                Graph.exchange(node, node.getLeft());
+                exchange(node, node.getLeft());
 
             } else if (isConstZero(node.getLeft())) {
                 // 0 * x --> 0
                 var zero = node.getRight().getMode().getNull();
-                Graph.exchange(node, graph.newConst(zero));
+                exchange(node, graph.newConst(zero));
             } else if (isConstZero(node.getRight())) {
                 // x * 0 --> 0
                 var zero = node.getLeft().getMode().getNull();
-                Graph.exchange(node, graph.newConst(zero));
+                exchange(node, graph.newConst(zero));
 
             } else if (isConstNegOne(node.getLeft())) {
                 // -1 * x --> -x
                 var minus = graph.newMinus(node.getBlock(), node.getRight());
-                Graph.exchange(node, enqueued(minus));
+                exchange(node, enqueued(minus));
             } else if (isConstNegOne(node.getRight())) {
                 // x * -1 --> -x
                 var minus = graph.newMinus(node.getBlock(), node.getLeft());
-                Graph.exchange(node, enqueued(minus));
+                exchange(node, enqueued(minus));
 
             } else if (isOnlyLeftConst(node.getLeft(), node.getRight())) {
                 // Normalization: c * x --> x * c
                 var mul = graph.newMul(node.getBlock(), node.getRight(), node.getLeft());
-                Graph.exchange(node, enqueued(mul));
+                exchange(node, enqueued(mul));
 
             } else if (node.getRight().getOpCode() == ir_opcode.iro_Const) {
                 // (x * c) * d --> x * (c * d)
@@ -260,7 +266,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 if (node.getMode() == Mode.getIs()
                         && op.getMode() == Mode.getLs()
                         && op.getOp().getMode() == Mode.getIs()) {
-                    Graph.exchange(node, op.getOp());
+                    exchange(node, op.getOp());
                 }
             }
         }
@@ -289,7 +295,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                         ? graph.newSub(node.getBlock(), newConst, restNode)
                         : graph.newAdd(node.getBlock(), restNode, newConst);
 
-                Graph.exchange(node, enqueued(newNode));
+                exchange(node, enqueued(newNode));
             }
         }
 
@@ -310,7 +316,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 var constNode = graph.newConst(leftConst.mul(rightConst));
                 var newNode = graph.newMul(node.getBlock(), restNode, constNode);
 
-                Graph.exchange(node, enqueued(newNode));
+                exchange(node, enqueued(newNode));
             }
         }
 
@@ -324,9 +330,9 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
 
             for (var edge : BackEdges.getOuts(node)) {
                 if (edge.node.getMode().equals(Mode.getM())) {
-                    Graph.exchange(edge.node, mem);
+                    exchange(edge.node, mem);
                 } else if (edge.node.getMode().equals(val.getMode())) {
-                    Graph.exchange(edge.node, val);
+                    exchange(edge.node, val);
                 } else {
                     throw new UnsupportedOperationException(
                             "Div control flow projections not supported");
@@ -424,6 +430,14 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         private Node enqueued(Node node) {
             worklist.enqueue(node);
             return node;
+        }
+
+        /**
+         * Wrapper for `Graph.exchange` to set the `changes` field.
+         */
+        private void exchange(Node oldNode, Node newNode) {
+            Graph.exchange(oldNode, newNode);
+            this.changes = true;
         }
     }
 }
