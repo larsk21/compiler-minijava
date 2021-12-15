@@ -12,7 +12,7 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
-public class Block implements Pattern<InstructionMatch> {
+public class BlockPattern implements Pattern<InstructionMatch> {
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {

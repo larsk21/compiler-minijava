@@ -13,7 +13,7 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
-public class Comparison implements Pattern<InstructionMatch> {
+public class ComparisonPattern implements Pattern<InstructionMatch> {
 
     public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
 

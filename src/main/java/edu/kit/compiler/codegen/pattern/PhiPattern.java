@@ -14,7 +14,7 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
-public final class Phi implements Pattern<InstructionMatch> {
+public final class PhiPattern implements Pattern<InstructionMatch> {
 
     public final Pattern<OperandMatch<Register>> pattern = OperandPattern.register();
 

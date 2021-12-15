@@ -105,7 +105,7 @@ public class BasicBlocks {
             instructions.add(instruction);
         }
 
-        public void append(InstructionMatch match) {
+        public void append(InstructionMatch.Basic match) {
             assert match.matches();
             instructions.addAll(match.getInstructions());
         }
