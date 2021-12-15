@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import edu.kit.compiler.data.DataType;
 import edu.kit.compiler.data.Literal;
+import edu.kit.compiler.data.Operator;
 import edu.kit.compiler.data.DataType.DataTypeClass;
 import edu.kit.compiler.data.Operator.BinaryOperator;
 import edu.kit.compiler.data.Operator.UnaryOperator;
@@ -763,6 +764,114 @@ public class ConstantOptimizationTest {
         while (optimization.optimize(graph)) { }
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
+    }
+
+    @Test
+    public void testMemoryDependencySkipTwo() {
+        // y <- x / 2
+        // z <- 18 / 2 (const)
+        // z <- z / 3  (const)
+        // z <- y / z
+        // ->
+        // y <- x / 2
+        // z <- y / 3
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.empty(), false),
+            new StatementNode.ExpressionStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Assignment,
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                    new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Division,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("x"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                    false),
+                false),
+            false),
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("z"), Optional.empty(), false),
+            new StatementNode.ExpressionStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Assignment,
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("z"), false),
+                    new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Division,
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(18), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                    false),
+                false),
+            false),
+            new StatementNode.ExpressionStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Assignment,
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("z"), false),
+                    new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Division,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("z"), false),
+                        new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(3), false),
+                    false),
+                false),
+            false),
+            new StatementNode.ExpressionStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Assignment,
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("z"), false),
+                    new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Division,
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                        new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("z"), false),
+                    false),
+                false),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("z"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        List<Node> nodes = getNodes(graph);
+
+        long numberOfDivs = nodes.stream().filter(node -> node instanceof Div).count();
+        assertEquals(2, numberOfDivs);
+
+        long numberOfMemoryProjs = nodes.stream().filter(node -> node instanceof Proj && node.getMode().equals(Mode.getM())).count();
+        assertEquals(5, numberOfMemoryProjs);
+    }
+
+    @Test
+    public void testMemoryDependencyMemoryPhi() {
+        // if (x > 0) { x / 2 }
+        // z <- 4 / 2 (const)
+        // ->
+        // if (x > 0) { x / 2 }
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.GreaterThan,
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("x"), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(0), false),
+                false),
+                new StatementNode.BlockStatementNode(0, 0, Arrays.asList(
+                    new StatementNode.ExpressionStatementNode(0, 0,
+                        new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Division,
+                            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("x"), false),
+                            new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                        false),
+                    false)
+                ), false),
+            Optional.empty(), false),
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.of(
+                new ExpressionNode.BinaryExpressionNode(0, 0, Operator.BinaryOperator.Division,
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(4), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(2), false),
+                false)
+            ), false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        List<Node> nodes = getNodes(graph);
+
+        long numberOfDivs = nodes.stream().filter(node -> node instanceof Div).count();
+        assertEquals(1, numberOfDivs);
     }
 
 }
