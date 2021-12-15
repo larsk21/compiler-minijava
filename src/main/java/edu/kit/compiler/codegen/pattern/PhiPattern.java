@@ -22,9 +22,9 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == ir_opcode.iro_Phi) {
             var preds = StreamSupport
-                .stream(node.getPreds().spliterator(), false)
-                .map(pred -> pattern.match(pred, matcher))
-                .collect(Collectors.toList());
+                    .stream(node.getPreds().spliterator(), false)
+                    .map(pred -> pattern.match(pred, matcher))
+                    .collect(Collectors.toList());
             if (preds.stream().allMatch(match -> match.matches())) {
                 return new PhiMatch(node, preds, matcher.getNewRegister());
             } else {
@@ -50,7 +50,16 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
 
         @Override
         public PhiInstruction getPhiInstruction() {
-            throw new UnsupportedOperationException("todo");
+            var phi = new PhiInstruction(destination, node.getMode());
+
+            assert node.getPredCount() == node.getBlock().getPredCount();
+            for (int i = 0; i < node.getPredCount(); ++i) {
+                var register = preds.get(i).getOperand().get();
+                var predBlock = node.getBlock().getPred(i);
+                phi.addEntry(predBlock, register);
+            }
+
+            return phi;
         }
 
         @Override

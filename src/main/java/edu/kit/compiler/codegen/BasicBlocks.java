@@ -87,6 +87,8 @@ public class BasicBlocks {
                     condition.setTrueBlock(entry);
                 } else if (node.getNum() == Cond.pnFalse) {
                     condition.setFalseBlock(entry);
+                } else {
+                    throw new IllegalStateException();
                 }
             } else {
                 throw new UnsupportedOperationException("other control flow not supported");
