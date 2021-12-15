@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 
 public interface InstructionMatch extends Match {
 
+    public abstract Node getNode();
+
     public abstract Optional<Integer> getTargetRegister();
 
     public abstract void accept(MatchVisitor visitor);
@@ -23,28 +25,33 @@ public interface InstructionMatch extends Match {
         return new None();
     }
 
-    public static InstructionMatch empty() {
-        return new Empty(Collections.emptyList(), Optional.empty());
+    public static InstructionMatch empty(Node node) {
+        return new Empty(node, Collections.emptyList(), Optional.empty());
     }
 
-    public static InstructionMatch empty(Node predecessor) {
-        return new Empty(Arrays.asList(predecessor), Optional.empty());
+    public static InstructionMatch empty(Node node, Node predecessor) {
+        return new Empty(node, Arrays.asList(predecessor), Optional.empty());
     }
 
-    public static InstructionMatch empty(int register) {
-        return new Empty(Collections.emptyList(), Optional.of(register));
+    public static InstructionMatch empty(Node node, int register) {
+        return new Empty(node, Collections.emptyList(), Optional.of(register));
     }
 
-    public static InstructionMatch empty(List<Node> predecessors) {
-        return new Empty(predecessors, Optional.empty());
+    public static InstructionMatch empty(Node node, List<Node> predecessors) {
+        return new Empty(node, predecessors, Optional.empty());
     }
 
-    public static InstructionMatch empty(List<Node> predecessors, int register) {
-        return new Empty(predecessors, Optional.of(register));
+    public static InstructionMatch empty(Node node, List<Node> predecessors, int register) {
+        return new Empty(node, predecessors, Optional.of(register));
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
     public static final class None extends Match.None implements InstructionMatch {
+        @Override
+        public Node getNode() {
+            throw new UnsupportedOperationException();
+        }
+
         @Override
         public Optional<Integer> getTargetRegister() {
             throw new UnsupportedOperationException();
@@ -104,8 +111,14 @@ public interface InstructionMatch extends Match {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class Empty extends Some {
 
+        private final Node node;
         private final List<Node> predecessors;
         private final Optional<Integer> register;
+
+        @Override
+        public Node getNode() {
+            return node;
+        }
 
         @Override
         public Optional<Integer> getTargetRegister() {

@@ -68,6 +68,11 @@ public class Call implements Pattern<InstructionMatch> {
         private final Optional<Integer> destination;
 
         @Override
+        public Node getNode() {
+            return node;
+        }
+
+        @Override
         public List<Instruction> getInstructions() {
             return Arrays.asList(Instruction.newCall(
                     getArguments(), destination, callName));

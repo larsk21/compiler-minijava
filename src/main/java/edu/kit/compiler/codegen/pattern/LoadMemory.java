@@ -45,6 +45,11 @@ public class LoadMemory implements Pattern<InstructionMatch> {
         private final Mode mode;
 
         @Override
+        public Node getNode() {
+            return node;
+        }
+
+        @Override
         public List<Instruction> getInstructions() {
             var target = Operand.register(mode, register);
 

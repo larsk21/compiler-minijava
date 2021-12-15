@@ -28,7 +28,7 @@ public class Conversion implements Pattern<InstructionMatch> {
                 var from = pred.getMode();
                 var to = node.getMode();
                 var destination = matcher.getNewRegister();
-                return new ConversionMatch(match, destination, from, to);
+                return new ConversionMatch(node, match, destination, from, to);
             } else {
                 return InstructionMatch.none();
             }
@@ -39,10 +39,17 @@ public class Conversion implements Pattern<InstructionMatch> {
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ConversionMatch extends InstructionMatch.Basic {
+
+        private final Node node;
         private final OperandMatch<Operand.Register> match;
         private final int destination;
         private final Mode from;
         private final Mode to;
+
+        @Override
+        public Node getNode() {
+            return node;
+        }
 
         @Override
         public List<Instruction> getInstructions() {

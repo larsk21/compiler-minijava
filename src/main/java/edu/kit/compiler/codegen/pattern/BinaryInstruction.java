@@ -72,6 +72,11 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
         private final Mode mode;
 
         @Override
+        public Node getNode() {
+            return node;
+        }
+
+        @Override
         public List<Instruction> getInstructions() {
             if (destination.isPresent()) {
                 return Arrays.asList(getAsOperation());

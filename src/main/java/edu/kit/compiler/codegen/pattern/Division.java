@@ -76,6 +76,11 @@ public class Division implements Pattern<InstructionMatch> {
         private final int destination;
 
         @Override
+        public Node getNode() {
+            return node;
+        }
+
+        @Override
         public List<Instruction> getInstructions() {
             return Arrays.asList(type.getInstruction(
                     left.getOperand().get(),
