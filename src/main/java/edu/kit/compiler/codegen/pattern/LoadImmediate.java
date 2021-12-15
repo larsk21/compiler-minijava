@@ -22,7 +22,7 @@ public class LoadImmediate implements Pattern<InstructionMatch> {
     public InstructionMatch match(Node node, MatcherState matcher) {
         var match = immediate.match(node, matcher);
         if (match.matches()) {
-            return new LoadImmediateMatch(match, matcher.getNewRegister());
+            return new LoadImmediateMatch(node, match, matcher.getNewRegister());
         } else {
             return InstructionMatch.none();
         }
@@ -31,8 +31,14 @@ public class LoadImmediate implements Pattern<InstructionMatch> {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class LoadImmediateMatch extends InstructionMatch.Basic {
 
+        private final Node node;
         private final OperandMatch<Operand.Immediate> match;
         private final int register;
+
+        @Override
+        public Node getNode() {
+            return node;
+        }
 
         @Override
         public List<Instruction> getInstructions() {

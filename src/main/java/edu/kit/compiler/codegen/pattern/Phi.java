@@ -26,7 +26,7 @@ public final class Phi implements Pattern<InstructionMatch> {
                 .map(pred -> pattern.match(pred, matcher))
                 .collect(Collectors.toList());
             if (preds.stream().allMatch(match -> match.matches())) {
-                return new PhiMatch(preds, matcher.getNewRegister());
+                return new PhiMatch(node, preds, matcher.getNewRegister());
             } else {
                 return InstructionMatch.none();
             }
@@ -37,10 +37,16 @@ public final class Phi implements Pattern<InstructionMatch> {
 
     // todo what about memory phi
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class PhiMatch extends InstructionMatch.Phi {
+    private static final class PhiMatch extends InstructionMatch.Phi {
 
+        private final Node node;
         private final List<OperandMatch<Register>> preds;
         private final int destination;
+
+        @Override
+        public Node getNode() {
+            return node;
+        }
 
         @Override
         public PhiInstruction getPhiInstruction() {

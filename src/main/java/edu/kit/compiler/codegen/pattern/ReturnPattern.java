@@ -45,6 +45,11 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
         private final Optional<OperandMatch<Register>> match;
 
         @Override
+        public Node getNode() {
+            return node;
+        }
+
+        @Override
         public List<Instruction> getInstructions() {
             var register = match.map(match -> match.getOperand().get());
             return Arrays.asList(Instruction.newRet(register));

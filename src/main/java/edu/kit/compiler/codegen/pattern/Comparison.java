@@ -26,7 +26,7 @@ public class Comparison implements Pattern<InstructionMatch> {
             var right = pattern.match(cmp.getRight(), matcher);
 
             if (left.matches() && right.matches()) {
-                return new ComparisonMatch(relation, left, right);
+                return new ComparisonMatch(node, relation, left, right);
             } else {
                 return InstructionMatch.none();
             }
@@ -38,9 +38,15 @@ public class Comparison implements Pattern<InstructionMatch> {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ComparisonMatch extends InstructionMatch.Condition {
 
+        private final Node node;
         private final Relation relation;
         private final OperandMatch<Operand.Register> left;
         private final OperandMatch<Operand.Register> right;
+
+        @Override
+        public Node getNode() {
+            return node;
+        }
 
         @Override
         public ExitCondition getCondition() {
