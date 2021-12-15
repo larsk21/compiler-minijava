@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
@@ -38,7 +37,7 @@ public class LoadMemory implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class LoadMemoryMatch extends InstructionMatch.Some {
+    public static final class LoadMemoryMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final OperandMatch<Operand.Memory> match;
@@ -62,11 +61,6 @@ public class LoadMemory implements Pattern<InstructionMatch> {
         @Override
         public Stream<Node> getPredecessors() {
             return Stream.concat(Stream.of(node.getPred(0)), match.getPredecessors());
-        }
-
-        @Override
-        public Optional<ExitCondition> getCondition() {
-            return Optional.empty();
         }
     }
 }

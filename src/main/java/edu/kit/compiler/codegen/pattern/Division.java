@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.intermediate_lang.Instruction;
@@ -69,7 +68,7 @@ public class Division implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class DivisionMatch extends InstructionMatch.Some {
+    public final class DivisionMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final OperandMatch<Operand.Register> left;
@@ -93,11 +92,6 @@ public class Division implements Pattern<InstructionMatch> {
         public Stream<Node> getPredecessors() {
             return Stream.concat(Stream.of(node.getPred(0)),
                     Stream.concat(left.getPredecessors(), right.getPredecessors()));
-        }
-
-        @Override
-        public Optional<ExitCondition> getCondition() {
-            return Optional.empty();
         }
     }
 }

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
@@ -39,7 +38,7 @@ public class Conversion implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class ConversionMatch extends InstructionMatch.Some {
+    public static final class ConversionMatch extends InstructionMatch.Basic {
         private final OperandMatch<Operand.Register> match;
         private final int destination;
         private final Mode from;
@@ -63,11 +62,6 @@ public class Conversion implements Pattern<InstructionMatch> {
         @Override
         public Stream<Node> getPredecessors() {
             return match.getPredecessors();
-        }
-
-        @Override
-        public Optional<ExitCondition> getCondition() {
-            return Optional.empty();
         }
 
         public String getCmd() {

@@ -8,7 +8,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.intermediate_lang.Instruction;
@@ -61,7 +60,7 @@ public class Call implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class CallMatch extends InstructionMatch.Some {
+    public final class CallMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final String callName;
@@ -83,11 +82,6 @@ public class Call implements Pattern<InstructionMatch> {
         public Stream<Node> getPredecessors() {
             return Stream.concat(Stream.of(node.getPred(0)),
                     arguments.stream().flatMap(m -> m.getPredecessors()));
-        }
-
-        @Override
-        public Optional<ExitCondition> getCondition() {
-            return Optional.empty();
         }
 
         private List<Integer> getArguments() {

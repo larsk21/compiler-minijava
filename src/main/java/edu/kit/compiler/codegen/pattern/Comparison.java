@@ -1,14 +1,11 @@
 package edu.kit.compiler.codegen.pattern;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
-import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.Relation;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Cmp;
@@ -39,26 +36,20 @@ public class Comparison implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class ComparisonMatch extends InstructionMatch.Some {
+    public static final class ComparisonMatch extends InstructionMatch.Condition {
 
         private final Relation relation;
         private final OperandMatch<Operand.Register> left;
         private final OperandMatch<Operand.Register> right;
 
         @Override
-        public List<Instruction> getInstructions() {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public Optional<ExitCondition> getCondition() {
-            return Optional.of(ExitCondition.condition(relation,
-                    left.getOperand(), right.getOperand()));
+        public ExitCondition getCondition() {
+            return ExitCondition.condition(relation,
+                    left.getOperand(), right.getOperand());
         }
 
         @Override
         public Stream<Node> getPredecessors() {
-            // TODO Auto-generated method stub
             return Stream.concat(left.getPredecessors(), right.getPredecessors());
         }
 

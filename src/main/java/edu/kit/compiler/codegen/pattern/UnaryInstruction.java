@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
@@ -54,7 +53,7 @@ public class UnaryInstruction implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class UnaryInstructionMatch extends InstructionMatch.Some {
+    public final class UnaryInstructionMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final OperandMatch<? extends Operand.Destination> match;
@@ -83,11 +82,6 @@ public class UnaryInstruction implements Pattern<InstructionMatch> {
             }
 
             return preds;
-        }
-
-        @Override
-        public Optional<ExitCondition> getCondition() {
-            return Optional.empty();
         }
 
         private Instruction getAsOperation() {

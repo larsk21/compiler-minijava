@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.intermediate_lang.Instruction;
@@ -40,7 +39,7 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class ReturnMatch extends InstructionMatch.Some {
+    public static final class ReturnMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final Optional<OperandMatch<Register>> match;
@@ -52,6 +51,11 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
         }
 
         @Override
+        public Optional<Integer> getTargetRegister() {
+            return Optional.empty();
+        }
+
+        @Override
         public Stream<Node> getPredecessors() {
             var stream = Stream.of(node.getPred(0));
             if (match.isPresent()) {
@@ -59,16 +63,6 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
             }
 
             return stream;
-        }
-
-        @Override
-        public Optional<Integer> getTargetRegister() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<ExitCondition> getCondition() {
-            return Optional.empty();
         }
     }
 }
