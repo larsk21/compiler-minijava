@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.ExitCondition;
+import edu.kit.compiler.codegen.PhiInstruction;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -14,11 +15,9 @@ import lombok.RequiredArgsConstructor;
 
 public interface InstructionMatch extends Match {
 
-    public abstract List<Instruction> getInstructions();
-
-    public abstract Optional<ExitCondition> getCondition();
-
     public abstract Optional<Integer> getTargetRegister();
+
+    public abstract void accept(MatchVisitor visitor);
 
     public static InstructionMatch none() {
         return new None();
@@ -43,28 +42,63 @@ public interface InstructionMatch extends Match {
     public static InstructionMatch empty(List<Node> predecessors, int register) {
         return new Empty(predecessors, Optional.of(register));
     }
-    
-    public static final class None extends Match.None implements InstructionMatch {
-        @Override
-        public List<Instruction> getInstructions() {
-            throw new UnsupportedOperationException();
-        }
 
+    @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+    public static final class None extends Match.None implements InstructionMatch {
         @Override
         public Optional<Integer> getTargetRegister() {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Optional<ExitCondition> getCondition() {
+        public void accept(MatchVisitor visitor) {
             throw new UnsupportedOperationException();
         }
     }
 
+    public static abstract class Block extends Some {
+        @Override
+        public void accept(MatchVisitor visitor) {
+            visitor.visit(this);
+        }
+    }
+
+    @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+    public static abstract class Basic extends Some {
+        public abstract List<Instruction> getInstructions();
+
+        @Override
+        public void accept(MatchVisitor visitor) {
+            visitor.visit(this);
+        }
+    }
+
+    @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+    public static abstract class Condition extends Some {
+        public abstract ExitCondition getCondition();
+
+        @Override
+        public void accept(MatchVisitor visitor) {
+            visitor.visit(this);
+        }
+    }
+
+    @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+    public static abstract class Phi extends Some {
+        public abstract PhiInstruction getPhiInstruction();
+
+        @Override
+        public void accept(MatchVisitor visitor) {
+            visitor.visit(this);
+        }
+    }
+
+    public static abstract class Jump extends Some {
+        // public abstract
+    }
+
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
     public static abstract class Some extends Match.Some implements InstructionMatch {
-        
-
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -77,20 +111,15 @@ public interface InstructionMatch extends Match {
         public Optional<Integer> getTargetRegister() {
             return register;
         }
-        
+
         @Override
         public Stream<Node> getPredecessors() {
             return predecessors.stream();
         }
 
         @Override
-        public List<Instruction> getInstructions() {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public Optional<ExitCondition> getCondition() {
-            return Optional.empty();
+        public void accept(MatchVisitor visitor) {
+            // nothing to do for empty match
         }
     }
 }

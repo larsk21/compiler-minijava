@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
@@ -64,7 +63,7 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class BinaryInstructionMatch extends InstructionMatch.Some {
+    public final class BinaryInstructionMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final OperandMatch<? extends Operand.Destination> left;
@@ -86,6 +85,7 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
             return destination;
         }
 
+        @Override
         public Stream<Node> getPredecessors() {
             var preds = Stream.concat(left.getPredecessors(), right.getPredecessors());
             if (hasMemory) {
@@ -93,10 +93,6 @@ public class BinaryInstruction implements Pattern<InstructionMatch> {
             }
 
             return preds;
-        }
-
-        public Optional<ExitCondition> getCondition() {
-            return Optional.empty();
         }
 
         private Instruction getAsOperation() {

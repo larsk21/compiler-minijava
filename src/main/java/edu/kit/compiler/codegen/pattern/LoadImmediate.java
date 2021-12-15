@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
@@ -30,7 +29,7 @@ public class LoadImmediate implements Pattern<InstructionMatch> {
     }
     
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class LoadImmediateMatch extends InstructionMatch.Some {
+    public static final class LoadImmediateMatch extends InstructionMatch.Basic {
 
         private final OperandMatch<Operand.Immediate> match;
         private final int register;
@@ -53,11 +52,6 @@ public class LoadImmediate implements Pattern<InstructionMatch> {
         @Override
         public Stream<Node> getPredecessors() {
             return match.getPredecessors();
-        }
-
-        @Override
-        public Optional<ExitCondition> getCondition() {
-            return Optional.empty();
         }
     }
 }
