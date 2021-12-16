@@ -82,7 +82,7 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            return Arrays.asList(type.getInstruction(
+            return List.of(type.getInstruction(
                     left.getOperand().get(),
                     right.getOperand().get(),
                     destination));

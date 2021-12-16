@@ -2,6 +2,7 @@ package edu.kit.compiler.codegen.pattern;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
@@ -49,7 +50,7 @@ public final class OperandPattern {
         public OperandMatch<Register> match(Node node, MatcherState matcher) {
             var register = matcher.getRegister(node);
             if (register.isPresent()) {
-                var predecessors = Arrays.asList(node);
+                var predecessors = List.of(node);
                 var operand = Operand.register(node.getMode(), register.get());
                 return OperandMatch.some(operand, predecessors);
             } else {
@@ -65,7 +66,7 @@ public final class OperandPattern {
             var register = matcher.getRegister(node);
             if (node.getMode().equals(Mode.getP()) && register.isPresent()) {
                 var operand = Operand.register(node.getMode(), register.get());
-                var predecessors = Arrays.asList(node);
+                var predecessors = List.of(node);
                 return OperandMatch.some(Operand.memory(operand), predecessors);
             } else {
                 return OperandMatch.none();

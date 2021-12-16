@@ -1,6 +1,7 @@
 package edu.kit.compiler.codegen;
 
 import java.util.Arrays;
+import java.util.List;
 
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
 import edu.kit.compiler.codegen.pattern.MatchVisitor;
@@ -115,7 +116,7 @@ public final class InstructionSelection {
                 matcher.setMatch(node, InstructionMatch.empty(node, node.getNum()));
 
             } else if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {
-                var preds = Arrays.asList(node.getPred());
+                var preds = List.of(node.getPred());
                 matcher.setMatch(node, InstructionMatch.empty(node, preds));
 
             } else if (node.getMode().isData()) {
@@ -127,7 +128,7 @@ public final class InstructionSelection {
 
                 var predMatch = matcher.getMatch(pred);
                 if (predMatch != null) {
-                    var preds = Arrays.asList(pred);
+                    var preds = List.of(pred);
                     matcher.setMatch(node, predMatch.getTargetRegister()
                             .map(r -> InstructionMatch.empty(node, preds, r))
                             .orElseGet(() -> InstructionMatch.empty(node, preds)));

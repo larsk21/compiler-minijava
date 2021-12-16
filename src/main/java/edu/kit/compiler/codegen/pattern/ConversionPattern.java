@@ -54,9 +54,9 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
         @Override
         public List<Instruction> getInstructions() {
             var target = Operand.register(to, destination);
-            return Arrays.asList(Instruction.newOp(
+            return List.of(Instruction.newOp(
                     Util.formatCmd(getCmd(), Util.getSize(to), match.getOperand(), target),
-                    Arrays.asList(match.getOperand().get()),
+                    List.of(match.getOperand().get()),
                     Optional.empty(),
                     destination));
         }

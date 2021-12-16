@@ -53,7 +53,7 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
         public List<Instruction> getInstructions() {
             var target = Operand.register(mode, register);
 
-            return Arrays.asList(Instruction.newOp(
+            return List.of(Instruction.newOp(
                 Util.formatCmd("mov", Util.getSize(mode), match.getOperand(), target),
                 Collections.emptyList(), Optional.empty(), register));
         }
