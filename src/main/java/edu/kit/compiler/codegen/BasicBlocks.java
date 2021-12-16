@@ -29,18 +29,15 @@ public class BasicBlocks {
 
     private final HashMap<Integer, BlockEntry> blocks = new HashMap<>();
 
-    public void register(Block block) {
-        assert !blocks.containsKey(block.getNr());
-        blocks.put(block.getNr(), new BlockEntry(block));
-    }
-
     public BlockEntry getEntry(Node block) {
-        return blocks.get(block.getNr());
+        assert block.getOpCode() == ir_opcode.iro_Block;
+        return blocks.computeIfAbsent(block.getNr(),
+                n -> new BlockEntry((Block) block));
     }
 
     @Override
     public String toString() {
-        return graph.getEntity().getName() + ": " + blocks;
+        return graph.getEntity().getName() + ": " + blocks.toString();
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -87,6 +84,8 @@ public class BasicBlocks {
                     condition.setTrueBlock(entry);
                 } else if (node.getNum() == Cond.pnFalse) {
                     condition.setFalseBlock(entry);
+                } else {
+                    throw new IllegalStateException();
                 }
             } else {
                 throw new UnsupportedOperationException("other control flow not supported");
@@ -105,7 +104,7 @@ public class BasicBlocks {
             instructions.add(instruction);
         }
 
-        public void append(InstructionMatch match) {
+        public void append(InstructionMatch.Basic match) {
             assert match.matches();
             instructions.addAll(match.getInstructions());
         }

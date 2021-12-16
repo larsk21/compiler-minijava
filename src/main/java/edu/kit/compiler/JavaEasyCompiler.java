@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.util.Arrays;
 
 import edu.kit.compiler.transform.IRVisitor;
 import org.apache.commons.cli.CommandLine;
@@ -26,6 +27,8 @@ import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
+import edu.kit.compiler.optimizations.ConstantOptimization;
+import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
@@ -35,8 +38,11 @@ import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
 import edu.kit.compiler.transform.JFirmSingleton;
 import edu.kit.compiler.transform.Lower;
+
 import firm.Backend;
 import firm.Firm;
+import firm.Graph;
+import firm.Program;
 
 public class JavaEasyCompiler {
     /**
@@ -168,7 +174,7 @@ public class JavaEasyCompiler {
      * @param logger the logger
      * @return Ok or an according error
      */
-    private static Result compileFirm(String filePath, Logger logger) {
+    private static Result compileFirm(String filePath, Logger logger, Iterable<Optimization> optimizations) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
             Lexer lexer = new Lexer(reader);
             StringTable stringTable = lexer.getStringTable();
@@ -183,6 +189,12 @@ public class JavaEasyCompiler {
             IRVisitor irv = new IRVisitor(namespaceMapper, stringTable);
             ast.accept(irv);
             Lower.lower(irv.getTypeMapper());
+
+            for (Graph graph : Program.getGraphs()) {
+                for (Optimization optimization : optimizations) {
+                    optimization.optimize(graph);
+                }
+            }
 
             var sourceFile = new File(filePath).getName();
             var assemblyFile = sourceFile + ".s";
@@ -223,7 +235,6 @@ public class JavaEasyCompiler {
      * Parses the file into an AST and performs semantic analysis,
      * filling the provided namespace mapper.
      *
-     * @param filePath Path of the file (absolute or relative)
      * @param logger the logger
      * @param namespaceMapper empty namespace mapper
      * @return the AST
@@ -274,6 +285,11 @@ public class JavaEasyCompiler {
         verbosityOptions.addOption(new Option("d", "debug", false, "print debug information"));
         options.addOptionGroup(verbosityOptions);
 
+        var optimizationOptions = new OptionGroup();
+        optimizationOptions.addOption(new Option("0", "optimize-0", false, "run no optimizations"));
+        optimizationOptions.addOption(new Option("1", "optimize-1", false, "run standard optimizations (default)"));
+        options.addOptionGroup(optimizationOptions);
+
         // parse command line arguments
         CommandLine cmd;
         try {
@@ -323,7 +339,15 @@ public class JavaEasyCompiler {
         } else if (cmd.hasOption("f")) {
             String filePath = cmd.getOptionValue("f");
 
-            result = compileFirm(filePath, logger);
+            Iterable<Optimization> optimizations;
+            if (cmd.hasOption("0")) {
+                optimizations = Arrays.asList();
+            } else {
+                optimizations = Arrays.asList(
+                    new ConstantOptimization()
+                );
+            }
+            result = compileFirm(filePath, logger, optimizations);
         } else {
             System.err.println("Wrong command line arguments, see --help for supported commands.");
 

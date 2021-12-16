@@ -1,6 +1,5 @@
 package edu.kit.compiler.codegen;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -98,7 +97,7 @@ public abstract class Operand {
 
         @Override
         public List<Integer> getSourceRegisters() {
-            return Arrays.asList(register);
+            return List.of(register);
         }
 
         public int get() {
@@ -132,7 +131,7 @@ public abstract class Operand {
 
         @Override
         public List<Integer> getSourceRegisters() {
-            return Arrays.asList(register.register);
+            return List.of(register.register);
         }
     }
 }

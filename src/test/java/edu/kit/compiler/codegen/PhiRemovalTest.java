@@ -7,12 +7,11 @@ import java.io.IOException;
 public class PhiRemovalTest {
 
     @Test
-    public void testNoPhiRemoval() throws IOException {
-        Patterns p = new Patterns();
+    public void testNoPhiRemoval() throws IOException { // WHO TF DID THIS SHIT
+        PatternCollection p = new PatternCollection();
         for (var graph : SimpleTestCompiler.getFirmGraphs("edu/kit/compiler/codegen/PhiTest.java")) {
             InstructionSelection is = InstructionSelection.apply(graph, p);
             System.out.println(is.getBlocks());
-            System.out.println(is.getRegisters());
 
             SimpleTestCompiler.dumpGraph(graph);
         }

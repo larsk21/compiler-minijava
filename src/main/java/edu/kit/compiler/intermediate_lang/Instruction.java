@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
  * @3 = @1 + @2     =>   Instruction.newOp("addl @1, @3", new int[] { 1 }, Optional.of(2), 3)
  *
  * @1 < @2          =>   Instruction.newInput("cmpl @1, @2", new int[] { 1, 2 })
- *                       Instruction.newJmp("jl ???", ???)   TODO: define ???
+ *                       Instruction.newJmp("jl .L<blockId>", <blockId>)
  *
  * *(@1 + 4) = @2   =>   Instruction.newInput("movl @2, 4(@1)", new int[] { 2, 1 })
  *
@@ -55,11 +55,14 @@ public class Instruction {
      * List of instructions (within the same block) that must be
      * executed before this instruction
      *
-     * TODO: is an integer appropriate to identify an instruction in the intermediate language?
+     * TODO: do we even want to use this?
      */
     @Getter
     private List<Integer> dataDependencies;
-    // TODO: how to represent jump targets? reference to the according block?
+
+    /**
+     * The block id of the target of a jump.
+     */
     @Getter
     private Optional<Integer> jumpTarget;
 
@@ -78,7 +81,6 @@ public class Instruction {
             assert overwriteRegister.isEmpty() || reg != overwriteRegister.get();
             assert targetRegister.isEmpty() || reg != targetRegister.get();
         }
-        // TODO: check whether all used registers are in text (and vice-versa?)
 
         this.type = type;
         this.text = text;
@@ -110,7 +112,6 @@ public class Instruction {
             suffix = String.format(" /* overwrite: @%d */", overwriteRegister.get());
         }
         return text + suffix;
-        // TODO: output data dependencies and jump target?
     }
 
     // ==== some helper methods for simplifying construction ====
@@ -141,14 +142,10 @@ public class Instruction {
     /**
      * (implicit) input and data dependency of a jump is the last executed conditional
      */
-    public static Instruction newJmp(String text, Optional<Integer> condInstruction) {
-        List<Integer> dataDeps = new ArrayList<>();
-        if (condInstruction.isPresent()) {
-            dataDeps.add(condInstruction.get());
-        }
-        return new Instruction(InstructionType.GENERAL, text, Collections.emptyList(),
+    public static Instruction newJmp(String text, int targetBlockId) {
+        return new Instruction(InstructionType.GENERAL, text, List.of(),
                 Optional.empty(), Optional.empty(),
-                dataDeps, Optional.empty());
+                new ArrayList<>(), Optional.of(targetBlockId));
     }
 
     /**
@@ -156,10 +153,10 @@ public class Instruction {
      */
     public static Instruction newRet(Optional<Integer> returnRegister) {
         String text = "ret";
-        List<Integer> input = Collections.emptyList();
+        List<Integer> input = List.of();
         if (returnRegister.isPresent()) {
             text += String.format(" @%d", returnRegister.get());
-            input = Arrays.asList(returnRegister.get());
+            input = List.of(returnRegister.get());
         }
         return new Instruction(InstructionType.RET, text, input,
                 Optional.empty(), Optional.empty(),
@@ -168,22 +165,22 @@ public class Instruction {
 
     public static Instruction newDiv(int dividend, int divisor, int result) {
         String text = String.format("div @%d, @%d, @%d", dividend, divisor, result);
-        return new Instruction(InstructionType.DIV, text, Arrays.asList(dividend, divisor),
+        return new Instruction(InstructionType.DIV, text, List.of(dividend, divisor),
                 Optional.empty(), Optional.of(result),
                 new ArrayList<>(), Optional.empty());
     }
 
     public static Instruction newMod(int dividend, int divisor, int result) {
         String text = String.format("mod @%d, @%d, @%d", dividend, divisor, result);
-        return new Instruction(InstructionType.MOD, text, Arrays.asList(dividend, divisor),
+        return new Instruction(InstructionType.MOD, text, List.of(dividend, divisor),
                 Optional.empty(), Optional.of(result),
                 new ArrayList<>(), Optional.empty());
     }
 
     public static Instruction newCall(List<Integer> args, Optional<Integer> result, String callReference) {
-        String text = "call";
+        String text = String.format("call \"%s\"", callReference);
         for (int arg: args) {
-            text += " @" + arg + ",";
+            text += ", @" + arg;
         }
         if (result.isPresent()) {
             text += " -> @" + result.get();
