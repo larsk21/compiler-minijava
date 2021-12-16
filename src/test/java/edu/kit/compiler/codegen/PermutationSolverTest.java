@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -54,6 +55,13 @@ public class PermutationSolverTest {
         checkForData(input, targets, 9);
     }
 
+    @Test
+    public void testBadInput() {
+        List<Integer> input = List.of(3, 3, 3, 0, 0, 3, 2, 3, 4, 1, 1);
+        List<Integer> targets = List.of(10, 4, 11, 6, 1, 8, 3, 2, 5, 9, 7);
+        checkForData(input, targets, 12);
+    }
+
     @RepeatedTest(100)
     public void testRandomized() {
         int size = (int)(10 * Math.random());
@@ -93,15 +101,25 @@ public class PermutationSolverTest {
         for (int i = 0; i < size; i++) {
             int next;
             do {
-                next = (int)(size * Math.random());
+                next = (int)((size + 1) * Math.random());
             } while (targets.contains(next));
             targets.add(next);
         }
 
-        checkForData(input, targets, size);
+        checkForData(input, targets, size + 2);
+
+        for (int first: input) {
+            if (!targets.contains(first)) {
+                checkForData(input, targets, size, Optional.of(first));
+            }
+        }
     }
 
     private void checkForData(List<Integer> input, List<Integer> targets, int maxInput) {
+        checkForData(input, targets, maxInput, Optional.empty());
+    }
+
+    private void checkForData(List<Integer> input, List<Integer> targets, int maxInput, Optional<Integer> first) {
         assertEquals(input.size(), targets.size());
         PermutationSolver solver = new PermutationSolver();
 
@@ -113,7 +131,7 @@ public class PermutationSolverTest {
         for (int i = 0; i <= maxInput; i++) {
             data[i] = i;
         }
-        for (var ass: solver.solve(maxInput)) {
+        for (var ass: first.isPresent() ? solver.solveFromNonCycle(first.get()) : solver.solve(maxInput)) {
             data[ass.getTarget()] = data[ass.getInput()];
         }
         for (int i = 0; i < input.size(); i++) {
