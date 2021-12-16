@@ -29,13 +29,10 @@ public class BasicBlocks {
 
     private final HashMap<Integer, BlockEntry> blocks = new HashMap<>();
 
-    public void register(Block block) {
-        assert !blocks.containsKey(block.getNr());
-        blocks.put(block.getNr(), new BlockEntry(block));
-    }
-
     public BlockEntry getEntry(Node block) {
-        return blocks.get(block.getNr());
+        assert block.getOpCode() == ir_opcode.iro_Block;
+        return blocks.computeIfAbsent(block.getNr(),
+                n -> new BlockEntry((Block) block));
     }
 
     @Override

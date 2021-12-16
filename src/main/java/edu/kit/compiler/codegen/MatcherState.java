@@ -65,8 +65,6 @@ public class MatcherState {
 
     private void walkTopological(MatchVisitor walker, Node node) {
         // based on GraphBase#walkTopologicalHelper of jFirm
-        var match = getMatch(node);
-
         if (node.visited()) {
             return;
         }
@@ -80,6 +78,8 @@ public class MatcherState {
         if (node.getBlock() != null) {
             walkTopological(walker, node.getBlock());
         }
+
+        var match = getMatch(node);
         // ?! is this going to be a problem?
         match.getPredecessors().forEach(pred -> walkTopological(walker, pred));
 

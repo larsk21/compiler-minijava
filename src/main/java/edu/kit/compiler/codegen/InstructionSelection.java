@@ -51,7 +51,6 @@ public final class InstructionSelection {
         public void visit(InstructionMatch.Block match) {
             // a block is visited before all of the contained nodes
             var block = match.getNode();
-            blocks.register(block);
             for (var pred : block.getPreds()) {
                 var entry = blocks.getEntry(pred.getBlock());
                 if (pred.getOpCode() == ir_opcode.iro_Proj) {
