@@ -4,6 +4,7 @@ import static firm.bindings.binding_irnode.ir_opcode.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import edu.kit.compiler.codegen.Operand.Memory;
 import edu.kit.compiler.codegen.Operand.Register;
@@ -95,14 +96,59 @@ public class Patterns implements Pattern<InstructionMatch> {
         @Override
         public InstructionMatch match(Node node, MatcherState matcher) {
             for (var pattern : patterns) {
-                var shadow = matcher.getShadow();
+                var shadow = new MatcherShadow(matcher);
                 var match = pattern.match(node, shadow);
                 if (match.matches()) {
-                    matcher.update(shadow);
+                    shadow.merge();
                     return match;
                 }
             }
             return InstructionMatch.none();
+        }
+    }
+
+    private static final class MatcherShadow extends MatcherState {
+
+        private final MatcherState subject;
+
+        public MatcherShadow(MatcherState subject) {
+            super(subject.graph, subject.registerCount);
+            this.subject = subject;
+        }
+
+        public void merge() {
+            subject.phiRegisters.putAll(this.phiRegisters);
+            subject.registerCount = this.registerCount;
+        }
+
+        @Override
+        public InstructionMatch getMatch(Node node) {
+            return subject.getMatch(node);
+        }
+
+        @Override
+        public int getNewRegister() {
+            return super.getNewRegister();
+        }
+
+        @Override
+        public int getPhiRegister(Node phi) {
+            var register = subject.phiRegisters.get(phi.getNr());
+            if (register == null) {
+                return super.getPhiRegister(phi);
+            } else {
+                return register;
+            }
+        }
+
+        @Override
+        public Optional<Integer> getRegister(Node node) {
+            return super.getRegister(node);
+        }
+
+        @Override
+        public void setMatch(Node node, InstructionMatch match) {
+            throw new UnsupportedOperationException("not supported on shadow");
         }
 
     }
