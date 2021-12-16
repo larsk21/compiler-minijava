@@ -1,6 +1,5 @@
 package edu.kit.compiler.codegen.pattern;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +26,7 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
             return InstructionMatch.none();
         }
     }
-    
+
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class LoadImmediateMatch extends InstructionMatch.Basic {
 
@@ -46,8 +45,8 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
             var mode = operand.getMode();
             var target = Operand.register(mode, register);
             return List.of(Instruction.newOp(
-                Util.formatCmd("mov", Util.getSize(mode), operand, target),
-                Collections.emptyList(), Optional.empty(), register));
+                    Util.formatCmd("mov", Util.getSize(mode), operand, target),
+                    Collections.emptyList(), Optional.empty(), register));
         }
 
         @Override

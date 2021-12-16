@@ -1,6 +1,5 @@
 package edu.kit.compiler.codegen;
 
-import java.util.Arrays;
 import java.util.List;
 
 import edu.kit.compiler.codegen.pattern.InstructionMatch;

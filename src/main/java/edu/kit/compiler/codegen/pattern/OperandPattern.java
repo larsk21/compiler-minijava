@@ -1,6 +1,5 @@
 package edu.kit.compiler.codegen.pattern;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,7 +28,7 @@ public final class OperandPattern {
     public static Pattern<OperandMatch<Memory>> memory() {
         return new MemoryPattern();
     }
-    
+
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ImmediatePattern implements Pattern<OperandMatch<Immediate>> {
         @Override
