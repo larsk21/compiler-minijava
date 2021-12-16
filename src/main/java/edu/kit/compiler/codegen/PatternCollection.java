@@ -5,6 +5,8 @@ import static firm.bindings.binding_irnode.ir_opcode.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.codegen.Operand.Memory;
 import edu.kit.compiler.codegen.Operand.Register;
@@ -30,7 +32,7 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
-public class Patterns implements Pattern<InstructionMatch> {
+public class PatternCollection implements Pattern<InstructionMatch> {
 
     private static final Pattern<OperandMatch<Register>> REGISTER = OperandPattern.register();
     private static final Pattern<OperandMatch<Memory>> MEMORY = OperandPattern.memory();
@@ -47,7 +49,7 @@ public class Patterns implements Pattern<InstructionMatch> {
         }
     }
 
-    public Patterns() {
+    public PatternCollection() {
         map = Map.ofEntries(
                 Map.entry(iro_Const, new LoadImmediatePattern()),
                 Map.entry(iro_Add, new BinaryInstructionPattern(iro_Add, "add", REGISTER, REGISTER, true, false)),
@@ -84,7 +86,9 @@ public class Patterns implements Pattern<InstructionMatch> {
     private static final class EmptyPattern implements Pattern<InstructionMatch> {
         @Override
         public InstructionMatch match(Node node, MatcherState matcher) {
-            return InstructionMatch.empty(node);
+            return InstructionMatch.empty(node, StreamSupport
+                    .stream(node.getPreds().spliterator(), false)
+                    .collect(Collectors.toList()));
         }
     }
 

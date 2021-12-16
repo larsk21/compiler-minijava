@@ -30,7 +30,7 @@ public final class InstructionSelection {
         blocks = new BasicBlocks(graph);
     }
 
-    public static InstructionSelection apply(Graph graph, Patterns patterns) {
+    public static InstructionSelection apply(Graph graph, PatternCollection patterns) {
         var instance = new InstructionSelection(graph);
 
         var matchingVisitor = instance.new MatchingVisitor(patterns);
@@ -91,7 +91,7 @@ public final class InstructionSelection {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private final class MatchingVisitor extends NodeVisitor.Default {
 
-        private final Patterns patterns;
+        private final PatternCollection patterns;
 
         @Override
         public void defaultVisit(Node node) {
