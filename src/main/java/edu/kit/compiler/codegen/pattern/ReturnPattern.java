@@ -52,7 +52,7 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
         @Override
         public List<Instruction> getInstructions() {
             var register = match.map(match -> match.getOperand().get());
-            return Arrays.asList(Instruction.newRet(register));
+            return List.of(Instruction.newRet(register));
         }
 
         @Override

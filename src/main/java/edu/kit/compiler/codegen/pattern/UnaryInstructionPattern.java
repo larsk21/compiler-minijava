@@ -68,9 +68,9 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
         @Override
         public List<Instruction> getInstructions() {
             if (destination.isPresent()) {
-                return Arrays.asList(getAsOperation());
+                return List.of(getAsOperation());
             } else {
-                return Arrays.asList(getAsInput());
+                return List.of(getAsInput());
             }
         }
 

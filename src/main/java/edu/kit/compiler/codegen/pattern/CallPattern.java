@@ -74,7 +74,7 @@ public class CallPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            return Arrays.asList(Instruction.newCall(
+            return List.of(Instruction.newCall(
                     getArguments(), destination, callName));
         }
 

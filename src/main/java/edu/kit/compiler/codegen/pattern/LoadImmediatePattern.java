@@ -45,7 +45,7 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
             var operand = match.getOperand();
             var mode = operand.getMode();
             var target = Operand.register(mode, register);
-            return Arrays.asList(Instruction.newOp(
+            return List.of(Instruction.newOp(
                 Util.formatCmd("mov", Util.getSize(mode), operand, target),
                 Collections.emptyList(), Optional.empty(), register));
         }

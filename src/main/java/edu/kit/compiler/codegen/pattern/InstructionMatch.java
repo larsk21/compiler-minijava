@@ -30,7 +30,7 @@ public interface InstructionMatch extends Match {
     }
 
     public static InstructionMatch empty(Node node, Node predecessor) {
-        return new Empty(node, Arrays.asList(predecessor), Optional.empty());
+        return new Empty(node, List.of(predecessor), Optional.empty());
     }
 
     public static InstructionMatch empty(Node node, int register) {

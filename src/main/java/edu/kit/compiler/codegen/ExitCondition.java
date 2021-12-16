@@ -39,9 +39,9 @@ public abstract class ExitCondition {
         @Override
         public List<Instruction> getInstructions() {
             assert block != null;
-            return Arrays.asList(Instruction.newJmp(
+            return List.of(Instruction.newJmp(
                     Util.formatJmp("jmp", block.getLabel()),
-                    Optional.empty()));
+                    block.getLabel()));
         }
 
         @Override
@@ -77,16 +77,16 @@ public abstract class ExitCondition {
                 case True -> new UnconditionalJump(trueBlock).getInstructions();
                 case False -> new UnconditionalJump(falseBlock).getInstructions();
                 case LessEqualGreater -> new UnconditionalJump(trueBlock).getInstructions();
-                default -> Arrays.asList(
+                default -> List.of(
                         Instruction.newInput(
                                 Util.formatCmd("cmp", Util.getSize(mode), source, destination),
-                                Arrays.asList(source.get(), destination.get())),
+                                List.of(source.get(), destination.get())),
                         Instruction.newJmp(
                                 Util.formatJmp(getJmpCmd(), trueBlock.getLabel()),
-                                Optional.empty()),
+                                trueBlock.getLabel()),
                         Instruction.newJmp(
                                 Util.formatJmp("jmp", falseBlock.getLabel()),
-                                Optional.empty()));
+                                falseBlock.getLabel()));
             };
 
         }
