@@ -9,8 +9,10 @@ import java.util.stream.StreamSupport;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.codegen.PhiInstruction;
+import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
+import firm.nodes.Phi;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -20,22 +22,31 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
-        if (node.getOpCode() == ir_opcode.iro_Phi) {
+        if (node.getOpCode() != ir_opcode.iro_Phi) {
+            return InstructionMatch.none();
+        } else if (node.getMode().equals(Mode.getM())) {
+            // I'm not sure this assertion holds.
+            assert ((Phi) node).getLoop() > 0;
+
+            return InstructionMatch.empty(node, StreamSupport
+                    .stream(node.getPreds().spliterator(), false)
+                    .collect(Collectors.toList()));
+        } else {
+            // Again, not sure this holds.
+            assert ((Phi) node).getLoop() == 0;
+
             var preds = StreamSupport
                     .stream(node.getPreds().spliterator(), false)
                     .map(pred -> pattern.match(pred, matcher))
                     .collect(Collectors.toList());
             if (preds.stream().allMatch(match -> match.matches())) {
-                return new PhiMatch(node, preds, matcher.getNewRegister());
+                return new PhiMatch(node, preds, matcher.getPhiRegister((Phi) node));
             } else {
                 return InstructionMatch.none();
             }
-        } else {
-            return InstructionMatch.none();
         }
     }
 
-    // todo what about memory phi
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class PhiMatch extends InstructionMatch.Phi {
 

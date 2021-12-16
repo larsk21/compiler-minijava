@@ -80,6 +80,7 @@ public class MatcherState {
         if (node.getBlock() != null) {
             walkTopological(walker, node.getBlock());
         }
+        // ?! is this going to be a problem?
         match.getPredecessors().forEach(pred -> walkTopological(walker, pred));
 
         if (isLoopBreaker || !node.visited()) {
