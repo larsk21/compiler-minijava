@@ -1,6 +1,5 @@
 package edu.kit.compiler.codegen.pattern;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -54,8 +53,8 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
             var target = Operand.register(mode, register);
 
             return List.of(Instruction.newOp(
-                Util.formatCmd("mov", Util.getSize(mode), match.getOperand(), target),
-                Collections.emptyList(), Optional.empty(), register));
+                    Util.formatCmd("mov", Util.getSize(mode), match.getOperand(), target),
+                    Collections.emptyList(), Optional.empty(), register));
         }
 
         @Override

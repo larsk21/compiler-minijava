@@ -1,8 +1,6 @@
 package edu.kit.compiler.codegen;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import edu.kit.compiler.codegen.BasicBlocks.BlockEntry;
 import edu.kit.compiler.intermediate_lang.Instruction;
