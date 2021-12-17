@@ -21,7 +21,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
 
     private final ir_opcode opcode;
     private final String command;
-    private final Pattern<? extends OperandMatch<? extends Operand.Destination>> operand;
+    private final Pattern<? extends OperandMatch<? extends Operand.Target>> operand;
     private final boolean overwritesRegister;
     private final boolean hasMemory;
 
@@ -33,8 +33,8 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
 
             if (match.matches()) {
                 var size = Util.getSize(match.getOperand().getMode());
-                var destination = getDestination(() -> matcher.getNewRegister(size));
-                return new UnaryInstructionMatch(node, match, destination, size);
+                var targetRegister = getTarget(() -> matcher.getNewRegister(size));
+                return new UnaryInstructionMatch(node, match, targetRegister, size);
             } else {
                 return InstructionMatch.none();
             }
@@ -47,7 +47,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
         return hasMemory ? 1 : 0;
     }
 
-    private Optional<Integer> getDestination(Supplier<Integer> register) {
+    private Optional<Integer> getTarget(Supplier<Integer> register) {
         return overwritesRegister ? Optional.of(register.get()) : Optional.empty();
     }
 
@@ -55,8 +55,8 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
     public final class UnaryInstructionMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<? extends Operand.Destination> match;
-        private final Optional<Integer> destination;
+        private final OperandMatch<? extends Operand.Target> match;
+        private final Optional<Integer> targetRegister;
         private final RegisterSize size;
 
         @Override
@@ -66,7 +66,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            if (destination.isPresent()) {
+            if (targetRegister.isPresent()) {
                 return List.of(getAsOperation());
             } else {
                 return List.of(getAsInput());
@@ -75,7 +75,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return destination;
+            return targetRegister;
         }
 
         @Override
@@ -89,12 +89,12 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
         }
 
         private Instruction getAsOperation() {
-            assert destination.isPresent();
+            assert targetRegister.isPresent();
 
-            var target = Operand.register(match.getOperand().getMode(), destination.get());
+            var targetOperand = Operand.register(match.getOperand().getMode(), targetRegister.get());
 
             var inputRegisters = new ArrayList<>(match.getOperand().getSourceRegisters());
-            var overwriteRegister = match.getOperand().getDestinationRegister();
+            var overwriteRegister = match.getOperand().getTargetRegister();
 
             // make sure the overwritten register is not part of input registers
             if (overwriteRegister.isPresent()) {
@@ -102,12 +102,12 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
             }
 
             return Instruction.newOp(
-                    Util.formatCmd(command, size, target),
-                    inputRegisters, overwriteRegister, destination.get());
+                    Util.formatCmd(command, size, targetOperand),
+                    inputRegisters, overwriteRegister, targetRegister.get());
         }
 
         private Instruction getAsInput() {
-            assert !destination.isPresent();
+            assert !targetRegister.isPresent();
 
             return Instruction.newInput(
                     Util.formatCmd(command, size, match.getOperand()),

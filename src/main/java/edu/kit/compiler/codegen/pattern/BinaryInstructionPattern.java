@@ -22,7 +22,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
     private final ir_opcode opcode;
     private final String command;
-    private final Pattern<? extends OperandMatch<? extends Operand.Destination>> left;
+    private final Pattern<? extends OperandMatch<? extends Operand.Target>> left;
     private final Pattern<OperandMatch<Operand.Register>> right;
     private final boolean overwritesRegister;
     private final boolean hasMemory;
@@ -38,8 +38,8 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
             if (lhs.matches() && rhs.matches()) {
                 var size = Util.getSize(getMode(node));
-                var destination = getDestination(() -> matcher.getNewRegister(size));
-                return new BinaryInstructionMatch(node, lhs, rhs, destination, size);
+                var targetRegister = getTarget(() -> matcher.getNewRegister(size));
+                return new BinaryInstructionMatch(node, lhs, rhs, targetRegister, size);
             } else {
                 return InstructionMatch.none();
             }
@@ -48,7 +48,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
         }
     }
 
-    private Optional<Integer> getDestination(Supplier<Integer> register) {
+    private Optional<Integer> getTarget(Supplier<Integer> register) {
         return overwritesRegister ? Optional.of(register.get()) : Optional.empty();
     }
 
@@ -66,9 +66,9 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
     public final class BinaryInstructionMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<? extends Operand.Destination> left;
+        private final OperandMatch<? extends Operand.Target> left;
         private final OperandMatch<Operand.Register> right;
-        private final Optional<Integer> destination;
+        private final Optional<Integer> targetRegister;
         private final RegisterSize size;
 
         @Override
@@ -78,7 +78,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            if (destination.isPresent()) {
+            if (targetRegister.isPresent()) {
                 return List.of(getAsOperation());
             } else {
                 return List.of(getAsInput());
@@ -87,7 +87,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return destination;
+            return targetRegister;
         }
 
         @Override
@@ -101,12 +101,12 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
         }
 
         private Instruction getAsOperation() {
-            assert destination.isPresent();
+            assert targetRegister.isPresent();
 
-            var target = Operand.register(right.getOperand().getMode(), destination.get());
+            var targetOperand = Operand.register(right.getOperand().getMode(), targetRegister.get());
 
             var inputRegisters = getInputRegisters();
-            var overwriteRegister = left.getOperand().getDestinationRegister();
+            var overwriteRegister = left.getOperand().getTargetRegister();
 
             // make sure the overwritten register is not part of input registers
             if (overwriteRegister.isPresent()) {
@@ -114,12 +114,12 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
             }
 
             return Instruction.newOp(
-                    Util.formatCmd(command, size, right.getOperand(), target),
-                    inputRegisters, overwriteRegister, destination.get());
+                    Util.formatCmd(command, size, right.getOperand(), targetOperand),
+                    inputRegisters, overwriteRegister, targetRegister.get());
         }
 
         private Instruction getAsInput() {
-            assert !destination.isPresent();
+            assert !targetRegister.isPresent();
 
             return Instruction.newInput(
                     Util.formatCmd(command, size, right.getOperand(), left.getOperand()),

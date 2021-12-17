@@ -25,8 +25,8 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
             var match = memory.match(node.getPred(1), matcher);
             if (match.matches()) {
                 var mode = ((firm.nodes.Load) node).getLoadMode();
-                var destination = matcher.getNewRegister(Util.getSize(mode));
-                return new LoadMemoryMatch(node, match, destination, mode);
+                var targetRegister = matcher.getNewRegister(Util.getSize(mode));
+                return new LoadMemoryMatch(node, match, targetRegister, mode);
             } else {
                 return InstructionMatch.none();
             }
@@ -40,7 +40,7 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
 
         private final Node node;
         private final OperandMatch<Operand.Memory> match;
-        private final int register;
+        private final int targetRegister;
         private final Mode mode;
 
         @Override
@@ -50,16 +50,16 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            var target = Operand.register(mode, register);
+            var target = Operand.register(mode, targetRegister);
 
             return List.of(Instruction.newOp(
                     Util.formatCmd("mov", Util.getSize(mode), match.getOperand(), target),
-                    Collections.emptyList(), Optional.empty(), register));
+                    Collections.emptyList(), Optional.empty(), targetRegister));
         }
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return Optional.of(register);
+            return Optional.of(targetRegister);
         }
 
         @Override

@@ -17,7 +17,7 @@ public final class PhiInstruction {
     private final List<Entry> entries = new ArrayList<>();
 
     @Getter
-    private final int destination;
+    private final int target;
 
     @Getter
     private final Mode mode;
@@ -35,7 +35,7 @@ public final class PhiInstruction {
         var source = entries.stream().map(e -> e.toString())
             .collect(Collectors.joining(", "));
         
-        return String.format("phi %s -> @%d", source, destination);
+        return String.format("phi %s -> @%d", source, target);
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
