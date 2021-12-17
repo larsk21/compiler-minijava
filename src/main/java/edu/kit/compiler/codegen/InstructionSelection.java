@@ -28,6 +28,12 @@ public final class InstructionSelection {
         var type = (MethodType) graph.getEntity().getType();
         matcher = new MatcherState(graph, type.getNParams());
         blocks = new BasicBlocks(graph);
+
+        // Set sizes for parameter registers
+        for (int i = 0; i < type.getNParams(); ++i) {
+            var paramMode = type.getParamType(i).getMode();
+            matcher.setRegisterSize(i, Util.getSize(paramMode));
+        }
     }
 
     public static InstructionSelection apply(Graph graph, PatternCollection patterns) {
@@ -111,7 +117,6 @@ public final class InstructionSelection {
             // todo: is comparison of Nr correct here?
             if (node.getPred().getNr() == node.getGraph().getArgs().getNr()) {
                 // node is a parameter projection of the function
-                matcher.setRegisterSize(node.getNum(), Util.getSize(node.getMode()));
                 matcher.setMatch(node, InstructionMatch.empty(node, node.getNum()));
 
             } else if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {
