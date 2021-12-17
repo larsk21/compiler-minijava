@@ -6,11 +6,11 @@ import firm.Mode;
 public class Util {
 
     public static String formatCmd(String cmd, RegisterSize size, Operand op) {
-        return String.format("%s%c %s", cmd, getSizeChar(size), op.format());
+        return String.format("%s%c %s", cmd, size.getSuffix(), op.format());
     }
 
     public static String formatCmd(String cmd, RegisterSize size, Operand lhs, Operand rhs) {
-        return String.format("%s%c %s, %s", cmd, getSizeChar(size), lhs.format(), rhs.format());
+        return String.format("%s%c %s, %s", cmd, size.getSuffix(), lhs.format(), rhs.format());
     }
 
     public static String formatJmp(String cmd, int destination) {
@@ -24,16 +24,6 @@ public class Util {
             case 4 -> RegisterSize.DOUBLE;
             case 8 -> RegisterSize.QUAD;
             default -> throw new IllegalStateException("illegal operand size");
-        };
-    }
-
-    public static char getSizeChar(RegisterSize size) {
-        return switch (size) {
-            case BYTE -> 'b';
-            case WORD -> 'w';
-            case DOUBLE -> 'l';
-            case QUAD -> 'q';
-            default -> throw new IllegalStateException();
         };
     }
 }
