@@ -121,4 +121,15 @@ public class TargetValueLatticeElement {
         }
     }
 
+    @Override
+    public String toString() {
+        if (isUnknown()) {
+            return "unknown";
+        } else if (isConflicting()) {
+            return "conflicting";
+        } else {
+            return "constant: " + value.toString();
+        }
+    }
+
 }

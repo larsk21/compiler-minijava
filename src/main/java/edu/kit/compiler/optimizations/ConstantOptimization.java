@@ -6,10 +6,11 @@ import java.util.Map;
 
 import edu.kit.compiler.optimizations.constant_folding.ConstantAnalysis;
 import edu.kit.compiler.optimizations.constant_folding.TargetValueLatticeElement;
-
+import firm.BackEdges;
 import firm.Graph;
 import firm.Mode;
 import firm.TargetValue;
+import firm.BackEdges.Edge;
 import firm.bindings.binding_irgopt;
 import firm.bindings.binding_irnode.pn_Cond;
 import firm.nodes.Cond;
@@ -49,10 +50,14 @@ public class ConstantOptimization implements Optimization {
 
         });
 
+        BackEdges.enable(graph);
+
         boolean changes = false;
         for (Node node : nodes) {
             changes |= transform(node, nodeValues.getOrDefault(node, TargetValueLatticeElement.unknown()));
         }
+
+        BackEdges.disable(graph);
 
         binding_irgopt.remove_bads(graph.ptr);
         binding_irgopt.remove_unreachable_code(graph.ptr);
@@ -68,8 +73,6 @@ public class ConstantOptimization implements Optimization {
     private boolean transform(Node node, TargetValueLatticeElement value) {
         if (node instanceof Const) {
             return false;
-        } else if (node instanceof Proj && node.getMode().isData()) {
-            return transformResultProj((Proj)node);
         } else if (node instanceof Proj && node.getMode().equals(Mode.getM())) {
             return transformMemoryProj((Proj)node);
         } else if (node instanceof Proj && node.getMode().equals(Mode.getX())) {
@@ -90,42 +93,31 @@ public class ConstantOptimization implements Optimization {
     }
 
     /**
-     * Replace the result projection with a Const having the same value as its
-     * predecessor.
-     */
-    private boolean transformResultProj(Proj node) {
-        Node pred = node.getPred();
-        TargetValueLatticeElement predValue;
-        if (nodeValues.containsKey(pred) && (predValue = nodeValues.get(pred)).isConstant()) {
-            Node constantNode = graph.newConst(predValue.getValue());
-            Graph.exchange(node, constantNode);
-
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
      * Replace the predecessor of the memory projection with the first node
      * that does not have a constant value following the memory dependency
      * chain.
      */
     private boolean transformMemoryProj(Proj node) {
         Node pred = node.getPred();
-        boolean anySteps = false;
-        while (nodeValues.containsKey(pred) && nodeValues.get(pred).isConstant()) {
+        if (nodeValues.containsKey(pred) && nodeValues.get(pred).isConstant()) {
+            Node predMem = graph.newBad(Mode.getM());
             inputs: for (Node input : pred.getPreds()) {
-                if (input instanceof Proj && input.getMode().equals(Mode.getM())) {
-                    pred = ((Proj)input).getPred();
+                if (input.getMode().equals(Mode.getM())) {
+                    predMem = input;
                     break inputs;
                 }
             }
-            anySteps = true;
-        }
 
-        node.setPred(pred);
-        return anySteps;
+            boolean changes = false;
+            for (Edge edge : BackEdges.getOuts(node)) {
+                edge.node.setPred(edge.pos, predMem);
+                changes = true;
+            }
+
+            return changes;
+        } else {
+            return false;
+        }
     }
 
     /**
