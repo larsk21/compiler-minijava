@@ -3,7 +3,7 @@ package edu.kit.compiler.codegen;
 import java.util.List;
 
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
-import edu.kit.compiler.codegen.pattern.MatchVisitor;
+import edu.kit.compiler.codegen.pattern.InstructionMatchVisitor;
 import firm.Graph;
 import firm.MethodType;
 import firm.bindings.binding_irnode.ir_opcode;
@@ -43,7 +43,7 @@ public final class InstructionSelection {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private final class CollectingVisitor implements MatchVisitor {
+    private final class CollectingVisitor implements InstructionMatchVisitor {
 
         private final BasicBlocks blocks;
 
