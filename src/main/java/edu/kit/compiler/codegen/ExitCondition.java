@@ -69,7 +69,6 @@ public abstract class ExitCondition {
         public List<Instruction> getInstructions() {
             assert trueBlock != null && falseBlock != null;
 
-            // todo what about unsigned, i.e. booleans?
             // todo should we reverse jump conditions?
             return switch (relation) {
                 case True -> new UnconditionalJump(trueBlock).getInstructions();

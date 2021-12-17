@@ -9,6 +9,7 @@ import java.util.stream.StreamSupport;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.codegen.PhiInstruction;
+import edu.kit.compiler.codegen.Util;
 import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
@@ -40,7 +41,9 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
                     .map(pred -> pattern.match(pred, matcher))
                     .collect(Collectors.toList());
             if (preds.stream().allMatch(match -> match.matches())) {
-                return new PhiMatch(node, preds, matcher.getPhiRegister((Phi) node));
+                var size = Util.getSize(node.getMode());
+                var register = matcher.getPhiRegister(node, size);
+                return new PhiMatch(node, preds, register);
             } else {
                 return InstructionMatch.none();
             }

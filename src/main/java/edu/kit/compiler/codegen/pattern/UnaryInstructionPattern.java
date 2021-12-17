@@ -10,7 +10,7 @@ import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
-import firm.Mode;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -32,9 +32,9 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
             var match = operand.match(node.getPred(getOffset()), matcher);
 
             if (match.matches()) {
-                var mode = match.getOperand().getMode();
-                var destination = getDestination(matcher::getNewRegister);
-                return new UnaryInstructionMatch(node, match, destination, mode);
+                var size = Util.getSize(match.getOperand().getMode());
+                var destination = getDestination(() -> matcher.getNewRegister(size));
+                return new UnaryInstructionMatch(node, match, destination, size);
             } else {
                 return InstructionMatch.none();
             }
@@ -57,7 +57,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
         private final Node node;
         private final OperandMatch<? extends Operand.Destination> match;
         private final Optional<Integer> destination;
-        private final Mode mode;
+        private final RegisterSize size;
 
         @Override
         public Node getNode() {
@@ -102,7 +102,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
             }
 
             return Instruction.newOp(
-                    Util.formatCmd(command, Util.getSize(mode), target),
+                    Util.formatCmd(command, size, target),
                     inputRegisters, overwriteRegister, destination.get());
         }
 
@@ -110,7 +110,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
             assert !destination.isPresent();
 
             return Instruction.newInput(
-                    Util.formatCmd(command, Util.getSize(mode), match.getOperand()),
+                    Util.formatCmd(command, size, match.getOperand()),
                     match.getOperand().getSourceRegisters());
         }
     }

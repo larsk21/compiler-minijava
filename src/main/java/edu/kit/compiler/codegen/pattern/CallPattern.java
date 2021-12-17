@@ -3,15 +3,19 @@ package edu.kit.compiler.codegen.pattern;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
+import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.MethodType;
 import firm.bindings.binding_irnode.ir_opcode;
+import firm.nodes.Address;
+import firm.nodes.Call;
 import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +41,7 @@ public class CallPattern implements Pattern<InstructionMatch> {
                 }
             }
 
-            var call = (firm.nodes.Call) node;
+            var call = (Call) node;
             var destination = getDestination(call, matcher::getNewRegister);
             return new CallMatch(node, getName(call), arguments, destination);
         } else {
@@ -45,15 +49,19 @@ public class CallPattern implements Pattern<InstructionMatch> {
         }
     }
 
-    private static String getName(firm.nodes.Call node) {
-        var addr = (firm.nodes.Address) node.getPtr();
+    private static String getName(Call node) {
+        var addr = (Address) node.getPtr();
         return addr.getEntity().getLdName();
     }
 
-    private Optional<Integer> getDestination(firm.nodes.Call node, Supplier<Integer> register) {
-        return switch (((MethodType) node.getType()).getNRess()) {
+    private Optional<Integer> getDestination(Call node, Function<RegisterSize, Integer> register) {
+        var type = (MethodType) node.getType();
+        return switch (type.getNRess()) {
             case 0 -> Optional.empty();
-            case 1 -> Optional.of(register.get());
+            case 1 -> {
+                var size = Util.getSize(type.getResType(0).getMode());
+                yield Optional.of(register.apply(size));
+            }
             default -> throw new UnsupportedOperationException();
         };
     }

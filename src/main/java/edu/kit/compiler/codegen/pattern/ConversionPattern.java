@@ -26,7 +26,7 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
             if (match.matches()) {
                 var from = pred.getMode();
                 var to = node.getMode();
-                var destination = matcher.getNewRegister();
+                var destination = matcher.getNewRegister(Util.getSize(to));
                 return new ConversionMatch(node, match, destination, from, to);
             } else {
                 return InstructionMatch.none();

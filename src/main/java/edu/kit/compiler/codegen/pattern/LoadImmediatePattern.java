@@ -21,7 +21,8 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
     public InstructionMatch match(Node node, MatcherState matcher) {
         var match = immediate.match(node, matcher);
         if (match.matches()) {
-            return new LoadImmediateMatch(node, match, matcher.getNewRegister());
+            var register = matcher.getNewRegister(Util.getSize(node.getMode()));
+            return new LoadImmediateMatch(node, match, register);
         } else {
             return InstructionMatch.none();
         }
