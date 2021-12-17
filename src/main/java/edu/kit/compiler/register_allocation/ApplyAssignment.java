@@ -212,7 +212,6 @@ public class ApplyAssignment {
     }
 
     private void handleCall(LifetimeTracker tracker, Instruction instr, int index) {
-        // TODO: differentiate external function call (-> stack alignment)
         tracker.enterInstruction(index);
 
         // handle caller-saved registers
@@ -281,16 +280,22 @@ public class ApplyAssignment {
             }
         }
 
+        // align to 16 byte (only required for external functions, which take all args in registers)
+        int alignmentOffset = 0;
+        if (numArgsOnStack == 0 && (savedOffset % 16 != 0)) {
+            alignmentOffset = 8;
+            output("subq $8, %rsp # align stack to 16 byte");
+        }
+
         // output the instruction itself
         output("call %s", instr.getCallReference().get());
         tracker.leaveInstruction(index);
 
         // remove arguments
-        if (numArgsOnStack > 0) {
-            output("addq $%d, %%rsp # remove args from stack", 8 * numArgsOnStack);
+        if (numArgsOnStack > 0 || alignmentOffset > 0) {
+            output("addq $%d, %%rsp # remove args from stack", 8 * numArgsOnStack + alignmentOffset);
         }
 
-        // TODO: handle external calls here
         // restore caller-saved registers
         while (!saved.isEmpty()) {
             Register r = saved.pop();
@@ -344,7 +349,21 @@ public class ApplyAssignment {
         output("movq %rsp, %rbp");
 
         // allocate activation record
-        output("subq $%d, %%rsp # allocate activation record", calculateActivationRecordSize());
+        int arSize = calculateActivationRecordSize();
+        int totalSize = arSize;
+        for (Register r: usedRegisters) {
+            if (!cconv.isCallerSaved(r)) {
+                totalSize += 8;
+            }
+        }
+
+        // align to 16 byte
+        if (totalSize % 16 != 0) {
+            assert (totalSize + 8) % 16 == 0;
+            arSize += 8;
+        }
+
+        output("subq $%d, %%rsp # allocate activation record", arSize);
 
         // save registers
         for (Register r: usedRegisters) {

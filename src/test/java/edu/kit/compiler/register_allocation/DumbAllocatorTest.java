@@ -43,7 +43,7 @@ public class DumbAllocatorTest {
         var expected = new ArrayList<>();
         expected.add("pushq %rbp");
         expected.add("movq %rsp, %rbp");
-        expected.add("subq $56, %rsp # allocate activation record");
+        expected.add("subq $64, %rsp # allocate activation record");
         expected.add("pushq %rbx # push callee-saved register");
         expected.add("pushq %r10 # push callee-saved register");
 

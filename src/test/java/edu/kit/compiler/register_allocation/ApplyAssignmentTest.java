@@ -384,7 +384,7 @@ public class ApplyAssignmentTest {
         var expectedProlog = new ArrayList<>();
         expectedProlog.add("pushq %rbp");
         expectedProlog.add("movq %rsp, %rbp");
-        expectedProlog.add("subq $16, %rsp # allocate activation record");
+        expectedProlog.add("subq $24, %rsp # allocate activation record");
         expectedProlog.add("pushq %r8 # push callee-saved register");
         expectedProlog.add("pushq %r9 # push callee-saved register");
         expectedProlog.add("pushq %r10 # push callee-saved register");
