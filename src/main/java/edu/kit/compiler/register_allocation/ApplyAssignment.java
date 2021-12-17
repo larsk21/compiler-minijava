@@ -77,6 +77,7 @@ public class ApplyAssignment {
             output(".L%d:", b.getBlockId());
 
             for (Instruction instr: b.getInstructions()) {
+                replace.clear();
                 switch (instr.getType()) {
                     case GENERAL -> handleGeneralInstruction(tracker, replace, instr, i);
                     case DIV, MOD -> handleDivOrMod(tracker, instr, i);
@@ -144,8 +145,8 @@ public class ApplyAssignment {
                     Register ovRegister = assignment[overwrite].getRegister().get();
                     if (ovRegister != tRegister) {
                         String ovName = assignment[overwrite].getRegister().get().asSize(size);
-                        output("mov %s, %s # move for @%s [overwrite]",
-                                ovName, targetName, overwrite);
+                        output("mov%c %s, %s # move for @%s [overwrite]",
+                                size.getSuffix(), ovName, targetName, overwrite);
                     }
                 }
             }
@@ -236,9 +237,9 @@ public class ApplyAssignment {
             if (cconv.getArgRegister(i).isPresent()) {
                 // the argument is passed within a register
                 Register argReg = cconv.getArgRegister(i).get();
+                RegisterSize size = sizes[vRegister];
                 if (assignment[vRegister].isSpilled()) {
                     int stackSlot = assignment[vRegister].getStackSlot().get();
-                    RegisterSize size = sizes[vRegister];
                     output("mov%c %d(%%rbp), %s # load @%d as arg %d",
                             size.getSuffix(), stackSlot, argReg.asSize(size), vRegister, i);
                 } else {
@@ -251,8 +252,8 @@ public class ApplyAssignment {
                                 offset, argReg.getAsQuad(), vRegister, i);
                     } else {
                         assert argReg != r;
-                        output("mov %s, %s # move @%d into arg %d",
-                                r.getAsQuad(), argReg.getAsQuad(), vRegister, i);
+                        output("mov%c %s, %s # move @%d into arg %d",
+                                size.getSuffix(), r.asSize(size), argReg.asSize(size), vRegister, i);
                     }
                 }
             } else {
@@ -305,18 +306,18 @@ public class ApplyAssignment {
         // read return value
         if (instr.getTargetRegister().isPresent()) {
             int target = instr.getTargetRegister().get();
+            RegisterSize size = sizes[target];
             // TODO: with tmp pass-through: set tmp in return register
             if (assignment[target].isSpilled()) {
                 int stackSlot = assignment[target].getStackSlot().get();
-                RegisterSize size = sizes[target];
                 output("mov%c %s, %d(%%rbp) # spill return value for @%s",
                         size.getSuffix(), cconv.getReturnRegister().asSize(size), stackSlot, target);
             } else {
                 Register r = assignment[target].getRegister().get();
                 tracker.assertMapping(target, r);
                 if (cconv.getReturnRegister() != r) {
-                    output("mov %s, %s # move return value into @%s",
-                            cconv.getReturnRegister().getAsQuad(), r.getAsQuad(), target);
+                    output("mov%c %s, %s # move return value into @%s",
+                            size.getSuffix(), cconv.getReturnRegister().asSize(size), r.asSize(size), target);
                 }
             }
         }

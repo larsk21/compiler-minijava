@@ -28,6 +28,8 @@ public class DumbAllocator implements RegisterAllocator {
                     assignment[i] = new RegisterAssignment(-8 * slotIndex);
                     slotIndex++;
                 }
+            } else {
+                assignment[i] = new RegisterAssignment();
             }
         }
 

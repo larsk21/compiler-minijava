@@ -103,9 +103,9 @@ public class ApplyAssignmentTest {
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add(".L0:");
-        expected.add("mov %rbx, %rcx # move for @1 [overwrite]");
+        expected.add("movq %rbx, %rcx # move for @1 [overwrite]");
         expected.add("addl %rax, %rcx");
-        expected.add("mov %rbx, %r10 # move for @1 [overwrite]");
+        expected.add("movq %rbx, %r10 # move for @1 [overwrite]");
         expected.add("xorl %rax, %r10");
         expected.add("movq %r10, -8(%rbp) # spill for @3");
         expected.add("subl %rax, %rbx");
@@ -299,7 +299,7 @@ public class ApplyAssignmentTest {
         expected.add("pushq %rbx # push caller-saved register");
         expected.add("pushq %rcx # push caller-saved register");
         expected.add("movq 8(%rsp), %rbx # reload @0 as arg 0");
-        expected.add("mov %r8, %rcx # move @1 into arg 1");
+        expected.add("movl %r8d, %ecx # move @1 into arg 1");
         expected.add("movl -8(%rbp), %edx # load @2 as arg 2");
         expected.add("movl -16(%rbp), %rax # reload @3 ...");
         expected.add("pushq %rax # ... and pass it as arg 3");
@@ -309,7 +309,7 @@ public class ApplyAssignmentTest {
         expected.add("addq $24, %rsp # remove args from stack");
         expected.add("popq %rcx # restore caller-saved register");
         expected.add("popq %rbx # restore caller-saved register");
-        expected.add("mov %rax, %rdi # move return value into @6");
+        expected.add("movl %eax, %edi # move return value into @6");
         assertEquals(expected, result.getInstructions());
     }
 

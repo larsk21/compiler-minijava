@@ -15,6 +15,12 @@ public class RegisterAssignment {
     @Getter
     private Optional<Integer> stackSlot;
 
+    public RegisterAssignment() {
+        // unassigned
+        this.register = Optional.empty();
+        this.stackSlot = Optional.empty();
+    }
+
     public RegisterAssignment(Register cRegister) {
         this.register = Optional.of(cRegister);
         this.stackSlot = Optional.empty();
