@@ -1,6 +1,6 @@
 package edu.kit.compiler.codegen.pattern;
 
-public interface MatchVisitor {
+public interface InstructionMatchVisitor {
     void visit(InstructionMatch.Block match);
 
     void visit(InstructionMatch.Basic match);

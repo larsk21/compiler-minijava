@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
-import edu.kit.compiler.codegen.pattern.MatchVisitor;
+import edu.kit.compiler.codegen.pattern.InstructionMatchVisitor;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Graph;
 import firm.bindings.binding_irnode.ir_opcode;
@@ -76,12 +76,12 @@ public class MatcherState {
         registerSizes.set(register, size);
     }
 
-    public void walkTopological(MatchVisitor walker) {
+    public void walkTopological(InstructionMatchVisitor walker) {
         graph.incVisited();
         walkTopological(walker, graph.getEnd());
     }
 
-    private void walkTopological(MatchVisitor walker, Node node) {
+    private void walkTopological(InstructionMatchVisitor walker, Node node) {
         // based on GraphBase#walkTopologicalHelper of jFirm
         if (node.visited()) {
             return;

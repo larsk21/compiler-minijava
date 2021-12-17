@@ -18,7 +18,7 @@ public interface InstructionMatch extends Match {
 
     public abstract Optional<Integer> getTargetRegister();
 
-    public abstract void accept(MatchVisitor visitor);
+    public abstract void accept(InstructionMatchVisitor visitor);
 
     public static InstructionMatch none() {
         return new None();
@@ -57,7 +57,7 @@ public interface InstructionMatch extends Match {
         }
 
         @Override
-        public void accept(MatchVisitor visitor) {
+        public void accept(InstructionMatchVisitor visitor) {
             throw new UnsupportedOperationException();
         }
     }
@@ -67,7 +67,7 @@ public interface InstructionMatch extends Match {
         public abstract firm.nodes.Block getNode();
         
         @Override
-        public void accept(MatchVisitor visitor) {
+        public void accept(InstructionMatchVisitor visitor) {
             visitor.visit(this);
         }
     }
@@ -77,7 +77,7 @@ public interface InstructionMatch extends Match {
         public abstract List<Instruction> getInstructions();
 
         @Override
-        public void accept(MatchVisitor visitor) {
+        public void accept(InstructionMatchVisitor visitor) {
             visitor.visit(this);
         }
     }
@@ -87,7 +87,7 @@ public interface InstructionMatch extends Match {
         public abstract ExitCondition getCondition();
 
         @Override
-        public void accept(MatchVisitor visitor) {
+        public void accept(InstructionMatchVisitor visitor) {
             visitor.visit(this);
         }
     }
@@ -97,7 +97,7 @@ public interface InstructionMatch extends Match {
         public abstract PhiInstruction getPhiInstruction();
 
         @Override
-        public void accept(MatchVisitor visitor) {
+        public void accept(InstructionMatchVisitor visitor) {
             visitor.visit(this);
         }
     }
@@ -129,7 +129,7 @@ public interface InstructionMatch extends Match {
         }
 
         @Override
-        public void accept(MatchVisitor visitor) {
+        public void accept(InstructionMatchVisitor visitor) {
             // nothing to do for empty match
         }
     }
