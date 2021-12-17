@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.intermediate_lang.Instruction;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -27,7 +28,9 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
 
             var lhs = left.match(node.getPred(1), matcher);
             var rhs = right.match(node.getPred(2), matcher);
-            var destination = matcher.getNewRegister();
+
+            // todo is hard coding the register size the best choice here?
+            var destination = matcher.getNewRegister(RegisterSize.QUAD);
 
             if (lhs.matches() && rhs.matches()) {
                 return new DivisionMatch(node, lhs, rhs, destination);

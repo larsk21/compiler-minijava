@@ -10,6 +10,7 @@ import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
@@ -36,9 +37,9 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
             var rhs = right.match(node.getPred(offset + 1), matcher);
 
             if (lhs.matches() && rhs.matches()) {
-                var mode = getMode(node);
-                var destination = getDestination(matcher::getNewRegister);
-                return new BinaryInstructionMatch(node, lhs, rhs, destination, mode);
+                var size = Util.getSize(getMode(node));
+                var destination = getDestination(() -> matcher.getNewRegister(size));
+                return new BinaryInstructionMatch(node, lhs, rhs, destination, size);
             } else {
                 return InstructionMatch.none();
             }
@@ -68,7 +69,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
         private final OperandMatch<? extends Operand.Destination> left;
         private final OperandMatch<Operand.Register> right;
         private final Optional<Integer> destination;
-        private final Mode mode;
+        private final RegisterSize size;
 
         @Override
         public Node getNode() {
@@ -113,7 +114,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
             }
 
             return Instruction.newOp(
-                    Util.formatCmd(command, Util.getSize(mode), right.getOperand(), target),
+                    Util.formatCmd(command, size, right.getOperand(), target),
                     inputRegisters, overwriteRegister, destination.get());
         }
 
@@ -121,7 +122,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
             assert !destination.isPresent();
 
             return Instruction.newInput(
-                    Util.formatCmd(command, Util.getSize(mode), right.getOperand(), left.getOperand()),
+                    Util.formatCmd(command, size, right.getOperand(), left.getOperand()),
                     getInputRegisters());
         }
 

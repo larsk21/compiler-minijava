@@ -99,8 +99,8 @@ public final class InstructionSelection {
             if (match.matches()) {
                 matcher.setMatch(node, match);
             } else {
-                var name = node.getGraph().getEntity().getName();
-                throw new IllegalStateException(name + ": no match for node " + node.getNr());
+                throw new IllegalStateException(String.format("%s: no match for node %s (%s)",
+                        node.getGraph().getEntity().getName(), node.getNr(), node.getOpCode().name()));
             }
         }
 
@@ -111,6 +111,7 @@ public final class InstructionSelection {
             // todo: is comparison of Nr correct here?
             if (node.getPred().getNr() == node.getGraph().getArgs().getNr()) {
                 // node is a parameter projection of the function
+                matcher.setRegisterSize(node.getNum(), Util.getSize(node.getMode()));
                 matcher.setMatch(node, InstructionMatch.empty(node, node.getNum()));
 
             } else if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {

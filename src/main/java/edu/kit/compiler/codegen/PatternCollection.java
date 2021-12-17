@@ -4,7 +4,6 @@ import static firm.bindings.binding_irnode.ir_opcode.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -18,6 +17,7 @@ import edu.kit.compiler.codegen.pattern.ConditionPattern;
 import edu.kit.compiler.codegen.pattern.ConversionPattern;
 import edu.kit.compiler.codegen.pattern.DivisionPattern;
 import edu.kit.compiler.codegen.pattern.DivisionPattern.Type;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
 import edu.kit.compiler.codegen.pattern.LoadImmediatePattern;
 import edu.kit.compiler.codegen.pattern.LoadMemoryPattern;
@@ -116,13 +116,13 @@ public class PatternCollection implements Pattern<InstructionMatch> {
         private final MatcherState subject;
 
         public MatcherShadow(MatcherState subject) {
-            super(subject.graph, subject.registerCount);
+            super(subject.graph, 0);
             this.subject = subject;
         }
 
         public void merge() {
             subject.phiRegisters.putAll(this.phiRegisters);
-            subject.registerCount = this.registerCount;
+            subject.registerSizes.addAll(this.registerSizes);
         }
 
         @Override
@@ -131,29 +131,44 @@ public class PatternCollection implements Pattern<InstructionMatch> {
         }
 
         @Override
-        public int getNewRegister() {
-            return super.getNewRegister();
+        public int getNewRegister(RegisterSize size) {
+            var register = super.getNewRegister(size);
+            return subject.registerSizes.size() + register;
         }
 
         @Override
-        public int getPhiRegister(Node phi) {
+        public RegisterSize getRegisterSize(int register) {
+            var pivot = subject.registerSizes.size();
+            if (register < pivot) {
+                return subject.getRegisterSize(register);
+            } else {
+                return super.getRegisterSize(register - pivot);
+            }
+        }
+
+        @Override
+        public int getPhiRegister(Node phi, RegisterSize size) {
             var register = subject.phiRegisters.get(phi.getNr());
             if (register == null) {
-                return super.getPhiRegister(phi);
+                return super.getPhiRegister(phi, size);
             } else {
                 return register;
             }
         }
 
         @Override
-        public Optional<Integer> getRegister(Node node) {
-            return super.getRegister(node);
+        public void setRegisterSize(int register, RegisterSize size) {
+            var pivot = subject.registerSizes.size();
+            if (register < pivot) {
+                subject.setRegisterSize(register, size);
+            } else {
+                super.setRegisterSize(register - pivot, size);
+            }
         }
 
         @Override
         public void setMatch(Node node, InstructionMatch match) {
             throw new UnsupportedOperationException("not supported on shadow");
         }
-
     }
 }

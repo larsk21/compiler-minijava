@@ -25,7 +25,7 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
             var match = memory.match(node.getPred(1), matcher);
             if (match.matches()) {
                 var mode = ((firm.nodes.Load) node).getLoadMode();
-                var destination = matcher.getNewRegister();
+                var destination = matcher.getNewRegister(Util.getSize(mode));
                 return new LoadMemoryMatch(node, match, destination, mode);
             } else {
                 return InstructionMatch.none();
