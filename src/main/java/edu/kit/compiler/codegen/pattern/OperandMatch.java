@@ -19,19 +19,33 @@ public interface OperandMatch<Op extends Operand> extends Match {
         return new None<Op>();
     }
 
-    public static final class None<Op extends Operand> extends Match.None implements OperandMatch<Op> {
+    public static final class None<Op extends Operand> implements OperandMatch<Op> {
+        @Override
+        public boolean matches() {
+            return false;
+        }
+
         @Override
         public Op getOperand() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Stream<Node> getPredecessors() {
             throw new UnsupportedOperationException();
         }
     }
 
     @RequiredArgsConstructor
-    public static final class Some<Op extends Operand> extends Match.Some implements OperandMatch<Op> {
+    public static final class Some<Op extends Operand> implements OperandMatch<Op> {
 
         private final Op operand;
         private final Collection<Node> predecessors;
 
+        @Override
+        public boolean matches() {
+            return true;
+        }
 
         @Override
         public Op getOperand() {
