@@ -1,6 +1,7 @@
 package edu.kit.compiler.codegen;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +21,6 @@ public class MatcherState {
     protected final Graph graph;
     protected final Map<Integer, Integer> phiRegisters = new HashMap<>();
     protected final List<RegisterSize> registerSizes = new ArrayList<>();
-
-    // protected int registerCount;
 
     public MatcherState(Graph graph, int initialCount) {
         this.graph = graph;
@@ -64,6 +63,10 @@ public class MatcherState {
     public int getPhiRegister(Node phi, RegisterSize size) {
         assert phi.getOpCode() == ir_opcode.iro_Phi;
         return getPhiRegister(phi.getNr(), size);
+    }
+
+    public List<RegisterSize> getRegisterSizes() {
+        return Collections.unmodifiableList(registerSizes);
     }
 
     public void setMatch(Node node, InstructionMatch match) {
