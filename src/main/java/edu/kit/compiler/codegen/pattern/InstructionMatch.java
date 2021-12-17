@@ -44,28 +44,10 @@ public interface InstructionMatch extends Match {
         return new Empty(node, predecessors, Optional.of(register));
     }
 
-    @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-    public static final class None extends Match.None implements InstructionMatch {
-        @Override
-        public Node getNode() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Optional<Integer> getTargetRegister() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void accept(InstructionMatchVisitor visitor) {
-            throw new UnsupportedOperationException();
-        }
-    }
-
     public static abstract class Block extends Some {
         @Override
         public abstract firm.nodes.Block getNode();
-        
+
         @Override
         public void accept(InstructionMatchVisitor visitor) {
             visitor.visit(this);
@@ -103,7 +85,39 @@ public interface InstructionMatch extends Match {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-    public static abstract class Some extends Match.Some implements InstructionMatch {
+    public static abstract class Some implements InstructionMatch {
+        @Override
+        public boolean matches() {
+            return true;
+        }
+    }
+
+    @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+    public static final class None implements InstructionMatch {
+        @Override
+        public boolean matches() {
+            return false;
+        }
+
+        @Override
+        public Node getNode() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Optional<Integer> getTargetRegister() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void accept(InstructionMatchVisitor visitor) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Stream<Node> getPredecessors() {
+            throw new UnsupportedOperationException();
+        }
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
