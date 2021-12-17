@@ -42,8 +42,8 @@ public class CallPattern implements Pattern<InstructionMatch> {
             }
 
             var call = (Call) node;
-            var destination = getDestination(call, matcher::getNewRegister);
-            return new CallMatch(node, getName(call), arguments, destination);
+            var targetRegister = getTarget(call, matcher::getNewRegister);
+            return new CallMatch(node, getName(call), arguments, targetRegister);
         } else {
             return InstructionMatch.none();
         }
@@ -54,7 +54,7 @@ public class CallPattern implements Pattern<InstructionMatch> {
         return addr.getEntity().getLdName();
     }
 
-    private Optional<Integer> getDestination(Call node, Function<RegisterSize, Integer> register) {
+    private Optional<Integer> getTarget(Call node, Function<RegisterSize, Integer> register) {
         var type = (MethodType) node.getType();
         return switch (type.getNRess()) {
             case 0 -> Optional.empty();
@@ -72,7 +72,7 @@ public class CallPattern implements Pattern<InstructionMatch> {
         private final Node node;
         private final String callName;
         private final List<OperandMatch<Operand.Register>> arguments;
-        private final Optional<Integer> destination;
+        private final Optional<Integer> targetRegister;
 
         @Override
         public Node getNode() {
@@ -82,12 +82,12 @@ public class CallPattern implements Pattern<InstructionMatch> {
         @Override
         public List<Instruction> getInstructions() {
             return List.of(Instruction.newCall(
-                    getArguments(), destination, callName));
+                    getArguments(), targetRegister, callName));
         }
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return destination;
+            return targetRegister;
         }
 
         @Override

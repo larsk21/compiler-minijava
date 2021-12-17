@@ -42,8 +42,8 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
                     .collect(Collectors.toList());
             if (preds.stream().allMatch(match -> match.matches())) {
                 var size = Util.getSize(node.getMode());
-                var register = matcher.getPhiRegister(node, size);
-                return new PhiMatch(node, preds, register);
+                var targetRegister = matcher.getPhiRegister(node, size);
+                return new PhiMatch(node, preds, targetRegister);
             } else {
                 return InstructionMatch.none();
             }
@@ -55,7 +55,7 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
 
         private final Node node;
         private final List<OperandMatch<Register>> preds;
-        private final int destination;
+        private final int targetRegister;
 
         @Override
         public Node getNode() {
@@ -64,7 +64,7 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
 
         @Override
         public PhiInstruction getPhiInstruction() {
-            var phi = new PhiInstruction(destination, node.getMode());
+            var phi = new PhiInstruction(targetRegister, node.getMode());
 
             assert node.getPredCount() == node.getBlock().getPredCount();
             for (int i = 0; i < node.getPredCount(); ++i) {
@@ -78,7 +78,7 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return Optional.of(destination);
+            return Optional.of(targetRegister);
         }
 
         @Override

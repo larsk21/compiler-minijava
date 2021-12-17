@@ -26,8 +26,8 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
             if (match.matches()) {
                 var from = pred.getMode();
                 var to = node.getMode();
-                var destination = matcher.getNewRegister(Util.getSize(to));
-                return new ConversionMatch(node, match, destination, from, to);
+                var targetRegister = matcher.getNewRegister(Util.getSize(to));
+                return new ConversionMatch(node, match, targetRegister, from, to);
             } else {
                 return InstructionMatch.none();
             }
@@ -41,7 +41,7 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
 
         private final Node node;
         private final OperandMatch<Operand.Register> match;
-        private final int destination;
+        private final int targetRegister;
         private final Mode from;
         private final Mode to;
 
@@ -52,17 +52,17 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            var target = Operand.register(to, destination);
+            var target = Operand.register(to, targetRegister);
             return List.of(Instruction.newOp(
                     Util.formatCmd(getCmd(), Util.getSize(to), match.getOperand(), target),
                     List.of(match.getOperand().get()),
                     Optional.empty(),
-                    destination));
+                    targetRegister));
         }
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return Optional.of(destination);
+            return Optional.of(targetRegister);
         }
 
         @Override

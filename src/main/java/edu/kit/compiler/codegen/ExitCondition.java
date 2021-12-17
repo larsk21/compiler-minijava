@@ -58,7 +58,7 @@ public abstract class ExitCondition {
     public static final class ConditionalJump extends ExitCondition {
 
         private final Relation relation;
-        private final Operand.Register destination;
+        private final Operand.Register target;
         private final Operand.Register source;
         private final Mode mode;
 
@@ -76,8 +76,8 @@ public abstract class ExitCondition {
                 case LessEqualGreater -> new UnconditionalJump(trueBlock).getInstructions();
                 default -> List.of(
                         Instruction.newInput(
-                                Util.formatCmd("cmp", Util.getSize(mode), source, destination),
-                                List.of(source.get(), destination.get())),
+                                Util.formatCmd("cmp", Util.getSize(mode), source, target),
+                                List.of(source.get(), target.get())),
                         Instruction.newJmp(
                                 Util.formatJmp(getJmpCmd(), trueBlock.getLabel()),
                                 trueBlock.getLabel()),
@@ -99,7 +99,7 @@ public abstract class ExitCondition {
         }
 
         private String getJmpCmd() {
-            if (destination.getMode().isSigned()) {
+            if (target.getMode().isSigned()) {
                 return getSignedJmpCmd(relation);
             } else {
                 return getUnsignedJmpCmd(relation);

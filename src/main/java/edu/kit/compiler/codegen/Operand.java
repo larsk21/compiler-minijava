@@ -66,12 +66,12 @@ public abstract class Operand {
         }
     }
 
-    public static abstract class Destination extends Operand {
-        public abstract Optional<Integer> getDestinationRegister();
+    public static abstract class Target extends Operand {
+        public abstract Optional<Integer> getTargetRegister();
     }
 
     @RequiredArgsConstructor
-    public static final class Register extends Destination {
+    public static final class Register extends Target {
         private final Mode mode;
         private final int register;
 
@@ -91,7 +91,7 @@ public abstract class Operand {
         }
 
         @Override
-        public Optional<Integer> getDestinationRegister() {
+        public Optional<Integer> getTargetRegister() {
             return Optional.of(register);
         }
 
@@ -106,7 +106,7 @@ public abstract class Operand {
     }
 
     @RequiredArgsConstructor
-    public static final class Memory extends Destination {
+    public static final class Memory extends Target {
         private final Register register;
 
         @Override
@@ -125,7 +125,7 @@ public abstract class Operand {
         }
 
         @Override
-        public Optional<Integer> getDestinationRegister() {
+        public Optional<Integer> getTargetRegister() {
             return Optional.empty();
         }
 

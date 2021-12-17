@@ -30,10 +30,10 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
             var rhs = right.match(node.getPred(2), matcher);
 
             // todo is hard coding the register size the best choice here?
-            var destination = matcher.getNewRegister(RegisterSize.QUAD);
+            var targetRegister = matcher.getNewRegister(RegisterSize.QUAD);
 
             if (lhs.matches() && rhs.matches()) {
-                return new DivisionMatch(node, lhs, rhs, destination);
+                return new DivisionMatch(node, lhs, rhs, targetRegister);
             } else {
                 return InstructionMatch.none();
             }
@@ -75,7 +75,7 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
         private final Node node;
         private final OperandMatch<Operand.Register> left;
         private final OperandMatch<Operand.Register> right;
-        private final int destination;
+        private final int targetRegister;
 
         @Override
         public Node getNode() {
@@ -87,12 +87,12 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
             return List.of(type.getInstruction(
                     left.getOperand().get(),
                     right.getOperand().get(),
-                    destination));
+                    targetRegister));
         }
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return Optional.of(destination);
+            return Optional.of(targetRegister);
         }
 
         @Override
