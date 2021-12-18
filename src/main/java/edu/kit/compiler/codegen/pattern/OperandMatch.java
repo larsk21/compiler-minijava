@@ -7,9 +7,17 @@ import edu.kit.compiler.codegen.Operand;
 import firm.nodes.Node;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * A match for an operand to an instruction. For example the result register
+ * of a previously matched instruction, or immediate value associated with Const
+ * node of the firm graph.
+ */
 public interface OperandMatch<Op extends Operand> extends Match {
 
-    public Op getOperand();
+    /**
+     * Return the operand associated with this match.
+     */
+    Op getOperand();
 
     public static <Op extends Operand> OperandMatch<Op> some(Op operand, Collection<Node> preds) {
         return new Some<>(operand, preds);
