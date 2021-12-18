@@ -10,6 +10,7 @@ import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.Mode;
+import firm.nodes.Load;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -17,14 +18,14 @@ import lombok.RequiredArgsConstructor;
 
 public class LoadMemoryPattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Memory>> memory = OperandPattern.memory();
+    public final Pattern<OperandMatch<Operand.Memory>> pattern = OperandPattern.memory();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == ir_opcode.iro_Load) {
-            var match = memory.match(node.getPred(1), matcher);
+            var match = pattern.match(node.getPred(1), matcher);
             if (match.matches()) {
-                var mode = ((firm.nodes.Load) node).getLoadMode();
+                var mode = ((Load) node).getLoadMode();
                 var targetRegister = matcher.getNewRegister(Util.getSize(mode));
                 return new LoadMemoryMatch(node, match, targetRegister, mode);
             } else {
@@ -39,7 +40,7 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
     public static final class LoadMemoryMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<Operand.Memory> match;
+        private final OperandMatch<Operand.Memory> source;
         private final int targetRegister;
         private final Mode mode;
 
@@ -50,10 +51,10 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            var target = Operand.register(mode, targetRegister);
+            var targetOperand = Operand.register(mode, targetRegister);
 
             return List.of(Instruction.newOp(
-                    Util.formatCmd("mov", Util.getSize(mode), match.getOperand(), target),
+                    Util.formatCmd("mov", Util.getSize(mode), source.getOperand(), targetOperand),
                     Collections.emptyList(), Optional.empty(), targetRegister));
         }
 
@@ -64,7 +65,7 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            return Stream.concat(Stream.of(node.getPred(0)), match.getPredecessors());
+            return Stream.concat(Stream.of(node.getPred(0)), source.getPredecessors());
         }
     }
 }

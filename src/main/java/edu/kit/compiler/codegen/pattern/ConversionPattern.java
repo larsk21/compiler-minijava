@@ -52,7 +52,7 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
     public static final class ConversionMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<Operand.Register> match;
+        private final OperandMatch<Operand.Register> source;
         private final int targetRegister;
         private final Mode from;
         private final Mode to;
@@ -66,8 +66,8 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
         public List<Instruction> getInstructions() {
             var target = Operand.register(to, targetRegister);
             return List.of(Instruction.newOp(
-                    Util.formatCmd(getCmd(), Util.getSize(to), match.getOperand(), target),
-                    List.of(match.getOperand().get()),
+                    Util.formatCmd(getCmd(), Util.getSize(to), source.getOperand(), target),
+                    List.of(source.getOperand().get()),
                     Optional.empty(),
                     targetRegister));
         }
@@ -79,7 +79,7 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            return match.getPredecessors();
+            return source.getPredecessors();
         }
 
         public String getCmd() {
@@ -87,9 +87,9 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
             if (from.equals(Mode.getIs()) && to.equals(Mode.getLs())) {
                 return "movsl";
             } else if (from.equals(Mode.getLs()) && to.equals(Mode.getIs())) {
-                throw new UnsupportedOperationException("cast after division handled");
+                throw new IllegalStateException("this cast should have been handled separately");
             } else {
-                throw new UnsupportedOperationException("not supported yet");
+                throw new UnsupportedOperationException();
             }
         }
     }

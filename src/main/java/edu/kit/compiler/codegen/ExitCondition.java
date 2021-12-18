@@ -5,7 +5,6 @@ import java.util.List;
 
 import edu.kit.compiler.codegen.BasicBlocks.BlockEntry;
 import edu.kit.compiler.intermediate_lang.Instruction;
-import firm.Mode;
 import firm.Relation;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -26,7 +25,7 @@ public abstract class ExitCondition {
 
     public static ExitCondition conditional(Relation relation,
             Operand.Source left, Operand.Source right) {
-        return new ConditionalJump(relation, left, right, right.getMode());
+        return new ConditionalJump(relation, left, right);
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -61,7 +60,6 @@ public abstract class ExitCondition {
         private final Relation relation;
         private final Operand.Source target;
         private final Operand.Source source;
-        private final Mode mode;
 
         private BasicBlocks.BlockEntry trueBlock;
         private BasicBlocks.BlockEntry falseBlock;
@@ -76,7 +74,7 @@ public abstract class ExitCondition {
                 case LessEqualGreater -> new UnconditionalJump(trueBlock).getInstructions();
                 default -> List.of(
                         Instruction.newInput(
-                                Util.formatCmd("cmp", Util.getSize(mode), source, target),
+                                Util.formatCmd("cmp", target.getSize(), source, target),
                                 getInputRegisters(source, target)),
                         Instruction.newJmp(
                                 Util.formatJmp(getJmpCmd(), trueBlock.getLabel()),
@@ -85,7 +83,6 @@ public abstract class ExitCondition {
                                 Util.formatJmp("jmp", falseBlock.getLabel()),
                                 falseBlock.getLabel()));
             };
-
         }
 
         @Override

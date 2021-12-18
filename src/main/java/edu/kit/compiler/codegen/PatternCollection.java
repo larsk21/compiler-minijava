@@ -34,7 +34,7 @@ import lombok.RequiredArgsConstructor;
 public class PatternCollection implements Pattern<InstructionMatch> {
 
     private static final Pattern<OperandMatch<Register>> REG = OperandPattern.register();
-    private static final Pattern<OperandMatch<Memory>> MEMORY = OperandPattern.memory();
+    private static final Pattern<OperandMatch<Memory>> MEM = OperandPattern.memory();
 
     private final Map<ir_opcode, Pattern<InstructionMatch>> map;
 
@@ -59,11 +59,11 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Div, new DivisionPattern(Type.DIV, REG, REG)),
                 Map.entry(iro_Mod, new DivisionPattern(Type.MOD, REG, REG)),
 
-                Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REG, true, false)),
+                Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REG, false)),
 
                 Map.entry(iro_Conv, new ConversionPattern()),
 
-                Map.entry(iro_Store, new BinaryInstructionPattern(iro_Store, "mov", MEMORY, REG, true)),
+                Map.entry(iro_Store, new BinaryInstructionPattern(iro_Store, "mov", MEM, REG, true)),
                 Map.entry(iro_Load, new LoadMemoryPattern()),
 
                 Map.entry(iro_Call, new CallPattern()),

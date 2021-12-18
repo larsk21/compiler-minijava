@@ -13,7 +13,6 @@ import edu.kit.compiler.codegen.Util;
 import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
-import firm.nodes.Phi;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -26,20 +25,18 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
         if (node.getOpCode() != ir_opcode.iro_Phi) {
             return InstructionMatch.none();
         } else if (node.getMode().equals(Mode.getM())) {
-            // I'm not sure this assertion holds.
-            assert ((Phi) node).getLoop() > 0;
-
+            // node is a memory phi, match only needs to reference predecessors
             return InstructionMatch.empty(node, StreamSupport
                     .stream(node.getPreds().spliterator(), false)
                     .collect(Collectors.toList()));
         } else {
-            // Again, not sure this holds.
-            assert ((Phi) node).getLoop() == 0;
-
+            // node is an actual phi
+            assert node.getMode().isData();
             var preds = StreamSupport
                     .stream(node.getPreds().spliterator(), false)
                     .map(pred -> pattern.match(pred, matcher))
                     .collect(Collectors.toList());
+
             if (preds.stream().allMatch(match -> match.matches())) {
                 var size = Util.getSize(node.getMode());
                 var targetRegister = matcher.getPhiRegister(node, size);
