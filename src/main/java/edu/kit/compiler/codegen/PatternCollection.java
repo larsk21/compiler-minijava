@@ -2,6 +2,7 @@ package edu.kit.compiler.codegen;
 
 import static firm.bindings.binding_irnode.ir_opcode.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 
 public class PatternCollection implements Pattern<InstructionMatch> {
 
+    // todo add restrictions to size of immediates
     private static final Pattern<OperandMatch<Immediate>> IMM = OperandPattern.immediate();
     private static final Pattern<OperandMatch<Register>> REG = OperandPattern.register();
     private static final Pattern<OperandMatch<Memory>> MEM = OperandPattern.memory();
@@ -53,10 +55,10 @@ public class PatternCollection implements Pattern<InstructionMatch> {
     public PatternCollection() {
         map = Map.ofEntries(
                 Map.entry(iro_Const, new LoadImmediatePattern(IMM)),
-                Map.entry(iro_Add, new BinaryInstructionPattern(iro_Add, "add", REG, REG, false)),
-                Map.entry(iro_Sub, new BinaryInstructionPattern(iro_Sub, "sub", REG, REG, false)),
-                Map.entry(iro_Mul, new BinaryInstructionPattern(iro_Mul, "imul", REG, REG, false)),
-                Map.entry(iro_Eor, new BinaryInstructionPattern(iro_Eor, "xor", REG, REG, false)),
+                Map.entry(iro_Add, new ArithmeticPattern(iro_Add, "add", false, true)),
+                Map.entry(iro_Sub, new ArithmeticPattern(iro_Sub, "sub", false, false)),
+                Map.entry(iro_Mul, new ArithmeticPattern(iro_Mul, "imul", false, true)),
+                Map.entry(iro_Eor, new ArithmeticPattern(iro_Eor, "xor", false, true)),
 
                 Map.entry(iro_Div, new DivisionPattern(Type.DIV)),
                 Map.entry(iro_Mod, new DivisionPattern(Type.MOD)),
@@ -67,7 +69,9 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                         new LoadImmediatePattern(IMM),  // Handle Conv with Const operand
                         new ConversionPattern()))),
 
-                Map.entry(iro_Store, new BinaryInstructionPattern(iro_Store, "mov", MEM, REG, true)),
+                Map.entry(iro_Store, new CompoundPattern(List.of(
+                        new BinaryInstructionPattern(iro_Store, "mov", MEM, IMM, true, false),
+                        new BinaryInstructionPattern(iro_Store, "mov", MEM, REG, true, false)))),
                 Map.entry(iro_Load, new LoadMemoryPattern()),
 
                 Map.entry(iro_Call, new CallPattern()),
@@ -95,7 +99,7 @@ public class PatternCollection implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class CompoundPattern implements Pattern<InstructionMatch> {
+    private static class CompoundPattern implements Pattern<InstructionMatch> {
 
         private final List<Pattern<InstructionMatch>> patterns;
 
@@ -110,6 +114,29 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 }
             }
             return InstructionMatch.none();
+        }
+    }
+
+    private static final class ArithmeticPattern implements Pattern<InstructionMatch> {
+
+        private final CompoundPattern patterns;
+
+        public ArithmeticPattern(ir_opcode opcode, String command, boolean hasMemory, boolean commutate) {
+            var patterns = new ArrayList<Pattern<InstructionMatch>>();
+            if (commutate) {
+                patterns.add(new BinaryInstructionPattern(opcode, command, REG, IMM, hasMemory, true));
+            }
+
+            patterns.addAll(List.of(
+                new BinaryInstructionPattern(opcode, command, REG, IMM, hasMemory, false),
+                new BinaryInstructionPattern(opcode, command, REG, REG, hasMemory, false)
+            ));
+            this.patterns = new CompoundPattern(patterns);
+        }
+
+        @Override
+        public InstructionMatch match(Node node, MatcherState matcher) {
+            return patterns.match(node, matcher);
         }
     }
 

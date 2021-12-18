@@ -20,26 +20,24 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
     private final ir_opcode opcode;
     private final String command;
-    private final Pattern<? extends OperandMatch<? extends Operand.Target>> left;
-    private final Pattern<? extends OperandMatch<? extends Operand.Source>> right;
+    private final Pattern<? extends OperandMatch<? extends Operand.Target>> targetPattern;
+    private final Pattern<? extends OperandMatch<? extends Operand.Source>> sourcePattern;
     private final boolean hasMemory;
+    private final boolean swapOperands;
 
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == opcode) {
-            var offset = hasMemory ? 1 : 0;
+            assert node.getPredCount() == 2 + getOffset();
+            var targetMatch = targetPattern.match(getTargetNode(node), matcher);
+            var sourceMatch = sourcePattern.match(getSourceNode(node), matcher);
 
-            assert node.getPredCount() == 2 + offset;
-            var leftMatch = left.match(node.getPred(offset), matcher);
-            var rightMatch = right.match(node.getPred(offset + 1), matcher);
-
-            if (leftMatch.matches() && rightMatch.matches()) {
-                // todo needs to be changed once swap option is implemented
-                var size = rightMatch.getOperand().getSize();
-                var targetRegister = getTarget(leftMatch.getOperand(),
+            if (targetMatch.matches() && sourceMatch.matches()) {
+                var size = sourceMatch.getOperand().getSize();
+                var targetRegister = getTarget(targetMatch.getOperand(),
                         () -> matcher.getNewRegister(size));
-                return new BinaryInstructionMatch(node, leftMatch, rightMatch, targetRegister);
+                return new BinaryInstructionMatch(node, targetMatch, sourceMatch, targetRegister);
             } else {
                 return InstructionMatch.none();
             }
@@ -54,6 +52,18 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
         } else {
             return Optional.empty();
         }
+    }
+
+    private Node getTargetNode(Node node) {
+        return node.getPred(getOffset() + (swapOperands ? 1 : 0));
+    }
+
+    private Node getSourceNode(Node node) {
+        return node.getPred(getOffset() + (swapOperands ? 0 : 1));
+    }
+
+    private int getOffset() {
+        return hasMemory ? 1 : 0;
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
