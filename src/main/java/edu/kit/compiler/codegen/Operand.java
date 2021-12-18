@@ -9,13 +9,26 @@ import firm.TargetValue;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
+/**
+ * Base for operands used during instruction selection. Implementations will
+ * will implement one of the interfaces `Source` or `Target`.
+ */
 public interface Operand {
 
-    public abstract String format();
+    /**
+     * Return the operand formatted using AT&T syntax.
+     */
+    String format();
 
-    public abstract RegisterSize getSize();
+    /**
+     * Return the register size of the operand.
+     */
+    RegisterSize getSize();
 
-    public abstract Mode getMode();
+    /**
+     * Return the Firm mode of the operand.
+     */
+    Mode getMode();
 
     public static Immediate immediate(TargetValue value) {
         return new Immediate(value);
@@ -29,11 +42,28 @@ public interface Operand {
         return new Memory(register);
     }
 
+    /**
+     * Base for operands that can be used as source in an instruction.
+     */
     public static interface Source extends Operand {
+        /**
+         * Returns a list of all registers required to evaluate the operand.
+         * For example, an immediate will return an empty list. A address like
+         * 12(@1,@42,8) will return a list containing 1 and 42.
+         */
         public abstract List<Integer> getSourceRegisters();
     }
 
+    /**
+     * Base for operands that can be used as target in an instruction. Extends
+     * `Source` for the sake of simplicity (generic bounds in OperandMatch would
+     * otherwise get even more verbose).
+     */
     public static interface Target extends Source {
+        /**
+         * Return the register that would be overwritten when using the operand
+         * as target in an instruction.
+         */
         public abstract Optional<Integer> getTargetRegister();
     }
 
@@ -125,7 +155,7 @@ public interface Operand {
 
         @Override
         public RegisterSize getSize() {
-            return Util.getSize(Mode.getANY());
+            return Util.getSize(Mode.getP());
         }
 
         @Override

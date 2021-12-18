@@ -15,12 +15,22 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+/**
+ * A collection of patterns for various basic operands.
+ */
 public final class OperandPattern {
 
+    /**
+     * Return a pattern that will match any Const node.
+     */
     public static Pattern<OperandMatch<Immediate>> immediate() {
         return new ImmediatePattern();
     }
 
+    /**
+     * Return a pattern that will match any node for which a register can be
+     * found using `MatcherState#getRegister(Node)`.
+     */
     public static Pattern<OperandMatch<Register>> register() {
         return new RegisterPattern();
     }

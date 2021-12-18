@@ -12,13 +12,29 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * A match for an instruction, associated with a specific node int he Firm
+ * graph. May optionally write to a target register. There a number of special
+ * instruction types, for which a visitor pattern has been implemented.
+ * 
+ * - Basic: Can be translated into a list of IL instruction
+ * - Block: Related to a Firm Block, needed for its control flow predecessors
+ * - Phi: Related to a Firm Phi, can be translated to a special PhiInstruction
+ * - Condition: Can be translated into an exit condition for a basic block
+ */
 public interface InstructionMatch extends Match {
 
-    public abstract Node getNode();
+    /**
+     * Returns the associated Firm node.
+     */
+    Node getNode();
 
-    public abstract Optional<Integer> getTargetRegister();
+    /**
+     * Returns the target register of the instruction if one exists.
+     */
+    Optional<Integer> getTargetRegister();
 
-    public abstract void accept(InstructionMatchVisitor visitor);
+    void accept(InstructionMatchVisitor visitor);
 
     public static InstructionMatch none() {
         return new None();
