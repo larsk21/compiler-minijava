@@ -263,9 +263,9 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             if (node.getOp().getOpCode() == ir_opcode.iro_Conv) {
                 // remove casts introduced by 64 bit division where possible
                 var op = (Conv) node.getOp();
-                if (node.getMode() == Mode.getIs()
-                        && op.getMode() == Mode.getLs()
-                        && op.getOp().getMode() == Mode.getIs()) {
+                if (node.getMode().equals(Mode.getIs())
+                        && op.getMode().equals(Mode.getLs())
+                        && op.getOp().getMode().equals(Mode.getIs())) {
                     exchange(node, op.getOp());
                 }
             }
