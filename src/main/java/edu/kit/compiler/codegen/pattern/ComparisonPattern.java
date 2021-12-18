@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 
 public class ComparisonPattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
+    public final Pattern<? extends OperandMatch<? extends Operand.Source>> pattern = OperandPattern.register();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
@@ -40,8 +40,8 @@ public class ComparisonPattern implements Pattern<InstructionMatch> {
 
         private final Node node;
         private final Relation relation;
-        private final OperandMatch<Operand.Register> left;
-        private final OperandMatch<Operand.Register> right;
+        private final OperandMatch<? extends Operand.Source> left;
+        private final OperandMatch<? extends Operand.Source> right;
 
         @Override
         public Node getNode() {

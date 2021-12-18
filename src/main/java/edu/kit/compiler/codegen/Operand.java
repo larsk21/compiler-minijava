@@ -1,6 +1,5 @@
 package edu.kit.compiler.codegen;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -9,14 +8,13 @@ import firm.Mode;
 import firm.TargetValue;
 import lombok.RequiredArgsConstructor;
 
-public abstract class Operand {
+public interface Operand {
+
     public abstract String format();
 
     public abstract RegisterSize getSize();
 
     public abstract Mode getMode();
-
-    public abstract List<Integer> getSourceRegisters();
 
     public static Immediate immediate(TargetValue value) {
         return new Immediate(value);
@@ -30,8 +28,16 @@ public abstract class Operand {
         return new Memory(register);
     }
 
+    public static interface Source extends Operand {
+        public abstract List<Integer> getSourceRegisters();
+    }
+
+    public static interface Target extends Source {
+        public abstract Optional<Integer> getTargetRegister();
+    }
+
     @RequiredArgsConstructor
-    public static final class Immediate extends Operand {
+    public static final class Immediate implements Source {
         private final TargetValue value;
 
         @Override
@@ -56,22 +62,18 @@ public abstract class Operand {
             return value.getMode();
         }
 
+        @Override
+        public List<Integer> getSourceRegisters() {
+            return List.of();
+        }
+
         public TargetValue get() {
             return value;
         }
-
-        @Override
-        public List<Integer> getSourceRegisters() {
-            return Collections.emptyList();
-        }
-    }
-
-    public static abstract class Target extends Operand {
-        public abstract Optional<Integer> getTargetRegister();
     }
 
     @RequiredArgsConstructor
-    public static final class Register extends Target {
+    public static final class Register implements Target {
         private final Mode mode;
         private final int register;
 
@@ -106,7 +108,7 @@ public abstract class Operand {
     }
 
     @RequiredArgsConstructor
-    public static final class Memory extends Target {
+    public static final class Memory implements Target {
         private final Register register;
 
         @Override

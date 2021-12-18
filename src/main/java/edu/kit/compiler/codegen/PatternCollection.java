@@ -52,21 +52,19 @@ public class PatternCollection implements Pattern<InstructionMatch> {
     public PatternCollection() {
         map = Map.ofEntries(
                 Map.entry(iro_Const, new LoadImmediatePattern()),
-                Map.entry(iro_Add, new BinaryInstructionPattern(iro_Add, "add", REGISTER, REGISTER, true, false)),
-                Map.entry(iro_Sub, new BinaryInstructionPattern(iro_Sub, "sub", REGISTER, REGISTER, true, false)),
-                Map.entry(iro_Mul, new BinaryInstructionPattern(iro_Mul, "imul", REGISTER, REGISTER, true, false)),
-                Map.entry(iro_Eor, new BinaryInstructionPattern(iro_Eor, "xor", REGISTER, REGISTER, true, false)),
+                Map.entry(iro_Add, new BinaryInstructionPattern(iro_Add, "add", REGISTER, REGISTER, false)),
+                Map.entry(iro_Sub, new BinaryInstructionPattern(iro_Sub, "sub", REGISTER, REGISTER, false)),
+                Map.entry(iro_Mul, new BinaryInstructionPattern(iro_Mul, "imul", REGISTER, REGISTER, false)),
+                Map.entry(iro_Eor, new BinaryInstructionPattern(iro_Eor, "xor", REGISTER, REGISTER, false)),
 
                 Map.entry(iro_Div, new DivisionPattern(Type.DIV, REGISTER, REGISTER)),
                 Map.entry(iro_Mod, new DivisionPattern(Type.MOD, REGISTER, REGISTER)),
 
                 Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REGISTER, true, false)),
 
-                Map.entry(iro_Cmp, new ComparisonPattern()),
-
                 Map.entry(iro_Conv, new ConversionPattern()),
 
-                Map.entry(iro_Store, new BinaryInstructionPattern(iro_Store, "mov", MEMORY, REGISTER, false, true)),
+                Map.entry(iro_Store, new BinaryInstructionPattern(iro_Store, "mov", MEMORY, REGISTER, true)),
                 Map.entry(iro_Load, new LoadMemoryPattern()),
 
                 Map.entry(iro_Call, new CallPattern()),
@@ -75,6 +73,7 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Return, new ReturnPattern()),
 
                 Map.entry(iro_Jmp, new ConditionPattern()),
+                Map.entry(iro_Cmp, new ComparisonPattern()),
                 Map.entry(iro_Cond, new ConditionPattern()),
 
                 // trivial pattern for nodes without predecessors

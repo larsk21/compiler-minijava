@@ -3,6 +3,7 @@ package edu.kit.compiler.codegen.pattern;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -23,8 +24,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
     private final ir_opcode opcode;
     private final String command;
     private final Pattern<? extends OperandMatch<? extends Operand.Target>> left;
-    private final Pattern<OperandMatch<Operand.Register>> right;
-    private final boolean overwritesRegister;
+    private final Pattern<? extends OperandMatch<? extends Operand.Source>> right;
     private final boolean hasMemory;
 
     @Override
@@ -38,7 +38,8 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
             if (lhs.matches() && rhs.matches()) {
                 var size = Util.getSize(getMode(node));
-                var targetRegister = getTarget(() -> matcher.getNewRegister(size));
+                var targetRegister = getTarget(lhs.getOperand(),
+                        () -> matcher.getNewRegister(size));
                 return new BinaryInstructionMatch(node, lhs, rhs, targetRegister, size);
             } else {
                 return InstructionMatch.none();
@@ -48,8 +49,12 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
         }
     }
 
-    private Optional<Integer> getTarget(Supplier<Integer> register) {
-        return overwritesRegister ? Optional.of(register.get()) : Optional.empty();
+    private Optional<Integer> getTarget(Operand.Target operand, Supplier<Integer> register) {
+        if (operand.getTargetRegister().isPresent()) {
+            return Optional.of(register.get());
+        } else {
+            return Optional.empty();
+        }
     }
 
     private Mode getMode(Node node) {
@@ -67,7 +72,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
         private final Node node;
         private final OperandMatch<? extends Operand.Target> left;
-        private final OperandMatch<Operand.Register> right;
+        private final OperandMatch<? extends Operand.Source> right;
         private final Optional<Integer> targetRegister;
         private final RegisterSize size;
 
