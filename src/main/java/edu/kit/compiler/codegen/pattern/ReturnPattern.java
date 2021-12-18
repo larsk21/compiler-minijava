@@ -5,7 +5,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.MatcherState;
-import edu.kit.compiler.codegen.Operand.Register;
+import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
@@ -14,12 +14,12 @@ import lombok.RequiredArgsConstructor;
 
 public final class ReturnPattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Register>> pattern = OperandPattern.register();
+    public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == ir_opcode.iro_Return) {
-            Optional<OperandMatch<Register>> operand = switch (node.getPredCount()) {
+            Optional<OperandMatch<Operand.Register>> operand = switch (node.getPredCount()) {
                 case 1 -> Optional.empty();
                 case 2 -> {
                     var match = pattern.match(node.getPred(1), matcher);
@@ -41,7 +41,7 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
     public static final class ReturnMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final Optional<OperandMatch<Register>> match;
+        private final Optional<OperandMatch<Operand.Register>> match;
 
         @Override
         public Node getNode() {

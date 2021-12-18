@@ -1,5 +1,6 @@
 package edu.kit.compiler.codegen;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import edu.kit.compiler.codegen.BasicBlocks.BlockEntry;
@@ -24,7 +25,7 @@ public abstract class ExitCondition {
     }
 
     public static ExitCondition condition(Relation relation,
-            Operand.Register left, Operand.Register right) {
+            Operand.Source left, Operand.Source right) {
         return new ConditionalJump(relation, left, right, right.getMode());
     }
 
@@ -58,8 +59,8 @@ public abstract class ExitCondition {
     public static final class ConditionalJump extends ExitCondition {
 
         private final Relation relation;
-        private final Operand.Register target;
-        private final Operand.Register source;
+        private final Operand.Source target;
+        private final Operand.Source source;
         private final Mode mode;
 
         private BasicBlocks.BlockEntry trueBlock;
@@ -69,7 +70,6 @@ public abstract class ExitCondition {
         public List<Instruction> getInstructions() {
             assert trueBlock != null && falseBlock != null;
 
-            // todo should we reverse jump conditions?
             return switch (relation) {
                 case True -> new UnconditionalJump(trueBlock).getInstructions();
                 case False -> new UnconditionalJump(falseBlock).getInstructions();
@@ -77,7 +77,7 @@ public abstract class ExitCondition {
                 default -> List.of(
                         Instruction.newInput(
                                 Util.formatCmd("cmp", Util.getSize(mode), source, target),
-                                List.of(source.get(), target.get())),
+                                getInputRegisters(source, target)),
                         Instruction.newJmp(
                                 Util.formatJmp(getJmpCmd(), trueBlock.getLabel()),
                                 trueBlock.getLabel()),
@@ -104,6 +104,14 @@ public abstract class ExitCondition {
             } else {
                 return getUnsignedJmpCmd(relation);
             }
+        }
+
+        private static List<Integer> getInputRegisters(Operand.Source lhs, Operand.Source rhs) {
+            var registers = new ArrayList<Integer>();
+            registers.addAll(lhs.getSourceRegisters());
+            registers.addAll(rhs.getSourceRegisters());
+
+            return registers;
         }
 
         private static String getSignedJmpCmd(Relation relation) {

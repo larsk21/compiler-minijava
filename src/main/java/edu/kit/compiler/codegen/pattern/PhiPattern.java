@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.codegen.MatcherState;
-import edu.kit.compiler.codegen.Operand.Register;
+import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.PhiInstruction;
 import edu.kit.compiler.codegen.Util;
 import firm.Mode;
@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 
 public final class PhiPattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Register>> pattern = OperandPattern.register();
+    public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
@@ -54,7 +54,7 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
     private static final class PhiMatch extends InstructionMatch.Phi {
 
         private final Node node;
-        private final List<OperandMatch<Register>> preds;
+        private final List<OperandMatch<Operand.Register>> preds;
         private final int targetRegister;
 
         @Override
