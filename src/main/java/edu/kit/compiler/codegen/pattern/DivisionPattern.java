@@ -30,7 +30,7 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
             var rhs = right.match(node.getPred(2), matcher);
 
             // todo is hard coding the register size the best choice here?
-            var targetRegister = matcher.getNewRegister(RegisterSize.QUAD);
+            var targetRegister = matcher.getNewRegister(RegisterSize.DOUBLE);
 
             if (lhs.matches() && rhs.matches()) {
                 return new DivisionMatch(node, lhs, rhs, targetRegister);
