@@ -24,15 +24,27 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
             var pred = node.getPred(0);
             var match = pattern.match(pred, matcher);
             if (match.matches()) {
-                var from = pred.getMode();
-                var to = node.getMode();
-                var targetRegister = matcher.getNewRegister(Util.getSize(to));
-                return new ConversionMatch(node, match, targetRegister, from, to);
+                return getMatch(node, pred, matcher, match);
             } else {
                 return InstructionMatch.none();
             }
         } else {
             return InstructionMatch.none();
+        }
+    }
+
+    private InstructionMatch getMatch(Node node, Node pred, MatcherState matcher,
+            OperandMatch<Operand.Register> match) {
+        assert match.matches();
+        var from = pred.getMode();
+        var to = node.getMode();
+
+        if (from.equals(Mode.getLs()) && to.equals(Mode.getIs())) {
+            var targetRegister = match.getOperand().get();
+            return InstructionMatch.empty(node, List.of(pred), targetRegister);
+        } else {
+            var targetRegister = matcher.getNewRegister(Util.getSize(to));
+            return new ConversionMatch(node, match, targetRegister, from, to);
         }
     }
 
@@ -75,7 +87,7 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
             if (from.equals(Mode.getIs()) && to.equals(Mode.getLs())) {
                 return "movsl";
             } else if (from.equals(Mode.getLs()) && to.equals(Mode.getIs())) {
-                return "mov";
+                throw new UnsupportedOperationException("cast after division handled");
             } else {
                 throw new UnsupportedOperationException("not supported yet");
             }
