@@ -101,8 +101,10 @@ public class MatcherState {
         }
 
         var match = getMatch(node);
-        // ?! is this going to be a problem?
-        match.getPredecessors().forEach(pred -> walkTopological(walker, pred));
+        Iterable<Node> iterable = () -> match.getPredecessors().iterator();
+        for (var pred : iterable) {
+            walkTopological(walker, pred);
+        }
 
         if (isLoopBreaker || !node.visited()) {
             match.accept(walker);
