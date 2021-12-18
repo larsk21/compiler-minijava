@@ -15,14 +15,14 @@ import lombok.RequiredArgsConstructor;
 
 public class LoadImmediatePattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Immediate>> immediate = OperandPattern.immediate();
+    public final Pattern<OperandMatch<Operand.Immediate>> pattern = OperandPattern.immediate();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
-        var match = immediate.match(node, matcher);
+        var match = pattern.match(node, matcher);
         if (match.matches()) {
-            var register = matcher.getNewRegister(Util.getSize(node.getMode()));
-            return new LoadImmediateMatch(node, match, register);
+            var targetRegister = matcher.getNewRegister(Util.getSize(node.getMode()));
+            return new LoadImmediateMatch(node, match, targetRegister);
         } else {
             return InstructionMatch.none();
         }
@@ -32,7 +32,7 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
     public static final class LoadImmediateMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<Operand.Immediate> match;
+        private final OperandMatch<Operand.Immediate> source;
         private final int targetRegister;
 
         @Override
@@ -42,7 +42,7 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            var sourceOperand = match.getOperand();
+            var sourceOperand = source.getOperand();
             var mode = sourceOperand.getMode();
             var targetOperand = Operand.register(mode, targetRegister);
             
@@ -72,7 +72,7 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            return match.getPredecessors();
+            return source.getPredecessors();
         }
     }
 }

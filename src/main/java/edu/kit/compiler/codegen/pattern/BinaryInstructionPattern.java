@@ -10,8 +10,6 @@ import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
-import edu.kit.compiler.intermediate_lang.RegisterSize;
-import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -26,20 +24,22 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
     private final Pattern<? extends OperandMatch<? extends Operand.Source>> right;
     private final boolean hasMemory;
 
+
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == opcode) {
             var offset = hasMemory ? 1 : 0;
 
             assert node.getPredCount() == 2 + offset;
-            var lhs = left.match(node.getPred(offset), matcher);
-            var rhs = right.match(node.getPred(offset + 1), matcher);
+            var leftMatch = left.match(node.getPred(offset), matcher);
+            var rightMatch = right.match(node.getPred(offset + 1), matcher);
 
-            if (lhs.matches() && rhs.matches()) {
-                var size = Util.getSize(getMode(node));
-                var targetRegister = getTarget(lhs.getOperand(),
+            if (leftMatch.matches() && rightMatch.matches()) {
+                // todo needs to be changed once swap option is implemented
+                var size = rightMatch.getOperand().getSize();
+                var targetRegister = getTarget(leftMatch.getOperand(),
                         () -> matcher.getNewRegister(size));
-                return new BinaryInstructionMatch(node, lhs, rhs, targetRegister, size);
+                return new BinaryInstructionMatch(node, leftMatch, rightMatch, targetRegister);
             } else {
                 return InstructionMatch.none();
             }
@@ -56,24 +56,13 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
         }
     }
 
-    private Mode getMode(Node node) {
-        return switch (node.getOpCode()) {
-            case iro_Store -> {
-                var store = (firm.nodes.Store) node;
-                yield store.getType().getMode();
-            }
-            default -> node.getMode();
-        };
-    }
-
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class BinaryInstructionMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<? extends Operand.Target> left;
-        private final OperandMatch<? extends Operand.Source> right;
+        private final OperandMatch<? extends Operand.Target> target;
+        private final OperandMatch<? extends Operand.Source> source;
         private final Optional<Integer> targetRegister;
-        private final RegisterSize size;
 
         @Override
         public Node getNode() {
@@ -96,7 +85,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            var preds = Stream.concat(left.getPredecessors(), right.getPredecessors());
+            var preds = Stream.concat(target.getPredecessors(), source.getPredecessors());
             if (hasMemory) {
                 preds = Stream.concat(Stream.of(node.getPred(0)), preds);
             }
@@ -107,10 +96,13 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
         private Instruction getAsOperation() {
             assert targetRegister.isPresent();
 
-            var targetOperand = Operand.register(right.getOperand().getMode(), targetRegister.get());
+            var mode = source.getOperand().getMode();
+            var size = source.getOperand().getSize();
+
+            var targetOperand = Operand.register(mode, targetRegister.get());
 
             var inputRegisters = getInputRegisters();
-            var overwriteRegister = left.getOperand().getTargetRegister();
+            var overwriteRegister = target.getOperand().getTargetRegister();
 
             // make sure the overwritten register is not part of input registers
             if (overwriteRegister.isPresent()) {
@@ -119,21 +111,22 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
             }
 
             return Instruction.newOp(
-                    Util.formatCmd(command, size, right.getOperand(), targetOperand),
+                    Util.formatCmd(command, size, source.getOperand(), targetOperand),
                     inputRegisters, overwriteRegister, targetRegister.get());
         }
 
         private Instruction getAsInput() {
             assert !targetRegister.isPresent();
 
+            var size = source.getOperand().getSize();
             return Instruction.newInput(
-                    Util.formatCmd(command, size, right.getOperand(), left.getOperand()),
+                    Util.formatCmd(command, size, source.getOperand(), target.getOperand()),
                     getInputRegisters());
         }
 
         private List<Integer> getInputRegisters() {
-            var input = new ArrayList<>(left.getOperand().getSourceRegisters());
-            input.addAll(right.getOperand().getSourceRegisters());
+            var input = new ArrayList<>(target.getOperand().getSourceRegisters());
+            input.addAll(source.getOperand().getSourceRegisters());
 
             return input;
         }

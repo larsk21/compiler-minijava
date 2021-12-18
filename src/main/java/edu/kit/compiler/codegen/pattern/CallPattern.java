@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CallPattern implements Pattern<InstructionMatch> {
 
-    private final Pattern<OperandMatch<Operand.Register>> register = OperandPattern.register();
+    private final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
@@ -31,13 +31,12 @@ public class CallPattern implements Pattern<InstructionMatch> {
 
             var arguments = new ArrayList<OperandMatch<Operand.Register>>();
             for (int i = 2; i < node.getPredCount(); ++i) {
-                var pred = node.getPred(i);
-                var match = register.match(pred, matcher);
+                var match = pattern.match(node.getPred(i), matcher);
 
                 if (match.matches()) {
                     arguments.add(match);
                 } else {
-                    throw new IllegalStateException("call args must be registers");
+                    throw new IllegalStateException("call arguments must be registers");
                 }
             }
 

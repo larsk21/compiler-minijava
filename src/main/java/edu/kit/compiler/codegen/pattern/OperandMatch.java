@@ -12,29 +12,29 @@ import lombok.RequiredArgsConstructor;
  * of a previously matched instruction, or immediate value associated with Const
  * node of the firm graph.
  */
-public interface OperandMatch<Op extends Operand> extends Match {
+public interface OperandMatch<T extends Operand> extends Match {
 
     /**
      * Return the operand associated with this match.
      */
-    Op getOperand();
+    T getOperand();
 
-    public static <Op extends Operand> OperandMatch<Op> some(Op operand, Collection<Node> preds) {
+    public static <T extends Operand> OperandMatch<T> some(T operand, Collection<Node> preds) {
         return new Some<>(operand, preds);
     }
 
-    public static <Op extends Operand> OperandMatch<Op> none() {
-        return new None<Op>();
+    public static <T extends Operand> OperandMatch<T> none() {
+        return new None<T>();
     }
 
-    public static final class None<Op extends Operand> implements OperandMatch<Op> {
+    public static final class None<T extends Operand> implements OperandMatch<T> {
         @Override
         public boolean matches() {
             return false;
         }
 
         @Override
-        public Op getOperand() {
+        public T getOperand() {
             throw new UnsupportedOperationException();
         }
 
@@ -45,9 +45,9 @@ public interface OperandMatch<Op extends Operand> extends Match {
     }
 
     @RequiredArgsConstructor
-    public static final class Some<Op extends Operand> implements OperandMatch<Op> {
+    public static final class Some<T extends Operand> implements OperandMatch<T> {
 
-        private final Op operand;
+        private final T operand;
         private final Collection<Node> predecessors;
 
         @Override
@@ -56,7 +56,7 @@ public interface OperandMatch<Op extends Operand> extends Match {
         }
 
         @Override
-        public Op getOperand() {
+        public T getOperand() {
             return operand;
         }
 

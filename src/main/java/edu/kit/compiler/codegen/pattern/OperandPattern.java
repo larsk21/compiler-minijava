@@ -75,8 +75,7 @@ public final class OperandPattern {
             var register = matcher.getRegister(node);
             if (node.getMode().equals(Mode.getP()) && register.isPresent()) {
                 var operand = Operand.register(node.getMode(), register.get());
-                var predecessors = List.of(node);
-                return OperandMatch.some(Operand.memory(operand), predecessors);
+                return OperandMatch.some(Operand.memory(operand), List.of(node));
             } else {
                 return OperandMatch.none();
             }

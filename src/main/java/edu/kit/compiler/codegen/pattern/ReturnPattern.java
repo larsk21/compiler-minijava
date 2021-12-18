@@ -29,7 +29,7 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
                         throw new IllegalStateException("result is not a register");
                     }
                 }
-                default -> throw new UnsupportedOperationException("illegal number of results");
+                default -> throw new UnsupportedOperationException();
             };
             return new ReturnMatch(node, operand);
         } else {
@@ -41,7 +41,7 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
     public static final class ReturnMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final Optional<OperandMatch<Operand.Register>> match;
+        private final Optional<OperandMatch<Operand.Register>> source;
 
         @Override
         public Node getNode() {
@@ -50,8 +50,8 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            var register = match.map(match -> match.getOperand().get());
-            return List.of(Instruction.newRet(register));
+            var resultRegister = source.map(match -> match.getOperand().get());
+            return List.of(Instruction.newRet(resultRegister));
         }
 
         @Override
@@ -62,8 +62,8 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
         @Override
         public Stream<Node> getPredecessors() {
             var stream = Stream.of(node.getPred(0));
-            if (match.isPresent()) {
-                stream = Stream.concat(stream, match.get().getPredecessors());
+            if (source.isPresent()) {
+                stream = Stream.concat(stream, source.get().getPredecessors());
             }
 
             return stream;

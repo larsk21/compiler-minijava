@@ -3,7 +3,7 @@ package edu.kit.compiler.codegen.pattern;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.MatcherState;
@@ -22,7 +22,6 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
     private final ir_opcode opcode;
     private final String command;
     private final Pattern<? extends OperandMatch<? extends Operand.Target>> operand;
-    private final boolean overwritesRegister;
     private final boolean hasMemory;
 
     @Override
@@ -32,9 +31,8 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
             var match = operand.match(node.getPred(getOffset()), matcher);
 
             if (match.matches()) {
-                var size = Util.getSize(match.getOperand().getMode());
-                var targetRegister = getTarget(() -> matcher.getNewRegister(size));
-                return new UnaryInstructionMatch(node, match, targetRegister, size);
+                var targetRegister = getTarget(match.getOperand(), matcher::getNewRegister);
+                return new UnaryInstructionMatch(node, match, targetRegister);
             } else {
                 return InstructionMatch.none();
             }
@@ -47,17 +45,21 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
         return hasMemory ? 1 : 0;
     }
 
-    private Optional<Integer> getTarget(Supplier<Integer> register) {
-        return overwritesRegister ? Optional.of(register.get()) : Optional.empty();
+    private Optional<Integer> getTarget(Operand.Target operand,
+            Function<RegisterSize, Integer> register) {
+        if (operand.getTargetRegister().isPresent()) {
+            return Optional.of(register.apply(operand.getSize()));
+        } else {
+            return Optional.empty();
+        }
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class UnaryInstructionMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<? extends Operand.Target> match;
+        private final OperandMatch<? extends Operand.Target> source;
         private final Optional<Integer> targetRegister;
-        private final RegisterSize size;
 
         @Override
         public Node getNode() {
@@ -80,7 +82,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            var preds = match.getPredecessors();
+            var preds = source.getPredecessors();
             if (hasMemory) {
                 preds = Stream.concat(Stream.of(node.getPred(0)), preds);
             }
@@ -91,10 +93,10 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
         private Instruction getAsOperation() {
             assert targetRegister.isPresent();
 
-            var targetOperand = Operand.register(match.getOperand().getMode(), targetRegister.get());
+            var targetOperand = Operand.register(source.getOperand().getMode(), targetRegister.get());
 
-            var inputRegisters = new ArrayList<>(match.getOperand().getSourceRegisters());
-            var overwriteRegister = match.getOperand().getTargetRegister();
+            var inputRegisters = new ArrayList<>(source.getOperand().getSourceRegisters());
+            var overwriteRegister = source.getOperand().getTargetRegister();
 
             // make sure the overwritten register is not part of input registers
             if (overwriteRegister.isPresent()) {
@@ -102,7 +104,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
             }
 
             return Instruction.newOp(
-                    Util.formatCmd(command, size, targetOperand),
+                    Util.formatCmd(command, source.getOperand().getSize(), targetOperand),
                     inputRegisters, overwriteRegister, targetRegister.get());
         }
 
@@ -110,8 +112,8 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
             assert !targetRegister.isPresent();
 
             return Instruction.newInput(
-                    Util.formatCmd(command, size, match.getOperand()),
-                    match.getOperand().getSourceRegisters());
+                    Util.formatCmd(command, source.getOperand().getSize(), source.getOperand()),
+                    source.getOperand().getSourceRegisters());
         }
     }
 }
