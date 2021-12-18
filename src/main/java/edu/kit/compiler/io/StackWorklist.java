@@ -15,6 +15,10 @@ public class StackWorklist<T> implements Worklist<T> {
      * Create a new StackWorklist.
      */
     public StackWorklist() {
+        this(true);
+    }
+
+    public StackWorklist(boolean uniqueElements) {
         stack = new ArrayDeque<>();
         uniqueElements = true;
     }
