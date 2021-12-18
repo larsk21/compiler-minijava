@@ -20,7 +20,7 @@ public class StackWorklist<T> implements Worklist<T> {
 
     public StackWorklist(boolean uniqueElements) {
         stack = new ArrayDeque<>();
-        uniqueElements = true;
+        this.uniqueElements = uniqueElements;
     }
 
     private Deque<T> stack;
