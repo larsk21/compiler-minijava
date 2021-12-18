@@ -33,7 +33,7 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
 
         private final Node node;
         private final OperandMatch<Operand.Immediate> match;
-        private final int register;
+        private final int targetRegister;
 
         @Override
         public Node getNode() {
@@ -42,17 +42,32 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            var operand = match.getOperand();
-            var mode = operand.getMode();
-            var target = Operand.register(mode, register);
-            return List.of(Instruction.newOp(
-                    Util.formatCmd("mov", Util.getSize(mode), operand, target),
-                    Collections.emptyList(), Optional.empty(), register));
+            var sourceOperand = match.getOperand();
+            var mode = sourceOperand.getMode();
+            var targetOperand = Operand.register(mode, targetRegister);
+            
+            if (sourceOperand.get().isNull()) {
+                return List.of(getZero(targetOperand));
+            } else {
+                return List.of(getNonZero(sourceOperand, targetOperand));
+            }
+        }
+
+        public Instruction getZero(Operand target) {
+            return Instruction.newOp(
+                Util.formatCmd("xor", target.getSize(), target, target),
+                Collections.emptyList(), Optional.empty(), targetRegister);
+        }
+
+        public Instruction getNonZero(Operand source, Operand target) {
+            return Instruction.newOp(
+                    Util.formatCmd("mov", target.getSize(), source, target),
+                    Collections.emptyList(), Optional.empty(), targetRegister);
         }
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return Optional.of(register);
+            return Optional.of(targetRegister);
         }
 
         @Override
