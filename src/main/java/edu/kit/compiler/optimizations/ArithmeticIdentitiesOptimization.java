@@ -2,7 +2,7 @@ package edu.kit.compiler.optimizations;
 
 import java.util.function.BinaryOperator;
 
-import edu.kit.compiler.io.DequeWorklist;
+import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
 import firm.BackEdges;
 import firm.Graph;
@@ -72,7 +72,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
     private static final class Visitor extends NodeVisitor.Default {
         private final Graph graph;
 
-        private final Worklist<Node> worklist = new DequeWorklist<>();
+        private final Worklist<Node> worklist = new StackWorklist<>(false);
 
         @Getter
         private boolean changes = false;
