@@ -297,12 +297,6 @@ public class ApplyAssignment {
             output("addq $%d, %%rsp # remove args from stack", 8 * numArgsOnStack + alignmentOffset);
         }
 
-        // restore caller-saved registers
-        while (!saved.isEmpty()) {
-            Register r = saved.pop();
-            output("popq %s # restore caller-saved register", r.getAsQuad());
-        }
-
         // read return value
         if (instr.getTargetRegister().isPresent()) {
             int target = instr.getTargetRegister().get();
@@ -319,6 +313,17 @@ public class ApplyAssignment {
                     output("mov%c %s, %s # move return value into @%s",
                             size.getSuffix(), cconv.getReturnRegister().asSize(size), r.asSize(size), target);
                 }
+            }
+        }
+
+        // restore caller-saved registers
+        // TODO: test!!
+        while (!saved.isEmpty()) {
+            Register r = saved.pop();
+            if (!tracker.getRegisters().isFree(r)) {
+                output("popq %s # restore caller-saved register", r.getAsQuad());
+            } else {
+                output("addq $8, %rsp # clear stack");
             }
         }
     }

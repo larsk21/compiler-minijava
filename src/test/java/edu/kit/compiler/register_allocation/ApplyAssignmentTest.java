@@ -307,9 +307,9 @@ public class ApplyAssignmentTest {
         expected.add("pushq 0(%rsp) # reload @5 as arg 5");
         expected.add("call _foo");
         expected.add("addq $24, %rsp # remove args from stack");
-        expected.add("popq %rcx # restore caller-saved register");
-        expected.add("popq %rbx # restore caller-saved register");
         expected.add("movl %eax, %edi # move return value into @6");
+        expected.add("addq $8, %rsp # clear stack");
+        expected.add("addq $8, %rsp # clear stack");
         assertEquals(expected, result.getInstructions());
     }
 
