@@ -22,13 +22,29 @@ public class RegisterPreference {
     );
 
     public static final RegisterPreference PREFER_CALLEE_SAVED =
+            new RegisterPreference(1, x86_CALLEE_SAVED, x86_DIV_REGISTERS, x86_GENERAL_CALLER_SAVED);
+    public static final RegisterPreference PREFER_CALLEE_SAVED_AVOID_DIV =
             new RegisterPreference(1, x86_CALLEE_SAVED, x86_GENERAL_CALLER_SAVED, x86_DIV_REGISTERS);
     public static final RegisterPreference PREFER_CALLEE_SAVED_NO_DIV =
             new RegisterPreference(1, x86_CALLEE_SAVED, x86_GENERAL_CALLER_SAVED);
     public static final RegisterPreference PREFER_CALLER_SAVED =
-            new RegisterPreference(3, x86_GENERAL_CALLER_SAVED, x86_DIV_REGISTERS, x86_CALLEE_SAVED);
+            new RegisterPreference(3, x86_DIV_REGISTERS, x86_GENERAL_CALLER_SAVED, x86_CALLEE_SAVED);
     public static final RegisterPreference PREFER_CALLER_SAVED_AVOID_DIV =
             new RegisterPreference(2, x86_GENERAL_CALLER_SAVED, x86_CALLEE_SAVED, x86_DIV_REGISTERS);
+    public static final RegisterPreference PREFER_CALLER_SAVED_NO_DIV =
+            new RegisterPreference(2, x86_GENERAL_CALLER_SAVED, x86_CALLEE_SAVED);
+
+    public static RegisterPreference fromFlags(boolean avoidCallerSaved, boolean avoidDiv) {
+        if (avoidCallerSaved && avoidDiv) {
+            return PREFER_CALLEE_SAVED_AVOID_DIV;
+        } else if (avoidCallerSaved && !avoidDiv) {
+            return PREFER_CALLEE_SAVED;
+        } else if (!avoidCallerSaved && avoidDiv) {
+            return PREFER_CALLER_SAVED_AVOID_DIV;
+        } else {
+            return PREFER_CALLER_SAVED;
+        }
+    }
 
     private List<EnumSet<Register>> preferenceList;
     /**

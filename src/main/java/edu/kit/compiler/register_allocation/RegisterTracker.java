@@ -59,7 +59,7 @@ public class RegisterTracker {
      * Free registers must always ve requested together.
      */
     public List<Register> getFreeRegisters(int num, Optional<Register> exludedRegister) {
-        return getFreeRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED, exludedRegister);
+        return getFreeRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED_AVOID_DIV, exludedRegister);
     }
 
     public List<Register> getFreeRegisters(int num, RegisterPreference pref,
@@ -82,7 +82,7 @@ public class RegisterTracker {
     }
 
     public Optional<Register> tryGetFreeRegister() {
-        return tryGetFreeRegister(RegisterPreference.PREFER_CALLEE_SAVED);
+        return tryGetFreeRegister(RegisterPreference.PREFER_CALLEE_SAVED_AVOID_DIV);
     }
 
     public Optional<Register> tryGetFreeRegister(RegisterPreference pref) {
