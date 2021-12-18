@@ -3,7 +3,6 @@ package edu.kit.compiler.codegen.pattern;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -115,7 +114,8 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
             // make sure the overwritten register is not part of input registers
             if (overwriteRegister.isPresent()) {
-                inputRegisters.remove(overwriteRegister.get());
+                // the while loop ensures that all occurences are removed
+                while (inputRegisters.remove(overwriteRegister.get()));
             }
 
             return Instruction.newOp(

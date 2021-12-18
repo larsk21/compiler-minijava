@@ -7,6 +7,7 @@ import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
 import firm.TargetValue;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
 public interface Operand {
 
@@ -37,7 +38,9 @@ public interface Operand {
     }
 
     @RequiredArgsConstructor
+    @ToString
     public static final class Immediate implements Source {
+
         private final TargetValue value;
 
         @Override
@@ -73,7 +76,9 @@ public interface Operand {
     }
 
     @RequiredArgsConstructor
+    @ToString
     public static final class Register implements Target {
+
         private final Mode mode;
         private final int register;
 
@@ -108,7 +113,9 @@ public interface Operand {
     }
 
     @RequiredArgsConstructor
+    @ToString
     public static final class Memory implements Target {
+
         private final Register register;
 
         @Override
