@@ -24,7 +24,7 @@ public abstract class ExitCondition {
         return new UnconditionalJump();
     }
 
-    public static ExitCondition condition(Relation relation,
+    public static ExitCondition conditional(Relation relation,
             Operand.Source left, Operand.Source right) {
         return new ConditionalJump(relation, left, right, right.getMode());
     }

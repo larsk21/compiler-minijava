@@ -12,12 +12,10 @@ import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.codegen.pattern.BinaryInstructionPattern;
 import edu.kit.compiler.codegen.pattern.BlockPattern;
 import edu.kit.compiler.codegen.pattern.CallPattern;
-import edu.kit.compiler.codegen.pattern.ComparisonPattern;
 import edu.kit.compiler.codegen.pattern.ConditionPattern;
 import edu.kit.compiler.codegen.pattern.ConversionPattern;
 import edu.kit.compiler.codegen.pattern.DivisionPattern;
 import edu.kit.compiler.codegen.pattern.DivisionPattern.Type;
-import edu.kit.compiler.intermediate_lang.RegisterSize;
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
 import edu.kit.compiler.codegen.pattern.LoadImmediatePattern;
 import edu.kit.compiler.codegen.pattern.LoadMemoryPattern;
@@ -27,6 +25,7 @@ import edu.kit.compiler.codegen.pattern.Pattern;
 import edu.kit.compiler.codegen.pattern.PhiPattern;
 import edu.kit.compiler.codegen.pattern.ReturnPattern;
 import edu.kit.compiler.codegen.pattern.UnaryInstructionPattern;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -34,7 +33,7 @@ import lombok.RequiredArgsConstructor;
 
 public class PatternCollection implements Pattern<InstructionMatch> {
 
-    private static final Pattern<OperandMatch<Register>> REGISTER = OperandPattern.register();
+    private static final Pattern<OperandMatch<Register>> REG = OperandPattern.register();
     private static final Pattern<OperandMatch<Memory>> MEMORY = OperandPattern.memory();
 
     private final Map<ir_opcode, Pattern<InstructionMatch>> map;
@@ -52,19 +51,19 @@ public class PatternCollection implements Pattern<InstructionMatch> {
     public PatternCollection() {
         map = Map.ofEntries(
                 Map.entry(iro_Const, new LoadImmediatePattern()),
-                Map.entry(iro_Add, new BinaryInstructionPattern(iro_Add, "add", REGISTER, REGISTER, false)),
-                Map.entry(iro_Sub, new BinaryInstructionPattern(iro_Sub, "sub", REGISTER, REGISTER, false)),
-                Map.entry(iro_Mul, new BinaryInstructionPattern(iro_Mul, "imul", REGISTER, REGISTER, false)),
-                Map.entry(iro_Eor, new BinaryInstructionPattern(iro_Eor, "xor", REGISTER, REGISTER, false)),
+                Map.entry(iro_Add, new BinaryInstructionPattern(iro_Add, "add", REG, REG, false)),
+                Map.entry(iro_Sub, new BinaryInstructionPattern(iro_Sub, "sub", REG, REG, false)),
+                Map.entry(iro_Mul, new BinaryInstructionPattern(iro_Mul, "imul", REG, REG, false)),
+                Map.entry(iro_Eor, new BinaryInstructionPattern(iro_Eor, "xor", REG, REG, false)),
 
-                Map.entry(iro_Div, new DivisionPattern(Type.DIV, REGISTER, REGISTER)),
-                Map.entry(iro_Mod, new DivisionPattern(Type.MOD, REGISTER, REGISTER)),
+                Map.entry(iro_Div, new DivisionPattern(Type.DIV, REG, REG)),
+                Map.entry(iro_Mod, new DivisionPattern(Type.MOD, REG, REG)),
 
-                Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REGISTER, true, false)),
+                Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REG, true, false)),
 
                 Map.entry(iro_Conv, new ConversionPattern()),
 
-                Map.entry(iro_Store, new BinaryInstructionPattern(iro_Store, "mov", MEMORY, REGISTER, true)),
+                Map.entry(iro_Store, new BinaryInstructionPattern(iro_Store, "mov", MEMORY, REG, true)),
                 Map.entry(iro_Load, new LoadMemoryPattern()),
 
                 Map.entry(iro_Call, new CallPattern()),
@@ -72,14 +71,14 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Block, new BlockPattern()),
                 Map.entry(iro_Return, new ReturnPattern()),
 
-                Map.entry(iro_Jmp, new ConditionPattern()),
-                Map.entry(iro_Cmp, new ComparisonPattern()),
-                Map.entry(iro_Cond, new ConditionPattern()),
+                Map.entry(iro_Jmp, new ConditionPattern.Unconditional()),
+                Map.entry(iro_Cond, new ConditionPattern.Conditional(REG, REG)),
 
                 // trivial pattern for nodes without predecessors
                 Map.entry(iro_Start, new EmptyPattern()),
                 Map.entry(iro_End, new EmptyPattern()),
-                Map.entry(iro_Address, new EmptyPattern()));
+                Map.entry(iro_Address, new EmptyPattern()),
+                Map.entry(iro_Cmp, new EmptyPattern()));
     }
 
     private static final class EmptyPattern implements Pattern<InstructionMatch> {
