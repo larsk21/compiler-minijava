@@ -1,9 +1,11 @@
 package edu.kit.compiler.codegen;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
 import edu.kit.compiler.codegen.pattern.InstructionMatchVisitor;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Graph;
 import firm.MethodType;
 import firm.bindings.binding_irnode.ir_opcode;
@@ -26,14 +28,13 @@ public final class InstructionSelection {
     private InstructionSelection(Graph graph) {
         // todo is this the idiomatic way of getting number of parameters
         var type = (MethodType) graph.getEntity().getType();
-        matcher = new MatcherState(graph, type.getNParams());
         blocks = new BasicBlocks(graph);
 
-        // Set sizes for parameter registers
+        var parameters = new ArrayList<RegisterSize>(type.getNParams());
         for (int i = 0; i < type.getNParams(); ++i) {
-            var paramMode = type.getParamType(i).getMode();
-            matcher.setRegisterSize(i, Util.getSize(paramMode));
+            parameters.add(Util.getSize(type.getParamType(i).getMode()));
         }
+        matcher = new MatcherState(graph, parameters);
     }
 
     public static InstructionSelection apply(Graph graph, PatternCollection patterns) {
@@ -71,7 +72,7 @@ public final class InstructionSelection {
         public void visit(InstructionMatch.Basic match) {
             var node = match.getNode();
             var entry = blocks.getEntry(node.getBlock());
-            entry.append(match);
+            entry.append(match.getInstructions());
         }
 
         @Override

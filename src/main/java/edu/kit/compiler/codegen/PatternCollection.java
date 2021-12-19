@@ -118,7 +118,7 @@ public class PatternCollection implements Pattern<InstructionMatch> {
         private final MatcherState subject;
 
         public MatcherShadow(MatcherState subject) {
-            super(subject.graph, 0);
+            super(subject.graph);
             this.subject = subject;
         }
 
@@ -155,16 +155,6 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 return super.getPhiRegister(phi, size);
             } else {
                 return register;
-            }
-        }
-
-        @Override
-        public void setRegisterSize(int register, RegisterSize size) {
-            var pivot = subject.registerSizes.size();
-            if (register < pivot) {
-                subject.setRegisterSize(register, size);
-            } else {
-                super.setRegisterSize(register - pivot, size);
             }
         }
 

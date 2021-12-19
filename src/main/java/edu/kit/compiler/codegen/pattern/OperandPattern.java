@@ -9,7 +9,6 @@ import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Memory;
 import edu.kit.compiler.codegen.Operand.Register;
 import firm.Mode;
-import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Const;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -21,7 +20,8 @@ import lombok.NoArgsConstructor;
 public final class OperandPattern {
 
     /**
-     * Return a pattern that will match any Const node.
+     * Return a pattern that will match any Const node, as well as Conv nodes
+     * with Const operand.
      */
     public static Pattern<OperandMatch<Immediate>> immediate() {
         return new ImmediatePattern();
