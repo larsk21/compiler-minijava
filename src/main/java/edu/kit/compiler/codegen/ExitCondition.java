@@ -11,12 +11,27 @@ import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Represents the exit condition of a basic block.
+ */
 public abstract class ExitCondition {
 
+    /**
+     * Translate the exit condition into a list of IL instructions.  For an
+     * unconditional jump, this return something `jmp .L42`. For a conditional
+     * jump it might return `cmp @1 @2; jl .L42; jmp .L28`.
+     */
     public abstract List<Instruction> getInstructions();
 
+    /**
+     * Sets the destination of the condition if it evaluates to true. Also used
+     * to set the destination for an unconditional jump.
+     */
     public abstract void setTrueBlock(BasicBlocks.BlockEntry block);
 
+    /**
+     * Sets the destination of the condition if it evaluates to false.
+     */
     public abstract void setFalseBlock(BasicBlocks.BlockEntry block);
 
     public static ExitCondition unconditional() {
