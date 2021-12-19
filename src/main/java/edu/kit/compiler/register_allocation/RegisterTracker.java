@@ -11,6 +11,9 @@ import java.util.stream.Collectors;
 import static edu.kit.compiler.intermediate_lang.Register.*;
 
 public class RegisterTracker {
+    // don't count reserved registers
+    private static final int NUM_AVAILABLE = Register.values().length - 2;
+
     private EnumMap<Register, Integer> registers;
     @Getter
     private EnumSet<Register> usedRegisters;
@@ -26,6 +29,10 @@ public class RegisterTracker {
 
     public boolean isFree(Register r) {
         return !registers.containsKey(r);
+    }
+
+    public int numFree() {
+        return NUM_AVAILABLE - registers.size();
     }
 
     public Optional<Integer> get(Register r) {
@@ -46,6 +53,16 @@ public class RegisterTracker {
         registers.remove(r);
     }
 
+    public boolean clear(int vRegister) {
+        for (var entry: registers.entrySet()) {
+            if (entry.getValue() == vRegister) {
+                registers.remove(entry.getKey());
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void replace(Register r, int vRegister) {
         assert !isFree(r);
         registers.put(r, vRegister);
@@ -53,6 +70,14 @@ public class RegisterTracker {
 
     public void markUsed(Register r) {
         usedRegisters.add(r);
+    }
+
+    public List<Integer> getCurrentVRegisters() {
+        List<Integer> result = new ArrayList<>(registers.size());
+        for (var entry: registers.entrySet()) {
+            result.add(entry.getValue());
+        }
+        return result;
     }
 
     /**

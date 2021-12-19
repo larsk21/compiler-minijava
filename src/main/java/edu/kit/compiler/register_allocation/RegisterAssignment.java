@@ -35,6 +35,14 @@ public class RegisterAssignment {
         return stackSlot.isPresent();
     }
 
+    public boolean isInRegister() {
+        return register.isPresent();
+    }
+
+    public boolean isAssigned() {
+        return stackSlot.isPresent() || register.isPresent();
+    }
+
     public boolean isEquivalent(RegisterAssignment other) {
         return (register.isPresent() && other.register.isPresent() && register.get() == other.register.get())
                 || (stackSlot.isPresent() && other.stackSlot.isPresent() && stackSlot.get() == other.stackSlot.get());

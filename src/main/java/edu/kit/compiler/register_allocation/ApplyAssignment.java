@@ -458,7 +458,9 @@ public class ApplyAssignment {
             arSize += 8;
         }
 
-        output("subq $%d, %%rsp # allocate activation record", arSize);
+        if (arSize > 0) {
+            output("subq $%d, %%rsp # allocate activation record", arSize);
+        }
 
         // save registers
         for (Register r: usedRegisters) {
