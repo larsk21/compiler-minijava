@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class PhiInstruction {
     
-    private final List<Entry> entries = new ArrayList<>();
+    private final List<PhiSource> entries = new ArrayList<>();
 
     @Getter
     private final int destination;
@@ -22,12 +22,12 @@ public final class PhiInstruction {
     @Getter
     private final Mode mode;
 
-    public List<Entry> getEntries() {
+    public List<PhiSource> getEntries() {
         return Collections.unmodifiableList(entries);
     }
 
     public void addEntry(Node block, int register) {
-        entries.add(new Entry(block, register));
+        entries.add(new PhiSource(block, register));
     }
 
     @Override
@@ -39,7 +39,7 @@ public final class PhiInstruction {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class Entry {
+    public static final class PhiSource {
         @Getter
         private final Node predBlock;
 

@@ -8,7 +8,7 @@ class A {
         else {
             c = 5;
         }
-        return c;
+        return c + 2;
     }
 }
 

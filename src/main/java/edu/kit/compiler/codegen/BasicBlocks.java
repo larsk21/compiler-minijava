@@ -27,6 +27,7 @@ public class BasicBlocks {
     @Getter
     private final Graph graph;
 
+    @Getter
     private final HashMap<Integer, BlockEntry> blocks = new HashMap<>();
 
     public BlockEntry getEntry(Node block) {
@@ -56,11 +57,11 @@ public class BasicBlocks {
         }
 
         public List<Instruction> getInstructions() {
-            return Collections.unmodifiableList(instructions);
+            return instructions;
         }
 
         public List<PhiInstruction> getPhiInstructions() {
-            return Collections.unmodifiableList(phiInstructions);
+            return phiInstructions;
         }
 
         public List<Instruction> getExitInstructions() {
@@ -117,7 +118,16 @@ public class BasicBlocks {
         public String toString() {
             var instructions = Stream.concat(getInstructions().stream(),
                     getExitInstructions().stream()).collect(Collectors.toList());
-            return String.format("(%s, %s)", phiInstructions, instructions.toString());
+            StringBuilder phiString = new StringBuilder();
+            for(var inst : phiInstructions) {
+                phiString.append(inst).append("\n");
+            }
+
+            StringBuilder instructionString = new StringBuilder();
+            for(var inst : instructions) {
+                instructionString.append(inst).append("\n");
+            }
+            return String.format("%s\n%s", phiString, instructionString);
         }
     }
 }

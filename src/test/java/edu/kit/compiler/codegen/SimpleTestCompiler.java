@@ -81,7 +81,6 @@ public class SimpleTestCompiler {
 
                 currentFile.delete();
                 System.out.printf("moved file %s\n", s);
-
             }
         }
     }
