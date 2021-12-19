@@ -41,4 +41,8 @@ public class CallingConvention {
         }
         return Optional.empty();
     }
+
+    public int numArgRegisters() {
+        return argRegisters.length;
+    }
 }

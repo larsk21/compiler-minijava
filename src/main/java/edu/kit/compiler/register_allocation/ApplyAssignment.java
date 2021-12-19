@@ -1,5 +1,6 @@
 package edu.kit.compiler.register_allocation;
 
+import edu.kit.compiler.codegen.PermutationSolver;
 import edu.kit.compiler.intermediate_lang.*;
 import edu.kit.compiler.logger.Logger;
 import lombok.Getter;
@@ -313,40 +314,31 @@ public class ApplyAssignment {
         EnumMap<Register, Integer> offsets = new EnumMap<>(Register.class);
         for (Register r: cconv.getCallerSaved()) {
             if (!tracker.getRegisters().isFree(r)) {
-                savedOffset += 8;
-                offsets.put(r, savedOffset);
-                saved.push(r);
-                output("pushq %s # push caller-saved register", r.getAsQuad());
+                int vRegister = tracker.getRegisters().get(r).get();
+                if (!lifetimes[vRegister].isLastInstructionAndInput(index)) {
+                    savedOffset += 8;
+                    offsets.put(r, savedOffset);
+                    saved.push(r);
+                    output("pushq %s # push caller-saved register", r.getAsQuad());
+                }
             }
         }
 
         // handle args
         int numArgsOnStack = 0;
         List<Integer> args = instr.getInputRegisters();
+        PermutationSolver solver = new PermutationSolver();
         for (int i = 0; i < args.size(); i++) {
             int vRegister = args.get(i);
             if (cconv.getArgRegister(i).isPresent()) {
                 // the argument is passed within a register
                 Register argReg = cconv.getArgRegister(i).get();
                 RegisterSize size = sizes[vRegister];
-                if (assignment[vRegister].isSpilled()) {
-                    int stackSlot = assignment[vRegister].getStackSlot().get();
-                    output("mov%c %d(%%rbp), %s # load @%d as arg %d",
-                            size.getSuffix(), stackSlot, argReg.asSize(size), vRegister, i);
-                } else {
+                if (!assignment[vRegister].isSpilled()) {
                     Register r = assignment[vRegister].getRegister().get();
-                    tracker.assertMapping(vRegister, r);
-                    if (cconv.isCallerSaved(r)) {
-                        // load value from stack
-                        int offset = savedOffset - offsets.get(r);
-                        output("movq %d(%%rsp), %s # reload @%d as arg %d",
-                                offset, argReg.getAsQuad(), vRegister, i);
-                    } else {
-                        assert argReg != r;
-                        output("mov%c %s, %s # move @%d into arg %d",
-                                size.getSuffix(), r.asSize(size), argReg.asSize(size), vRegister, i);
-                    }
+                    solver.addMapping(r.ordinal(), argReg.ordinal());
                 }
+                // spilled values are assigned later
             } else {
                 // the argument is passed on the stack
                 numArgsOnStack++;
@@ -360,14 +352,7 @@ public class ApplyAssignment {
                             cconv.getReturnRegister().getAsQuad(), i);
                 } else {
                     Register r = assignment[vRegister].getRegister().get();
-                    tracker.assertMapping(vRegister, r);
-                    if (cconv.isCallerSaved(r)) {
-                        // load value from stack
-                        int offset = savedOffset - offsets.get(r);
-                        output("pushq %d(%%rsp) # reload @%d as arg %d", offset, vRegister, i);
-                    } else {
-                        output("pushq %s # pass @%d as arg %d", r.getAsQuad(), vRegister, i);
-                    }
+                    output("pushq %s # pass @%d as arg %d", r.getAsQuad(), vRegister, i);
                 }
             }
         }
@@ -377,6 +362,25 @@ public class ApplyAssignment {
         if (numArgsOnStack == 0 && (savedOffset % 16 != 0)) {
             alignmentOffset = 8;
             output("subq $8, %rsp # align stack to 16 byte");
+        }
+
+        // we create the correct register permutation
+        for (var move: solver.solveFromNonCycle(cconv.getReturnRegister().ordinal())) {
+            Register from = Register.fromOrdinal(move.getInput());
+            Register to = Register.fromOrdinal(move.getTarget());
+            output("mov %s, %s # assign arg registers", from.getAsQuad(), to.getAsQuad());
+        }
+
+        // we assign register args from spilled values
+        for (int i = 0; i < Math.min(args.size(), cconv.numArgRegisters()); i++) {
+            int vRegister = args.get(i);
+            if (assignment[vRegister].isSpilled()) {
+                Register argReg = cconv.getArgRegister(i).get();
+                RegisterSize size = sizes[vRegister];
+                int stackSlot = assignment[vRegister].getStackSlot().get();
+                output("mov%c %d(%%rbp), %s # load @%d as arg %d",
+                        size.getSuffix(), stackSlot, argReg.asSize(size), vRegister, i);
+            }
         }
 
         // output the instruction itself
@@ -409,11 +413,8 @@ public class ApplyAssignment {
         // restore caller-saved registers
         while (!saved.isEmpty()) {
             Register r = saved.pop();
-            if (!tracker.getRegisters().isFree(r)) {
-                output("popq %s # restore caller-saved register", r.getAsQuad());
-            } else {
-                output("addq $8, %rsp # clear stack");
-            }
+            assert !tracker.getRegisters().isFree(r);
+            output("popq %s # restore caller-saved register", r.getAsQuad());
         }
     }
 

@@ -283,20 +283,15 @@ public class ApplyAssignmentTest {
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add(".L0:");
-        expected.add("pushq %rbx # push caller-saved register");
-        expected.add("pushq %rcx # push caller-saved register");
-        expected.add("movq 8(%rsp), %rbx # reload @0 as arg 0");
-        expected.add("movl %r8d, %ecx # move @1 into arg 1");
-        expected.add("movl -8(%rbp), %edx # load @2 as arg 2");
         expected.add("movl -16(%rbp), %eax # reload @3 ...");
         expected.add("pushq %rax # ... and pass it as arg 3");
         expected.add("pushq %r9 # pass @4 as arg 4");
-        expected.add("pushq 0(%rsp) # reload @5 as arg 5");
+        expected.add("pushq %rcx # pass @5 as arg 5");
+        expected.add("mov %r8, %rcx # assign arg registers");
+        expected.add("movl -8(%rbp), %edx # load @2 as arg 2");
         expected.add("call _foo");
         expected.add("addq $24, %rsp # remove args from stack");
         expected.add("movl %eax, %edi # move return value into @6");
-        expected.add("addq $8, %rsp # clear stack");
-        expected.add("addq $8, %rsp # clear stack");
         assertEquals(expected, result.getInstructions());
     }
 
