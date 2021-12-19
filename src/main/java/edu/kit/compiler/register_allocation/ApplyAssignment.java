@@ -337,8 +337,6 @@ public class ApplyAssignment {
                     saved.push(r);
                     output("pushq %s # push caller-saved register", r.getAsQuad());
                 }
-            } else {
-                tracker.getRegisters().clearTmp(r);
             }
         }
 
@@ -347,22 +345,20 @@ public class ApplyAssignment {
         List<Integer> args = instr.getInputRegisters();
         PermutationSolver solver = new PermutationSolver();
         for (int i = 0; i < args.size(); i++) {
-            // TODO: register-to-register moves?
-            // TODO: can we benefit from tmps here?
             int vRegister = args.get(i);
             if (cconv.getArgRegister(i).isPresent()) {
                 // the argument is passed within a register
                 Register argReg = cconv.getArgRegister(i).get();
                 RegisterSize size = sizes[vRegister];
-                if (!assignment[vRegister].isSpilled()) {
-                    Register r = assignment[vRegister].getRegister().get();
+                if (!isOnStack(tracker, vRegister)) {
+                    Register r = getRegister(tracker, vRegister);
                     solver.addMapping(r.ordinal(), argReg.ordinal());
                 }
                 // spilled values are assigned later
             } else {
                 // the argument is passed on the stack
                 numArgsOnStack++;
-                if (assignment[vRegister].isSpilled()) {
+                if (isOnStack(tracker, vRegister)) {
                     int stackSlot = assignment[vRegister].getStackSlot().get();
                     RegisterSize size = sizes[vRegister];
                     // to ensure that we read with correct size, we first move into a register
@@ -371,7 +367,7 @@ public class ApplyAssignment {
                     output("pushq %s # ... and pass it as arg %d",
                             cconv.getReturnRegister().getAsQuad(), i);
                 } else {
-                    Register r = assignment[vRegister].getRegister().get();
+                    Register r = getRegister(tracker, vRegister);
                     output("pushq %s # pass @%d as arg %d", r.getAsQuad(), vRegister, i);
                 }
             }
@@ -394,7 +390,7 @@ public class ApplyAssignment {
         // we assign register args from spilled values
         for (int i = 0; i < Math.min(args.size(), cconv.numArgRegisters()); i++) {
             int vRegister = args.get(i);
-            if (assignment[vRegister].isSpilled()) {
+            if (isOnStack(tracker, vRegister)) {
                 Register argReg = cconv.getArgRegister(i).get();
                 RegisterSize size = sizes[vRegister];
                 int stackSlot = assignment[vRegister].getStackSlot().get();
@@ -406,6 +402,9 @@ public class ApplyAssignment {
         // output the instruction itself
         output("call %s", instr.getCallReference().get());
         tracker.leaveInstruction(index);
+        for (Register r: cconv.getCallerSaved()) {
+            tracker.getRegisters().clearTmp(r);
+        }
 
         // remove arguments
         if (numArgsOnStack > 0 || alignmentOffset > 0) {
