@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.intermediate_lang.Instruction;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -27,10 +28,13 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
 
             var lhs = left.match(node.getPred(1), matcher);
             var rhs = right.match(node.getPred(2), matcher);
-            var destination = matcher.getNewRegister();
+
+            // there is currently a mismatch between the mode of Div nodes and
+            // the register size chosen here.
+            var targetRegister = matcher.getNewRegister(RegisterSize.DOUBLE);
 
             if (lhs.matches() && rhs.matches()) {
-                return new DivisionMatch(node, lhs, rhs, destination);
+                return new DivisionMatch(node, lhs, rhs, targetRegister);
             } else {
                 return InstructionMatch.none();
             }
@@ -72,7 +76,7 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
         private final Node node;
         private final OperandMatch<Operand.Register> left;
         private final OperandMatch<Operand.Register> right;
-        private final int destination;
+        private final int targetRegister;
 
         @Override
         public Node getNode() {
@@ -84,12 +88,12 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
             return List.of(type.getInstruction(
                     left.getOperand().get(),
                     right.getOperand().get(),
-                    destination));
+                    targetRegister));
         }
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return Optional.of(destination);
+            return Optional.of(targetRegister);
         }
 
         @Override

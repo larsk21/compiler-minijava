@@ -1,31 +1,46 @@
 package edu.kit.compiler.codegen;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import edu.kit.compiler.codegen.BasicBlocks.BlockEntry;
 import edu.kit.compiler.intermediate_lang.Instruction;
-import firm.Mode;
 import firm.Relation;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Represents the exit condition of a basic block.
+ */
 public abstract class ExitCondition {
 
+    /**
+     * Translate the exit condition into a list of IL instructions.  For an
+     * unconditional jump, this return something `jmp .L42`. For a conditional
+     * jump it might return `cmp @1 @2; jl .L42; jmp .L28`.
+     */
     public abstract List<Instruction> getInstructions();
 
+    /**
+     * Sets the destination of the condition if it evaluates to true. Also used
+     * to set the destination for an unconditional jump.
+     */
     public abstract void setTrueBlock(BasicBlocks.BlockEntry block);
 
+    /**
+     * Sets the destination of the condition if it evaluates to false.
+     */
     public abstract void setFalseBlock(BasicBlocks.BlockEntry block);
 
     public static ExitCondition unconditional() {
         return new UnconditionalJump();
     }
 
-    public static ExitCondition condition(Relation relation,
-            Operand.Register left, Operand.Register right) {
-        return new ConditionalJump(relation, left, right, right.getMode());
+    public static ExitCondition conditional(Relation relation,
+            Operand.Source left, Operand.Source right) {
+        return new ConditionalJump(relation, left, right);
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -58,9 +73,8 @@ public abstract class ExitCondition {
     public static final class ConditionalJump extends ExitCondition {
 
         private final Relation relation;
-        private final Operand.Register destination;
-        private final Operand.Register source;
-        private final Mode mode;
+        private final Operand.Source target;
+        private final Operand.Source source;
 
         private BasicBlocks.BlockEntry trueBlock;
         private BasicBlocks.BlockEntry falseBlock;
@@ -69,16 +83,14 @@ public abstract class ExitCondition {
         public List<Instruction> getInstructions() {
             assert trueBlock != null && falseBlock != null;
 
-            // todo what about unsigned, i.e. booleans?
-            // todo should we reverse jump conditions?
             return switch (relation) {
                 case True -> new UnconditionalJump(trueBlock).getInstructions();
                 case False -> new UnconditionalJump(falseBlock).getInstructions();
                 case LessEqualGreater -> new UnconditionalJump(trueBlock).getInstructions();
                 default -> List.of(
                         Instruction.newInput(
-                                Util.formatCmd("cmp", Util.getSize(mode), source, destination),
-                                List.of(source.get(), destination.get())),
+                                Util.formatCmd("cmp", target.getSize(), source, target),
+                                getInputRegisters(source, target)),
                         Instruction.newJmp(
                                 Util.formatJmp(getJmpCmd(), trueBlock.getLabel()),
                                 trueBlock.getLabel()),
@@ -86,7 +98,6 @@ public abstract class ExitCondition {
                                 Util.formatJmp("jmp", falseBlock.getLabel()),
                                 falseBlock.getLabel()));
             };
-
         }
 
         @Override
@@ -100,11 +111,19 @@ public abstract class ExitCondition {
         }
 
         private String getJmpCmd() {
-            if (destination.getMode().isSigned()) {
+            if (target.getMode().isSigned()) {
                 return getSignedJmpCmd(relation);
             } else {
                 return getUnsignedJmpCmd(relation);
             }
+        }
+
+        private static List<Integer> getInputRegisters(Operand.Source lhs, Operand.Source rhs) {
+            var registers = new ArrayList<Integer>();
+            registers.addAll(lhs.getSourceRegisters());
+            registers.addAll(rhs.getSourceRegisters());
+
+            return registers;
         }
 
         private static String getSignedJmpCmd(Relation relation) {

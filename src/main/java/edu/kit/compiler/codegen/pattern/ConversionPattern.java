@@ -24,10 +24,7 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
             var pred = node.getPred(0);
             var match = pattern.match(pred, matcher);
             if (match.matches()) {
-                var from = pred.getMode();
-                var to = node.getMode();
-                var destination = matcher.getNewRegister();
-                return new ConversionMatch(node, match, destination, from, to);
+                return getMatch(node, pred, matcher, match);
             } else {
                 return InstructionMatch.none();
             }
@@ -36,12 +33,33 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
         }
     }
 
+    private InstructionMatch getMatch(Node node, Node pred, MatcherState matcher,
+            OperandMatch<Operand.Register> match) {
+        assert match.matches();
+        var from = pred.getMode();
+        var to = node.getMode();
+
+        if (from.equals(Mode.getLs()) && to.equals(Mode.getIs())) {
+            // ! This is a horrendous solution which we must get rid of !
+            if (pred.getOpCode() == ir_opcode.iro_Proj
+                    && pred.getPred(0).getOpCode() == ir_opcode.iro_Div) {
+                var targetRegister = match.getOperand().get();
+                return InstructionMatch.empty(node, List.of(pred), targetRegister);
+            } else {
+                throw new IllegalStateException("");
+            }
+        } else {
+            var targetRegister = matcher.getNewRegister(Util.getSize(to));
+            return new ConversionMatch(node, match, targetRegister, from, to);
+        }
+    }
+
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ConversionMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<Operand.Register> match;
-        private final int destination;
+        private final OperandMatch<Operand.Register> source;
+        private final int targetRegister;
         private final Mode from;
         private final Mode to;
 
@@ -52,22 +70,22 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            var target = Operand.register(to, destination);
+            var target = Operand.register(to, targetRegister);
             return List.of(Instruction.newOp(
-                    Util.formatCmd(getCmd(), Util.getSize(to), match.getOperand(), target),
-                    List.of(match.getOperand().get()),
+                    Util.formatCmd(getCmd(), Util.getSize(to), source.getOperand(), target),
+                    List.of(source.getOperand().get()),
                     Optional.empty(),
-                    destination));
+                    targetRegister));
         }
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return Optional.of(destination);
+            return Optional.of(targetRegister);
         }
 
         @Override
         public Stream<Node> getPredecessors() {
-            return match.getPredecessors();
+            return source.getPredecessors();
         }
 
         public String getCmd() {
@@ -75,9 +93,9 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
             if (from.equals(Mode.getIs()) && to.equals(Mode.getLs())) {
                 return "movsl";
             } else if (from.equals(Mode.getLs()) && to.equals(Mode.getIs())) {
-                return "mov";
+                throw new IllegalStateException("this cast should have been handled separately");
             } else {
-                throw new UnsupportedOperationException("not supported yet");
+                throw new UnsupportedOperationException();
             }
         }
     }

@@ -1,6 +1,5 @@
 package edu.kit.compiler.codegen;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,15 +7,28 @@ import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
 import firm.TargetValue;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
-public abstract class Operand {
-    public abstract String format();
+/**
+ * Base for operands used during instruction selection. Implementations will
+ * will implement one of the interfaces `Source` or `Target`.
+ */
+public interface Operand {
 
-    public abstract RegisterSize getSize();
+    /**
+     * Return the operand formatted using AT&T syntax.
+     */
+    String format();
 
-    public abstract Mode getMode();
+    /**
+     * Return the register size of the operand.
+     */
+    RegisterSize getSize();
 
-    public abstract List<Integer> getSourceRegisters();
+    /**
+     * Return the Firm mode of the operand.
+     */
+    Mode getMode();
 
     public static Immediate immediate(TargetValue value) {
         return new Immediate(value);
@@ -30,8 +42,35 @@ public abstract class Operand {
         return new Memory(register);
     }
 
+    /**
+     * Base for operands that can be used as source in an instruction.
+     */
+    public static interface Source extends Operand {
+        /**
+         * Returns a list of all registers required to evaluate the operand.
+         * For example, an immediate will return an empty list. A address like
+         * 12(@1,@42,8) will return a list containing 1 and 42.
+         */
+        public abstract List<Integer> getSourceRegisters();
+    }
+
+    /**
+     * Base for operands that can be used as target in an instruction. Extends
+     * `Source` for the sake of simplicity (generic bounds in OperandMatch would
+     * otherwise get even more verbose).
+     */
+    public static interface Target extends Source {
+        /**
+         * Return the register that would be overwritten when using the operand
+         * as target in an instruction.
+         */
+        public abstract Optional<Integer> getTargetRegister();
+    }
+
     @RequiredArgsConstructor
-    public static final class Immediate extends Operand {
+    @ToString
+    public static final class Immediate implements Source {
+
         private final TargetValue value;
 
         @Override
@@ -56,22 +95,20 @@ public abstract class Operand {
             return value.getMode();
         }
 
+        @Override
+        public List<Integer> getSourceRegisters() {
+            return List.of();
+        }
+
         public TargetValue get() {
             return value;
         }
-
-        @Override
-        public List<Integer> getSourceRegisters() {
-            return Collections.emptyList();
-        }
-    }
-
-    public static abstract class Destination extends Operand {
-        public abstract Optional<Integer> getDestinationRegister();
     }
 
     @RequiredArgsConstructor
-    public static final class Register extends Destination {
+    @ToString
+    public static final class Register implements Target {
+
         private final Mode mode;
         private final int register;
 
@@ -91,7 +128,7 @@ public abstract class Operand {
         }
 
         @Override
-        public Optional<Integer> getDestinationRegister() {
+        public Optional<Integer> getTargetRegister() {
             return Optional.of(register);
         }
 
@@ -106,7 +143,9 @@ public abstract class Operand {
     }
 
     @RequiredArgsConstructor
-    public static final class Memory extends Destination {
+    @ToString
+    public static final class Memory implements Target {
+
         private final Register register;
 
         @Override
@@ -116,7 +155,7 @@ public abstract class Operand {
 
         @Override
         public RegisterSize getSize() {
-            return Util.getSize(Mode.getANY());
+            return Util.getSize(Mode.getP());
         }
 
         @Override
@@ -125,7 +164,7 @@ public abstract class Operand {
         }
 
         @Override
-        public Optional<Integer> getDestinationRegister() {
+        public Optional<Integer> getTargetRegister() {
             return Optional.empty();
         }
 

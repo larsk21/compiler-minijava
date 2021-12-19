@@ -13,15 +13,17 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class LoadImmediatePattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Immediate>> immediate = OperandPattern.immediate();
+    private final Pattern<OperandMatch<Operand.Immediate>> pattern;
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
-        var match = immediate.match(node, matcher);
+        var match = pattern.match(node, matcher);
         if (match.matches()) {
-            return new LoadImmediateMatch(node, match, matcher.getNewRegister());
+            var targetRegister = matcher.getNewRegister(Util.getSize(node.getMode()));
+            return new LoadImmediateMatch(node, match, targetRegister);
         } else {
             return InstructionMatch.none();
         }
@@ -31,8 +33,8 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
     public static final class LoadImmediateMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final OperandMatch<Operand.Immediate> match;
-        private final int register;
+        private final OperandMatch<Operand.Immediate> source;
+        private final int targetRegister;
 
         @Override
         public Node getNode() {
@@ -41,22 +43,37 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            var operand = match.getOperand();
-            var mode = operand.getMode();
-            var target = Operand.register(mode, register);
-            return List.of(Instruction.newOp(
-                    Util.formatCmd("mov", Util.getSize(mode), operand, target),
-                    Collections.emptyList(), Optional.empty(), register));
+            var sourceOperand = source.getOperand();
+            var mode = sourceOperand.getMode();
+            var targetOperand = Operand.register(mode, targetRegister);
+            
+            if (sourceOperand.get().isNull()) {
+                return List.of(getZero(targetOperand));
+            } else {
+                return List.of(getNonZero(sourceOperand, targetOperand));
+            }
+        }
+
+        public Instruction getZero(Operand target) {
+            return Instruction.newOp(
+                Util.formatCmd("xor", target.getSize(), target, target),
+                Collections.emptyList(), Optional.empty(), targetRegister);
+        }
+
+        public Instruction getNonZero(Operand source, Operand target) {
+            return Instruction.newOp(
+                    Util.formatCmd("mov", target.getSize(), source, target),
+                    Collections.emptyList(), Optional.empty(), targetRegister);
         }
 
         @Override
         public Optional<Integer> getTargetRegister() {
-            return Optional.of(register);
+            return Optional.of(targetRegister);
         }
 
         @Override
         public Stream<Node> getPredecessors() {
-            return match.getPredecessors();
+            return source.getPredecessors();
         }
     }
 }

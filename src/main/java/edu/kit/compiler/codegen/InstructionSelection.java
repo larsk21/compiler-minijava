@@ -1,9 +1,11 @@
 package edu.kit.compiler.codegen;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
-import edu.kit.compiler.codegen.pattern.MatchVisitor;
+import edu.kit.compiler.codegen.pattern.InstructionMatchVisitor;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Graph;
 import firm.MethodType;
 import firm.bindings.binding_irnode.ir_opcode;
@@ -26,8 +28,13 @@ public final class InstructionSelection {
     private InstructionSelection(Graph graph) {
         // todo is this the idiomatic way of getting number of parameters
         var type = (MethodType) graph.getEntity().getType();
-        matcher = new MatcherState(graph, type.getNParams());
         blocks = new BasicBlocks(graph);
+
+        var parameters = new ArrayList<RegisterSize>(type.getNParams());
+        for (int i = 0; i < type.getNParams(); ++i) {
+            parameters.add(Util.getSize(type.getParamType(i).getMode()));
+        }
+        matcher = new MatcherState(graph, parameters);
     }
 
     public static InstructionSelection apply(Graph graph, PatternCollection patterns) {
@@ -43,7 +50,7 @@ public final class InstructionSelection {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private final class CollectingVisitor implements MatchVisitor {
+    private final class CollectingVisitor implements InstructionMatchVisitor {
 
         private final BasicBlocks blocks;
 
@@ -65,7 +72,7 @@ public final class InstructionSelection {
         public void visit(InstructionMatch.Basic match) {
             var node = match.getNode();
             var entry = blocks.getEntry(node.getBlock());
-            entry.append(match);
+            entry.append(match.getInstructions());
         }
 
         @Override
@@ -99,8 +106,8 @@ public final class InstructionSelection {
             if (match.matches()) {
                 matcher.setMatch(node, match);
             } else {
-                var name = node.getGraph().getEntity().getName();
-                throw new IllegalStateException(name + ": no match for node " + node.getNr());
+                throw new IllegalStateException(String.format("%s: no match for node %s (%s)",
+                        node.getGraph().getEntity().getName(), node.getNr(), node.getOpCode().name()));
             }
         }
 
