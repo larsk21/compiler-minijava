@@ -40,8 +40,14 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
         var to = node.getMode();
 
         if (from.equals(Mode.getLs()) && to.equals(Mode.getIs())) {
-            var targetRegister = match.getOperand().get();
-            return InstructionMatch.empty(node, List.of(pred), targetRegister);
+            // ! This is a horrendous solution which we must get rid of !
+            if (pred.getOpCode() == ir_opcode.iro_Proj
+                    && pred.getPred(0).getOpCode() == ir_opcode.iro_Div) {
+                var targetRegister = match.getOperand().get();
+                return InstructionMatch.empty(node, List.of(pred), targetRegister);
+            } else {
+                throw new IllegalStateException("");
+            }
         } else {
             var targetRegister = matcher.getNewRegister(Util.getSize(to));
             return new ConversionMatch(node, match, targetRegister, from, to);

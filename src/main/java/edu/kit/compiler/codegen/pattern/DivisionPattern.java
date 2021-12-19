@@ -29,7 +29,8 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
             var lhs = left.match(node.getPred(1), matcher);
             var rhs = right.match(node.getPred(2), matcher);
 
-            // todo is hard coding the register size the best choice here?
+            // there is currently a mismatch between the mode of Div nodes and
+            // the register size chosen here.
             var targetRegister = matcher.getNewRegister(RegisterSize.DOUBLE);
 
             if (lhs.matches() && rhs.matches()) {
