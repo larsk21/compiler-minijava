@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class PhiRemovalTest {
 
     @Test
-    public void testNoPhiRemoval() throws IOException { // WHO TF DID THIS SHIT
+    public void testNoPhiRemoval() throws IOException {
         PatternCollection p = new PatternCollection();
         for (var graph : SimpleTestCompiler.getFirmGraphs("edu/kit/compiler/codegen/PhiTest.java")) {
             InstructionSelection is = InstructionSelection.apply(graph, p);
