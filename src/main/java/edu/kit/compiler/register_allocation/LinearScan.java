@@ -47,13 +47,16 @@ public class LinearScan implements RegisterAllocator {
                 state.leaveInstruction(i);
                 if (instr.getTargetRegister().isPresent()) {
                     int target = instr.getTargetRegister().get();
-                    if (analysis.isDividend(target)) {
-                        state.assertFree(Register.RAX);
-                        var allocated = state.allocateRegister(target, RegisterPreference.RAX_PREFERENCE);
-                        assert allocated.equals(Optional.of(Register.RAX));
-                    } else {
-                        RegisterPreference preference = calculatePreference(target, assignment, analysis);
-                        state.allocateRegister(target, preference);
+                    if (analysis.getLifetime(target).getBegin() == i) {
+                        // allocate the new register
+                        if (analysis.isDividend(target)) {
+                            state.assertFree(Register.RAX);
+                            var allocated = state.allocateRegister(target, RegisterPreference.RAX_PREFERENCE);
+                            assert allocated.equals(Optional.of(Register.RAX));
+                        } else {
+                            RegisterPreference preference = calculatePreference(target, assignment, analysis);
+                            state.allocateRegister(target, preference);
+                        }
                     }
                 }
                 i++;
