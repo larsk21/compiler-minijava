@@ -13,9 +13,10 @@ import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class LoadImmediatePattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Immediate>> pattern = OperandPattern.immediate();
+    private final Pattern<OperandMatch<Operand.Immediate>> pattern;
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {

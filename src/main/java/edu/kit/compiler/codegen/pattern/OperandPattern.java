@@ -43,9 +43,24 @@ public final class OperandPattern {
     public static final class ImmediatePattern implements Pattern<OperandMatch<Immediate>> {
         @Override
         public OperandMatch<Immediate> match(Node node, MatcherState matcher) {
-            if (node.getOpCode() == ir_opcode.iro_Const) {
-                var value = ((Const) node).getTarval();
-                var operand = Operand.immediate(value);
+            return switch (node.getOpCode()) {
+                case iro_Const -> matchConst(node, matcher);
+                case iro_Conv -> matchConv(node, matcher);
+                default -> OperandMatch.none();
+            };
+        }
+
+        private OperandMatch<Immediate> matchConst(Node node, MatcherState matcher) {
+            var value = ((Const) node).getTarval();
+            var operand = Operand.immediate(value);
+            return OperandMatch.some(operand, Collections.emptyList());
+        }
+
+        private OperandMatch<Immediate> matchConv(Node node, MatcherState matcher) {
+            var match = this.match(node.getPred(0), matcher);
+            if (match.matches()) {
+                var value = match.getOperand().get();
+                var operand = Operand.immediate(value.convertTo(node.getMode()));
                 return OperandMatch.some(operand, Collections.emptyList());
             } else {
                 return OperandMatch.none();

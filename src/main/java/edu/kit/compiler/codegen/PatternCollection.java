@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Memory;
 import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.codegen.pattern.BinaryInstructionPattern;
@@ -33,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 
 public class PatternCollection implements Pattern<InstructionMatch> {
 
+    private static final Pattern<OperandMatch<Immediate>> IMM = OperandPattern.immediate();
     private static final Pattern<OperandMatch<Register>> REG = OperandPattern.register();
     private static final Pattern<OperandMatch<Memory>> MEM = OperandPattern.memory();
 
@@ -50,7 +52,7 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
     public PatternCollection() {
         map = Map.ofEntries(
-                Map.entry(iro_Const, new LoadImmediatePattern()),
+                Map.entry(iro_Const, new LoadImmediatePattern(IMM)),
                 Map.entry(iro_Add, new BinaryInstructionPattern(iro_Add, "add", REG, REG, false)),
                 Map.entry(iro_Sub, new BinaryInstructionPattern(iro_Sub, "sub", REG, REG, false)),
                 Map.entry(iro_Mul, new BinaryInstructionPattern(iro_Mul, "imul", REG, REG, false)),
@@ -61,7 +63,9 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
                 Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REG, false)),
 
-                Map.entry(iro_Conv, new ConversionPattern()),
+                Map.entry(iro_Conv, new CompoundPattern(List.of(
+                        new LoadImmediatePattern(IMM),  // Handle Conv with Const operand
+                        new ConversionPattern()))),
 
                 Map.entry(iro_Store, new BinaryInstructionPattern(iro_Store, "mov", MEM, REG, true)),
                 Map.entry(iro_Load, new LoadMemoryPattern()),
