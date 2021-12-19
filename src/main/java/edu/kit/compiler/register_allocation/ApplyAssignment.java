@@ -27,6 +27,12 @@ public class ApplyAssignment {
     private Optional<Deque<Register>> savedRegisters;
     private int numInstructions;
 
+    /**
+     * Creates the whole function body at once.
+     *
+     * This applies all steps of the assignment by first handling the
+     * input instructions and adding a function prolog and epilog afterwards.
+     */
     public static List<String> createFunctionBody(RegisterAssignment[] assignment, RegisterSize[] sizes,
                                                   Lifetime[] lifetimes, List<Block> ir, int numInstructions,
                                                   int nArgs, CallingConvention cconv) {
@@ -40,6 +46,12 @@ public class ApplyAssignment {
         return output;
     }
 
+    /**
+     * Creates the whole function body at once.
+     *
+     * This applies all steps of the assignment by first handling the
+     * input instructions and adding a function prolog and epilog afterwards.
+     */
     public static List<String> createFunctionBody(RegisterAssignment[] assignment, RegisterSize[] sizes,
                                                   Lifetime[] lifetimes, List<Block> ir, int numInstructions,
                                                   int nArgs) {
@@ -67,6 +79,10 @@ public class ApplyAssignment {
         this(assignment, sizes, lifetimes, ir, numInstructions, CallingConvention.X86_64);
     }
 
+    /**
+     * Creates concrete instructions for the given input and the necessary information
+     * (used registers) for creating the function prolog and epilog.
+     */
     public AssignmentResult doApply() {
         result = new ArrayList<>();
         LifetimeTracker tracker = new LifetimeTracker();
@@ -221,7 +237,6 @@ public class ApplyAssignment {
         EnumMap<Register, Integer> offsets = new EnumMap<>(Register.class);
         for (Register r: cconv.getCallerSaved()) {
             if (!tracker.getRegisters().isFree(r)) {
-                // TODO: input registers that don't survive the call?!
                 savedOffset += 8;
                 offsets.put(r, savedOffset);
                 saved.push(r);
@@ -301,7 +316,6 @@ public class ApplyAssignment {
         if (instr.getTargetRegister().isPresent()) {
             int target = instr.getTargetRegister().get();
             RegisterSize size = sizes[target];
-            // TODO: with tmp pass-through: set tmp in return register
             if (assignment[target].isSpilled()) {
                 int stackSlot = assignment[target].getStackSlot().get();
                 output("mov%c %s, %d(%%rbp) # spill return value for @%s",
@@ -317,7 +331,6 @@ public class ApplyAssignment {
         }
 
         // restore caller-saved registers
-        // TODO: test!!
         while (!saved.isEmpty()) {
             Register r = saved.pop();
             if (!tracker.getRegisters().isFree(r)) {
