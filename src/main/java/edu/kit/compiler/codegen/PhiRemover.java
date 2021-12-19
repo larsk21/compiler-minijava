@@ -40,9 +40,9 @@ public class PhiRemover {
                 for (var source : phiInstruction.getEntries()) {
                     System.out.println("phi pred: " + source.getPredBlock().getBlock().getNr());
                     PhiSourceNodeRegister sourceRegister = new PhiSourceNodeRegister(source.getRegister(), source.getPredBlock().getBlock());
-                    PhiSourceNodeRegister targetRegister = new PhiSourceNodeRegister(phiInstruction.getDestination(), nullNode);
+                    PhiSourceNodeRegister targetRegister = new PhiSourceNodeRegister(phiInstruction.getTargetRegister(), nullNode);
                     permutationSolver.addMapping(sourceRegister, targetRegister);
-                    int max = Math.max(source.getRegister(), phiInstruction.getDestination());
+                    int max = Math.max(source.getRegister(), phiInstruction.getTargetRegister());
                     if (max > maxRegister) {
                         maxRegister = max + 1;
                     }
