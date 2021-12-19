@@ -141,6 +141,11 @@ public class LifetimeAnalysis {
                         appendToSum(divsPrefixSum, 1);
                         appendToSum(callsPrefixSum, 0);
                         isDividend[instr.inputRegister(0)] = true;
+                        // the div begins with the dividend (from there, %rax should be avoided)
+                        int dividendBegin = lifetimes[instr.inputRegister(0)].getBegin();
+                        for (int i = dividendBegin + 1; i < divsPrefixSum.size(); i++) {
+                            divsPrefixSum.set(i, divsPrefixSum.get(i) + 1);
+                        }
                     }
                     case CALL -> {
                         appendToSum(divsPrefixSum, 0);

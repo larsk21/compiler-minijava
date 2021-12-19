@@ -72,7 +72,8 @@ public class LinearScan implements RegisterAllocator {
 
         // basic preference
         boolean avoidCallerSaved = analysis.numInterferingCalls(vRegister, false) > 0;
-        boolean avoidDiv = analysis.numInterferingDivs(vRegister, true) > 0;
+        boolean avoidDiv = analysis.numInterferingDivs(vRegister, false) > 0 ||
+                (analysis.numInterferingDivs(vRegister, true) > 0 && analysis.getLastInstruction(vRegister).get().isDivOrMod());
         RegisterPreference preference = RegisterPreference.fromFlags(avoidCallerSaved, avoidDiv);
 
         // is there a register that would be specifically good?
