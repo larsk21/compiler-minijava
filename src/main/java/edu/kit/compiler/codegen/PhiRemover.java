@@ -6,6 +6,7 @@ import edu.kit.compiler.codegen.PhiPermutationSolver.PhiSourceNodeRegister;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
+import firm.nodes.Block;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
 
@@ -38,8 +39,8 @@ public class PhiRemover {
             int maxRegister = 0;
             for (var phiInstruction : block.getValue().getPhiInstructions()) {
                 for (var source : phiInstruction.getEntries()) {
-                    System.out.println("phi pred: " + source.getPredBlock().getBlock().getNr());
-                    PhiSourceNodeRegister sourceRegister = new PhiSourceNodeRegister(source.getRegister(), source.getPredBlock().getBlock());
+                    Block predBlock = source.getPredBlock();
+                    PhiSourceNodeRegister sourceRegister = new PhiSourceNodeRegister(source.getRegister(), predBlock);
                     PhiSourceNodeRegister targetRegister = new PhiSourceNodeRegister(phiInstruction.getTargetRegister(), nullNode);
                     permutationSolver.addMapping(sourceRegister, targetRegister);
                     int max = Math.max(source.getRegister(), phiInstruction.getTargetRegister());
@@ -53,7 +54,7 @@ public class PhiRemover {
             List<Instruction> instructions = block.getValue().getInstructions();
 
             for (var permutation : permutations) {
-                // insert phi instructions at beginning of block;
+                // insert phi instructions at beginning of block
                 Node n = permutation.getInput().getSourceNode();
                 BasicBlocks.BlockEntry e = basicBlocks.getEntry(n);
                 e.getInstructions().add(0, assignmentToMove(permutation));

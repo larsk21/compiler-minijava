@@ -27,6 +27,7 @@ public class PhiRemovalTest {
             }
             System.out.println("phis removed: " + toStringDebug(b));
 
+            // test that there are no more phis
             SimpleTestCompiler.dumpGraph(graph);
         }
     }
@@ -36,7 +37,7 @@ public class PhiRemovalTest {
         StringBuilder builder = new StringBuilder();
         for (var b : blocks.getBlocks().values()) {
             builder.append("\n[").append(b.getLabel()).append("]").append("\n");
-            builder.append(b);
+            builder.append(b.toString());
             builder.append("----\n");
         }
         return builder.toString();
