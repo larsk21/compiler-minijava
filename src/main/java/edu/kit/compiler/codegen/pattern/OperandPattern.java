@@ -2,17 +2,22 @@ package edu.kit.compiler.codegen.pattern;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Memory;
 import edu.kit.compiler.codegen.Operand.Register;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
+import firm.TargetValue;
+import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Const;
 import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 /**
  * A collection of patterns for various basic operands.
@@ -120,12 +125,49 @@ public final class OperandPattern {
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class MemoryPattern implements Pattern<OperandMatch<Memory>> {
+
+        private static final Pattern<OperandMatch<Immediate>> IMM32 = OperandPattern.immediate(RegisterSize.DOUBLE);
+        private static final Pattern<OperandMatch<Register>> REG = OperandPattern.register();
+
         @Override
         public OperandMatch<Memory> match(Node node, MatcherState matcher) {
-            var register = matcher.getRegister(node);
-            if (node.getMode().equals(Mode.getP()) && register.isPresent()) {
-                var operand = Operand.register(node.getMode(), register.get());
-                return OperandMatch.some(Operand.memory(operand), List.of(node));
+            if (node.getMode().equals(Mode.getP())) {
+                var addOffset = matchAddOffset(node, matcher);
+                if (addOffset.matches()) {
+                    return addOffset;
+                } else {
+                    return matchBaseOnly(node, matcher);
+                }
+            } else {
+                return OperandMatch.none();
+            }
+        }
+
+        private OperandMatch<Memory> matchBaseOnly(Node node, MatcherState matcher) {
+            var registerMatch = REG.match(node, matcher);
+            if (registerMatch.matches()) {
+                var memory = Operand.memory(registerMatch.getOperand());
+                return OperandMatch.some(memory, List.of(node));
+            } else {
+                return OperandMatch.none();
+            }
+        }
+
+        private OperandMatch<Memory> matchAddOffset(Node node, MatcherState matcher) {
+            if (node.getOpCode() == ir_opcode.iro_Add
+                    && node.getPred(1).getOpCode() == ir_opcode.iro_Const) {
+                // only consider constant on rhs because of normalization
+                // performed in ArithmeticIdentitiesOptimization
+                var baseMatch = REG.match(node.getPred(0), matcher);
+                var offsetMatch = IMM32.match(node.getPred(1), matcher);
+                if (baseMatch.matches() && offsetMatch.matches()) {
+                    var baseRegister = baseMatch.getOperand();
+                    var offsetValue = offsetMatch.getOperand().get();
+                    var memory = Operand.memory(offsetValue.asInt(), baseRegister);
+                    return OperandMatch.some(memory, List.of(node.getPred(0)));
+                } else {
+                    return OperandMatch.none();
+                }
             } else {
                 return OperandMatch.none();
             }
