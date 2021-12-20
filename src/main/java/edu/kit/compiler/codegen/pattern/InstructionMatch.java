@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.ExitCondition;
+import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.PhiInstruction;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.nodes.Node;
@@ -33,6 +34,8 @@ public interface InstructionMatch extends Match {
      * Returns the target register of the instruction if one exists.
      */
     Optional<Integer> getTargetRegister();
+
+    public Stream<Operand> getOperands();
 
     void accept(InstructionMatchVisitor visitor);
 
@@ -108,6 +111,10 @@ public interface InstructionMatch extends Match {
         }
     }
 
+    /**
+     * An InstructionMatch which does not match. Calling anything except
+     * `matches` on instances will throw exceptions.
+     */
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
     public static final class None implements InstructionMatch {
         @Override
@@ -134,6 +141,11 @@ public interface InstructionMatch extends Match {
         public Stream<Node> getPredecessors() {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public Stream<Operand> getOperands() {
+            throw new UnsupportedOperationException();
+        }
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -156,6 +168,11 @@ public interface InstructionMatch extends Match {
         @Override
         public Stream<Node> getPredecessors() {
             return predecessors.stream();
+        }
+
+        @Override
+        public Stream<Operand> getOperands() {
+            return Stream.empty();
         }
 
         @Override

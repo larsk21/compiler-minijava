@@ -90,6 +90,11 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
             return preds;
         }
 
+        @Override
+        public Stream<Operand> getOperands() {
+            return Stream.of(source.getOperand());
+        }
+
         private Instruction getAsOperation() {
             assert targetRegister.isPresent();
 

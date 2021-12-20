@@ -120,7 +120,7 @@ public interface Operand {
 
     @RequiredArgsConstructor
     @ToString
-    public static final class Register implements Target {
+    public static class Register implements Target {
 
         private final Mode mode;
         private final int register;
@@ -158,6 +158,13 @@ public interface Operand {
         }
     }
 
+    public static final class ImmediateRegister extends Register {
+        
+        private final TargetValue value;
+        private final int register;
+    }
+
+    @RequiredArgsConstructor
     @ToString
     public static final class Memory implements Target {
 

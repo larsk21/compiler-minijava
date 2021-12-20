@@ -67,5 +67,10 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
         public Stream<Node> getPredecessors() {
             return Stream.concat(Stream.of(node.getPred(0)), source.getPredecessors());
         }
+
+        @Override
+        public Stream<Operand> getOperands() {
+            return Stream.of(source.getOperand());
+        }
     }
 }

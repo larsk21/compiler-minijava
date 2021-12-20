@@ -123,6 +123,7 @@ public final class OperandPattern {
     public static final class RegisterPattern implements Pattern<OperandMatch<Register>> {
         @Override
         public OperandMatch<Register> match(Node node, MatcherState matcher) {
+            
             var register = matcher.getRegister(node);
             if (register.isPresent()) {
                 var predecessors = List.of(node);

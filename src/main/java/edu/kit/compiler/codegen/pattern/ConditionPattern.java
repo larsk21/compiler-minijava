@@ -38,7 +38,8 @@ public final class ConditionPattern {
                     var predecessors = Stream.concat(leftMatch.getPredecessors(),
                             rightMatch.getPredecessors());
                     return new ConditionMatch(node, condition,
-                            predecessors.collect(Collectors.toList()));
+                            predecessors.collect(Collectors.toList()),
+                            List.of(leftMatch.getOperand(), rightMatch.getOperand()));
                 } else {
                     return InstructionMatch.none();
                 }
@@ -54,7 +55,7 @@ public final class ConditionPattern {
         public InstructionMatch match(Node node, MatcherState matcher) {
             if (node.getOpCode() == ir_opcode.iro_Jmp) {
                 return new ConditionMatch(node, ExitCondition.unconditional(),
-                        Collections.emptyList());
+                        Collections.emptyList(), Collections.emptyList());
             } else {
                 return InstructionMatch.none();
             }
@@ -67,6 +68,7 @@ public final class ConditionPattern {
         private final Node node;
         private final ExitCondition condition;
         private final List<Node> predecessors;
+        private final List<Operand> operands;
 
         @Override
         public Node getNode() {
@@ -86,6 +88,11 @@ public final class ConditionPattern {
         @Override
         public Stream<Node> getPredecessors() {
             return predecessors.stream();
+        }
+
+        @Override
+        public Stream<Operand> getOperands() {
+            return operands.stream();
         }
     }
 }
