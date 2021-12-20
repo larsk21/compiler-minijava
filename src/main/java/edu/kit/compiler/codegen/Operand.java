@@ -38,8 +38,12 @@ public interface Operand {
         return new Register(mode, register);
     }
 
-    public static Memory memory(Register register) {
-        return new Memory(register);
+    public static Memory memory(Register baseRegister) {
+        return new Memory(Optional.empty(), baseRegister);
+    }
+
+    public static Memory memory(int offset, Register baseRegister) {
+        return new Memory(Optional.of(offset), baseRegister);
     }
 
     /**
@@ -139,11 +143,16 @@ public interface Operand {
     @ToString
     public static final class Memory implements Target {
 
-        private final Register register;
+        private final Optional<Integer> offset;
+        private final Register baseRegister;
 
         @Override
         public String format() {
-            return String.format("(%s)", register.format());
+            if (offset.isPresent()) {
+                return String.format("%d(%s)", offset.get(), baseRegister.format());
+            } else {
+                return String.format("(%s)", baseRegister.format());
+            }
         }
 
         @Override
@@ -163,7 +172,7 @@ public interface Operand {
 
         @Override
         public List<Integer> getSourceRegisters() {
-            return List.of(register.register);
+            return List.of(baseRegister.get());
         }
     }
 }
