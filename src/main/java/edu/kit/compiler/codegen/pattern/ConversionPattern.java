@@ -8,7 +8,6 @@ import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
-import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -16,41 +15,22 @@ import lombok.RequiredArgsConstructor;
 
 public class ConversionPattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
+    private static final Pattern<OperandMatch<Operand.Register>> REGISTER = OperandPattern.register();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == ir_opcode.iro_Conv) {
             var pred = node.getPred(0);
-            var match = pattern.match(pred, matcher);
+            var match = REGISTER.match(pred, matcher);
             if (match.matches()) {
-                return getMatch(node, pred, matcher, match);
+                var targetSize = Util.getSize(node.getMode());
+                var targetRegister = matcher.getNewRegister(targetSize);
+                return new ConversionMatch(node, match, targetRegister);
             } else {
                 return InstructionMatch.none();
             }
         } else {
             return InstructionMatch.none();
-        }
-    }
-
-    private InstructionMatch getMatch(Node node, Node pred, MatcherState matcher,
-            OperandMatch<Operand.Register> match) {
-        assert match.matches();
-        var from = pred.getMode();
-        var to = node.getMode();
-
-        if (from.equals(Mode.getLs()) && to.equals(Mode.getIs())) {
-            // ! This is a horrendous solution which we must get rid of !
-            if (pred.getOpCode() == ir_opcode.iro_Proj
-                    && pred.getPred(0).getOpCode() == ir_opcode.iro_Div) {
-                var targetRegister = match.getOperand().get();
-                return InstructionMatch.empty(node, List.of(pred), targetRegister);
-            } else {
-                throw new IllegalStateException("");
-            }
-        } else {
-            var targetRegister = matcher.getNewRegister(Util.getSize(to));
-            return new ConversionMatch(node, match, targetRegister, from, to);
         }
     }
 
@@ -60,8 +40,6 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
         private final Node node;
         private final OperandMatch<Operand.Register> source;
         private final int targetRegister;
-        private final Mode from;
-        private final Mode to;
 
         @Override
         public Node getNode() {
@@ -70,12 +48,13 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            var target = Operand.register(to, targetRegister);
-            return List.of(Instruction.newOp(
-                    Util.formatCmd(getCmd(), Util.getSize(to), source.getOperand(), target),
-                    List.of(source.getOperand().get()),
-                    Optional.empty(),
-                    targetRegister));
+            var sourceRegister = source.getOperand().get();
+            // I have no idea whatsoever if this condition is sufficient
+            if (node.getMode().isSigned()) {
+                return List.of(Instruction.newSignedMov(sourceRegister, targetRegister));
+            } else {
+                return List.of(Instruction.newUnsignedMov(sourceRegister, targetRegister));
+            }
         }
 
         @Override
@@ -86,17 +65,6 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
         @Override
         public Stream<Node> getPredecessors() {
             return source.getPredecessors();
-        }
-
-        public String getCmd() {
-            // So far only Is -> Ls and Ls -> Is is implemented
-            if (from.equals(Mode.getIs()) && to.equals(Mode.getLs())) {
-                return "movsl";
-            } else if (from.equals(Mode.getLs()) && to.equals(Mode.getIs())) {
-                throw new IllegalStateException("this cast should have been handled separately");
-            } else {
-                throw new UnsupportedOperationException();
-            }
         }
     }
 }
