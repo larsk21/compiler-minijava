@@ -95,6 +95,11 @@ public class CallPattern implements Pattern<InstructionMatch> {
                     arguments.stream().flatMap(m -> m.getPredecessors()));
         }
 
+        @Override
+        public Stream<Operand> getOperands() {
+            return arguments.stream().map(OperandMatch::getOperand);
+        }
+
         private List<Integer> getArguments() {
             return arguments.stream()
                     .map(m -> m.getOperand().get())

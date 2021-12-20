@@ -25,7 +25,6 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
     private final boolean hasMemory;
     private final boolean swapOperands;
 
-
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == opcode) {
@@ -103,6 +102,11 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
             return preds;
         }
 
+        @Override
+        public Stream<Operand> getOperands() {
+            return Stream.of(target.getOperand(), source.getOperand());
+        }
+
         private Instruction getAsOperation() {
             assert targetRegister.isPresent();
 
@@ -116,8 +120,7 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
             // make sure the overwritten register is not part of input registers
             if (overwriteRegister.isPresent()) {
-                // the while loop ensures that all occurences are removed
-                while (inputRegisters.remove(overwriteRegister.get()));
+                inputRegisters.removeIf(overwriteRegister.get()::equals);
             }
 
             return Instruction.newOp(

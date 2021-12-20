@@ -115,5 +115,10 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
             return Stream.concat(Stream.of(node.getPred(0)),
                     Stream.concat(left.getPredecessors(), right.getPredecessors()));
         }
+
+        @Override
+        public Stream<Operand> getOperands() {
+            return Stream.of(left.getOperand(), right.getOperand());
+        }
     }
 }

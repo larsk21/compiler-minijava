@@ -66,5 +66,10 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
         public Stream<Node> getPredecessors() {
             return source.getPredecessors();
         }
+
+        @Override
+        public Stream<Operand> getOperands() {
+            return Stream.of(source.getOperand());
+        }
     }
 }

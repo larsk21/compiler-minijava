@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.codegen.MatcherState;
+import edu.kit.compiler.codegen.Operand;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import firm.nodes.Block;
@@ -47,5 +48,9 @@ public class BlockPattern implements Pattern<InstructionMatch> {
             return predecessors.stream();
         }
 
+        @Override
+        public Stream<Operand> getOperands() {
+            return Stream.empty();
+        }
     }
 }

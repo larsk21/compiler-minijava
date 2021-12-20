@@ -68,5 +68,14 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
 
             return stream;
         }
+
+        @Override
+        public Stream<Operand> getOperands() {
+            if (source.isPresent()) {
+                return Stream.of(source.get().getOperand());
+            } else {
+                return Stream.empty();
+            }
+        }
     }
 }
