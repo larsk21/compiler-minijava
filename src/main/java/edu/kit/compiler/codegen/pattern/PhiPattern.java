@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 
 public final class PhiPattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
+    private static final Pattern<OperandMatch<Operand.Register>> REGISTER = OperandPattern.register();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
@@ -34,7 +34,7 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
             assert node.getMode().isData();
             var preds = StreamSupport
                     .stream(node.getPreds().spliterator(), false)
-                    .map(pred -> pattern.match(pred, matcher))
+                    .map(pred -> REGISTER.match(pred, matcher))
                     .collect(Collectors.toList());
 
             if (preds.stream().allMatch(match -> match.matches())) {

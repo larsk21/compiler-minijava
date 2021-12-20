@@ -20,17 +20,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DivisionPattern implements Pattern<InstructionMatch> {
 
+    private  static final Pattern<OperandMatch<Operand.Register>> REGISTER = OperandPattern.register();
+
     private final Type type;
-    private final Pattern<OperandMatch<Operand.Register>> left;
-    private final Pattern<OperandMatch<Operand.Register>> right;
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == type.getOpcode()) {
             assert node.getPredCount() == 3;
 
-            var lhs = left.match(node.getPred(1), matcher);
-            var rhs = right.match(node.getPred(2), matcher);
+            var lhs = REGISTER.match(node.getPred(1), matcher);
+            var rhs = REGISTER.match(node.getPred(2), matcher);
 
             var size = Util.getSize(type.getMode(node));
             var targetRegister = matcher.getNewRegister(size);

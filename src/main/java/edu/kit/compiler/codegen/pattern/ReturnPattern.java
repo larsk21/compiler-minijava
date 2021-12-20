@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 public final class ReturnPattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Register>> pattern = OperandPattern.register();
+    private static final Pattern<OperandMatch<Operand.Register>> REGISTER = OperandPattern.register();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
@@ -22,7 +22,7 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
             Optional<OperandMatch<Operand.Register>> operand = switch (node.getPredCount()) {
                 case 1 -> Optional.empty();
                 case 2 -> {
-                    var match = pattern.match(node.getPred(1), matcher);
+                    var match = REGISTER.match(node.getPred(1), matcher);
                     if (match.matches()) {
                         yield Optional.of(match);
                     } else {
