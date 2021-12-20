@@ -6,6 +6,7 @@ import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
+import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Memory;
 import edu.kit.compiler.codegen.Operand.Register;
@@ -13,6 +14,7 @@ import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
 import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
+import firm.nodes.Add;
 import firm.nodes.Const;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -132,9 +134,9 @@ public final class OperandPattern {
         @Override
         public OperandMatch<Memory> match(Node node, MatcherState matcher) {
             if (node.getMode().equals(Mode.getP())) {
-                var addOffset = matchAddOffset(node, matcher);
-                if (addOffset.matches()) {
-                    return addOffset;
+                var match = matchAdd(node, matcher);
+                if (match.matches()) {
+                    return match;
                 } else {
                     return matchBaseOnly(node, matcher);
                 }
@@ -153,21 +155,46 @@ public final class OperandPattern {
             }
         }
 
-        private OperandMatch<Memory> matchAddOffset(Node node, MatcherState matcher) {
-            if (node.getOpCode() == ir_opcode.iro_Add
-                    && node.getPred(1).getOpCode() == ir_opcode.iro_Const) {
-                // only consider constant on rhs because of normalization
-                // performed in ArithmeticIdentitiesOptimization
-                var baseMatch = REG.match(node.getPred(0), matcher);
-                var offsetMatch = IMM32.match(node.getPred(1), matcher);
-                if (baseMatch.matches() && offsetMatch.matches()) {
-                    var baseRegister = baseMatch.getOperand();
-                    var offsetValue = offsetMatch.getOperand().get();
-                    var memory = Operand.memory(offsetValue.asInt(), baseRegister);
-                    return OperandMatch.some(memory, List.of(node.getPred(0)));
-                } else {
-                    return OperandMatch.none();
+        private OperandMatch<Memory> matchAdd(Node node, MatcherState matcher) {
+            if (node.getOpCode() != ir_opcode.iro_Add) {
+                return OperandMatch.none();
+            }
+            if (node.getPred(1).getOpCode() == ir_opcode.iro_Const) {
+                var match = matchAddOffset((Add) node, matcher);
+                if (match.matches()) {
+                    return match;
                 }
+            }
+            return matchAddRegister((Add) node, matcher);
+        }
+
+        private OperandMatch<Memory> matchAddRegister(Add node, MatcherState matcher) {
+            var baseMatch = REG.match(node.getLeft(), matcher);
+            var indexMatch = REG.match(node.getRight(), matcher);
+            if (baseMatch.matches() && indexMatch.matches()) {
+                var baseRegister = baseMatch.getOperand();
+                var indexRegister = indexMatch.getOperand();
+                var memory = Operand.memory(baseRegister, indexRegister);
+                var preds = Util.concat(baseMatch, indexMatch);
+                return OperandMatch.some(memory, preds);
+            } else {
+                return OperandMatch.none();
+            }
+        }
+
+        private OperandMatch<Memory> matchAddOffset(Add node, MatcherState matcher) {
+            assert node.getPred(1).getOpCode() == ir_opcode.iro_Const;
+
+            // only consider constant on rhs because of normalization
+            // performed in ArithmeticIdentitiesOptimization
+            var baseMatch = REG.match(node.getLeft(), matcher);
+            var offsetMatch = IMM32.match(node.getRight(), matcher);
+            if (baseMatch.matches() && offsetMatch.matches()) {
+                var baseRegister = baseMatch.getOperand();
+                var offsetValue = offsetMatch.getOperand().get();
+                var preds = Util.concat(baseMatch, offsetMatch);
+                var memory = Operand.memory(offsetValue.asInt(), baseRegister);
+                return OperandMatch.some(memory, preds);
             } else {
                 return OperandMatch.none();
             }
