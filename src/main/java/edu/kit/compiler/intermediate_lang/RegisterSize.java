@@ -20,4 +20,8 @@ public enum RegisterSize {
         this.bytes = bytes;
         this.suffix = suffix;
     }
+
+    public int getBits() {
+        return bytes * 8;
+    }
 }

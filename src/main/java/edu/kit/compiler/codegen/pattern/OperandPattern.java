@@ -20,11 +20,19 @@ import lombok.NoArgsConstructor;
 public final class OperandPattern {
 
     /**
-     * Return a pattern that will match any Const node, as well as Conv nodes
-     * with Const operand.
+     * Equivalent to `Operand.immediate(DOUBLE)`.
      */
     public static Pattern<OperandMatch<Immediate>> immediate() {
-        return new ImmediatePattern();
+        return new ImmediatePattern(RegisterSize.DOUBLE);
+    }
+
+    /**
+     * Return a pattern that will match any Const node, as well as Conv nodes
+     * with Const operand. The pattern only matches if the constant fits into
+     * a register with the given size.
+     */
+    public static Pattern<OperandMatch<Immediate>> immediate(RegisterSize maxSize) {
+        return new ImmediatePattern(maxSize);
     }
 
     /**
@@ -39,13 +47,16 @@ public final class OperandPattern {
         return new MemoryPattern();
     }
 
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ImmediatePattern implements Pattern<OperandMatch<Immediate>> {
+
+        private final RegisterSize maxSize;
+
         @Override
         public OperandMatch<Immediate> match(Node node, MatcherState matcher) {
             return switch (node.getOpCode()) {
-                case iro_Const -> matchConst(node, matcher);
-                case iro_Conv -> matchConv(node, matcher);
+                case iro_Const -> checkSize(matchConst(node, matcher));
+                case iro_Conv -> checkSize(matchConv(node, matcher));
                 default -> OperandMatch.none();
             };
         }
@@ -64,6 +75,30 @@ public final class OperandPattern {
                 return OperandMatch.some(operand, Collections.emptyList());
             } else {
                 return OperandMatch.none();
+            }
+        }
+
+        private OperandMatch<Immediate> checkSize(OperandMatch<Immediate> match) {
+            if (match.matches()) {
+                if (isOverflow(match.getOperand().get())) {
+                    return OperandMatch.none();
+                } else {
+                    return match;
+                }
+            } else {
+                return match;
+            }
+        }
+
+        private boolean isOverflow(TargetValue value) {
+            // based on is_overflow(..) in libfirm/ir/tv/tv.c
+            if (value.getMode().isSigned()) {
+                // if sign bit is set, all upper bits must be zro
+                return value.highest_bit() >= maxSize.getBits() - 1
+                        && value.not().highest_bit() >= maxSize.getBits() - 1;
+            } else {
+                // overflow if any of the upper bits is zero
+                return value.highest_bit() >= maxSize.getBits();
             }
         }
     }
