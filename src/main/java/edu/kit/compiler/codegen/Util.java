@@ -1,7 +1,13 @@
 package edu.kit.compiler.codegen;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import edu.kit.compiler.codegen.pattern.Match;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
+import firm.nodes.Node;
 
 public class Util {
 
@@ -25,5 +31,11 @@ public class Util {
             case 8 -> RegisterSize.QUAD;
             default -> throw new IllegalStateException("illegal operand size");
         };
+    }
+
+    public static List<Node> concat(Match... matches) {
+        return Arrays.stream(matches)
+            .flatMap(m -> m.getPredecessors())
+            .collect(Collectors.toList());
     }
 }

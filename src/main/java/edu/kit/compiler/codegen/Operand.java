@@ -39,11 +39,15 @@ public interface Operand {
     }
 
     public static Memory memory(Register baseRegister) {
-        return new Memory(Optional.empty(), baseRegister);
+        return new Memory(Optional.empty(), baseRegister, Optional.empty());
     }
 
     public static Memory memory(int offset, Register baseRegister) {
-        return new Memory(Optional.of(offset), baseRegister);
+        return new Memory(Optional.of(offset), baseRegister, Optional.empty());
+    }
+
+    public static Memory memory(Register baseRegister, Register indexRegister) {
+        return new Memory(Optional.empty(), baseRegister, Optional.of(indexRegister));
     }
 
     /**
@@ -145,14 +149,22 @@ public interface Operand {
 
         private final Optional<Integer> offset;
         private final Register baseRegister;
+        private final Optional<Register> indexRegister;
 
         @Override
         public String format() {
+            var builder = new StringBuilder();
             if (offset.isPresent()) {
-                return String.format("%d(%s)", offset.get(), baseRegister.format());
-            } else {
-                return String.format("(%s)", baseRegister.format());
+                builder.append(offset.get());
             }
+            builder.append('(');
+            builder.append(baseRegister.format());
+            if (indexRegister.isPresent()) {
+                builder.append(',');
+                builder.append(indexRegister.get().format());
+            }
+            builder.append(')');
+            return builder.toString();
         }
 
         @Override
