@@ -58,8 +58,8 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Mul, new BinaryInstructionPattern(iro_Mul, "imul", REG, REG, false)),
                 Map.entry(iro_Eor, new BinaryInstructionPattern(iro_Eor, "xor", REG, REG, false)),
 
-                Map.entry(iro_Div, new DivisionPattern(Type.DIV, REG, REG)),
-                Map.entry(iro_Mod, new DivisionPattern(Type.MOD, REG, REG)),
+                Map.entry(iro_Div, new DivisionPattern(Type.DIV)),
+                Map.entry(iro_Mod, new DivisionPattern(Type.MOD)),
 
                 Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REG, false)),
 
