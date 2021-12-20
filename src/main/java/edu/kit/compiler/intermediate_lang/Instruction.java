@@ -177,6 +177,33 @@ public class Instruction {
                 new ArrayList<>(), Optional.empty());
     }
 
+    /**
+     * signed move between two virtual registers
+     */
+    public static Instruction newSignedMov(int source, int target) {
+        String text = String.format("mov @%d, @%d", source, target);
+        return new Instruction(InstructionType.MOV_S, text, List.of(source),
+                Optional.empty(), Optional.of(target),
+                new ArrayList<>(), Optional.empty());
+    }
+
+    /**
+     * unsigned move between two virtual registers
+     */
+    public static Instruction newUnsignedMov(int source, int target) {
+        String text = String.format("mov @%d, @%d", source, target);
+        return new Instruction(InstructionType.MOV_U, text, List.of(source),
+                Optional.empty(), Optional.of(target),
+                new ArrayList<>(), Optional.empty());
+    }
+
+    /**
+     * move between two virtual registers of equal size
+     */
+    public static Instruction newMov(int source, int target) {
+        return newSignedMov(source, target);
+    }
+
     public static Instruction newCall(List<Integer> args, Optional<Integer> result, String callReference) {
         String text = String.format("call \"%s\"", callReference);
         for (int arg: args) {

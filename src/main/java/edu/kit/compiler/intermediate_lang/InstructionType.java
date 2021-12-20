@@ -8,6 +8,10 @@ public enum InstructionType {
     DIV,
     MOD,
 
+    // signed and unsigned move between two registers (which might be of different size)
+    MOV_S,
+    MOV_U,
+
     // function call / return
     CALL,
     RET,
