@@ -17,7 +17,6 @@ public class Lower {
     public static void lower(TypeMapper typeMapper) {
         lowerMethods(typeMapper);
         setMainMethod(typeMapper);
-        Backend.lowerForTarget();
         Util.lowerSels();
     }
 
