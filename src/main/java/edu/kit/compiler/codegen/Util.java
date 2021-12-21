@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import edu.kit.compiler.codegen.pattern.Match;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
+import firm.TargetValue;
 import firm.nodes.Node;
 
 public class Util {
@@ -37,5 +38,17 @@ public class Util {
         return Arrays.stream(matches)
             .flatMap(m -> m.getPredecessors())
             .collect(Collectors.toList());
+    }
+
+    public static boolean isOverflow(TargetValue value, RegisterSize maxSize) {
+        // based on is_overflow(..) in libfirm/ir/tv/tv.c
+        if (value.getMode().isSigned()) {
+            // if sign bit is set, all upper bits must be zro
+            return value.highest_bit() >= maxSize.getBits() - 1
+                    && value.not().highest_bit() >= maxSize.getBits() - 1;
+        } else {
+            // overflow if any of the upper bits is zero
+            return value.highest_bit() >= maxSize.getBits();
+        }
     }
 }
