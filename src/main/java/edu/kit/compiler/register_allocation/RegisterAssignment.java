@@ -34,4 +34,9 @@ public class RegisterAssignment {
     public boolean isSpilled() {
         return stackSlot.isPresent();
     }
+
+    public boolean isEquivalent(RegisterAssignment other) {
+        return (register.isPresent() && other.register.isPresent() && register.get() == other.register.get())
+                || (stackSlot.isPresent() && other.stackSlot.isPresent() && stackSlot.get() == other.stackSlot.get());
+    }
 }

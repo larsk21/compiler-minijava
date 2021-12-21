@@ -4,7 +4,6 @@ import edu.kit.compiler.intermediate_lang.Block;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import edu.kit.compiler.intermediate_lang.Register;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
-import edu.kit.compiler.logger.Logger;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -137,7 +136,7 @@ public class ApplyAssignmentTest {
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
-                RegisterSize.DOUBLE,
+                RegisterSize.QUAD,
                 RegisterSize.QUAD,
                 RegisterSize.QUAD,
                 RegisterSize.QUAD,
@@ -158,8 +157,8 @@ public class ApplyAssignmentTest {
                 Instruction.newOp("movslq @0, @5", List.of(0), Optional.empty(), 5),
                 Instruction.newOp("movslq @1, @6", List.of(1), Optional.empty(), 6),
                 Instruction.newDiv(5, 6, 2),
-                Instruction.newOp("movslq @1, @7", List.of(1), Optional.empty(), 7),
-                Instruction.newOp("movslq @3, @8", List.of(3), Optional.empty(), 8),
+                Instruction.newMov(1, 7),
+                Instruction.newMov(3, 8),
                 Instruction.newDiv(7, 8, 4)
                 //Instruction.newMod(4, 2, 1),
                 //Instruction.newDiv(1, 3, 4),
@@ -176,25 +175,13 @@ public class ApplyAssignmentTest {
         expected.add("movl %eax, %r9d # move result to @2");
 
         expected.add("movslq %r8d, %rax");
-        expected.add("movl -8(%rbp), %ebx # reload for @3");
-        expected.add("movslq %ebx, %rbx");
+        expected.add("movslq -8(%rbp), %rbx");
         expected.add("cqto # sign extension to octoword");
         expected.add("idivq %rbx");
-        expected.add("movl %eax, -16(%rbp) # spill for @4");
+        expected.add("movq %rax, -16(%rbp) # spill for @4");
 
-        // expected.add("movslq -16(%rbp), %rax # get dividend");
-        // expected.add("cqto # sign extension to octoword");
-        // expected.add("movslq %r9d, %r9 # get divisor");
-        // expected.add("idivq %r9");
-        // expected.add("leal 0(%rdx), %r8d # get result of division");
-
-        // expected.add("movslq %r8d, %rax # get dividend");
-        // expected.add("cqto # sign extension to octoword");
-        // expected.add("movslq -8(%rbp), %rbx # get divisor");
-        // expected.add("idivq %rbx");
-        // expected.add("leal 0(%rax), %eax # get result of division");
-        // expected.add("movl %eax, -16(%rbp) # spill for @4");
         assertEquals(expected, result.getInstructions());
+
         // check that temporary registers are marked as used
         assert result.getUsedRegisters().contains(Register.RDX);
     }

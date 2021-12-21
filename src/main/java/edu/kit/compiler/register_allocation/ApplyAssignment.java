@@ -97,6 +97,7 @@ public class ApplyAssignment {
                 switch (instr.getType()) {
                     case GENERAL -> handleGeneralInstruction(tracker, replace, instr, i);
                     case DIV, MOD -> handleDivOrMod(tracker, instr, i);
+                    case MOV_S, MOV_U -> handleMov(tracker, instr, i);
                     case CALL -> handleCall(tracker, instr, i);
                     case RET -> handleRet(tracker, instr, i);
                 }
@@ -186,8 +187,7 @@ public class ApplyAssignment {
         int dividend = instr.inputRegister(0);
         int divisor = instr.inputRegister(1);
         int target = instr.getTargetRegister().get();
-        assert sizes[dividend] == RegisterSize.QUAD && sizes[divisor] == RegisterSize.QUAD &&
-                sizes[target] == RegisterSize.DOUBLE;
+        assert sizes[dividend] == RegisterSize.QUAD && sizes[divisor] == RegisterSize.QUAD;
 
         tracker.enterInstruction(index);
         tracker.assertMapping(dividend, Register.RAX);
@@ -216,16 +216,66 @@ public class ApplyAssignment {
             default -> throw new IllegalStateException();
         };
 
+        RegisterSize size = sizes[target];
         if (assignment[target].isSpilled()) {
             int stackSlot = assignment[target].getStackSlot().get();
-            output("movl %s, %d(%%rbp) # spill for @%s", result.getAsDouble(), stackSlot, target);
+            output("mov%c %s, %d(%%rbp) # spill for @%s",
+                    size.getSuffix(), result.asSize(size), stackSlot, target);
         } else {
             Register r = assignment[target].getRegister().get();
             tracker.assertMapping(target, r);
             if (result != r) {
-                output("movl %s, %s # move result to @%s", result.getAsDouble(), r.getAsDouble(), target);
+                output("mov%c %s, %s # move result to @%s",
+                        size.getSuffix(), result.asSize(size), r.asSize(size), target);
             }
         }
+    }
+
+    private void handleMov(LifetimeTracker tracker, Instruction instr, int index) {
+        int source = instr.inputRegister(0);
+        int target = instr.getTargetRegister().get();
+        tracker.enterInstruction(index);
+
+        boolean isUpcast = sizes[target].getBytes() > sizes[source].getBytes();
+        boolean isSignedUpcast = isUpcast && instr.getType() == InstructionType.MOV_S;
+        if (!isSignedUpcast && assignment[source].isEquivalent(assignment[target]) ) {
+            // eliminate unnecessary move
+            // TODO: is this correct for unsigned upcast?
+            tracker.leaveInstruction(index);
+            return;
+        }
+
+        // downcast uses same size for both operands (a downcast is a plain `movl`)
+        RegisterSize sourceSize = isSignedUpcast ? sizes[source] : sizes[target];
+        String getSource = getVRegisterValue(source, sourceSize);
+        RegisterSize targetSize = isUpcast && !isSignedUpcast ? sizes[source] : sizes[target];
+        String getTarget = getVRegisterValue(target, targetSize);
+
+        String cmd;
+        if (isSignedUpcast && instr.getType() == InstructionType.MOV_S) {
+            // currently, only conversions from double to quad are supported
+            assert sourceSize == RegisterSize.DOUBLE && targetSize == RegisterSize.QUAD;
+            cmd = "movslq";
+        } else {
+            cmd = String.format("mov%c", targetSize.getSuffix());
+        }
+        if (isUpcast && !isSignedUpcast && assignment[target].isSpilled()) {
+            // edge case: stack slot needs to be zeroed in case of unsigned upcast
+            output("mov%c $0, %s # zero the target slot for upcast",
+                    targetSize.getSuffix(), getTarget);
+        }
+
+        // output the instruction itself
+        if (assignment[source].isSpilled() && assignment[target].isSpilled()) {
+            String tmpRegister = tracker.getTmpRegisters(1).get(0).asSize(targetSize);
+            output("%s %s, %s # load to temporary...",
+                    cmd, getSource, tmpRegister);
+            output("mov%c %s, %s # ...and spill to target",
+                    targetSize.getSuffix(), tmpRegister, getTarget);
+        } else {
+            output("%s %s, %s", cmd, getSource, getTarget);
+        }
+        tracker.leaveInstruction(index);
     }
 
     private void handleCall(LifetimeTracker tracker, Instruction instr, int index) {
