@@ -2,6 +2,8 @@ package edu.kit.compiler.codegen;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
@@ -38,16 +40,9 @@ public interface Operand {
         return new Register(mode, register);
     }
 
-    public static Memory memory(Register baseRegister) {
-        return new Memory(Optional.empty(), baseRegister, Optional.empty());
-    }
-
-    public static Memory memory(int offset, Register baseRegister) {
-        return new Memory(Optional.of(offset), baseRegister, Optional.empty());
-    }
-
-    public static Memory memory(Register baseRegister, Register indexRegister) {
-        return new Memory(Optional.empty(), baseRegister, Optional.of(indexRegister));
+    public static Memory memory(Optional<Integer> offset, Optional<Register> base,
+            Optional<Register> index, Optional<Integer> scale) {
+        return new Memory(offset, base, index, scale);
     }
 
     /**
@@ -143,13 +138,27 @@ public interface Operand {
         }
     }
 
-    @RequiredArgsConstructor
     @ToString
     public static final class Memory implements Target {
 
         private final Optional<Integer> offset;
-        private final Register baseRegister;
+        private final Optional<Register> baseRegister;
         private final Optional<Register> indexRegister;
+        private final Optional<Integer> scale;
+
+        public Memory(Optional<Integer> offset, Optional<Register> baseRegister,
+                Optional<Register> indexRegister, Optional<Integer> scale) {
+            if (baseRegister.isEmpty() && indexRegister.isEmpty()) {
+                throw new IllegalArgumentException("either base or index register must be present");
+            } else if (scale.isPresent() && indexRegister.isEmpty()) {
+                throw new IllegalArgumentException("scale required index register to be present");
+            } else {
+                this.offset = offset;
+                this.baseRegister = baseRegister;
+                this.indexRegister = indexRegister;
+                this.scale = scale;
+            }
+        }
 
         @Override
         public String format() {
@@ -158,10 +167,16 @@ public interface Operand {
                 builder.append(offset.get());
             }
             builder.append('(');
-            builder.append(baseRegister.format());
+            if (baseRegister.isPresent()) {
+                builder.append(baseRegister.get().format());
+            }
             if (indexRegister.isPresent()) {
                 builder.append(',');
                 builder.append(indexRegister.get().format());
+            }
+            if (scale.isPresent()) {
+                builder.append(',');
+                builder.append(scale.get());
             }
             builder.append(')');
             return builder.toString();
@@ -184,7 +199,11 @@ public interface Operand {
 
         @Override
         public List<Integer> getSourceRegisters() {
-            return List.of(baseRegister.get());
+            // todo this is quite heavy handed
+            return Stream
+                    .concat(baseRegister.stream(), indexRegister.stream())
+                    .map(register -> register.get())
+                    .collect(Collectors.toList());
         }
     }
 }

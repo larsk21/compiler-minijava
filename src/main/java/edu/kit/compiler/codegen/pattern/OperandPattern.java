@@ -2,6 +2,9 @@ package edu.kit.compiler.codegen.pattern;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import edu.kit.compiler.codegen.MatcherState;
@@ -11,11 +14,11 @@ import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Memory;
 import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
-import firm.Mode;
 import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Add;
 import firm.nodes.Const;
+import firm.nodes.Mul;
 import firm.nodes.Node;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -30,7 +33,7 @@ public final class OperandPattern {
      * Equivalent to `Operand.immediate(DOUBLE)`.
      */
     public static Pattern<OperandMatch<Immediate>> immediate() {
-        return new ImmediatePattern(RegisterSize.DOUBLE);
+        return OperandPattern.immediate(RegisterSize.DOUBLE);
     }
 
     /**
@@ -39,7 +42,21 @@ public final class OperandPattern {
      * a register with the given size.
      */
     public static Pattern<OperandMatch<Immediate>> immediate(RegisterSize maxSize) {
-        return new ImmediatePattern(maxSize);
+        return new ImmediatePattern((TargetValue value) -> {
+            return !Util.isOverflow(value, maxSize);
+        });
+    }
+
+    /**
+     * Return a pattern that will match any Const node that can be used as scale
+     * in address, i.e. the values 1, 2, 4, or 8.
+     */
+    public static Pattern<OperandMatch<Immediate>> addressScale() {
+        return new ImmediatePattern((TargetValue value) -> {
+            var longValue = value.asLong();
+            return longValue == 1 || longValue == 2
+                    || longValue == 4 || longValue == 8;
+        });
     }
 
     /**
@@ -57,7 +74,7 @@ public final class OperandPattern {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ImmediatePattern implements Pattern<OperandMatch<Immediate>> {
 
-        private final RegisterSize maxSize;
+        private final Function<TargetValue, Boolean> constraint;
 
         @Override
         public OperandMatch<Immediate> match(Node node, MatcherState matcher) {
@@ -87,25 +104,13 @@ public final class OperandPattern {
 
         private OperandMatch<Immediate> checkSize(OperandMatch<Immediate> match) {
             if (match.matches()) {
-                if (isOverflow(match.getOperand().get())) {
-                    return OperandMatch.none();
-                } else {
+                if (constraint.apply(match.getOperand().get())) {
                     return match;
+                } else {
+                    return OperandMatch.none();
                 }
             } else {
                 return match;
-            }
-        }
-
-        private boolean isOverflow(TargetValue value) {
-            // based on is_overflow(..) in libfirm/ir/tv/tv.c
-            if (value.getMode().isSigned()) {
-                // if sign bit is set, all upper bits must be zro
-                return value.highest_bit() >= maxSize.getBits() - 1
-                        && value.not().highest_bit() >= maxSize.getBits() - 1;
-            } else {
-                // overflow if any of the upper bits is zero
-                return value.highest_bit() >= maxSize.getBits();
             }
         }
     }
@@ -128,76 +133,130 @@ public final class OperandPattern {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class MemoryPattern implements Pattern<OperandMatch<Memory>> {
 
-        private static final Pattern<OperandMatch<Immediate>> IMM32 = OperandPattern.immediate(RegisterSize.DOUBLE);
-        private static final Pattern<OperandMatch<Register>> REG = OperandPattern.register();
+        private static final Pattern<OperandMatch<Immediate>> OFFSET = OperandPattern.immediate(RegisterSize.DOUBLE);
+        private static final Pattern<OperandMatch<Immediate>> SCALE = OperandPattern.addressScale();
+        private static final Pattern<OperandMatch<Register>> REGISTER = OperandPattern.register();
 
         @Override
         public OperandMatch<Memory> match(Node node, MatcherState matcher) {
-            if (node.getMode().equals(Mode.getP())) {
-                var match = matchAdd(node, matcher);
-                if (match.matches()) {
-                    return match;
+            // We make some simplifying assumptions here. If these assumptions
+            // are not upheld, it may result in worse address modes being used.
+            // If arithmetic identities have been eliminated, these assumptions
+            // will always be upheld.
+            // - Constants should always be right side of addition (x + c)
+            // - Constants should always be right side of multiplication (x * c)
+            // - Subtractions of constants should not be used (x - c == x + (-c))
+
+            var nodes = AddressNodes.of(node);
+
+            var indexRight = matchMul(nodes.offset, nodes.firstRegister,
+                    nodes.secondRegister, matcher);
+            if (indexRight.matches()) {
+                return indexRight;
+            }
+
+            var indexLeft = matchMul(nodes.offset, nodes.secondRegister,
+                    nodes.firstRegister, matcher);
+            if (indexLeft.matches()) {
+                return indexLeft;
+            }
+
+            // todo (2,4,8) + 1 * %rax = (%rax,%rax,8)
+            return getMatch(nodes.offset, nodes.firstRegister,
+                    nodes.secondRegister, matcher);
+        }
+
+        private OperandMatch<Memory> matchMul(Node offset, Node base, Node index, MatcherState matcher) {
+            if (index != null && index.getOpCode() == ir_opcode.iro_Mul) {
+                var mul = (Mul) index;
+                var scaleMatch = SCALE.match(mul.getRight(), matcher);
+                if (scaleMatch.matches()) {
+                    return getMatch(Optional.ofNullable(offset),
+                            Optional.ofNullable(base), Optional.of(mul.getLeft()),
+                            Optional.of(scaleMatch.getOperand()), matcher);
                 } else {
-                    return matchBaseOnly(node, matcher);
+                    return OperandMatch.none();
                 }
             } else {
                 return OperandMatch.none();
             }
         }
 
-        private OperandMatch<Memory> matchBaseOnly(Node node, MatcherState matcher) {
-            var registerMatch = REG.match(node, matcher);
-            if (registerMatch.matches()) {
-                var memory = Operand.memory(registerMatch.getOperand());
-                return OperandMatch.some(memory, List.of(node));
+        private OperandMatch<Memory> getMatch(Node offset, Node base, Node index, MatcherState matcher) {
+            return getMatch(Optional.ofNullable(offset), Optional.ofNullable(base),
+                    Optional.ofNullable(index), Optional.empty(), matcher);
+        }
+
+        private OperandMatch<Memory> getMatch(Optional<Node> offset, Optional<Node> base,
+                Optional<Node> index, Optional<Immediate> scale, MatcherState matcher) {
+            var offsetMatch = offset.map(node -> OFFSET.match(node, matcher));
+            var baseMatch = base.map(node -> REGISTER.match(node, matcher));
+            var indexMatch = index.map(node -> REGISTER.match(node, matcher));
+
+            if (matches(offsetMatch) && matches(baseMatch) && matches(indexMatch)) {
+                var memory = Operand.memory(
+                        offsetMatch.map(m -> m.getOperand().get().asInt()),
+                        baseMatch.map(m -> m.getOperand()),
+                        indexMatch.map(m -> m.getOperand()),
+                        scale.map(m -> m.get().asInt()));
+                var preds = Stream
+                        .concat(baseMatch.stream(), indexMatch.stream())
+                        .flatMap(m -> m.getPredecessors())
+                        .collect(Collectors.toList());
+
+                return OperandMatch.some(memory, preds);
             } else {
                 return OperandMatch.none();
             }
         }
 
-        private OperandMatch<Memory> matchAdd(Node node, MatcherState matcher) {
-            if (node.getOpCode() != ir_opcode.iro_Add) {
-                return OperandMatch.none();
-            }
-            if (node.getPred(1).getOpCode() == ir_opcode.iro_Const) {
-                var match = matchAddOffset((Add) node, matcher);
-                if (match.matches()) {
-                    return match;
+        private static final boolean matches(Optional<? extends Match> match) {
+            return match.map(m -> m.matches()).orElse(true);
+        }
+    }
+
+    /**
+     * Represents the additive parts of a memory address.
+     */
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE, staticName = "of")
+    private static final class AddressNodes {
+
+        public final Node firstRegister;
+        public final Node secondRegister;
+        public final Node offset;
+
+        public static AddressNodes of(Node node) {
+
+            if (node.getOpCode() == ir_opcode.iro_Add) {
+                var add = (Add) node;
+                if (add.getRight().getOpCode() == ir_opcode.iro_Const) {
+                    var offset = add.getRight();
+                    if (add.getLeft().getOpCode() == ir_opcode.iro_Add) {
+                        // Add(Add(r1, r2), c)
+                        return of(add.getLeft().getPred(0), add.getLeft().getPred(1), offset);
+                    } else {
+                        // Add(r1, c)
+                        return of(add.getLeft(), null, offset);
+                    }
+                } else if (isAddConst(add.getLeft())) {
+                    // Add(Add(r1, c), r2)
+                    return of(add.getLeft().getPred(0), add.getRight(), add.getLeft().getPred(1));
+                } else if (isAddConst(add.getRight())) {
+                    // Add(r1, Add(r2, c))
+                    return of(add.getLeft(), add.getRight().getPred(0), add.getRight().getPred(1));
+                } else {
+                    // Add(r1, r2)
+                    return of(add.getLeft(), add.getRight(), null);
                 }
-            }
-            return matchAddRegister((Add) node, matcher);
-        }
-
-        private OperandMatch<Memory> matchAddRegister(Add node, MatcherState matcher) {
-            var baseMatch = REG.match(node.getLeft(), matcher);
-            var indexMatch = REG.match(node.getRight(), matcher);
-            if (baseMatch.matches() && indexMatch.matches()) {
-                var baseRegister = baseMatch.getOperand();
-                var indexRegister = indexMatch.getOperand();
-                var memory = Operand.memory(baseRegister, indexRegister);
-                var preds = Util.concat(baseMatch, indexMatch);
-                return OperandMatch.some(memory, preds);
             } else {
-                return OperandMatch.none();
+                // r1
+                return of(node, null, null);
             }
         }
 
-        private OperandMatch<Memory> matchAddOffset(Add node, MatcherState matcher) {
-            assert node.getPred(1).getOpCode() == ir_opcode.iro_Const;
-
-            // only consider constant on rhs because of normalization
-            // performed in ArithmeticIdentitiesOptimization
-            var baseMatch = REG.match(node.getLeft(), matcher);
-            var offsetMatch = IMM32.match(node.getRight(), matcher);
-            if (baseMatch.matches() && offsetMatch.matches()) {
-                var baseRegister = baseMatch.getOperand();
-                var offsetValue = offsetMatch.getOperand().get();
-                var preds = Util.concat(baseMatch, offsetMatch);
-                var memory = Operand.memory(offsetValue.asInt(), baseRegister);
-                return OperandMatch.some(memory, preds);
-            } else {
-                return OperandMatch.none();
-            }
+        private static boolean isAddConst(Node node) {
+            return node.getOpCode() == ir_opcode.iro_Add
+                    && node.getPred(1).getOpCode() == ir_opcode.iro_Const;
         }
     }
 }
