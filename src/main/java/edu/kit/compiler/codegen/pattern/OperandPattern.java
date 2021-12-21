@@ -67,6 +67,10 @@ public final class OperandPattern {
         return new RegisterPattern();
     }
 
+    /**
+     * Return a pattern that will match memory locations. An effort will be made
+     * to ensure that x86 addressing modes are utilized where possible.
+     */
     public static Pattern<OperandMatch<Memory>> memory() {
         return new MemoryPattern();
     }
@@ -140,9 +144,9 @@ public final class OperandPattern {
         @Override
         public OperandMatch<Memory> match(Node node, MatcherState matcher) {
             // We make some simplifying assumptions here. If these assumptions
-            // are not upheld, it may result in worse address modes being used.
-            // If arithmetic identities have been eliminated, these assumptions
-            // will always be upheld.
+            // are not upheld, it may result in worse addressing modes being
+            // used. If arithmetic identities have been eliminated, these
+            // assumptions will always be upheld.
             // - Constants should always be right side of addition (x + c)
             // - Constants should always be right side of multiplication (x * c)
             // - Subtractions of constants should not be used (x - c == x + (-c))
@@ -166,6 +170,10 @@ public final class OperandPattern {
                     nodes.secondRegister, matcher);
         }
 
+        /**
+         * Try to match a memory addressing mode where `index` is a
+         * multiplication with one of the scaling factors 1, 2, 4, or 8.
+         */
         private OperandMatch<Memory> matchMul(Node offset, Node base, Node index, MatcherState matcher) {
             if (index != null && index.getOpCode() == ir_opcode.iro_Mul) {
                 var mul = (Mul) index;
@@ -182,11 +190,21 @@ public final class OperandPattern {
             }
         }
 
+        /**
+         * Wraps the given nodes (any of which by null) with Optionals and
+         * passes them to the other overload of `getMatch`.
+         */
         private OperandMatch<Memory> getMatch(Node offset, Node base, Node index, MatcherState matcher) {
             return getMatch(Optional.ofNullable(offset), Optional.ofNullable(base),
                     Optional.ofNullable(index), Optional.empty(), matcher);
         }
 
+        /**
+         * Try to match memory mode with the given parts. Any number of the
+         * given Optionals may be empty. The caller must ensure that the present
+         * values are a valid combination to avoid exceptions. An example for
+         * an invalid combination might be if only base and scale are present.
+         */
         private OperandMatch<Memory> getMatch(Optional<Node> offset, Optional<Node> base,
                 Optional<Node> index, Optional<Immediate> scale, MatcherState matcher) {
             var offsetMatch = offset.map(node -> OFFSET.match(node, matcher));
@@ -216,7 +234,8 @@ public final class OperandPattern {
     }
 
     /**
-     * Represents the additive parts of a memory address.
+     * Represents the additive parts of a memory address. The field of this
+     * class are explicitly allowed to be null.
      */
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE, staticName = "of")
     private static final class AddressNodes {

@@ -32,14 +32,28 @@ public interface Operand {
      */
     Mode getMode();
 
+    /**
+     * Return an Operand equivalent to an immediate of the given TargetValue.
+     * The size of the value is used to determine the size of the operand.
+     */
     public static Immediate immediate(TargetValue value) {
         return new Immediate(value);
     }
 
+    /**
+     * Return an Operand representing the given register. The given mode is
+     * used to determine the size of the register.
+     */
     public static Register register(Mode mode, int register) {
         return new Register(mode, register);
     }
 
+    /**
+     * Return an Operand representing a memory location. The combination of
+     * values present is used to determine the correct x86 addressing mode.
+     * Illegal combinations of present (or rather absent) values will result
+     * in exceptions being thrown.
+     */
     public static Memory memory(Optional<Integer> offset, Optional<Register> base,
             Optional<Register> index, Optional<Integer> scale) {
         return new Memory(offset, base, index, scale);
@@ -96,6 +110,9 @@ public interface Operand {
             return List.of();
         }
 
+        /**
+         * Returns the TargetValue held by the Immediate.
+         */
         public TargetValue get() {
             return value;
         }
@@ -133,6 +150,9 @@ public interface Operand {
             return List.of(register);
         }
 
+        /**
+         * Returns the index of the referenced register.
+         */
         public int get() {
             return register;
         }
