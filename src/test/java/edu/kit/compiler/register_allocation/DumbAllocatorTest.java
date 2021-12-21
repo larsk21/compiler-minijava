@@ -114,9 +114,9 @@ public class DumbAllocatorTest {
                 RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.QUAD, RegisterSize.QUAD, RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.QUAD, RegisterSize.QUAD, RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.QUAD,
-                RegisterSize.DOUBLE
+                RegisterSize.DOUBLE, RegisterSize.QUAD, RegisterSize.QUAD, RegisterSize.QUAD, RegisterSize.QUAD
         };
-        assert sizes.length == 36;
+        assert sizes.length == 40;
 
         Block block0 = new Block(List.of(
                 Instruction.newOp("movl $10, @1", List.of(), Optional.empty(), 1),
@@ -134,51 +134,55 @@ public class DumbAllocatorTest {
         ), 0, 0);
 
         Block block1 = new Block(List.of(
-                Instruction.newOp("movl @1, @5", List.of(1), Optional.empty(), 5),
+                Instruction.newMov(1, 5),
                 Instruction.newOp("subl $2, @6", List.of(), Optional.of(5), 6),
                 Instruction.newInput("cmpl @4, @6", List.of(4, 6)),
                 Instruction.newJmp("jle .L3", 3)
         ), 1, 1);
 
         Block block2 = new Block(List.of(
-                Instruction.newOp("movslq @4, @34", List.of(4), Optional.empty(), 34),
+                Instruction.newMov(4, 34),
                 Instruction.newOp("imulq $4, @7", List.of(), Optional.of(34), 7),
                 Instruction.newOp("addq @3, @8", List.of(3), Optional.of(7), 8),
 
                 Instruction.newOp("movl -8(@8), @9", List.of(8), Optional.empty(), 9),
-                Instruction.newOp("movslq @9, @10", List.of(9), Optional.empty(), 10),
+                Instruction.newMov(9, 10),
                 Instruction.newOp("movq $3, @11", List.of(), Optional.empty(), 11),
-                Instruction.newDiv(10, 11, 12),
+                Instruction.newDiv(10, 11, 36),
+                Instruction.newMov(36, 12),
                 Instruction.newOp("addl @35, @13", List.of(35), Optional.of(12), 13),
-                Instruction.newOp("movl @13, @35", List.of(13), Optional.empty(), 35),
+                Instruction.newMov(13, 35),
 
                 Instruction.newOp("movl -4(@8), @14", List.of(8), Optional.empty(), 14),
-                Instruction.newOp("movslq @14, @15", List.of(14), Optional.empty(), 15),
+                Instruction.newMov(14, 15),
                 Instruction.newOp("movq $2, @16", List.of(), Optional.empty(), 16),
-                Instruction.newDiv(15, 16, 17),
+                Instruction.newDiv(15, 16, 37),
+                Instruction.newMov(37, 17),
                 Instruction.newOp("addl @35, @18", List.of(35), Optional.of(17), 18),
-                Instruction.newOp("movl @18, @35", List.of(18), Optional.empty(), 35),
+                Instruction.newMov(18, 35),
 
                 Instruction.newOp("movl (@8), @19", List.of(8), Optional.empty(), 19),
                 Instruction.newOp("addl @35, @20", List.of(35), Optional.of(19), 20),
-                Instruction.newOp("movl @20, @35", List.of(20), Optional.empty(), 35),
+                Instruction.newMov(20, 35),
 
                 Instruction.newOp("movl 4(@8), @21", List.of(8), Optional.empty(), 21),
-                Instruction.newOp("movslq @21, @22", List.of(21), Optional.empty(), 22),
+                Instruction.newMov(21, 22),
                 Instruction.newOp("movq $2, @23", List.of(), Optional.empty(), 23),
-                Instruction.newDiv(22, 23, 24),
+                Instruction.newDiv(22, 23, 38),
+                Instruction.newMov(38, 24),
                 Instruction.newOp("addl @35, @25", List.of(35), Optional.of(24), 25),
-                Instruction.newOp("movl @25, @35", List.of(25), Optional.empty(), 35),
+                Instruction.newMov(25, 35),
 
                 Instruction.newOp("movl 8(@8), @26", List.of(8), Optional.empty(), 26),
-                Instruction.newOp("movslq @26, @27", List.of(26), Optional.empty(), 27),
+                Instruction.newMov(26, 27),
                 Instruction.newOp("movq $3, @28", List.of(), Optional.empty(), 28),
-                Instruction.newDiv(27, 28, 29),
+                Instruction.newDiv(27, 28, 39),
+                Instruction.newMov(39, 29),
                 Instruction.newOp("addl @35, @30", List.of(35), Optional.of(29), 30),
-                Instruction.newOp("movl @30, @35", List.of(30), Optional.empty(), 35),
+                Instruction.newMov(30, 35),
 
                 Instruction.newOp("addl $1, @31", List.of(), Optional.of(4), 31),
-                Instruction.newOp("movl @31, @4", List.of(31), Optional.empty(), 4),
+                Instruction.newMov(31, 4),
                 Instruction.newJmp("jmp .L1", 1)
         ), 2, 0);
 
@@ -193,7 +197,7 @@ public class DumbAllocatorTest {
         var expected = new ArrayList<>();
         expected.add("pushq %rbp");
         expected.add("movq %rsp, %rbp");
-        expected.add("subq $240, %rsp # allocate activation record");
+        expected.add("subq $272, %rsp # allocate activation record");
         expected.add("pushq %rbx # push callee-saved register");
         expected.add("pushq %r10 # push callee-saved register");
 
@@ -224,9 +228,8 @@ public class DumbAllocatorTest {
         expected.add("movl %ebx, -240(%rbp) # spill for @35");
 
         expected.add(".L1:");
-        expected.add("movl -8(%rbp), %ebx # reload for @1");
-        expected.add("movl %ebx, %r10d");
-        expected.add("movl %r10d, -40(%rbp) # spill for @5");
+        expected.add("movl -8(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -40(%rbp) # ...and spill to target");
         expected.add("movl -40(%rbp), %ebx # reload for @5 [overwrite]");
         expected.add("subl $2, %ebx");
         expected.add("movl %ebx, -48(%rbp) # spill for @6");
@@ -236,9 +239,8 @@ public class DumbAllocatorTest {
         expected.add("jle .L3");
 
         expected.add(".L2:");
-        expected.add("movl -32(%rbp), %ebx # reload for @4");
-        expected.add("movslq %ebx, %r10");
-        expected.add("movq %r10, -232(%rbp) # spill for @34");
+        expected.add("movslq -32(%rbp), %rbx # load to temporary...");
+        expected.add("movq %rbx, -232(%rbp) # ...and spill to target");
         expected.add("movq -232(%rbp), %rbx # reload for @34 [overwrite]");
         expected.add("imulq $4, %rbx");
         expected.add("movq %rbx, -56(%rbp) # spill for @7");
@@ -249,39 +251,39 @@ public class DumbAllocatorTest {
         expected.add("movq -64(%rbp), %rbx # reload for @8");
         expected.add("movl -8(%rbx), %r10d");
         expected.add("movl %r10d, -72(%rbp) # spill for @9");
-        expected.add("movl -72(%rbp), %ebx # reload for @9");
-        expected.add("movslq %ebx, %rax");
+        expected.add("movslq -72(%rbp), %rax");
         expected.add("movq $3, %rbx");
         expected.add("movq %rbx, -80(%rbp) # spill for @11");
         expected.add("movq -80(%rbp), %rbx # get divisor");
         expected.add("cqto # sign extension to octoword");
         expected.add("idivq %rbx");
-        expected.add("movl %eax, -88(%rbp) # spill for @12");
+        expected.add("movq %rax, -248(%rbp) # spill for @36");
+        expected.add("movl -248(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -88(%rbp) # ...and spill to target");
         expected.add("movl -240(%rbp), %ebx # reload for @35");
         expected.add("movl -88(%rbp), %r10d # reload for @12 [overwrite]");
         expected.add("addl %ebx, %r10d");
         expected.add("movl %r10d, -96(%rbp) # spill for @13");
-        expected.add("movl -96(%rbp), %ebx # reload for @13");
-        expected.add("movl %ebx, %r10d");
-        expected.add("movl %r10d, -240(%rbp) # spill for @35");
+        expected.add("movl -96(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -240(%rbp) # ...and spill to target");
         expected.add("movq -64(%rbp), %rbx # reload for @8");
         expected.add("movl -4(%rbx), %r10d");
         expected.add("movl %r10d, -104(%rbp) # spill for @14");
-        expected.add("movl -104(%rbp), %ebx # reload for @14");
-        expected.add("movslq %ebx, %rax");
+        expected.add("movslq -104(%rbp), %rax");
         expected.add("movq $2, %rbx");
         expected.add("movq %rbx, -112(%rbp) # spill for @16");
         expected.add("movq -112(%rbp), %rbx # get divisor");
         expected.add("cqto # sign extension to octoword");
         expected.add("idivq %rbx");
-        expected.add("movl %eax, -120(%rbp) # spill for @17");
+        expected.add("movq %rax, -256(%rbp) # spill for @37");
+        expected.add("movl -256(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -120(%rbp) # ...and spill to target");
         expected.add("movl -240(%rbp), %ebx # reload for @35");
         expected.add("movl -120(%rbp), %r10d # reload for @17 [overwrite]");
         expected.add("addl %ebx, %r10d");
         expected.add("movl %r10d, -128(%rbp) # spill for @18");
-        expected.add("movl -128(%rbp), %ebx # reload for @18");
-        expected.add("movl %ebx, %r10d");
-        expected.add("movl %r10d, -240(%rbp) # spill for @35");
+        expected.add("movl -128(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -240(%rbp) # ...and spill to target");
         expected.add("movq -64(%rbp), %rbx # reload for @8");
         expected.add("movl (%rbx), %r10d");
         expected.add("movl %r10d, -136(%rbp) # spill for @19");
@@ -289,51 +291,49 @@ public class DumbAllocatorTest {
         expected.add("movl -136(%rbp), %r10d # reload for @19 [overwrite]");
         expected.add("addl %ebx, %r10d");
         expected.add("movl %r10d, -144(%rbp) # spill for @20");
-        expected.add("movl -144(%rbp), %ebx # reload for @20");
-        expected.add("movl %ebx, %r10d");
-        expected.add("movl %r10d, -240(%rbp) # spill for @35");
+        expected.add("movl -144(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -240(%rbp) # ...and spill to target");
         expected.add("movq -64(%rbp), %rbx # reload for @8");
         expected.add("movl 4(%rbx), %r10d");
         expected.add("movl %r10d, -152(%rbp) # spill for @21");
-        expected.add("movl -152(%rbp), %ebx # reload for @21");
-        expected.add("movslq %ebx, %rax");
+        expected.add("movslq -152(%rbp), %rax");
         expected.add("movq $2, %rbx");
         expected.add("movq %rbx, -160(%rbp) # spill for @23");
         expected.add("movq -160(%rbp), %rbx # get divisor");
         expected.add("cqto # sign extension to octoword");
         expected.add("idivq %rbx");
-        expected.add("movl %eax, -168(%rbp) # spill for @24");
+        expected.add("movq %rax, -264(%rbp) # spill for @38");
+        expected.add("movl -264(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -168(%rbp) # ...and spill to target");
         expected.add("movl -240(%rbp), %ebx # reload for @35");
         expected.add("movl -168(%rbp), %r10d # reload for @24 [overwrite]");
         expected.add("addl %ebx, %r10d");
         expected.add("movl %r10d, -176(%rbp) # spill for @25");
-        expected.add("movl -176(%rbp), %ebx # reload for @25");
-        expected.add("movl %ebx, %r10d");
-        expected.add("movl %r10d, -240(%rbp) # spill for @35");
+        expected.add("movl -176(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -240(%rbp) # ...and spill to target");
         expected.add("movq -64(%rbp), %rbx # reload for @8");
         expected.add("movl 8(%rbx), %r10d");
         expected.add("movl %r10d, -184(%rbp) # spill for @26");
-        expected.add("movl -184(%rbp), %ebx # reload for @26");
-        expected.add("movslq %ebx, %rax");
+        expected.add("movslq -184(%rbp), %rax");
         expected.add("movq $3, %rbx");
         expected.add("movq %rbx, -192(%rbp) # spill for @28");
         expected.add("movq -192(%rbp), %rbx # get divisor");
         expected.add("cqto # sign extension to octoword");
         expected.add("idivq %rbx");
-        expected.add("movl %eax, -200(%rbp) # spill for @29");
+        expected.add("movq %rax, -272(%rbp) # spill for @39");
+        expected.add("movl -272(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -200(%rbp) # ...and spill to target");
         expected.add("movl -240(%rbp), %ebx # reload for @35");
         expected.add("movl -200(%rbp), %r10d # reload for @29 [overwrite]");
         expected.add("addl %ebx, %r10d");
         expected.add("movl %r10d, -208(%rbp) # spill for @30");
-        expected.add("movl -208(%rbp), %ebx # reload for @30");
-        expected.add("movl %ebx, %r10d");
-        expected.add("movl %r10d, -240(%rbp) # spill for @35");
+        expected.add("movl -208(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -240(%rbp) # ...and spill to target");
         expected.add("movl -32(%rbp), %ebx # reload for @4 [overwrite]");
         expected.add("addl $1, %ebx");
         expected.add("movl %ebx, -216(%rbp) # spill for @31");
-        expected.add("movl -216(%rbp), %ebx # reload for @31");
-        expected.add("movl %ebx, %r10d");
-        expected.add("movl %r10d, -32(%rbp) # spill for @4");
+        expected.add("movl -216(%rbp), %ebx # load to temporary...");
+        expected.add("movl %ebx, -32(%rbp) # ...and spill to target");
         expected.add("jmp .L1");
 
         expected.add(".L3:");
