@@ -64,7 +64,9 @@ public class LinearScanTest {
         expected.add("movl %eax, %edi # move result to @3");
         expected.add("pushq %rdi # push caller-saved register");
         expected.add("movq 0(%rsp), %rdi # reload @3 as arg 0");
+        expected.add("subq $8, %rsp # align stack to 16 byte");
         expected.add("call print@PLT");
+        expected.add("addq $8, %rsp # remove args from stack");
         expected.add("addq $8, %rsp # clear stack");
 
         expected.add(ApplyAssignment.FINAL_BLOCK_LABEL + ":");
@@ -104,9 +106,9 @@ public class LinearScanTest {
                 RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.QUAD, RegisterSize.QUAD, RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.QUAD, RegisterSize.QUAD, RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.DOUBLE, RegisterSize.QUAD,
-                RegisterSize.DOUBLE
+                RegisterSize.DOUBLE, RegisterSize.QUAD, RegisterSize.QUAD, RegisterSize.QUAD, RegisterSize.QUAD
         };
-        assert sizes.length == 36;
+        assert sizes.length == 40;
 
         Block block0 = new Block(List.of(
                 Instruction.newOp("movl $10, @1", List.of(), Optional.empty(), 1),
@@ -124,51 +126,55 @@ public class LinearScanTest {
         ), 0, 0);
 
         Block block1 = new Block(List.of(
-                Instruction.newOp("movl @1, @5", List.of(1), Optional.empty(), 5),
+                Instruction.newMov(1, 5),
                 Instruction.newOp("subl $2, @6", List.of(), Optional.of(5), 6),
                 Instruction.newInput("cmpl @4, @6", List.of(4, 6)),
                 Instruction.newJmp("jle .L3", 3)
         ), 1, 1);
 
         Block block2 = new Block(List.of(
-                Instruction.newOp("movslq @4, @34", List.of(4), Optional.empty(), 34),
+                Instruction.newMov(4, 34),
                 Instruction.newOp("imulq $4, @7", List.of(), Optional.of(34), 7),
                 Instruction.newOp("addq @3, @8", List.of(3), Optional.of(7), 8),
 
                 Instruction.newOp("movl -8(@8), @9", List.of(8), Optional.empty(), 9),
-                Instruction.newOp("movslq @9, @10", List.of(9), Optional.empty(), 10),
+                Instruction.newMov(9, 10),
                 Instruction.newOp("movq $3, @11", List.of(), Optional.empty(), 11),
-                Instruction.newDiv(10, 11, 12),
+                Instruction.newDiv(10, 11, 36),
+                Instruction.newMov(36, 12),
                 Instruction.newOp("addl @35, @13", List.of(35), Optional.of(12), 13),
-                Instruction.newOp("movl @13, @35", List.of(13), Optional.empty(), 35),
+                Instruction.newMov(13, 35),
 
                 Instruction.newOp("movl -4(@8), @14", List.of(8), Optional.empty(), 14),
-                Instruction.newOp("movslq @14, @15", List.of(14), Optional.empty(), 15),
+                Instruction.newMov(14, 15),
                 Instruction.newOp("movq $2, @16", List.of(), Optional.empty(), 16),
-                Instruction.newDiv(15, 16, 17),
+                Instruction.newDiv(15, 16, 37),
+                Instruction.newMov(37, 17),
                 Instruction.newOp("addl @35, @18", List.of(35), Optional.of(17), 18),
-                Instruction.newOp("movl @18, @35", List.of(18), Optional.empty(), 35),
+                Instruction.newMov(18, 35),
 
                 Instruction.newOp("movl (@8), @19", List.of(8), Optional.empty(), 19),
                 Instruction.newOp("addl @35, @20", List.of(35), Optional.of(19), 20),
-                Instruction.newOp("movl @20, @35", List.of(20), Optional.empty(), 35),
+                Instruction.newMov(20, 35),
 
                 Instruction.newOp("movl 4(@8), @21", List.of(8), Optional.empty(), 21),
-                Instruction.newOp("movslq @21, @22", List.of(21), Optional.empty(), 22),
+                Instruction.newMov(21, 22),
                 Instruction.newOp("movq $2, @23", List.of(), Optional.empty(), 23),
-                Instruction.newDiv(22, 23, 24),
+                Instruction.newDiv(22, 23, 38),
+                Instruction.newMov(38, 24),
                 Instruction.newOp("addl @35, @25", List.of(35), Optional.of(24), 25),
-                Instruction.newOp("movl @25, @35", List.of(25), Optional.empty(), 35),
+                Instruction.newMov(25, 35),
 
                 Instruction.newOp("movl 8(@8), @26", List.of(8), Optional.empty(), 26),
-                Instruction.newOp("movslq @26, @27", List.of(26), Optional.empty(), 27),
+                Instruction.newMov(26, 27),
                 Instruction.newOp("movq $3, @28", List.of(), Optional.empty(), 28),
-                Instruction.newDiv(27, 28, 29),
+                Instruction.newDiv(27, 28, 39),
+                Instruction.newMov(39, 29),
                 Instruction.newOp("addl @35, @30", List.of(35), Optional.of(29), 30),
-                Instruction.newOp("movl @30, @35", List.of(30), Optional.empty(), 35),
+                Instruction.newMov(30, 35),
 
                 Instruction.newOp("addl $1, @31", List.of(), Optional.of(4), 31),
-                Instruction.newOp("movl @31, @4", List.of(31), Optional.empty(), 4),
+                Instruction.newMov(31, 4),
                 Instruction.newJmp("jmp .L1", 1)
         ), 2, 0);
 
@@ -192,7 +198,9 @@ public class LinearScanTest {
         expected.add("pushq %rsi # push caller-saved register");
         expected.add("movl %ebx, %edi # move @1 into arg 0");
         expected.add("movq 0(%rsp), %rsi # reload @2 as arg 1");
+        expected.add("subq $8, %rsp # align stack to 16 byte");
         expected.add("call calloc@PLT");
+        expected.add("addq $8, %rsp # remove args from stack");
         expected.add("movq %rax, %rcx # move return value into @3");
         expected.add("addq $8, %rsp # clear stack");
         expected.add("movl $1, 8(%rcx)");
@@ -255,7 +263,9 @@ public class LinearScanTest {
         expected.add("subl $1, %edi");
         expected.add("pushq %rdi # push caller-saved register");
         expected.add("movq 0(%rsp), %rdi # reload @32 as arg 0");
+        expected.add("subq $8, %rsp # align stack to 16 byte");
         expected.add("call print@PLT");
+        expected.add("addq $8, %rsp # remove args from stack");
         expected.add("addq $8, %rsp # clear stack");
 
         expected.add(ApplyAssignment.FINAL_BLOCK_LABEL + ":");

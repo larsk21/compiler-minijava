@@ -41,6 +41,12 @@ public class LinearScan implements RegisterAllocator {
                             state.assertCapacity(1);
                         }
                     }
+                    case MOV_S, MOV_U -> {
+                        if (assignment[instr.inputRegister(0)].isSpilled() &&
+                                assignment[instr.getTargetRegister().get()].isSpilled()) {
+                            state.assertCapacity(1);
+                        }
+                    }
                     case CALL, RET -> { }
                 }
 
@@ -96,6 +102,11 @@ public class LinearScan implements RegisterAllocator {
             } else if (first.getType() == InstructionType.CALL) {
                 // call result
                 preference = withPrefIfNotAvoided(preference, CCONV.getReturnRegister());
+            } else if (first.isMov()) {
+                Optional<Register> source = assignment[first.inputRegister(0)].getRegister();
+                if (source.isPresent()) {
+                    preference = withPrefIfNotAvoided(preference, source.get());
+                }
             } else if (first.getType() == InstructionType.GENERAL) {
                 // check for overwrite
                 Optional<Integer> overwrite = first.getOverwriteRegister();
@@ -131,6 +142,11 @@ public class LinearScan implements RegisterAllocator {
                 // return value
                 assert last.inputRegister(0) == vRegister;
                 preference = withPrefIfNotAvoided(preference, CCONV.getReturnRegister());
+            } else if (last.isMov()) {
+                Optional<Register> target = assignment[last.getTargetRegister().get()].getRegister();
+                if (target.isPresent()) {
+                    preference = withPrefIfNotAvoided(preference, target.get());
+                }
             }
         }
 
