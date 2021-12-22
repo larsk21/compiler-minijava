@@ -1,10 +1,12 @@
 package edu.kit.compiler.codegen;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import edu.kit.compiler.intermediate_lang.Instruction;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
 import firm.TargetValue;
@@ -33,6 +35,16 @@ public interface Operand {
     Mode getMode();
 
     /**
+     * If an instruction needs to be executed for the operand to be available,
+     * it is returned by this function. In practice, most operand will return
+     * nothing here. Only `ImmediateRegister`s will actually return an
+     * instruction, namely a move of their immediate to their target register.
+     */
+    default Optional<Instruction> getInstruction() {
+        return Optional.empty();
+    };
+
+    /**
      * Return an Operand equivalent to an immediate of the given TargetValue.
      * The size of the value is used to determine the size of the operand.
      */
@@ -45,7 +57,7 @@ public interface Operand {
      * used to determine the size of the register.
      */
     public static Register register(Mode mode, int register) {
-        return new Register(mode, register);
+        return new NormalRegister(mode, register);
     }
 
     /**
@@ -119,25 +131,13 @@ public interface Operand {
     }
 
     @RequiredArgsConstructor
-    @ToString
-    public static class Register implements Target {
+    public static abstract class Register implements Target {
 
-        private final Mode mode;
         private final int register;
 
         @Override
         public String format() {
             return String.format("@%d", register);
-        }
-
-        @Override
-        public RegisterSize getSize() {
-            return Util.getSize(mode);
-        }
-
-        @Override
-        public Mode getMode() {
-            return mode;
         }
 
         @Override
@@ -158,13 +158,55 @@ public interface Operand {
         }
     }
 
-    public static final class ImmediateRegister extends Register {
-        
-        private final TargetValue value;
-        private final int register;
+    @ToString
+    public static class NormalRegister extends Register {
+
+        private final Mode mode;
+
+        public NormalRegister(Mode mode, int register) {
+            super(register);
+            this.mode = mode;
+        }
+
+        @Override
+        public RegisterSize getSize() {
+            return Util.getSize(mode);
+        }
+
+        @Override
+        public Mode getMode() {
+            return mode;
+        }
     }
 
-    @RequiredArgsConstructor
+    public static final class ImmediateRegister extends Register {
+
+        private final Immediate value;
+
+        public ImmediateRegister(Immediate value, int register) {
+            super(register);
+            this.value = value;
+        }
+
+        @Override
+        public RegisterSize getSize() {
+            return value.getSize();
+        }
+
+        @Override
+        public Mode getMode() {
+            return value.getMode();
+        }
+
+        @Override
+        public Optional<Instruction> getInstruction() {
+            return Optional.of(Instruction.newOp(
+                    Util.formatLoad(getSize(), value, this),
+                    Collections.emptyList(), Optional.empty(),
+                    this.get()));
+        }
+    }
+
     @ToString
     public static final class Memory implements Target {
 

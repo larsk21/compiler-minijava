@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import edu.kit.compiler.codegen.Operand.Immediate;
+import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.codegen.pattern.Match;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
@@ -22,6 +24,14 @@ public class Util {
 
     public static String formatJmp(String cmd, int destination) {
         return String.format("%s .L%d", cmd, destination);
+    }
+
+    public static String formatLoad(RegisterSize size, Immediate value, Register target) {
+        if (value.get().isNull()) {
+            return Util.formatCmd("xor", size, target, target);
+        } else {
+            return Util.formatCmd("mov", size, value, target);
+        }
     }
 
     public static RegisterSize getSize(Mode mode) {

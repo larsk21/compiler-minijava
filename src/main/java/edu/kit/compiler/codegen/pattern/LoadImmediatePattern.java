@@ -47,23 +47,10 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
             var mode = sourceOperand.getMode();
             var targetOperand = Operand.register(mode, targetRegister);
             
-            if (sourceOperand.get().isNull()) {
-                return List.of(getZero(targetOperand));
-            } else {
-                return List.of(getNonZero(sourceOperand, targetOperand));
-            }
-        }
 
-        public Instruction getZero(Operand target) {
-            return Instruction.newOp(
-                Util.formatCmd("xor", target.getSize(), target, target),
-                Collections.emptyList(), Optional.empty(), targetRegister);
-        }
-
-        public Instruction getNonZero(Operand source, Operand target) {
-            return Instruction.newOp(
-                    Util.formatCmd("mov", target.getSize(), source, target),
-                    Collections.emptyList(), Optional.empty(), targetRegister);
+            return List.of(Instruction.newOp(
+                    Util.formatLoad(targetOperand.getSize(), sourceOperand, targetOperand),
+                    Collections.emptyList(), Optional.empty(), targetRegister));
         }
 
         @Override
@@ -74,6 +61,11 @@ public class LoadImmediatePattern implements Pattern<InstructionMatch> {
         @Override
         public Stream<Node> getPredecessors() {
             return source.getPredecessors();
+        }
+
+        @Override
+        public Stream<Operand> getOperands() {
+            return Stream.of(source.getOperand());
         }
     }
 }
