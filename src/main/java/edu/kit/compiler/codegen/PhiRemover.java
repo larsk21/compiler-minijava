@@ -67,9 +67,6 @@ public class PhiRemover {
     }
 
     private Instruction assignmentToMove(PhiAssignment a) {
-        Mode m = Mode.getLs();
-        return Instruction.newOp(
-                Util.formatCmd("mov", RegisterSize.QUAD, Operand.register(m, a.getInput().getSourceRegister()), Operand.register(m, a.getTarget().getSourceRegister())),
-                List.of(a.getInput().getSourceRegister()), Optional.of(a.getTarget().getSourceRegister()), a.getTarget().getSourceRegister());
+        return Instruction.newMov(a.getInput().getSourceRegister(), a.getTarget().getSourceRegister());
     }
 }
