@@ -65,7 +65,7 @@ public final class PhiInstruction {
 
         @Override
         public String toString() {
-            return "@" + register + "(" + predBlock + ")";
+            return "@" + register;
         }
     }
 }

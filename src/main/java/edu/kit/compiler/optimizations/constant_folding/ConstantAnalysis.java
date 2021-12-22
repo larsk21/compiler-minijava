@@ -271,6 +271,15 @@ public class ConstantAnalysis {
         }
 
         @Override
+        public void visit(Proj node) {
+            if (node.getMode().isData()) {
+                visitUnary(node, node.getPred(), operand -> operand);
+            } else {
+                updateValue(node, conflicting());
+            }
+        }
+
+        @Override
         public void visit(Shl node) {
             visitBinary(node, node.getLeft(), node.getRight(), (left, right) -> left.shl(right));
         }

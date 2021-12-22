@@ -191,9 +191,13 @@ public class JavaEasyCompiler {
             Lower.lower(irv.getTypeMapper());
 
             for (Graph graph : Program.getGraphs()) {
-                for (Optimization optimization : optimizations) {
-                    optimization.optimize(graph);
-                }
+                boolean changed;
+                do {
+                    changed = false;
+                    for (Optimization optimization : optimizations) {
+                        changed |= optimization.optimize(graph);
+                    }
+                } while (changed);
             }
 
             var sourceFile = new File(filePath).getName();
