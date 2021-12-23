@@ -1,17 +1,17 @@
 package edu.kit.compiler.codegen;
 
 import com.sun.jna.Pointer;
-import edu.kit.compiler.codegen.PhiPermutationSolver.PhiAssignment;
-import edu.kit.compiler.codegen.PhiPermutationSolver.PhiSourceNodeRegister;
 import edu.kit.compiler.intermediate_lang.Instruction;
-import edu.kit.compiler.intermediate_lang.RegisterSize;
-import firm.Mode;
 import firm.nodes.Block;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 public class PhiRemover {
 
@@ -35,38 +35,52 @@ public class PhiRemover {
     public BasicBlocks removePhis() {
         for (var block : basicBlocks.getBlocks().entrySet()) {
             // collect phi instructions and use permutation solver to generate new instructions
-            PhiPermutationSolver permutationSolver = new PhiPermutationSolver();
-            int maxRegister = 0;
+            PermutationSolver permutationSolver = new PermutationSolver();
+            Map<Block, List<Assignment>> assignments = new HashMap<>();
             for (var phiInstruction : block.getValue().getPhiInstructions()) {
                 for (var source : phiInstruction.getEntries()) {
+                    // split phi instructions in buckets belonging to their source node s
                     Block predBlock = source.getPredBlock();
-                    PhiSourceNodeRegister sourceRegister = new PhiSourceNodeRegister(source.getRegister(), predBlock);
-                    PhiSourceNodeRegister targetRegister = new PhiSourceNodeRegister(phiInstruction.getTargetRegister(), nullNode);
-                    permutationSolver.addMapping(sourceRegister, targetRegister);
-                    int max = Math.max(source.getRegister(), phiInstruction.getTargetRegister());
+                    List<Assignment> as = assignments.computeIfAbsent(predBlock, k -> new ArrayList<>());
+                    Assignment a = new Assignment(source.getRegister(), phiInstruction.getTargetRegister());
+                    as.add(a);
+                }
+            }
+            // solve permutations for each block
+            for (var entry : assignments.entrySet()) {
+                Block b = entry.getKey();
+                List<Assignment> a = entry.getValue();
+                PermutationSolver solver = new PermutationSolver();
+
+                int maxRegister = -1;
+                for (var assignment : a) {
+                    int max = Math.max(assignment.sourceRegister, assignment.destinationRegister);
                     if (max > maxRegister) {
                         maxRegister = max + 1;
                     }
+                    solver.addMapping(assignment.sourceRegister, assignment.destinationRegister);
+                }
+                List<PermutationSolver.Assignment> permutationAssignments = solver.solve(maxRegister);
+                BasicBlocks.BlockEntry e = basicBlocks.getEntry(b);
+                for (var permutation : permutationAssignments) {
+                    // insert phi instructions at beginning of block
+                    e.getInstructions().add(0, assignmentToMove(permutation));
                 }
             }
-            // solve permutations
-            List<PhiAssignment> permutations = permutationSolver.solve(new PhiSourceNodeRegister(maxRegister, nullNode));
-            List<Instruction> instructions = block.getValue().getInstructions();
-
-            for (var permutation : permutations) {
-                // insert phi instructions at beginning of block
-                Node n = permutation.getInput().getSourceNode();
-                BasicBlocks.BlockEntry e = basicBlocks.getEntry(n);
-                e.getInstructions().add(0, assignmentToMove(permutation));
-            }
-
-            // clear phis
+            // clear phis after they have been inserted at the right positions
             block.getValue().getPhiInstructions().clear();
         }
         return basicBlocks;
     }
 
-    private Instruction assignmentToMove(PhiAssignment a) {
-        return Instruction.newMov(a.getInput().getSourceRegister(), a.getTarget().getSourceRegister());
+    @Data
+    @AllArgsConstructor
+    private static class Assignment {
+        public int sourceRegister;
+        public int destinationRegister;
+    }
+
+    private Instruction assignmentToMove(PermutationSolver.Assignment a) {
+        return Instruction.newMov(a.getInput(), a.getTarget());
     }
 }
