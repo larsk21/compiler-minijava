@@ -39,6 +39,8 @@ public abstract class ExitCondition {
      */
     public abstract void replaceBlock(int oldId, int newId);
 
+    public abstract boolean isUnconditional();
+
     public static ExitCondition unconditional() {
         return new UnconditionalJump();
     }
@@ -75,6 +77,11 @@ public abstract class ExitCondition {
         public void replaceBlock(int oldId, int newId) {
             assert blockId == oldId;
             blockId = newId;
+        }
+
+        @Override
+        public boolean isUnconditional() {
+            return true;
         }
     }
 
@@ -127,6 +134,11 @@ public abstract class ExitCondition {
                 assert falseBlockId == oldId;
                 falseBlockId = newId;
             }
+        }
+
+        @Override
+        public boolean isUnconditional() {
+            return false;
         }
 
         private String getJmpCmd() {

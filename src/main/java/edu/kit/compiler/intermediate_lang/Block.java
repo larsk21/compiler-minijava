@@ -3,6 +3,7 @@ package edu.kit.compiler.intermediate_lang;
 import lombok.Data;
 import lombok.Getter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -21,11 +22,24 @@ public class Block {
      * i.e. where the jump appears after this block.
      */
     @Getter
-    private final int numBackReferences;
+    private int numBackReferences;
 
     public Block(List<Instruction> instructions, int blockId, int numBackReferences) {
         this.instructions = instructions;
         this.blockId = blockId;
         this.numBackReferences = numBackReferences;
+    }
+
+    public Block(int blockId) {
+        this(new ArrayList<>(), blockId, 0);
+    }
+
+    public void addBackRef() {
+        numBackReferences++;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("(.L%d: %s)", blockId, instructions.toString());
     }
 }

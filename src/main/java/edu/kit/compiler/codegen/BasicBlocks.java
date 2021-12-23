@@ -2,6 +2,7 @@ package edu.kit.compiler.codegen;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +48,10 @@ public class BasicBlocks {
         return currentBlockId++;
     }
 
+    public Collection<BlockEntry> getEntries() {
+        return blocks.values();
+    }
+
     @Override
     public String toString() {
         return graph.getEntity().getName() + ": " + blocks.toString();
@@ -66,6 +71,7 @@ public class BasicBlocks {
         private final List<Instruction> instructions = new ArrayList<>();
         private final List<PhiInstruction> phiInstructions = new ArrayList<>();
 
+        @Getter
         private Optional<ExitCondition> exitCondition = Optional.empty();
 
         /**
