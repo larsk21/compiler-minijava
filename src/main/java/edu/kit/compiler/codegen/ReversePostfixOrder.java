@@ -2,6 +2,7 @@ package edu.kit.compiler.codegen;
 
 import edu.kit.compiler.intermediate_lang.Block;
 import edu.kit.compiler.intermediate_lang.Instruction;
+import lombok.Data;
 
 import java.util.*;
 
@@ -12,7 +13,6 @@ import java.util.*;
 public class ReversePostfixOrder {
     private Map<Integer, Block> blocks;
     private Set<Integer> visited = new HashSet<>();
-    private List<Block> result = new ArrayList<>();
 
     private ReversePostfixOrder(Map<Integer, Block> blocks) {
         this.blocks = blocks;
@@ -20,30 +20,67 @@ public class ReversePostfixOrder {
 
     public static List<Block> apply(Map<Integer, Block> blocks, int startBlock) {
         ReversePostfixOrder instance = new ReversePostfixOrder(blocks);
-        instance.depthFirstSearch(blocks.get(startBlock));
+        List<Block> result = instance.depthFirstSearch(blocks.get(startBlock)).getResult();
 
         List<Block> reversed = new ArrayList<>();
-        for (int i = instance.result.size() - 1; i >= 0; i--) {
-            reversed.add(instance.result.get(i));
+        for (int i = result.size() - 1; i >= 0; i--) {
+            reversed.add(result.get(i));
         }
         return reversed;
     }
 
-    private void depthFirstSearch(Block block) {
+    private DFSResult depthFirstSearch(Block block) {
         if (visited.contains(block.getBlockId())) {
             block.addBackRef();
-            return;
+            return new DFSResult(-1, new ArrayList<>(), true);
         }
 
         assert block.getNumBackReferences() == 0;
         visited.add(block.getBlockId());
         // TODO: remove trivial jumps
+
+        List<DFSResult> children = new ArrayList<>();
         for (Instruction instr: block.getInstructions()) {
             if (instr.getJumpTarget().isPresent()) {
                 int jmpTarget = instr.getJumpTarget().get();
-                depthFirstSearch(blocks.get(jmpTarget));
+                children.add(depthFirstSearch(blocks.get(jmpTarget)));
             }
         }
+        assert children.size() <= 2;
+
+        int lastChildId = -1;
+        boolean alwaysEndsInBackref = children.size() > 0;
+        List<Block> result = new ArrayList<>();
+        // It is important that the loop body is arranged before the loop exit,
+        // to enable efficient lifetime analysis.
+        for (DFSResult child: children) {
+            if (!child.isAlwaysEndsInBackref()) {
+                alwaysEndsInBackref = false;
+                result.addAll(child.getResult());
+                lastChildId = child.getBlockId();
+            }
+        }
+        for (DFSResult child: children) {
+            if (child.isAlwaysEndsInBackref()) {
+                result.addAll(child.getResult());
+                lastChildId = child.getBlockId();
+            }
+        }
+
+        // remove trivial jump
+        List<Instruction> instrs = block.getInstructions();
+        Instruction lastInstr = instrs.get(instrs.size() - 1);
+        if (lastInstr.getJumpTarget().isPresent() && lastInstr.getJumpTarget().get() == lastChildId) {
+            instrs.remove(instrs.size() - 1);
+        }
         result.add(block);
+        return new DFSResult(block.getBlockId(), result, alwaysEndsInBackref);
+    }
+
+    @Data
+    private static class DFSResult {
+        private final int blockId;
+        private final List<Block> result;
+        private final boolean alwaysEndsInBackref;
     }
 }
