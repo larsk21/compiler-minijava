@@ -52,11 +52,6 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
     public PatternCollection() {
         map = Map.ofEntries(
-                // Map.entry(iro_Const, new LoadImmediatePattern(IMM64)),
-
-                // We never want to generate code for constants on their own
-                Map.entry(iro_Const, new EmptyPattern()),
-
                 Map.entry(iro_Add, new ArithmeticPattern(iro_Add, "add", false, true)),
                 Map.entry(iro_Sub, new ArithmeticPattern(iro_Sub, "sub", false, false)),
                 Map.entry(iro_Mul, new ArithmeticPattern(iro_Mul, "imul", false, true)),
@@ -82,14 +77,31 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Jmp, new ConditionPattern.Unconditional()),
                 Map.entry(iro_Cond, new ConditionPattern.Conditional(REG, REG)),
 
-                // trivial pattern for nodes without predecessors
-                Map.entry(iro_Start, new EmptyPattern()),
-                Map.entry(iro_End, new EmptyPattern()),
+                // nodes with constant values for which we never generate instructions
+                Map.entry(iro_Const, new EmptyPattern()),
                 Map.entry(iro_Address, new EmptyPattern()),
-                Map.entry(iro_Cmp, new EmptyPattern()));
+
+                // nodes for which we never need to generate instructions
+                Map.entry(iro_Start, new EmptyPattern()),
+                Map.entry(iro_End, new InheritingPattern()),
+                Map.entry(iro_Cmp, new InheritingPattern()));
     }
 
+    /**
+     * A pattern which always returns a match with no predecessors.
+     */
     private static final class EmptyPattern implements Pattern<InstructionMatch> {
+        @Override
+        public InstructionMatch match(Node node, MatcherState matcher) {
+            return InstructionMatch.empty(node);
+        }
+    }
+
+    /**
+     * A pattern which always returns a match that inherits the predecessors of
+     * the given Firm node.
+     */
+    private static final class InheritingPattern implements Pattern<InstructionMatch> {
         @Override
         public InstructionMatch match(Node node, MatcherState matcher) {
             return InstructionMatch.empty(node, StreamSupport
