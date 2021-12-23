@@ -54,6 +54,8 @@ public final class InstructionSelection {
 
         private final BasicBlocks blocks;
 
+        // todo ordering of phi and exit operands not ideal
+
         @Override
         public void visit(InstructionMatch.Block match) {
             // a block is visited before all of the contained nodes
@@ -72,13 +74,23 @@ public final class InstructionSelection {
         public void visit(InstructionMatch.Basic match) {
             var node = match.getNode();
             var entry = blocks.getEntry(node.getBlock());
+            match.getOperands()
+                    .flatMap(o -> o.getInstruction().stream())
+                    .forEach(entry::add);
             entry.append(match.getInstructions());
         }
 
         @Override
         public void visit(InstructionMatch.Phi match) {
             var entry = blocks.getEntry(match.getNode().getBlock());
-            entry.addPhi(match.getPhiInstruction());
+            var phi = match.getPhiInstruction();
+            entry.addPhi(phi);
+
+            for (var phiEntry : phi.getEntries()) {
+                // add necessary instruction for operand to be available
+                var predBlock = blocks.getEntry(phiEntry.getPredBlock());
+                phiEntry.getOperand().getInstruction().ifPresent(predBlock::add);
+            }
         }
 
         @Override
@@ -88,6 +100,9 @@ public final class InstructionSelection {
                 case iro_Jmp, iro_Cond -> {
                     var entry = blocks.getEntry(node.getBlock());
                     entry.setExitCondition(match.getCondition());
+                    match.getOperands()
+                        .flatMap(op -> op.getInstruction().stream())
+                        .forEach(entry::add);
                 }
                 default -> {
                 }

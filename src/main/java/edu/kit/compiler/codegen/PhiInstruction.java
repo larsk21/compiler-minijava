@@ -43,7 +43,7 @@ public final class PhiInstruction {
      * before entering the block of the Phi node, load the given register into
      * the target register of the Phi instruction.
      */
-    public void addEntry(Block block, int register) {
+    public void addEntry(Block block, Operand.Register register) {
         entries.add(new Entry(block, register));
     }
 
@@ -61,11 +61,15 @@ public final class PhiInstruction {
         private final Block predBlock;
 
         @Getter
-        private final int register;
+        private final Operand.Register operand;
 
         @Override
         public String toString() {
-            return "@" + register;
+            return "@" + operand.get();
+        }
+
+        public int getRegister() {
+            return operand.get();
         }
     }
 }
