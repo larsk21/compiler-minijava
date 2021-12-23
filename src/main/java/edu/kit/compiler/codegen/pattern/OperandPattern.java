@@ -69,7 +69,7 @@ public final class OperandPattern {
 
     /**
      * Return a pattern that will match memory locations. An effort will be made
-     * to ensure that x86 addressing modes are utilized where possible.
+     * to utilize x86 addressing modes where possible.
      */
     public static Pattern<OperandMatch<Memory>> memory() {
         return new MemoryPattern();
@@ -121,16 +121,26 @@ public final class OperandPattern {
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class RegisterPattern implements Pattern<OperandMatch<Register>> {
+
+        private static final Pattern<OperandMatch<Immediate>> IMMEDIATE = OperandPattern.immediate(RegisterSize.QUAD);
+
         @Override
         public OperandMatch<Register> match(Node node, MatcherState matcher) {
-            
-            var register = matcher.getRegister(node);
-            if (register.isPresent()) {
-                var predecessors = List.of(node);
-                var operand = Operand.register(node.getMode(), register.get());
-                return OperandMatch.some(operand, predecessors);
+            var immediateMatch = IMMEDIATE.match(node, matcher);
+            if (immediateMatch.matches()) {
+                var immediate = immediateMatch.getOperand();
+                var operand = Operand.immediateRegister(immediate,
+                        matcher.getNewRegister(immediate.getSize()));
+                return OperandMatch.some(operand, Collections.emptyList());
             } else {
-                return OperandMatch.none();
+                var register = matcher.getRegister(node);
+                if (register.isPresent()) {
+                    var predecessors = List.of(node);
+                    var operand = Operand.register(node.getMode(), register.get());
+                    return OperandMatch.some(operand, predecessors);
+                } else {
+                    return OperandMatch.none();
+                }
             }
         }
     }
@@ -145,9 +155,9 @@ public final class OperandPattern {
         @Override
         public OperandMatch<Memory> match(Node node, MatcherState matcher) {
             // We make some simplifying assumptions here. If these assumptions
-            // are not upheld, it may result in worse addressing modes being
-            // used. If arithmetic identities have been eliminated, these
-            // assumptions will always be upheld.
+            // are not upheld, worse addressing modes may be used as a result.
+            // If arithmetic identities have been eliminated, these assumptions
+            // will always be upheld.
             // - Constants should always be right side of addition (x + c)
             // - Constants should always be right side of multiplication (x * c)
             // - Subtractions of constants should not be used (x - c == x + (-c))

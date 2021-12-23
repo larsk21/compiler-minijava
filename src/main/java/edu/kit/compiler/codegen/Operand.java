@@ -61,6 +61,23 @@ public interface Operand {
     }
 
     /**
+     * Return an Operand representing the given register, which is directly
+     * backed by the given immediate value. In practice this means that the
+     * register is the result of loading an immediate value. This type of
+     * operand may be used instead of an "ordinary" register for reasons of
+     * efficiency.
+     * All Const nodes in a Firm graph are declared in its Start block. With a
+     * naive instruction selection, these values might be loaded into registers
+     * far too early and lead to excessive register usage. ImmediateRegisters
+     * do away with the need to explicitly generate code for these nodes.
+     * Instead the `getInstruction()` method of this operand will return the
+     * required instruction, which may be placed exactly where it is needed.
+     */
+    public static Register immediateRegister(Immediate value, int register) {
+        return new ImmediateRegister(value, register);
+    }
+
+    /**
      * Return an Operand representing a memory location. The combination of
      * values present is used to determine the correct x86 addressing mode.
      * Illegal combinations of present (or rather absent) values will result

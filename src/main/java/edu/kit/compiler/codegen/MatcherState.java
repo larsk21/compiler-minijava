@@ -140,7 +140,7 @@ public class MatcherState {
         }
 
         var match = getMatch(node);
-        Iterable<Node> iterable = () -> match.getPredecessors().iterator();
+        Iterable<Node> iterable = match.getPredecessors()::iterator;
         for (var pred : iterable) {
             walkTopological(walker, pred);
         }
