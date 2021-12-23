@@ -24,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 /**
  * Represents the basic blocks of a function.
  */
-@RequiredArgsConstructor
 public class BasicBlocks {
 
     @Getter
@@ -32,7 +31,12 @@ public class BasicBlocks {
 
     private final HashMap<Integer, BlockEntry> blocks = new HashMap<>();
 
-    private int currentBlockId = 0;
+    private int currentBlockId;
+
+    public BasicBlocks(Graph graph, int blockId) {
+        this.graph = graph;
+        this.currentBlockId = blockId;
+    }
 
     /**
      * Return the entry for the given Firm block. The caller must ensure that
