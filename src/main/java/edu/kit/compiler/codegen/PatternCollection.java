@@ -19,7 +19,6 @@ import edu.kit.compiler.codegen.pattern.ConversionPattern;
 import edu.kit.compiler.codegen.pattern.DivisionPattern;
 import edu.kit.compiler.codegen.pattern.DivisionPattern.Type;
 import edu.kit.compiler.codegen.pattern.InstructionMatch;
-import edu.kit.compiler.codegen.pattern.LoadImmediatePattern;
 import edu.kit.compiler.codegen.pattern.LoadMemoryPattern;
 import edu.kit.compiler.codegen.pattern.OperandMatch;
 import edu.kit.compiler.codegen.pattern.OperandPattern;
@@ -35,8 +34,7 @@ import lombok.RequiredArgsConstructor;
 
 public class PatternCollection implements Pattern<InstructionMatch> {
 
-    private static final Pattern<OperandMatch<Immediate>> IMM32 = OperandPattern.immediate();
-    private static final Pattern<OperandMatch<Immediate>> IMM64 = OperandPattern.immediate(RegisterSize.QUAD);
+    private static final Pattern<OperandMatch<Immediate>> IMM = OperandPattern.immediate();
     private static final Pattern<OperandMatch<Register>> REG = OperandPattern.register();
     private static final Pattern<OperandMatch<Memory>> MEM = OperandPattern.memory();
 
@@ -54,7 +52,11 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
     public PatternCollection() {
         map = Map.ofEntries(
-                Map.entry(iro_Const, new LoadImmediatePattern(IMM64)),
+                // Map.entry(iro_Const, new LoadImmediatePattern(IMM64)),
+
+                // We never want to generate code for constants on their own
+                Map.entry(iro_Const, new EmptyPattern()),
+
                 Map.entry(iro_Add, new ArithmeticPattern(iro_Add, "add", false, true)),
                 Map.entry(iro_Sub, new ArithmeticPattern(iro_Sub, "sub", false, false)),
                 Map.entry(iro_Mul, new ArithmeticPattern(iro_Mul, "imul", false, true)),
@@ -65,12 +67,10 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
                 Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REG, false)),
 
-                Map.entry(iro_Conv, new CompoundPattern(List.of(
-                        new LoadImmediatePattern(IMM64), // Handle Conv with Const operand
-                        new ConversionPattern()))),
+                Map.entry(iro_Conv, new ConversionPattern()),
 
                 Map.entry(iro_Store, new CompoundPattern(List.of(
-                        new BinaryInstructionPattern(iro_Store, "mov", MEM, IMM32, true, false),
+                        new BinaryInstructionPattern(iro_Store, "mov", MEM, IMM, true, false),
                         new BinaryInstructionPattern(iro_Store, "mov", MEM, REG, true, false)))),
                 Map.entry(iro_Load, new LoadMemoryPattern()),
 
@@ -124,11 +124,11 @@ public class PatternCollection implements Pattern<InstructionMatch> {
         public ArithmeticPattern(ir_opcode opcode, String command, boolean hasMemory, boolean commutate) {
             var patterns = new ArrayList<Pattern<InstructionMatch>>();
             if (commutate) {
-                patterns.add(new BinaryInstructionPattern(opcode, command, REG, IMM32, hasMemory, true));
+                patterns.add(new BinaryInstructionPattern(opcode, command, REG, IMM, hasMemory, true));
             }
 
             patterns.addAll(List.of(
-                    new BinaryInstructionPattern(opcode, command, REG, IMM32, hasMemory, false),
+                    new BinaryInstructionPattern(opcode, command, REG, IMM, hasMemory, false),
                     new BinaryInstructionPattern(opcode, command, REG, REG, hasMemory, false)));
             this.patterns = new CompoundPattern(patterns);
         }
