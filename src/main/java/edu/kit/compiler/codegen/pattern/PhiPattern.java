@@ -65,7 +65,7 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
 
             assert node.getPredCount() == node.getBlock().getPredCount();
             for (int i = 0; i < node.getPredCount(); ++i) {
-                var register = preds.get(i).getOperand().get();
+                var register = preds.get(i).getOperand();
                 var predBlock = (firm.nodes.Block) node.getBlock().getPred(i).getBlock();
                 phi.addEntry(predBlock, register);
             }
