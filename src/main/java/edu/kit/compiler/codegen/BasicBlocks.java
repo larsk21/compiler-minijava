@@ -52,6 +52,10 @@ public class BasicBlocks {
         return blocks.values();
     }
 
+    public BlockEntry getStartBlock() {
+        return blocks.get(graph.getStartBlock().getNr());
+    }
+
     @Override
     public String toString() {
         return graph.getEntity().getName() + ": " + blocks.toString();
