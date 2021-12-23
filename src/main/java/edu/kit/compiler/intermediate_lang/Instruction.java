@@ -3,6 +3,7 @@ package edu.kit.compiler.intermediate_lang;
 import lombok.Getter;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -90,11 +91,17 @@ public class Instruction {
         this.dataDependencies = dataDependencies;
         this.jumpTarget = jumpTarget;
         this.callReference = Optional.empty();
+
+        checkValid();
     }
 
     public String mapRegisters(Map<Integer, String> mapping) {
         assert overwriteRegister.isEmpty() || !mapping.containsKey(overwriteRegister.get()) ||
                 mapping.get(overwriteRegister.get()) == mapping.get(targetRegister.get());
+        return mapRegisters(vRegister -> mapping.get(vRegister));
+    }
+
+    public String mapRegisters(Function<Integer, String> registerToString) {
         String result = text;
         List<Integer> toReplace = new ArrayList<>();
         for (int i: inputRegisters) {
@@ -106,7 +113,7 @@ public class Instruction {
         // insert larger vRegister numbers first, to avoid a wrong match of a prefix of the number
         toReplace.sort(Comparator.reverseOrder());
         for (int vRegister: toReplace) {
-            result = result.replace("@" + vRegister, mapping.get(vRegister));
+            result = result.replace("@" + vRegister, registerToString.apply(vRegister));
         }
         return result;
     }
@@ -124,6 +131,16 @@ public class Instruction {
 
     public void addDataDependency(int instruction) {
         dataDependencies.add(instruction);
+    }
+
+    private void checkValid() {
+        if (this.type != InstructionType.CALL) {
+            String result = mapRegisters(vRegister -> "-");
+            if (result.contains("@")) {
+                throw new IllegalArgumentException(
+                        String.format("Instruction contains unassigned register: %s", result));
+            }
+        }
     }
 
     /**
