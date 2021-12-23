@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 public abstract class ExitCondition {
 
     /**
-     * Translate the exit condition into a list of IL instructions.  For an
+     * Translate the exit condition into a list of IL instructions. For an
      * unconditional jump, this return something `jmp .L42`. For a conditional
      * jump it might return `cmp @1 @2; jl .L42; jmp .L28`.
      */
@@ -47,7 +47,11 @@ public abstract class ExitCondition {
 
     public static ExitCondition conditional(Relation relation,
             Operand.Source left, Operand.Source right) {
-        return new ConditionalJump(relation, left, right);
+        if (left.getMode().isSigned()) {
+            return new ConditionalJump(Kind.SignedCompare, relation, left, right);
+        } else {
+            return new ConditionalJump(Kind.UnsignedCompare, relation, left, right);
+        }
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -88,9 +92,10 @@ public abstract class ExitCondition {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ConditionalJump extends ExitCondition {
 
+        private final Kind kind;
         private final Relation relation;
-        private final Operand.Source target;
-        private final Operand.Source source;
+        private final Operand.Source first;
+        private final Operand.Source second;
 
         private int trueLabel = -1;
         private int falseLabel = -1;
@@ -105,8 +110,8 @@ public abstract class ExitCondition {
                 case LessEqualGreater -> new UnconditionalJump(trueLabel).getInstructions();
                 default -> List.of(
                         Instruction.newInput(
-                                Util.formatCmd("cmp", target.getSize(), source, target),
-                                getInputRegisters(source, target)),
+                                Util.formatCmd(kind.getCmpCommand(), first.getSize(), second, first),
+                                getInputRegisters(second, first)),
                         Instruction.newJmp(
                                 Util.formatJmp(getJmpCmd(), trueLabel),
                                 trueLabel),
@@ -141,14 +146,6 @@ public abstract class ExitCondition {
             return false;
         }
 
-        private String getJmpCmd() {
-            if (target.getMode().isSigned()) {
-                return getSignedJmpCmd(relation);
-            } else {
-                return getUnsignedJmpCmd(relation);
-            }
-        }
-
         private static List<Integer> getInputRegisters(Operand.Source lhs, Operand.Source rhs) {
             var registers = new ArrayList<Integer>();
             registers.addAll(lhs.getSourceRegisters());
@@ -156,39 +153,59 @@ public abstract class ExitCondition {
 
             return registers;
         }
+    }
 
-        private static String getSignedJmpCmd(Relation relation) {
-            return switch (relation) {
-                case Equal -> "je";
-                case Greater -> "jg";
-                case GreaterEqual -> "jge";
-                case Less -> "jl";
-                case LessEqual -> "jle";
-                case LessGreater -> "jne";
+    private enum Kind {
+        SignedCompare {
+            @Override
+            public String getCmpCommand() {
+                return "cmp";
+            }
+            
+            @Override
+            public String getJmpCommand(Relation relation) {
+                return switch (relation) {
+                    case Equal -> "je";
+                    case Greater -> "jg";
+                    case GreaterEqual -> "jge";
+                    case Less -> "jl";
+                    case LessEqual -> "jle";
+                    case LessGreater -> "jne";
 
-                // Specially handled relations
-                case True, False, LessEqualGreater -> throw new IllegalStateException();
+                    // Specially handled relations
+                    case True, False, LessEqualGreater -> throw new IllegalStateException();
 
-                // Unordered relation not needed for our purposes
-                default -> throw new IllegalStateException();
-            };
-        }
+                    // Unordered relation not needed for our purposes
+                    default -> throw new IllegalStateException();
+                };
+            }
+        },
+        UnsignedCompare {
+            @Override
+            public String getCmpCommand() {
+                return "cmp";
+            }
 
-        private static String getUnsignedJmpCmd(Relation relation) {
-            return switch (relation) {
-                case Equal -> "je";
-                case Greater -> "ja";
-                case GreaterEqual -> "jae";
-                case Less -> "jb";
-                case LessEqual -> "jbe";
-                case LessGreater -> "jne";
+            @Override
+            public String getJmpCommand(Relation relation) {
+                return switch (relation) {
+                    case Equal -> "je";
+                    case Greater -> "ja";
+                    case GreaterEqual -> "jae";
+                    case Less -> "jb";
+                    case LessEqual -> "jbe";
+                    case LessGreater -> "jne";
 
-                // Specially handled relations
-                case True, False, LessEqualGreater -> throw new IllegalStateException();
+                    // Specially handled relations
+                    case True, False, LessEqualGreater -> throw new IllegalStateException();
 
-                // Unordered relation not needed for our purposes
-                default -> throw new IllegalStateException();
-            };
-        }
+                    // Unordered relation not needed for our purposes
+                    default -> throw new IllegalStateException();
+                };
+            }
+        };
+
+        public abstract String getCmpCommand();
+        public abstract String getJmpCommand(Relation relation);
     }
 }

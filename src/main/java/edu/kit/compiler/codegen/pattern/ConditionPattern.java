@@ -23,17 +23,21 @@ public final class ConditionPattern {
 
         private final Pattern<? extends OperandMatch<? extends Operand.Source>> left;
         private final Pattern<? extends OperandMatch<? extends Operand.Source>> right;
+        private final boolean swapOperands;
 
         @Override
         public InstructionMatch match(Node node, MatcherState matcher) {
             if (node.getOpCode() == ir_opcode.iro_Cond &&
                     node.getPred(0).getOpCode() == ir_opcode.iro_Cmp) {
+                var offset = swapOperands ? 1 : 0;
                 var cmp = (Cmp) node.getPred(0);
-                var leftMatch = left.match(cmp.getLeft(), matcher);
-                var rightMatch = right.match(cmp.getRight(), matcher);
+                var leftMatch = left.match(cmp.getPred(offset), matcher);
+                var rightMatch = right.match(cmp.getPred((offset + 1) % 2), matcher);
 
                 if (leftMatch.matches() && rightMatch.matches()) {
-                    var condition = ExitCondition.conditional(cmp.getRelation(),
+                    var relation = cmp.getRelation();
+                    var condition = ExitCondition.conditional(
+                            swapOperands ? relation.inversed() : relation,
                             leftMatch.getOperand(), rightMatch.getOperand());
                     var predecessors = Stream.concat(leftMatch.getPredecessors(),
                             rightMatch.getPredecessors());
