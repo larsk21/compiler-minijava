@@ -31,6 +31,8 @@ public class BasicBlocks {
 
     private final HashMap<Integer, BlockEntry> blocks = new HashMap<>();
 
+    private int currentBlockId = 0;
+
     /**
      * Return the entry for the given Firm block. The caller must ensure that
      * the node is actually a block;
@@ -38,7 +40,11 @@ public class BasicBlocks {
     public BlockEntry getEntry(Node block) {
         assert block.getOpCode() == ir_opcode.iro_Block;
         return blocks.computeIfAbsent(block.getNr(),
-                n -> new BlockEntry((Block) block));
+                n -> new BlockEntry((Block) block, newBlockId()));
+    }
+
+    public int newBlockId() {
+        return currentBlockId++;
     }
 
     @Override
@@ -54,6 +60,8 @@ public class BasicBlocks {
 
         @Getter
         private final Block firmBlock;
+        @Getter
+        private final int blockId;
 
         private final List<Instruction> instructions = new ArrayList<>();
         private final List<PhiInstruction> phiInstructions = new ArrayList<>();
@@ -64,7 +72,7 @@ public class BasicBlocks {
          * Return the jump label of the block.
          */
         public int getLabel() {
-            return firmBlock.getNr();
+            return blockId;
         }
 
         /**
@@ -157,7 +165,7 @@ public class BasicBlocks {
         public String toString() {
             var instructions = Stream.concat(getInstructions().stream(),
                     getExitInstructions().stream()).collect(Collectors.toList());
-            return String.format("(%s, %s)", phiInstructions, instructions.toString());
+            return String.format("(.L%d: %s, %s)", blockId, phiInstructions, instructions.toString());
         }
     }
 }
