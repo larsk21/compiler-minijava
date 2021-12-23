@@ -118,9 +118,9 @@ public class BasicBlocks {
             var condition = exitCondition.get();
             if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {
                 if (node.getNum() == Cond.pnTrue) {
-                    condition.setTrueBlock(entry);
+                    condition.setTrueBlock(entry.getBlockId());
                 } else if (node.getNum() == Cond.pnFalse) {
-                    condition.setFalseBlock(entry);
+                    condition.setFalseBlock(entry.getBlockId());
                 } else {
                     throw new IllegalStateException();
                 }
@@ -137,7 +137,7 @@ public class BasicBlocks {
 
             var entry = getEntry(block);
             var condition = exitCondition.get();
-            condition.setTrueBlock(entry);
+            condition.setTrueBlock(entry.getBlockId());
         }
 
         /**

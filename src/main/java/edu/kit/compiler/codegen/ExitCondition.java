@@ -27,12 +27,17 @@ public abstract class ExitCondition {
      * Sets the destination of the condition if it evaluates to true. Also used
      * to set the destination for an unconditional jump.
      */
-    public abstract void setTrueBlock(BasicBlocks.BlockEntry block);
+    public abstract void setTrueBlock(int blockId);
 
     /**
      * Sets the destination of the condition if it evaluates to false.
      */
-    public abstract void setFalseBlock(BasicBlocks.BlockEntry block);
+    public abstract void setFalseBlock(int blockId);
+
+    /**
+     * Replaces a destination block with a new block.
+     */
+    public abstract void replaceBlock(int oldId, int newId);
 
     public static ExitCondition unconditional() {
         return new UnconditionalJump();
@@ -46,27 +51,31 @@ public abstract class ExitCondition {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class UnconditionalJump extends ExitCondition {
-
-        private BasicBlocks.BlockEntry block;
+        private int blockId = -1;
 
         @Override
         public List<Instruction> getInstructions() {
-            assert block != null;
+            assert blockId >= 0;
             return List.of(Instruction.newJmp(
-                    Util.formatJmp("jmp", block.getLabel()),
-                    block.getLabel()));
+                    Util.formatJmp("jmp", blockId), blockId)
+            );
         }
 
         @Override
-        public void setTrueBlock(BlockEntry block) {
-            this.block = block;
+        public void setTrueBlock(int blockId) {
+            this.blockId = blockId;
         }
 
         @Override
-        public void setFalseBlock(BlockEntry block) {
+        public void setFalseBlock(int blockId) {
             throw new UnsupportedOperationException();
         }
 
+        @Override
+        public void replaceBlock(int oldId, int newId) {
+            assert blockId == oldId;
+            blockId = newId;
+        }
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -76,38 +85,48 @@ public abstract class ExitCondition {
         private final Operand.Source target;
         private final Operand.Source source;
 
-        private BasicBlocks.BlockEntry trueBlock;
-        private BasicBlocks.BlockEntry falseBlock;
+        private int trueBlockId = -1;
+        private int falseBlockId = -1;
 
         @Override
         public List<Instruction> getInstructions() {
-            assert trueBlock != null && falseBlock != null;
+            assert trueBlockId >= 0 && falseBlockId >= 0;
 
             return switch (relation) {
-                case True -> new UnconditionalJump(trueBlock).getInstructions();
-                case False -> new UnconditionalJump(falseBlock).getInstructions();
-                case LessEqualGreater -> new UnconditionalJump(trueBlock).getInstructions();
+                case True -> new UnconditionalJump(trueBlockId).getInstructions();
+                case False -> new UnconditionalJump(falseBlockId).getInstructions();
+                case LessEqualGreater -> new UnconditionalJump(trueBlockId).getInstructions();
                 default -> List.of(
                         Instruction.newInput(
                                 Util.formatCmd("cmp", target.getSize(), source, target),
                                 getInputRegisters(source, target)),
                         Instruction.newJmp(
-                                Util.formatJmp(getJmpCmd(), trueBlock.getLabel()),
-                                trueBlock.getLabel()),
+                                Util.formatJmp(getJmpCmd(), trueBlockId),
+                                trueBlockId),
                         Instruction.newJmp(
-                                Util.formatJmp("jmp", falseBlock.getLabel()),
-                                falseBlock.getLabel()));
+                                Util.formatJmp("jmp", falseBlockId),
+                                falseBlockId));
             };
         }
 
         @Override
-        public void setTrueBlock(BlockEntry block) {
-            this.trueBlock = block;
+        public void setTrueBlock(int blockId) {
+            this.trueBlockId = blockId;
         }
 
         @Override
-        public void setFalseBlock(BlockEntry block) {
-            this.falseBlock = block;
+        public void setFalseBlock(int blockId) {
+            this.falseBlockId = blockId;
+        }
+
+        @Override
+        public void replaceBlock(int oldId, int newId) {
+            if (trueBlockId == oldId) {
+                trueBlockId = newId;
+            } else {
+                assert falseBlockId == oldId;
+                falseBlockId = newId;
+            }
         }
 
         private String getJmpCmd() {
