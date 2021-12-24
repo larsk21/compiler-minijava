@@ -56,7 +56,7 @@ public class ElfAssemblyWriterTest {
 
         assemblyWriter.writeAssembly(Arrays.asList(
             new FunctionInstructions("myFunction", Arrays.asList(
-                ".L_final"
+                ".L_final:"
             ))
         ), output);
 
@@ -69,6 +69,36 @@ public class ElfAssemblyWriterTest {
             "        .globl myFunction\n" +
             "        .type myFunction, @function\n" +
             "myFunction:\n" +
+            ".LFE_myFunction:\n" +
+            "        .size myFunction, .-myFunction\n" +
+            "# -- End  myFunction\n" +
+            "\n",
+            result
+        );
+    }
+
+    @Test
+    public void testFunctionWithFinalLabelAndJmp() {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ElfAssemblyWriter assemblyWriter = new ElfAssemblyWriter();
+
+        assemblyWriter.writeAssembly(Arrays.asList(
+            new FunctionInstructions("myFunction", Arrays.asList(
+                "jmp .L_final",
+                ".L_final:"
+            ))
+        ), output);
+
+        String result = output.toString();
+
+        assertEquals(
+            "        .text\n" +
+            "# -- Begin  myFunction\n" +
+            "        .p2align 4,,15\n" +
+            "        .globl myFunction\n" +
+            "        .type myFunction, @function\n" +
+            "myFunction:\n" +
+            "        jmp .LFE_myFunction\n" +
             ".LFE_myFunction:\n" +
             "        .size myFunction, .-myFunction\n" +
             "# -- End  myFunction\n" +

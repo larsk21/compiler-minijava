@@ -101,9 +101,9 @@ public class ElfAssemblyWriter implements AssemblyWriter {
             String command = commandComment[0];
             String comment = commandComment[1];
 
-            if (command.equals(ApplyAssignment.FINAL_BLOCK_LABEL)) {
-                writeBlockLabelFinal(function.getLdName());
-            } else if (command.startsWith(".L")) {
+            command = command.replace(ApplyAssignment.FINAL_BLOCK_LABEL, format(".LFE_%s", function.getLdName()));
+
+            if (command.startsWith(".L")) {
                 writeBlockLabel(command);
             } else {
                 writeCommand(command, comment);
@@ -126,10 +126,6 @@ public class ElfAssemblyWriter implements AssemblyWriter {
         print(format(".size %s, .-%s", name, name));
         print("", format("# -- End  %s", name));
         print("");
-    }
-
-    private void writeBlockLabelFinal(String functionName) {
-        printLabel(format(".LFE_%s:", functionName));
     }
 
     private void writeBlockLabel(String label) {
