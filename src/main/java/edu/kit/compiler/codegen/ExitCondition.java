@@ -41,17 +41,28 @@ public abstract class ExitCondition {
 
     public abstract boolean isUnconditional();
 
+    /**
+     * Returns an ExitCondition that always jumps to the trueBlock.
+     */
     public static ExitCondition unconditional() {
         return new UnconditionalJump();
     }
 
-    public static ExitCondition conditional(Relation relation,
+    /**
+     * Returns an ExitCondition that compares the two operands using the given
+     * relation and jumps to the true or false block accordingly.
+     */
+    public static ExitCondition comparison(Relation relation,
             Operand.Source left, Operand.Source right) {
-        if (left.getMode().isSigned()) {
-            return new ConditionalJump(Kind.SignedCompare, relation, left, right);
-        } else {
-            return new ConditionalJump(Kind.UnsignedCompare, relation, left, right);
-        }
+        return new Comparison(relation, left, right);
+    }
+
+    /**
+     * Returns an ExitCondition that compares the operand to zero and jumps to
+     * the true or false block accordingly (uses test instruction).
+     */
+    public static ExitCondition test(Relation relation, Operand.Source operand) {
+        return new Test(relation, operand);
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -90,12 +101,9 @@ public abstract class ExitCondition {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class ConditionalJump extends ExitCondition {
+    public static abstract class ConditionalJump extends ExitCondition {
 
-        private final Kind kind;
-        private final Relation relation;
-        private final Operand.Source first;
-        private final Operand.Source second;
+        protected final Relation relation;
 
         private int trueLabel = -1;
         private int falseLabel = -1;
@@ -146,66 +154,128 @@ public abstract class ExitCondition {
             return false;
         }
 
-        private static List<Integer> getInputRegisters(Operand.Source lhs, Operand.Source rhs) {
-            var registers = new ArrayList<Integer>();
-            registers.addAll(lhs.getSourceRegisters());
-            registers.addAll(rhs.getSourceRegisters());
+        @Override
+        public List<Instruction> getInstructions() {
+            return switch (relation) {
+                case True -> asUnconditional(true).getInstructions();
+                case False -> asUnconditional(false).getInstructions();
+                case LessEqualGreater -> asUnconditional(true).getInstructions();
+                default -> List.of(
+                        getCmpInstruction(),
+                        Instruction.newJmp(
+                                Util.formatJmp(getTrueJump(), trueBlock.getLabel()),
+                                trueBlock.getLabel()),
+                        Instruction.newJmp(
+                                Util.formatJmp("jmp", falseBlock.getLabel()),
+                                falseBlock.getLabel()));
+            };
+        }
 
-            return registers;
+        protected UnconditionalJump asUnconditional(boolean value) {
+            return new UnconditionalJump(value ? trueBlock : falseBlock);
+        }
+
+        protected abstract String getTrueJump();
+
+        protected abstract Instruction getCmpInstruction();
+    }
+
+    public static final class Comparison extends ConditionalJump {
+
+        private final Operand.Source first;
+        private final Operand.Source second;
+
+        public Comparison(Relation relation, Operand.Source first, Operand.Source second) {
+            super(relation);
+            this.first = first;
+            this.second = second;
+        }
+
+        @Override
+        public Instruction getCmpInstruction() {
+            var inputRegisters = new ArrayList<>(first.getSourceRegisters());
+            inputRegisters.addAll(second.getSourceRegisters());
+            return Instruction.newInput(
+                    Util.formatCmd("cmp", first.getSize(), second, first),
+                    inputRegisters);
+        }
+
+        @Override
+        protected String getTrueJump() {
+            var isSigned = first.getMode().isSigned();
+            return switch (relation) {
+                case Equal -> "je";
+                case Greater -> isSigned ? "jg" : "ja";
+                case GreaterEqual -> isSigned ? "jge" : "jae";
+                case Less -> isSigned ? "jl" : "jb";
+                case LessEqual -> isSigned ? "jle" : "jbe";
+                case LessGreater -> "jne";
+
+                // Specially handled relations
+                case True, False, LessEqualGreater -> throw new IllegalStateException();
+
+                // Unordered relation not needed for our purposes
+                default -> throw new IllegalStateException();
+            };
         }
     }
 
-    private enum Kind {
-        SignedCompare {
-            @Override
-            public String getCmpCommand() {
-                return "cmp";
-            }
-            
-            @Override
-            public String getJmpCommand(Relation relation) {
+    public static final class Test extends ConditionalJump {
+
+        private final Operand.Source operand;
+
+        public Test(Relation relation, Operand.Source operand) {
+            super(relation);
+            this.operand = operand;
+        }
+
+        @Override
+        public List<Instruction> getInstructions() {
+            if (operand.getMode().isSigned()) {
+                return super.getInstructions();
+            } else {
                 return switch (relation) {
-                    case Equal -> "je";
-                    case Greater -> "jg";
-                    case GreaterEqual -> "jge";
-                    case Less -> "jl";
-                    case LessEqual -> "jle";
-                    case LessGreater -> "jne";
-
-                    // Specially handled relations
-                    case True, False, LessEqualGreater -> throw new IllegalStateException();
-
-                    // Unordered relation not needed for our purposes
-                    default -> throw new IllegalStateException();
+                    case GreaterEqual -> asUnconditional(true).getInstructions();
+                    case Less -> asUnconditional(false).getInstructions();
+                    default -> super.getInstructions();
                 };
             }
-        },
-        UnsignedCompare {
-            @Override
-            public String getCmpCommand() {
-                return "cmp";
+        }
+
+        @Override
+        protected Instruction getCmpInstruction() {
+            return Instruction.newInput(
+                    Util.formatCmd("test", operand.getSize(), operand, operand),
+                    operand.getSourceRegisters());
+        }
+
+        @Override
+        protected String getTrueJump() {
+            var isSigned = operand.getMode().isSigned();
+            return switch (relation) {
+                case Equal -> "jz";
+                case Greater -> isSigned ? "jg" : "ja";
+                case LessGreater -> "jnz";
+
+                // either always true or false if unsigned
+                case GreaterEqual -> ifSigned(isSigned, "jns");
+                case Less -> ifSigned(isSigned, "js");
+                case LessEqual -> isSigned ? "jle" : "jz";
+
+                // Specially handled relations
+                case True, False, LessEqualGreater -> throw new IllegalStateException();
+
+                // Unordered relation not needed for our purposes
+                default -> throw new IllegalStateException();
+            };
+        }
+
+        private String ifSigned(boolean signed, String command) {
+            if (signed) {
+                return command;
+            } else {
+                throw new IllegalStateException();
             }
-
-            @Override
-            public String getJmpCommand(Relation relation) {
-                return switch (relation) {
-                    case Equal -> "je";
-                    case Greater -> "ja";
-                    case GreaterEqual -> "jae";
-                    case Less -> "jb";
-                    case LessEqual -> "jbe";
-                    case LessGreater -> "jne";
-
-                    // Specially handled relations
-                    case True, False, LessEqualGreater -> throw new IllegalStateException();
-
-                    // Unordered relation not needed for our purposes
-                    default -> throw new IllegalStateException();
-                };
-            }
-        };
-
-        public abstract String getCmpCommand();
-        public abstract String getJmpCommand(Relation relation);
+        }
     }
 }
