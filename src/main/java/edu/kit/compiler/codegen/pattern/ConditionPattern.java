@@ -9,6 +9,9 @@ import java.util.stream.Stream;
 import edu.kit.compiler.codegen.ExitCondition;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
+import edu.kit.compiler.codegen.Operand.Immediate;
+import edu.kit.compiler.codegen.Operand.Register;
+import firm.Relation;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Cmp;
 import firm.nodes.Node;
@@ -19,11 +22,12 @@ import lombok.RequiredArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ConditionPattern {
     @RequiredArgsConstructor
-    public static final class Conditional implements Pattern<InstructionMatch> {
+    public static abstract class Conditional<S extends Operand.Source, T extends Operand.Source>
+            implements Pattern<InstructionMatch> {
 
-        private final Pattern<? extends OperandMatch<? extends Operand.Source>> left;
-        private final Pattern<? extends OperandMatch<? extends Operand.Source>> right;
-        private final boolean swapOperands;
+        private final Pattern<? extends OperandMatch<S>> left;
+        private final Pattern<? extends OperandMatch<T>> right;
+        protected final boolean swapOperands;
 
         @Override
         public InstructionMatch match(Node node, MatcherState matcher) {
@@ -36,8 +40,7 @@ public final class ConditionPattern {
 
                 if (leftMatch.matches() && rightMatch.matches()) {
                     var relation = cmp.getRelation();
-                    var condition = ExitCondition.conditional(
-                            swapOperands ? relation.inversed() : relation,
+                    var condition = getCondition(relation,
                             leftMatch.getOperand(), rightMatch.getOperand());
                     var predecessors = Stream.concat(leftMatch.getPredecessors(),
                             rightMatch.getPredecessors());
@@ -50,6 +53,38 @@ public final class ConditionPattern {
             } else {
                 return InstructionMatch.none();
             }
+        }
+
+        public abstract ExitCondition getCondition(Relation relation, S left, T right);
+    }
+
+    public static final class Comparison<S extends Operand.Source, T extends Operand.Source> extends Conditional<S, T> {
+
+        public Comparison(Pattern<? extends OperandMatch<S>> left, Pattern<? extends OperandMatch<T>> right,
+                boolean swapOperands) {
+            super(left, right, swapOperands);
+        }
+
+        @Override
+        public ExitCondition getCondition(Relation relation, S left, T right) {
+            return ExitCondition.comparison(
+                    swapOperands ? relation.inversed() : relation,
+                    left, right);
+        }
+    }
+
+    public static final class Test extends Conditional<Register, Immediate> {
+
+        private static final Pattern<OperandMatch<Register>> REGISTER = OperandPattern.register();
+        private static final Pattern<OperandMatch<Immediate>> ZERO = OperandPattern.zero();
+
+        public Test(boolean swapOperands) {
+            super(REGISTER, ZERO, swapOperands);
+        }
+
+        @Override
+        public ExitCondition getCondition(Relation relation, Register left, Immediate right) {
+            return ExitCondition.test(swapOperands ? relation.inversed() : relation, left);
         }
     }
 
