@@ -60,6 +60,13 @@ public final class OperandPattern {
     }
 
     /**
+     * Return a pattern that will match any Const of value zero.
+     */
+    public static Pattern<OperandMatch<Immediate>> zero() {
+        return new ImmediatePattern(TargetValue::isNull);
+    }
+
+    /**
      * Return a pattern that will match any node for which a register can be
      * found using `MatcherState#getRegister(Node)`.
      */
@@ -202,7 +209,7 @@ public final class OperandPattern {
         }
 
         /**
-         * Wraps the given nodes (any of which by null) with Optionals and
+         * Wraps the given nodes (any of which may be null) with Optionals and
          * passes them to the other overload of `getMatch`.
          */
         private OperandMatch<Memory> getMatch(Node offset, Node base, Node index, MatcherState matcher) {
