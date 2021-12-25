@@ -42,7 +42,14 @@ public interface Operand {
      */
     default Optional<Instruction> getInstruction() {
         return Optional.empty();
-    };
+    }
+
+    /**
+     * If the operand is an immediate, return its TargetValue.
+     */
+    default Optional<TargetValue> getConstValue() {
+        return Optional.empty();
+    }
 
     /**
      * Return an Operand equivalent to an immediate of the given TargetValue.
@@ -139,6 +146,11 @@ public interface Operand {
             return List.of();
         }
 
+        @Override
+        public Optional<TargetValue> getConstValue() {
+            return Optional.of(value);
+        }
+
         /**
          * Returns the TargetValue held by the Immediate.
          */
@@ -196,7 +208,10 @@ public interface Operand {
         }
     }
 
+    @ToString
     public static final class ImmediateRegister extends Register {
+        
+        // ? would is make sense for getConstValue return the Tarval ?
 
         private final Immediate value;
 
