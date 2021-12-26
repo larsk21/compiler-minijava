@@ -107,8 +107,8 @@ public class BasicBlocks {
          */
         public List<Instruction> getExitInstructions() {
             return exitCondition
-                .map(c -> Collections.unmodifiableList(c.getInstructions()))
-                .orElseGet(() -> Collections.emptyList());
+                    .map(c -> Collections.unmodifiableList(c.getInstructions()))
+                    .orElseGet(() -> Collections.emptyList());
         }
 
         /**

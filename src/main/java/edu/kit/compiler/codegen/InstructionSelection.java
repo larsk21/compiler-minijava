@@ -101,8 +101,8 @@ public final class InstructionSelection {
                     var entry = blocks.getEntry(node.getBlock());
                     entry.setExitCondition(match.getCondition());
                     match.getOperands()
-                        .flatMap(op -> op.getInstruction().stream())
-                        .forEach(entry::add);
+                            .flatMap(op -> op.getInstruction().stream())
+                            .forEach(entry::add);
                 }
                 default -> {
                 }
