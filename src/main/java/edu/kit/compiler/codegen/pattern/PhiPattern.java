@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
@@ -26,14 +25,12 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
             return InstructionMatch.none();
         } else if (node.getMode().equals(Mode.getM())) {
             // node is a memory phi, match only needs to reference predecessors
-            return InstructionMatch.empty(node, StreamSupport
-                    .stream(node.getPreds().spliterator(), false)
+            return InstructionMatch.empty(node, Util.streamPreds(node)
                     .collect(Collectors.toList()));
         } else {
             // node is an actual phi
             assert node.getMode().isData();
-            var preds = StreamSupport
-                    .stream(node.getPreds().spliterator(), false)
+            var preds = Util.streamPreds(node)
                     .map(pred -> REGISTER.match(pred, matcher))
                     .collect(Collectors.toList());
 

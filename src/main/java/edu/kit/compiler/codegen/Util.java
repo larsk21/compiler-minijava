@@ -1,12 +1,10 @@
 package edu.kit.compiler.codegen;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Register;
-import edu.kit.compiler.codegen.pattern.Match;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.Mode;
 import firm.TargetValue;
@@ -44,10 +42,8 @@ public class Util {
         };
     }
 
-    public static List<Node> concat(Match... matches) {
-        return Arrays.stream(matches)
-            .flatMap(m -> m.getPredecessors())
-            .collect(Collectors.toList());
+    public static Stream<Node> streamPreds(Node node) {
+        return StreamSupport.stream(node.getPreds().spliterator(), false);
     }
 
     public static boolean isOverflow(TargetValue value, RegisterSize maxSize) {
