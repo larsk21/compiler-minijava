@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
  */
 @RequiredArgsConstructor
 public final class PhiInstruction {
-    
+
     private final List<Entry> entries = new ArrayList<>();
 
     /**
@@ -50,8 +50,8 @@ public final class PhiInstruction {
     @Override
     public String toString() {
         var source = entries.stream().map(e -> e.toString())
-            .collect(Collectors.joining(", "));
-        
+                .collect(Collectors.joining(", "));
+
         return String.format("phi %s -> @%d", source, targetRegister);
     }
 

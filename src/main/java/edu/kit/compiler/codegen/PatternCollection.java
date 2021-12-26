@@ -50,10 +50,10 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
     public PatternCollection() {
         map = Map.ofEntries(
-                Map.entry(iro_Add, new ArithmeticPattern(iro_Add, "add",  0, true)),
-                Map.entry(iro_Sub, new ArithmeticPattern(iro_Sub, "sub",  0, false)),
+                Map.entry(iro_Add, new ArithmeticPattern(iro_Add, "add", 0, true)),
+                Map.entry(iro_Sub, new ArithmeticPattern(iro_Sub, "sub", 0, false)),
                 Map.entry(iro_Mul, new ArithmeticPattern(iro_Mul, "imul", 0, true)),
-                Map.entry(iro_Eor, new ArithmeticPattern(iro_Eor, "xor",  0, true)),
+                Map.entry(iro_Eor, new ArithmeticPattern(iro_Eor, "xor", 0, true)),
 
                 Map.entry(iro_Div, new DivisionPattern(Type.DIV)),
                 Map.entry(iro_Mod, new DivisionPattern(Type.MOD)),
@@ -63,8 +63,8 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Conv, new ConversionPattern()),
 
                 Map.entry(iro_Store, new CompoundPattern(List.of(
-                        new BinaryInstructionPattern(iro_Store, "mov", MEM, IMM, 1, false),
-                        new BinaryInstructionPattern(iro_Store, "mov", MEM, REG, 1, false)))),
+                        BinaryInstructionPattern.of(iro_Store, "mov", MEM, IMM, 1, false),
+                        BinaryInstructionPattern.of(iro_Store, "mov", MEM, REG, 1, false)))),
                 Map.entry(iro_Load, new LoadMemoryPattern()),
 
                 Map.entry(iro_Call, new CallPattern()),
@@ -135,8 +135,8 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
         public ArithmeticPattern(ir_opcode opcode, String command, int offset, boolean commutate) {
             this.patterns = new CompoundPattern(List.of(
-                    new BinaryInstructionPattern(opcode, command, REG, IMM, offset, commutate),
-                    new BinaryInstructionPattern(opcode, command, REG, REG, offset, false)));
+                    BinaryInstructionPattern.of(opcode, command, REG, IMM, offset, commutate),
+                    BinaryInstructionPattern.of(opcode, command, REG, REG, offset, false)));
         }
 
         @Override

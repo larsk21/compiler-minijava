@@ -210,7 +210,7 @@ public interface Operand {
 
     @ToString
     public static final class ImmediateRegister extends Register {
-        
+
         // ? would is make sense for getConstValue return the Tarval ?
 
         private final Immediate value;
