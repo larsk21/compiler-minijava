@@ -22,13 +22,13 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
     private final ir_opcode opcode;
     private final String command;
     private final Pattern<? extends OperandMatch<? extends Operand.Target>> operand;
-    private final boolean hasMemory;
+    private final int offset;
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == opcode) {
-            assert node.getPredCount() == 1 + getOffset();
-            var match = operand.match(node.getPred(getOffset()), matcher);
+            assert node.getPredCount() == 1 + offset;
+            var match = operand.match(node.getPred(offset), matcher);
 
             if (match.matches()) {
                 var targetRegister = getTarget(match.getOperand(), matcher::getNewRegister);
@@ -39,10 +39,6 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
         } else {
             return InstructionMatch.none();
         }
-    }
-
-    private int getOffset() {
-        return hasMemory ? 1 : 0;
     }
 
     private Optional<Integer> getTarget(Operand.Target operand,
@@ -82,12 +78,9 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            var preds = source.getPredecessors();
-            if (hasMemory) {
-                preds = Stream.concat(Stream.of(node.getPred(0)), preds);
-            }
-
-            return preds;
+            return Stream.concat(
+                    Util.streamPreds(node).limit(offset),
+                    source.getPredecessors());
         }
 
         @Override

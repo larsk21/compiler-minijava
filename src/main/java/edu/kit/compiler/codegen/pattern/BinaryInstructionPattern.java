@@ -22,15 +22,20 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
     private final String command;
     private final Pattern<? extends OperandMatch<? extends Operand.Target>> targetPattern;
     private final Pattern<? extends OperandMatch<? extends Operand.Source>> sourcePattern;
-    private final boolean hasMemory;
-    private final boolean swapOperands;
+    private final int offset;
+    private final boolean commutate;
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == opcode) {
-            assert node.getPredCount() == 2 + getOffset();
-            var targetMatch = targetPattern.match(getTargetNode(node), matcher);
-            var sourceMatch = sourcePattern.match(getSourceNode(node), matcher);
+            assert node.getPredCount() == 2 + offset;
+            var targetMatch = targetPattern.match(node.getPred(offset), matcher);
+            var sourceMatch = sourcePattern.match(node.getPred(offset + 1), matcher);
+
+            if (commutate && (!targetMatch.matches() || !sourceMatch.matches())) {
+                targetMatch = targetPattern.match(node.getPred(offset + 1), matcher);
+                sourceMatch = sourcePattern.match(node.getPred(offset), matcher);
+            }
 
             if (targetMatch.matches() && sourceMatch.matches()) {
                 var size = sourceMatch.getOperand().getSize();
@@ -51,18 +56,6 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
         } else {
             return Optional.empty();
         }
-    }
-
-    private Node getTargetNode(Node node) {
-        return node.getPred(getOffset() + (swapOperands ? 1 : 0));
-    }
-
-    private Node getSourceNode(Node node) {
-        return node.getPred(getOffset() + (swapOperands ? 0 : 1));
-    }
-
-    private int getOffset() {
-        return hasMemory ? 1 : 0;
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -94,12 +87,9 @@ public class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public Stream<Node> getPredecessors() {
-            var preds = Stream.concat(target.getPredecessors(), source.getPredecessors());
-            if (hasMemory) {
-                preds = Stream.concat(Stream.of(node.getPred(0)), preds);
-            }
-
-            return preds;
+            return Stream.concat(
+                    Util.streamPreds(node).limit(offset),
+                    Stream.concat(source.getPredecessors(), target.getPredecessors()));
         }
 
         @Override

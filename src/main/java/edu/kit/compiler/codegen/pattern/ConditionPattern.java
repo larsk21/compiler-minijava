@@ -27,21 +27,28 @@ public final class ConditionPattern {
 
         private final Pattern<? extends OperandMatch<S>> left;
         private final Pattern<? extends OperandMatch<T>> right;
-        protected final boolean swapOperands;
+        protected final boolean commutate;
 
         @Override
         public InstructionMatch match(Node node, MatcherState matcher) {
             if (node.getOpCode() == ir_opcode.iro_Cond &&
                     node.getPred(0).getOpCode() == ir_opcode.iro_Cmp) {
-                var offset = swapOperands ? 1 : 0;
                 var cmp = (Cmp) node.getPred(0);
-                var leftMatch = left.match(cmp.getPred(offset), matcher);
-                var rightMatch = right.match(cmp.getPred((offset + 1) % 2), matcher);
+
+                var swapOperands = false;
+                var leftMatch = left.match(cmp.getLeft(), matcher);
+                var rightMatch = right.match(cmp.getRight(), matcher);
+
+                if (commutate && (!leftMatch.matches() || !rightMatch.matches())) {
+                    swapOperands = true;
+                    leftMatch = left.match(cmp.getRight(), matcher);
+                    rightMatch = right.match(cmp.getLeft(), matcher);
+                }
 
                 if (leftMatch.matches() && rightMatch.matches()) {
                     var relation = cmp.getRelation();
-                    var condition = getCondition(relation,
-                            leftMatch.getOperand(), rightMatch.getOperand());
+                    var condition = getCondition(relation, leftMatch.getOperand(),
+                            rightMatch.getOperand(), swapOperands);
                     var predecessors = Stream.concat(leftMatch.getPredecessors(),
                             rightMatch.getPredecessors());
                     return new ConditionMatch(node, condition,
@@ -55,7 +62,7 @@ public final class ConditionPattern {
             }
         }
 
-        public abstract ExitCondition getCondition(Relation relation, S left, T right);
+        public abstract ExitCondition getCondition(Relation relation, S left, T right, boolean swapOperands);
     }
 
     public static final class Comparison<S extends Operand.Source, T extends Operand.Source> extends Conditional<S, T> {
@@ -66,7 +73,8 @@ public final class ConditionPattern {
         }
 
         @Override
-        public ExitCondition getCondition(Relation relation, S left, T right) {
+        public ExitCondition getCondition(Relation relation,
+                S left, T right, boolean swapOperands) {
             return ExitCondition.comparison(
                     swapOperands ? relation.inversed() : relation,
                     left, right);
@@ -83,7 +91,8 @@ public final class ConditionPattern {
         }
 
         @Override
-        public ExitCondition getCondition(Relation relation, Register left, Immediate right) {
+        public ExitCondition getCondition(Relation relation,
+                Register left, Immediate right, boolean swapOperands) {
             return ExitCondition.test(swapOperands ? relation.inversed() : relation, left);
         }
     }

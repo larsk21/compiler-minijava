@@ -2,11 +2,9 @@ package edu.kit.compiler.codegen;
 
 import static firm.bindings.binding_irnode.ir_opcode.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Memory;
@@ -52,21 +50,21 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
     public PatternCollection() {
         map = Map.ofEntries(
-                Map.entry(iro_Add, new ArithmeticPattern(iro_Add, "add", false, true)),
-                Map.entry(iro_Sub, new ArithmeticPattern(iro_Sub, "sub", false, false)),
-                Map.entry(iro_Mul, new ArithmeticPattern(iro_Mul, "imul", false, true)),
-                Map.entry(iro_Eor, new ArithmeticPattern(iro_Eor, "xor", false, true)),
+                Map.entry(iro_Add, new ArithmeticPattern(iro_Add, "add",  0, true)),
+                Map.entry(iro_Sub, new ArithmeticPattern(iro_Sub, "sub",  0, false)),
+                Map.entry(iro_Mul, new ArithmeticPattern(iro_Mul, "imul", 0, true)),
+                Map.entry(iro_Eor, new ArithmeticPattern(iro_Eor, "xor",  0, true)),
 
                 Map.entry(iro_Div, new DivisionPattern(Type.DIV)),
                 Map.entry(iro_Mod, new DivisionPattern(Type.MOD)),
 
-                Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REG, false)),
+                Map.entry(iro_Minus, new UnaryInstructionPattern(iro_Minus, "neg", REG, 0)),
 
                 Map.entry(iro_Conv, new ConversionPattern()),
 
                 Map.entry(iro_Store, new CompoundPattern(List.of(
-                        new BinaryInstructionPattern(iro_Store, "mov", MEM, IMM, true, false),
-                        new BinaryInstructionPattern(iro_Store, "mov", MEM, REG, true, false)))),
+                        new BinaryInstructionPattern(iro_Store, "mov", MEM, IMM, 1, false),
+                        new BinaryInstructionPattern(iro_Store, "mov", MEM, REG, 1, false)))),
                 Map.entry(iro_Load, new LoadMemoryPattern()),
 
                 Map.entry(iro_Call, new CallPattern()),
@@ -76,9 +74,7 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
                 Map.entry(iro_Jmp, new ConditionPattern.Unconditional()),
                 Map.entry(iro_Cond, new CompoundPattern(List.of(
-                        new ConditionPattern.Test(false),
                         new ConditionPattern.Test(true),
-                        new ConditionPattern.Comparison<>(REG, IMM, false),
                         new ConditionPattern.Comparison<>(REG, IMM, true),
                         new ConditionPattern.Comparison<>(REG, REG, false)))),
 
@@ -109,8 +105,7 @@ public class PatternCollection implements Pattern<InstructionMatch> {
     private static final class InheritingPattern implements Pattern<InstructionMatch> {
         @Override
         public InstructionMatch match(Node node, MatcherState matcher) {
-            return InstructionMatch.empty(node, StreamSupport
-                    .stream(node.getPreds().spliterator(), false)
+            return InstructionMatch.empty(node, Util.streamPreds(node)
                     .collect(Collectors.toList()));
         }
     }
@@ -138,16 +133,10 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
         private final CompoundPattern patterns;
 
-        public ArithmeticPattern(ir_opcode opcode, String command, boolean hasMemory, boolean commutate) {
-            var patterns = new ArrayList<Pattern<InstructionMatch>>();
-            if (commutate) {
-                patterns.add(new BinaryInstructionPattern(opcode, command, REG, IMM, hasMemory, true));
-            }
-
-            patterns.addAll(List.of(
-                    new BinaryInstructionPattern(opcode, command, REG, IMM, hasMemory, false),
-                    new BinaryInstructionPattern(opcode, command, REG, REG, hasMemory, false)));
-            this.patterns = new CompoundPattern(patterns);
+        public ArithmeticPattern(ir_opcode opcode, String command, int offset, boolean commutate) {
+            this.patterns = new CompoundPattern(List.of(
+                    new BinaryInstructionPattern(opcode, command, REG, IMM, offset, commutate),
+                    new BinaryInstructionPattern(opcode, command, REG, REG, offset, false)));
         }
 
         @Override
