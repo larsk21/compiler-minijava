@@ -13,6 +13,7 @@ import java.util.*;
 public class ReversePostfixOrder {
     private Map<Integer, Block> blocks;
     private Set<Integer> visited = new HashSet<>();
+    private Set<Integer> active = new HashSet<>();
 
     private ReversePostfixOrder(Map<Integer, Block> blocks) {
         this.blocks = blocks;
@@ -30,13 +31,16 @@ public class ReversePostfixOrder {
     }
 
     private DFSResult depthFirstSearch(Block block) {
-        if (visited.contains(block.getBlockId())) {
+        if (active.contains(block.getBlockId())) {
             block.addBackRef();
             return new DFSResult(-1, new ArrayList<>(), true);
+        } else if (visited.contains(block.getBlockId())) {
+            return new DFSResult(-1, new ArrayList<>(), false);
         }
 
         assert block.getNumBackReferences() == 0;
         visited.add(block.getBlockId());
+        active.add(block.getBlockId());
         // TODO: remove trivial jumps
 
         List<DFSResult> children = new ArrayList<>();
@@ -74,6 +78,8 @@ public class ReversePostfixOrder {
             instrs.remove(instrs.size() - 1);
         }
         result.add(block);
+
+        active.remove(block.getBlockId());
         return new DFSResult(block.getBlockId(), result, alwaysEndsInBackref);
     }
 
