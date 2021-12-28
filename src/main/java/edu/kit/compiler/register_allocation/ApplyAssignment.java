@@ -190,7 +190,19 @@ public class ApplyAssignment {
         assert sizes[dividend] == RegisterSize.QUAD && sizes[divisor] == RegisterSize.QUAD;
 
         tracker.enterInstruction(index);
-        tracker.assertMapping(dividend, Register.RAX);
+        tracker.assertFree(Register.RDX);
+
+        // handle the dividend
+        if (assignment[dividend].isSpilled() || assignment[dividend].getRegister().get() != Register.RAX) {
+            tracker.assertFree(Register.RAX);
+            String getDividend = getVRegisterValue(dividend, RegisterSize.QUAD);
+            output("movq %s, %%rax # get dividend", getDividend);
+        } else {
+            assert lifetimes[dividend].isLastInstructionAndInput(index);
+            tracker.assertMapping(dividend, Register.RAX);
+        }
+
+        // handle the divisor
         Register divisorRegister;
         if (!assignment[divisor].isSpilled() && lifetimes[divisor].isLastInstructionAndInput(index)) {
             Register r = assignment[divisor].getRegister().get();
@@ -206,6 +218,7 @@ public class ApplyAssignment {
         // output the instruction itself
         output("cqto # sign extension to octoword");
         output("idivq %s", divisorRegister.getAsQuad());
+        tracker.registers.markUsed(Register.RAX);
         tracker.registers.markUsed(Register.RDX);
         tracker.leaveInstruction(index);
 
@@ -659,8 +672,8 @@ public class ApplyAssignment {
             }
         }
 
-        public void assertFreeOrEqual(Register r, int expectedVReg) {
-            assert registers.isFree(r) || registers.get(r).get() == expectedVReg;
+        public void assertFree(Register r) {
+            assert registers.isFree(r);
         }
 
         public void assertFinallyEmpty(int numInstrs) {
