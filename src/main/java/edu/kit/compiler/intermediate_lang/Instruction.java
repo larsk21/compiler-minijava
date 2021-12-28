@@ -96,11 +96,17 @@ public class Instruction {
         assert overwriteRegister.isEmpty() || !mapping.containsKey(overwriteRegister.get()) ||
                 mapping.get(overwriteRegister.get()) == mapping.get(targetRegister.get());
         String result = text;
+        List<Integer> toReplace = new ArrayList<>();
         for (int i: inputRegisters) {
-            result = result.replace("@" + i, mapping.get(i));
+            toReplace.add(i);
         }
         if (targetRegister.isPresent()) {
-            result = result.replace("@" + targetRegister.get(), mapping.get(targetRegister.get()));
+            toReplace.add(targetRegister.get());
+        }
+        // insert larger vRegister numbers first, to avoid a wrong match of a prefix of the number
+        toReplace.sort(Comparator.reverseOrder());
+        for (int vRegister: toReplace) {
+            result = result.replace("@" + vRegister, mapping.get(vRegister));
         }
         return result;
     }
