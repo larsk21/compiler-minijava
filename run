@@ -24,5 +24,6 @@ export STD_LIBRARY_PATH="${SCRIPT_PATH}/lib/stdlib.c"
 test -t 2 && export COLOR="on"
 
 # execute the compiler with the provided arguments and return the exit code
-java -jar "$EXE_PATH" "$@"
+# -ea enables assertions
+java -jar -ea "$EXE_PATH" "$@"
 exit $?
