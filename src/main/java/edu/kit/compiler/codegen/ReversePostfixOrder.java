@@ -7,8 +7,17 @@ import lombok.Data;
 import java.util.*;
 
 /**
- * Arranges the given blocks in reverse postfix order and sets
- * the number of backrefs.
+ * Arranges the given blocks and sets the number of backreferences for each block.
+ *
+ * The order that is calculated:
+ *  - is a reverse postfix order (and thus a topological order except for loops)
+ *  - ensures that the blocks of each loop are in contiguous order without holes
+ *
+ *  This is (more or less) the best possible block layout for linear scan register
+ *  allocation. However, the second condition is surprisingly hard to correctly
+ *  calculate in the general case (i.e. with multiple nested loops and complicated
+ *  control flow). Therefore, we need a separate step that analyses the loop depth
+ *  of the blocks.
  */
 public class ReversePostfixOrder {
     private Map<Integer, Block> blocks;
