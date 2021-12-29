@@ -25,7 +25,7 @@ public class Block {
     private int numBackReferences;
 
     public Block(List<Instruction> instructions, int blockId, int numBackReferences) {
-        this.instructions = instructions;
+        this.instructions = new ArrayList<>(instructions);
         this.blockId = blockId;
         this.numBackReferences = numBackReferences;
     }

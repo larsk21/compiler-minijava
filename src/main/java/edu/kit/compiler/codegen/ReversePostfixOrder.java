@@ -13,14 +13,17 @@ import java.util.*;
 public class ReversePostfixOrder {
     private Map<Integer, Block> blocks;
     private Set<Integer> visited = new HashSet<>();
-    private Set<Integer> active = new HashSet<>();
+    private Map<Integer, Integer> blockLoopDepth;
 
-    private ReversePostfixOrder(Map<Integer, Block> blocks) {
+    private ReversePostfixOrder(Map<Integer, Block> blocks, Map<Integer, Integer> blockLoopDepth) {
         this.blocks = blocks;
+        this.blockLoopDepth = blockLoopDepth;
     }
 
     public static List<Block> apply(Map<Integer, Block> blocks, int startBlock) {
-        ReversePostfixOrder instance = new ReversePostfixOrder(blocks);
+        Map<Integer, Integer> blockLoopDepth = new LoopDepthAnalysis(blocks).run(startBlock);
+
+        ReversePostfixOrder instance = new ReversePostfixOrder(blocks, blockLoopDepth);
         List<Block> result = instance.depthFirstSearch(blocks.get(startBlock)).getResult();
 
         List<Block> reversed = new ArrayList<>();
@@ -31,17 +34,11 @@ public class ReversePostfixOrder {
     }
 
     private DFSResult depthFirstSearch(Block block) {
-        if (active.contains(block.getBlockId())) {
-            block.addBackRef();
-            return new DFSResult(-1, new ArrayList<>(), true);
-        } else if (visited.contains(block.getBlockId())) {
-            return new DFSResult(-1, new ArrayList<>(), false);
+        if (visited.contains(block.getBlockId())) {
+            return new DFSResult(block.getBlockId(), new ArrayList<>());
         }
 
-        assert block.getNumBackReferences() == 0;
         visited.add(block.getBlockId());
-        active.add(block.getBlockId());
-        // TODO: remove trivial jumps
 
         List<DFSResult> children = new ArrayList<>();
         for (Instruction instr: block.getInstructions()) {
@@ -52,21 +49,20 @@ public class ReversePostfixOrder {
         }
         assert children.size() <= 2;
 
-        int lastChildId = -1;
-        boolean alwaysEndsInBackref = children.size() > 0;
-        List<Block> result = new ArrayList<>();
         // It is important that the loop body is arranged before the loop exit,
         // to enable efficient lifetime analysis.
-        for (DFSResult child: children) {
-            if (!child.isAlwaysEndsInBackref()) {
-                alwaysEndsInBackref = false;
-                result.addAll(child.getResult());
-                lastChildId = child.getBlockId();
-            }
+        boolean outputInReverseOrder = (children.size() == 2) &&
+                blockLoopDepth.get(children.get(0).getBlockId()) > blockLoopDepth.get(children.get(1).getBlockId());
+        if (outputInReverseOrder) {
+            var tmp = children.get(0);
+            children.set(0, children.get(1));
+            children.set(1, tmp);
         }
+        List<Block> result = new ArrayList<>();
+        int lastChildId = -1;
         for (DFSResult child: children) {
-            if (child.isAlwaysEndsInBackref()) {
-                result.addAll(child.getResult());
+            result.addAll(child.getResult());
+            if (child.getResult().size() > 0) {
                 lastChildId = child.getBlockId();
             }
         }
@@ -77,16 +73,96 @@ public class ReversePostfixOrder {
         if (lastInstr.getJumpTarget().isPresent() && lastInstr.getJumpTarget().get() == lastChildId) {
             instrs.remove(instrs.size() - 1);
         }
-        result.add(block);
 
-        active.remove(block.getBlockId());
-        return new DFSResult(block.getBlockId(), result, alwaysEndsInBackref);
+        result.add(block);
+        return new DFSResult(block.getBlockId(), result);
     }
 
     @Data
     private static class DFSResult {
         private final int blockId;
         private final List<Block> result;
-        private final boolean alwaysEndsInBackref;
+    }
+
+    private static Map<Integer, List<Integer>> getBackEdges(Map<Integer, Block> blocks) {
+        Map<Integer, List<Integer>> result = new HashMap<>();
+        for (int blockId: blocks.keySet()) {
+            result.put(blockId, new ArrayList<>());
+        }
+        for (Block b: blocks.values()) {
+            for (Instruction instr: b.getInstructions()) {
+                if (instr.getJumpTarget().isPresent()) {
+                    int jmpTarget = instr.getJumpTarget().get();
+                    result.get(jmpTarget).add(b.getBlockId());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static class LoopDepthAnalysis {
+        private Map<Integer, Block> blocks;
+        private Map<Integer, List<Integer>> backEdges;
+
+        /**
+         * Maps each block to the set of loops which contain the block.
+         * (Loops are represented by the block id of the loop header.)
+         */
+        private Map<Integer, Set<Integer>> loopsPerBlock = new HashMap<>();
+        private Set<Integer> visited = new HashSet<>();
+        private Set<Integer> active = new HashSet<>();
+
+        private LoopDepthAnalysis(Map<Integer, Block> blocks) {
+            this.blocks = blocks;
+            this.backEdges = getBackEdges(blocks);
+            for (int blockId: blocks.keySet()) {
+                loopsPerBlock.put(blockId, new HashSet<>());
+            }
+        }
+
+        public Map<Integer, Integer> run(int startBlock) {
+            depthFirstSearch(blocks.get(startBlock), -1);
+
+            Map<Integer, Integer> loopDepths = new HashMap<>();
+            for (var entry: loopsPerBlock.entrySet()) {
+                loopDepths.put(entry.getKey(), entry.getValue().size());
+            }
+            return loopDepths;
+        }
+
+        private void depthFirstSearch(Block block, int previousId) {
+            int blockId = block.getBlockId();
+            if (active.contains(blockId)) {
+                block.addBackRef();
+
+                // backtrack and add the loop to all found blocks
+                Deque<Integer> queue = new ArrayDeque<>();
+                queue.push(previousId);
+                while (!queue.isEmpty()) {
+                    int id = queue.pop();
+                    var loops = loopsPerBlock.get(id);
+                    if (!loops.contains(blockId) && id != blockId) {
+                        queue.addAll(backEdges.get(id));
+                    }
+                    loops.add(blockId);
+                }
+                return;
+            } else if (visited.contains(blockId)) {
+                return;
+            }
+
+            assert block.getNumBackReferences() == 0;
+            visited.add(blockId);
+            active.add(blockId);
+
+            for (Instruction instr: block.getInstructions()) {
+                if (instr.getJumpTarget().isPresent()) {
+                    int jmpTarget = instr.getJumpTarget().get();
+                    depthFirstSearch(blocks.get(jmpTarget), blockId);
+                }
+            }
+
+            active.remove(blockId);
+        }
     }
 }
