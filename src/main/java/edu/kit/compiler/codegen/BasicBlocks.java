@@ -73,7 +73,6 @@ public class BasicBlocks {
 
         @Getter
         private final Block firmBlock;
-        @Getter
         private final int jumpLabel;
 
         private final List<Instruction> instructions = new ArrayList<>();
@@ -132,9 +131,9 @@ public class BasicBlocks {
             var condition = exitCondition.get();
             if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {
                 if (node.getNum() == Cond.pnTrue) {
-                    condition.setTrueBlock(entry.getJumpLabel());
+                    condition.setTrueBlock(entry.getLabel());
                 } else if (node.getNum() == Cond.pnFalse) {
-                    condition.setFalseBlock(entry.getJumpLabel());
+                    condition.setFalseBlock(entry.getLabel());
                 } else {
                     throw new IllegalStateException();
                 }
@@ -151,7 +150,7 @@ public class BasicBlocks {
 
             var entry = getEntry(block);
             var condition = exitCondition.get();
-            condition.setTrueBlock(entry.getJumpLabel());
+            condition.setTrueBlock(entry.getLabel());
         }
 
         /**
