@@ -27,12 +27,12 @@ public abstract class ExitCondition {
      * Sets the destination of the condition if it evaluates to true. Also used
      * to set the destination for an unconditional jump.
      */
-    public abstract void setTrueBlock(int blockId);
+    public abstract void setTrueBlock(int label);
 
     /**
      * Sets the destination of the condition if it evaluates to false.
      */
-    public abstract void setFalseBlock(int blockId);
+    public abstract void setFalseBlock(int label);
 
     /**
      * Replaces a destination block with a new block.
@@ -53,30 +53,30 @@ public abstract class ExitCondition {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class UnconditionalJump extends ExitCondition {
-        private int blockId = -1;
+        private int label = -1;
 
         @Override
         public List<Instruction> getInstructions() {
-            assert blockId >= 0;
+            assert label >= 0;
             return List.of(Instruction.newJmp(
-                    Util.formatJmp("jmp", blockId), blockId)
+                    Util.formatJmp("jmp", label), label)
             );
         }
 
         @Override
-        public void setTrueBlock(int blockId) {
-            this.blockId = blockId;
+        public void setTrueBlock(int label) {
+            this.label = label;
         }
 
         @Override
-        public void setFalseBlock(int blockId) {
+        public void setFalseBlock(int label) {
             throw new UnsupportedOperationException();
         }
 
         @Override
         public void replaceBlock(int oldId, int newId) {
-            assert blockId == oldId;
-            blockId = newId;
+            assert label == oldId;
+            label = newId;
         }
 
         @Override
@@ -92,47 +92,47 @@ public abstract class ExitCondition {
         private final Operand.Source target;
         private final Operand.Source source;
 
-        private int trueBlockId = -1;
-        private int falseBlockId = -1;
+        private int trueLabel = -1;
+        private int falseLabel = -1;
 
         @Override
         public List<Instruction> getInstructions() {
-            assert trueBlockId >= 0 && falseBlockId >= 0;
+            assert trueLabel >= 0 && falseLabel >= 0;
 
             return switch (relation) {
-                case True -> new UnconditionalJump(trueBlockId).getInstructions();
-                case False -> new UnconditionalJump(falseBlockId).getInstructions();
-                case LessEqualGreater -> new UnconditionalJump(trueBlockId).getInstructions();
+                case True -> new UnconditionalJump(trueLabel).getInstructions();
+                case False -> new UnconditionalJump(falseLabel).getInstructions();
+                case LessEqualGreater -> new UnconditionalJump(trueLabel).getInstructions();
                 default -> List.of(
                         Instruction.newInput(
                                 Util.formatCmd("cmp", target.getSize(), source, target),
                                 getInputRegisters(source, target)),
                         Instruction.newJmp(
-                                Util.formatJmp(getJmpCmd(), trueBlockId),
-                                trueBlockId),
+                                Util.formatJmp(getJmpCmd(), trueLabel),
+                                trueLabel),
                         Instruction.newJmp(
-                                Util.formatJmp("jmp", falseBlockId),
-                                falseBlockId));
+                                Util.formatJmp("jmp", falseLabel),
+                                falseLabel));
             };
         }
 
         @Override
-        public void setTrueBlock(int blockId) {
-            this.trueBlockId = blockId;
+        public void setTrueBlock(int label) {
+            this.trueLabel = label;
         }
 
         @Override
-        public void setFalseBlock(int blockId) {
-            this.falseBlockId = blockId;
+        public void setFalseBlock(int label) {
+            this.falseLabel = label;
         }
 
         @Override
         public void replaceBlock(int oldId, int newId) {
-            if (trueBlockId == oldId) {
-                trueBlockId = newId;
+            if (trueLabel == oldId) {
+                trueLabel = newId;
             } else {
-                assert falseBlockId == oldId;
-                falseBlockId = newId;
+                assert falseLabel == oldId;
+                falseLabel = newId;
             }
         }
 

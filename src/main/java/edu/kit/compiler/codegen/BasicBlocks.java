@@ -31,11 +31,11 @@ public class BasicBlocks {
 
     private final HashMap<Integer, BlockEntry> blocks = new HashMap<>();
 
-    private int currentBlockId;
+    private int currentLabel;
 
-    public BasicBlocks(Graph graph, int blockId) {
+    public BasicBlocks(Graph graph, int jumpLabel) {
         this.graph = graph;
-        this.currentBlockId = blockId;
+        this.currentLabel = jumpLabel;
     }
 
     /**
@@ -45,11 +45,11 @@ public class BasicBlocks {
     public BlockEntry getEntry(Node block) {
         assert block.getOpCode() == ir_opcode.iro_Block;
         return blocks.computeIfAbsent(block.getNr(),
-                n -> new BlockEntry((Block) block, newBlockId()));
+                n -> new BlockEntry((Block) block, newLabel()));
     }
 
-    public int newBlockId() {
-        return currentBlockId++;
+    public int newLabel() {
+        return currentLabel++;
     }
 
     public Collection<BlockEntry> getEntries() {
@@ -74,7 +74,7 @@ public class BasicBlocks {
         @Getter
         private final Block firmBlock;
         @Getter
-        private final int blockId;
+        private final int jumpLabel;
 
         private final List<Instruction> instructions = new ArrayList<>();
         private final List<PhiInstruction> phiInstructions = new ArrayList<>();
@@ -86,7 +86,7 @@ public class BasicBlocks {
          * Return the jump label of the block.
          */
         public int getLabel() {
-            return blockId;
+            return jumpLabel;
         }
 
         /**
@@ -132,9 +132,9 @@ public class BasicBlocks {
             var condition = exitCondition.get();
             if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {
                 if (node.getNum() == Cond.pnTrue) {
-                    condition.setTrueBlock(entry.getBlockId());
+                    condition.setTrueBlock(entry.getJumpLabel());
                 } else if (node.getNum() == Cond.pnFalse) {
-                    condition.setFalseBlock(entry.getBlockId());
+                    condition.setFalseBlock(entry.getJumpLabel());
                 } else {
                     throw new IllegalStateException();
                 }
@@ -151,7 +151,7 @@ public class BasicBlocks {
 
             var entry = getEntry(block);
             var condition = exitCondition.get();
-            condition.setTrueBlock(entry.getBlockId());
+            condition.setTrueBlock(entry.getJumpLabel());
         }
 
         /**
@@ -179,7 +179,7 @@ public class BasicBlocks {
         public String toString() {
             var instructions = Stream.concat(getInstructions().stream(),
                     getExitInstructions().stream()).collect(Collectors.toList());
-            return String.format("(.L%d: %s, %s)", blockId, phiInstructions, instructions.toString());
+            return String.format("(.L%d: %s, %s)", jumpLabel, phiInstructions, instructions.toString());
         }
     }
 }

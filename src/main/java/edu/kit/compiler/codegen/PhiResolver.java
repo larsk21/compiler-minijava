@@ -30,7 +30,7 @@ public class PhiResolver {
 
     private static void translateExistingBlocks(InstructionSelection selection, Map<Integer, Block> mapping) {
         for (var block : selection.getBlocks().getEntries()) {
-            Block ilBlock = new Block(block.getBlockId());
+            Block ilBlock = new Block(block.getJumpLabel());
             ilBlock.getInstructions().addAll(block.getInstructions());
             ilBlock.getInstructions().addAll(block.getExitInstructions());
 
@@ -48,7 +48,7 @@ public class PhiResolver {
             for (var entry : phiInstruction.getEntries()) {
                 BasicBlocks.BlockEntry predBlock = selection.getBlocks().getEntry(entry.getPredBlock());
                 var assignments = predMapping.computeIfAbsent(
-                        predBlock.getBlockId(), k -> new PhiAssignments(predBlock)
+                        predBlock.getJumpLabel(), k -> new PhiAssignments(predBlock)
                 );
                 assignments.add(entry.getRegister(), phiInstruction.getTargetRegister());
             }
@@ -74,15 +74,15 @@ public class PhiResolver {
             } else {
                 // add a new block if the edge is critical
                 instructions.add(Instruction.newJmp(
-                        Util.formatJmp("jmp", block.getBlockId()), block.getBlockId())
+                        Util.formatJmp("jmp", block.getJumpLabel()), block.getJumpLabel())
                 );
 
-                int newBlockId = selection.getBlocks().newBlockId();
+                int newBlockId = selection.getBlocks().newLabel();
                 Block newBlock = new Block(instructions, newBlockId, 0);
 
                 assert !mapping.containsKey(newBlockId);
                 mapping.put(newBlockId, newBlock);
-                condition.replaceBlock(block.getBlockId(), newBlockId);
+                condition.replaceBlock(block.getJumpLabel(), newBlockId);
             }
         }
     }
