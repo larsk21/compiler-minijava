@@ -73,9 +73,15 @@ public class RegisterTracker {
     }
 
     public List<Integer> getCurrentVRegisters() {
+        return getCurrentVRegisters(Optional.empty());
+    }
+
+    public List<Integer> getCurrentVRegisters(Optional<Register> excludedRegister) {
         List<Integer> result = new ArrayList<>(registers.size());
         for (var entry: registers.entrySet()) {
-            result.add(entry.getValue());
+            if (excludedRegister.isEmpty() || entry.getKey() != excludedRegister.get()) {
+                result.add(entry.getValue());
+            }
         }
         return result;
     }

@@ -34,24 +34,25 @@ public class LinearScan implements RegisterAllocator {
                 switch (instr.getType()) {
                     case GENERAL -> {
                         int nTemps = countRequiredTmps(assignment, instr);
-                        state.assertCapacity(nTemps);
+                        state.assertCapacity(nTemps, false);
                     }
                     case DIV, MOD -> {
                         int dividend = instr.inputRegister(0);
-                        int quotient = instr.inputRegister(1);
-                        if (!analysis.getLifetime(dividend).isLastInstructionAndInput(i) ||
-                                assignment[dividend].isSpilled() || assignment[dividend].getRegister().get() != Register.RAX) {
+                        int divisor = instr.inputRegister(1);
+                        boolean freeRAX = !analysis.getLifetime(dividend).isLastInstructionAndInput(i) ||
+                                assignment[dividend].isSpilled() || assignment[dividend].getRegister().get() != Register.RAX;
+                        if (freeRAX) {
                             state.assertFree(Register.RAX);
                         }
                         state.assertFree(Register.RDX);
-                        if (assignment[quotient].isSpilled()) {
-                            state.assertCapacity(1);
+                        if (assignment[divisor].isSpilled()) {
+                            state.assertCapacity(freeRAX ? 3 : 2, true);
                         }
                     }
                     case MOV_S, MOV_U -> {
                         if (assignment[instr.inputRegister(0)].isSpilled() &&
                                 assignment[instr.getTargetRegister().get()].isSpilled()) {
-                            state.assertCapacity(1);
+                            state.assertCapacity(1, false);
                         }
                     }
                     case CALL, RET -> { }
@@ -257,9 +258,10 @@ class ScanState {
         return allocated;
     }
 
-    public void assertCapacity(int capacity) {
+    public void assertCapacity(int capacity, boolean excludeRAX) {
+        Optional<Register> excluded = excludeRAX ? Optional.of(Register.RAX) : Optional.empty();
         while (registers.numFree() < capacity) {
-            spill(selectSpillRegister(registers.getCurrentVRegisters()));
+            spill(selectSpillRegister(registers.getCurrentVRegisters(excluded)));
         }
     }
 
