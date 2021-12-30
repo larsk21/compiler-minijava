@@ -35,9 +35,14 @@ public class LinearScan implements RegisterAllocator {
                         state.assertCapacity(nTemps);
                     }
                     case DIV, MOD -> {
+                        int dividend = instr.inputRegister(0);
+                        int quotient = instr.inputRegister(1);
+                        if (!analysis.getLifetime(dividend).isLastInstructionAndInput(i) ||
+                                assignment[dividend].isSpilled() || assignment[dividend].getRegister().get() != Register.RAX) {
+                            state.assertFree(Register.RAX);
+                        }
                         state.assertFree(Register.RDX);
-                        if (assignment[instr.inputRegister(1)].isSpilled()) {
-                            // temporary for quotient
+                        if (assignment[quotient].isSpilled()) {
                             state.assertCapacity(1);
                         }
                     }
@@ -55,14 +60,8 @@ public class LinearScan implements RegisterAllocator {
                     int target = instr.getTargetRegister().get();
                     if (analysis.getLifetime(target).getBegin() == i) {
                         // allocate the new register
-                        if (analysis.isDividend(target)) {
-                            state.assertFree(Register.RAX);
-                            var allocated = state.allocateRegister(target, RegisterPreference.RAX_PREFERENCE);
-                            assert allocated.equals(Optional.of(Register.RAX));
-                        } else {
-                            RegisterPreference preference = calculatePreference(target, assignment, analysis);
-                            state.allocateRegister(target, preference);
-                        }
+                        RegisterPreference preference = calculatePreference(target, assignment, analysis);
+                        state.allocateRegister(target, preference);
                     }
                 }
                 i++;
@@ -77,12 +76,12 @@ public class LinearScan implements RegisterAllocator {
 
     private static RegisterPreference calculatePreference(int vRegister, RegisterAssignment[] assignment,
                                                           LifetimeAnalysis analysis) {
-        assert !analysis.isDividend(vRegister);
-
         // basic preference
         boolean avoidCallerSaved = analysis.numInterferingCalls(vRegister, false) > 0;
         boolean avoidDiv = analysis.numInterferingDivs(vRegister, false) > 0 ||
-                (analysis.numInterferingDivs(vRegister, true) > 0 && analysis.getLastInstruction(vRegister).get().isDivOrMod());
+                // the quotient needs to avoid RAX/RDX, too
+                (analysis.numInterferingDivs(vRegister, true) > 0 &&
+                        analysis.getLastInstruction(vRegister).get().isDivOrMod() && !analysis.isDividend(vRegister));
         RegisterPreference preference = RegisterPreference.fromFlags(avoidCallerSaved, avoidDiv);
 
         // is there a register that would be specifically good?
@@ -142,6 +141,10 @@ public class LinearScan implements RegisterAllocator {
                 // return value
                 assert last.inputRegister(0) == vRegister;
                 preference = withPrefIfNotAvoided(preference, CCONV.getReturnRegister());
+            } else if (last.isDivOrMod()) {
+                if (analysis.isDividend(vRegister)) {
+                    preference = withPrefIfNotAvoided(preference, Register.RAX);
+                }
             } else if (last.isMov()) {
                 Optional<Register> target = assignment[last.getTargetRegister().get()].getRegister();
                 if (target.isPresent()) {
