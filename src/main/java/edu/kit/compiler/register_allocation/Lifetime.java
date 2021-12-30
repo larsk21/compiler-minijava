@@ -55,7 +55,7 @@ public class Lifetime {
 
     public boolean interferes(Lifetime other) {
         // trivial lifetime
-        if (isTrivial()) {
+        if (isTrivial() || other.isTrivial()) {
             return false;
         }
         // check cases where one register is allowed to replace the other
