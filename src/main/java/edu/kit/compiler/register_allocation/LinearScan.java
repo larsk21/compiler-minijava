@@ -364,7 +364,7 @@ class ScanState {
             if (size.getBytes() < 2) {
                 base -= numSlotsForSize.get(RegisterSize.WORD) * 2;
             }
-            return base - size.getBytes();
+            return base - (slotIndex[vRegister] + 1) * size.getBytes();
         }
     }
 }
