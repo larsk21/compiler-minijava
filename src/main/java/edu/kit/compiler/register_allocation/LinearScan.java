@@ -21,8 +21,10 @@ public class LinearScan implements RegisterAllocator {
         ScanState state = new ScanState(analysis, assignment, sizes);
 
         for (int arg = 0; arg < nArgs; arg++) {
-            RegisterPreference preference = calculatePreference(arg, assignment, analysis);
-            state.allocateRegister(arg, preference);
+            if (analysis.isAlive(arg)) {
+                RegisterPreference preference = calculatePreference(arg, assignment, analysis);
+                state.allocateRegister(arg, preference);
+            }
         }
 
         int i = 0;
@@ -291,7 +293,7 @@ class ScanState {
 
     private int selectSpillRegister(Iterable<Integer> vRegisters) {
         int best = -1;
-        int bestLoopDepth = -1;
+        int bestLoopDepth = Integer.MAX_VALUE;
         int bestLifetimeEnd = -1;
         for (int r: vRegisters) {
             int loopDepth = analysis.getLoopDepth(r);
