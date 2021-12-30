@@ -76,32 +76,31 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         return switch (binaryExpressionNode.getOperator()) {
             case Assignment -> throw new IllegalStateException();
-            case Modulo -> {
-                Node mem = getConstruction().getCurrentMem();
-                Node mod = getConstruction().newMod(mem, lhs, rhs, binding_ircons.op_pin_state.op_pin_state_pinned);
-                Node projRes = getConstruction().newProj(mod, mode, Mod.pnRes);
-                Node projMem = getConstruction().newProj(mod, Mode.getM(), Mod.pnM);
-
-                getConstruction().setCurrentMem(projMem);
-                yield  projRes;
-            }
-            case Division -> {
-                Node mem = getConstruction().getCurrentMem();
-                Node lhs64 = getConstruction().newConv(lhs, Mode.getLs());
-                Node rhs64 = getConstruction().newConv(rhs, Mode.getLs());
-                Node div = getConstruction().newDiv(mem, lhs64, rhs64, binding_ircons.op_pin_state.op_pin_state_pinned);
-                Node projRes64 = getConstruction().newProj(div, Mode.getLs(), Div.pnRes);
-                Node projRes = getConstruction().newConv(projRes64, Mode.getIs());
-                Node projMem = getConstruction().newProj(div, Mode.getM(), Div.pnM);
-
-                getConstruction().setCurrentMem(projMem);
-                yield projRes;
-            }
+            case Modulo -> createDivOrMod(lhs, rhs, false);
+            case Division -> createDivOrMod(lhs, rhs, true);
             case Addition -> getConstruction().newAdd(lhs, rhs);
             case Subtraction -> getConstruction().newSub(lhs, rhs);
             case Multiplication -> getConstruction().newMul(lhs, rhs);
             default -> throw new UnsupportedOperationException();
         };
+    }
+
+    private Node createDivOrMod(Node lhs, Node rhs, boolean isDiv) {
+        Node mem = getConstruction().getCurrentMem();
+        Node lhs64 = getConstruction().newConv(lhs, Mode.getLs());
+        Node rhs64 = getConstruction().newConv(rhs, Mode.getLs());
+        Node op;
+        if (isDiv) {
+            op = getConstruction().newDiv(mem, lhs64, rhs64, binding_ircons.op_pin_state.op_pin_state_pinned);
+        } else {
+            op = getConstruction().newMod(mem, lhs64, rhs64, binding_ircons.op_pin_state.op_pin_state_pinned);
+        }
+        Node projRes64 = getConstruction().newProj(op, Mode.getLs(), Div.pnRes);
+        Node projRes = getConstruction().newConv(projRes64, Mode.getIs());
+        Node projMem = getConstruction().newProj(op, Mode.getM(), Div.pnM);
+
+        getConstruction().setCurrentMem(projMem);
+        return projRes;
     }
 
     @Override
