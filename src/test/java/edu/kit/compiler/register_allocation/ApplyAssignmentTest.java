@@ -60,8 +60,8 @@ public class ApplyAssignmentTest {
         expected.add("incrl %rbx");
         expected.add("movq %rbx, -8(%rbp) # spill for @1");
         expected.add("movq -8(%rbp), %rbx # reload for @1");
-        expected.add("addl %rax, %rbx, %r10");
-        expected.add("movq %r10, -16(%rbp) # spill for @2");
+        expected.add("addl %rax, %rbx, %r12");
+        expected.add("movq %r12, -16(%rbp) # spill for @2");
         assertEquals(expected, result.getInstructions());
     }
 
@@ -104,18 +104,18 @@ public class ApplyAssignmentTest {
         expected.add(".L0:");
         expected.add("movq %rbx, %rcx # move for @1 [overwrite]");
         expected.add("addl %rax, %rcx");
-        expected.add("movq %rbx, %r10 # move for @1 [overwrite]");
-        expected.add("xorl %rax, %r10");
-        expected.add("movq %r10, -8(%rbp) # spill for @3");
+        expected.add("movq %rbx, %r12 # move for @1 [overwrite]");
+        expected.add("xorl %rax, %r12");
+        expected.add("movq %r12, -8(%rbp) # spill for @3");
         expected.add("subl %rax, %rbx");
         expected.add("movq -16(%rbp), %rbx # reload for @5 [overwrite]");
         expected.add("addl %rax, %rbx");
-        expected.add("movq -16(%rbp), %r10 # reload for @5 [overwrite]");
-        expected.add("xorl %rax, %r10");
-        expected.add("movq %r10, -8(%rbp) # spill for @3");
+        expected.add("movq -16(%rbp), %r12 # reload for @5 [overwrite]");
+        expected.add("xorl %rax, %r12");
+        expected.add("movq %r12, -8(%rbp) # spill for @3");
         assertEquals(expected, result.getInstructions());
         // check that temporary registers are marked as used
-        assert result.getUsedRegisters().contains(Register.R10);
+        assert result.getUsedRegisters().contains(Register.R12);
     }
 
     @Test

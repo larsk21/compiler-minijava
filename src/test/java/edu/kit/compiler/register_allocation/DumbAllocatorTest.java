@@ -45,7 +45,7 @@ public class DumbAllocatorTest {
         expected.add("movq %rsp, %rbp");
         expected.add("subq $64, %rsp # allocate activation record");
         expected.add("pushq %rbx # push callee-saved register");
-        expected.add("pushq %r10 # push callee-saved register");
+        expected.add("pushq %r12 # push callee-saved register");
 
         expected.add(".L0:");
         expected.add("movl $0x1, %ebx");
@@ -62,11 +62,11 @@ public class DumbAllocatorTest {
         expected.add("addl $77, %ebx");
         expected.add("movl %ebx, -16(%rbp) # spill for @1");
         expected.add("movl -16(%rbp), %ebx # reload for @1");
-        expected.add("movq -24(%rbp), %r10 # reload for @2");
-        expected.add("movl %ebx, (%r10)");
+        expected.add("movq -24(%rbp), %r12 # reload for @2");
+        expected.add("movl %ebx, (%r12)");
         expected.add("movq -24(%rbp), %rbx # reload for @2");
-        expected.add("movslq (%rbx), %r10");
-        expected.add("movq %r10, -40(%rbp) # spill for @4");
+        expected.add("movslq (%rbx), %r12");
+        expected.add("movq %r12, -40(%rbp) # spill for @4");
         expected.add("movq $0x2, %rbx");
         expected.add("movq %rbx, -48(%rbp) # spill for @5");
         expected.add("movq -40(%rbp), %rax # get dividend");
@@ -78,7 +78,7 @@ public class DumbAllocatorTest {
         expected.add("call print@PLT");
 
         expected.add(ApplyAssignment.FINAL_BLOCK_LABEL + ":");
-        expected.add("popq %r10 # restore callee-saved register");
+        expected.add("popq %r12 # restore callee-saved register");
         expected.add("popq %rbx # restore callee-saved register");
         expected.add("leave");
         expected.add("ret");
@@ -201,7 +201,7 @@ public class DumbAllocatorTest {
         expected.add("movq %rsp, %rbp");
         expected.add("subq $304, %rsp # allocate activation record");
         expected.add("pushq %rbx # push callee-saved register");
-        expected.add("pushq %r10 # push callee-saved register");
+        expected.add("pushq %r12 # push callee-saved register");
 
         expected.add(".L0:");
         expected.add("movl $10, %ebx");
@@ -236,8 +236,8 @@ public class DumbAllocatorTest {
         expected.add("subl $2, %ebx");
         expected.add("movl %ebx, -48(%rbp) # spill for @6");
         expected.add("movl -32(%rbp), %ebx # reload for @4");
-        expected.add("movl -48(%rbp), %r10d # reload for @6");
-        expected.add("cmpl %ebx, %r10d");
+        expected.add("movl -48(%rbp), %r12d # reload for @6");
+        expected.add("cmpl %ebx, %r12d");
         expected.add("jle .L3");
 
         expected.add(".L2:");
@@ -247,12 +247,12 @@ public class DumbAllocatorTest {
         expected.add("imulq $4, %rbx");
         expected.add("movq %rbx, -56(%rbp) # spill for @7");
         expected.add("movq -24(%rbp), %rbx # reload for @3");
-        expected.add("movq -56(%rbp), %r10 # reload for @7 [overwrite]");
-        expected.add("addq %rbx, %r10");
-        expected.add("movq %r10, -64(%rbp) # spill for @8");
+        expected.add("movq -56(%rbp), %r12 # reload for @7 [overwrite]");
+        expected.add("addq %rbx, %r12");
+        expected.add("movq %r12, -64(%rbp) # spill for @8");
         expected.add("movq -64(%rbp), %rbx # reload for @8");
-        expected.add("movl -8(%rbx), %r10d");
-        expected.add("movl %r10d, -72(%rbp) # spill for @9");
+        expected.add("movl -8(%rbx), %r12d");
+        expected.add("movl %r12d, -72(%rbp) # spill for @9");
         expected.add("movslq -72(%rbp), %rbx # load to temporary...");
         expected.add("movq %rbx, -80(%rbp) # ...and spill to target");
         expected.add("movq $3, %rbx");
@@ -265,14 +265,14 @@ public class DumbAllocatorTest {
         expected.add("movl -280(%rbp), %ebx # load to temporary...");
         expected.add("movl %ebx, -96(%rbp) # ...and spill to target");
         expected.add("movl -272(%rbp), %ebx # reload for @35");
-        expected.add("movl -96(%rbp), %r10d # reload for @12 [overwrite]");
-        expected.add("addl %ebx, %r10d");
-        expected.add("movl %r10d, -104(%rbp) # spill for @13");
+        expected.add("movl -96(%rbp), %r12d # reload for @12 [overwrite]");
+        expected.add("addl %ebx, %r12d");
+        expected.add("movl %r12d, -104(%rbp) # spill for @13");
         expected.add("movl -104(%rbp), %ebx # load to temporary...");
         expected.add("movl %ebx, -272(%rbp) # ...and spill to target");
         expected.add("movq -64(%rbp), %rbx # reload for @8");
-        expected.add("movl -4(%rbx), %r10d");
-        expected.add("movl %r10d, -112(%rbp) # spill for @14");
+        expected.add("movl -4(%rbx), %r12d");
+        expected.add("movl %r12d, -112(%rbp) # spill for @14");
         expected.add("movslq -112(%rbp), %rbx # load to temporary...");
         expected.add("movq %rbx, -120(%rbp) # ...and spill to target");
         expected.add("movq $2, %rbx");
@@ -285,23 +285,23 @@ public class DumbAllocatorTest {
         expected.add("movl -288(%rbp), %ebx # load to temporary...");
         expected.add("movl %ebx, -136(%rbp) # ...and spill to target");
         expected.add("movl -272(%rbp), %ebx # reload for @35");
-        expected.add("movl -136(%rbp), %r10d # reload for @17 [overwrite]");
-        expected.add("addl %ebx, %r10d");
-        expected.add("movl %r10d, -144(%rbp) # spill for @18");
+        expected.add("movl -136(%rbp), %r12d # reload for @17 [overwrite]");
+        expected.add("addl %ebx, %r12d");
+        expected.add("movl %r12d, -144(%rbp) # spill for @18");
         expected.add("movl -144(%rbp), %ebx # load to temporary...");
         expected.add("movl %ebx, -272(%rbp) # ...and spill to target");
         expected.add("movq -64(%rbp), %rbx # reload for @8");
-        expected.add("movl (%rbx), %r10d");
-        expected.add("movl %r10d, -152(%rbp) # spill for @19");
+        expected.add("movl (%rbx), %r12d");
+        expected.add("movl %r12d, -152(%rbp) # spill for @19");
         expected.add("movl -272(%rbp), %ebx # reload for @35");
-        expected.add("movl -152(%rbp), %r10d # reload for @19 [overwrite]");
-        expected.add("addl %ebx, %r10d");
-        expected.add("movl %r10d, -160(%rbp) # spill for @20");
+        expected.add("movl -152(%rbp), %r12d # reload for @19 [overwrite]");
+        expected.add("addl %ebx, %r12d");
+        expected.add("movl %r12d, -160(%rbp) # spill for @20");
         expected.add("movl -160(%rbp), %ebx # load to temporary...");
         expected.add("movl %ebx, -272(%rbp) # ...and spill to target");
         expected.add("movq -64(%rbp), %rbx # reload for @8");
-        expected.add("movl 4(%rbx), %r10d");
-        expected.add("movl %r10d, -168(%rbp) # spill for @21");
+        expected.add("movl 4(%rbx), %r12d");
+        expected.add("movl %r12d, -168(%rbp) # spill for @21");
         expected.add("movslq -168(%rbp), %rbx # load to temporary...");
         expected.add("movq %rbx, -176(%rbp) # ...and spill to target");
         expected.add("movq $2, %rbx");
@@ -314,14 +314,14 @@ public class DumbAllocatorTest {
         expected.add("movl -296(%rbp), %ebx # load to temporary...");
         expected.add("movl %ebx, -192(%rbp) # ...and spill to target");
         expected.add("movl -272(%rbp), %ebx # reload for @35");
-        expected.add("movl -192(%rbp), %r10d # reload for @24 [overwrite]");
-        expected.add("addl %ebx, %r10d");
-        expected.add("movl %r10d, -200(%rbp) # spill for @25");
+        expected.add("movl -192(%rbp), %r12d # reload for @24 [overwrite]");
+        expected.add("addl %ebx, %r12d");
+        expected.add("movl %r12d, -200(%rbp) # spill for @25");
         expected.add("movl -200(%rbp), %ebx # load to temporary...");
         expected.add("movl %ebx, -272(%rbp) # ...and spill to target");
         expected.add("movq -64(%rbp), %rbx # reload for @8");
-        expected.add("movl 8(%rbx), %r10d");
-        expected.add("movl %r10d, -208(%rbp) # spill for @26");
+        expected.add("movl 8(%rbx), %r12d");
+        expected.add("movl %r12d, -208(%rbp) # spill for @26");
         expected.add("movslq -208(%rbp), %rbx # load to temporary...");
         expected.add("movq %rbx, -216(%rbp) # ...and spill to target");
         expected.add("movq $3, %rbx");
@@ -334,9 +334,9 @@ public class DumbAllocatorTest {
         expected.add("movl -304(%rbp), %ebx # load to temporary...");
         expected.add("movl %ebx, -232(%rbp) # ...and spill to target");
         expected.add("movl -272(%rbp), %ebx # reload for @35");
-        expected.add("movl -232(%rbp), %r10d # reload for @29 [overwrite]");
-        expected.add("addl %ebx, %r10d");
-        expected.add("movl %r10d, -240(%rbp) # spill for @30");
+        expected.add("movl -232(%rbp), %r12d # reload for @29 [overwrite]");
+        expected.add("addl %ebx, %r12d");
+        expected.add("movl %r12d, -240(%rbp) # spill for @30");
         expected.add("movl -240(%rbp), %ebx # load to temporary...");
         expected.add("movl %ebx, -272(%rbp) # ...and spill to target");
         expected.add("movl -32(%rbp), %ebx # reload for @4 [overwrite]");
@@ -354,7 +354,7 @@ public class DumbAllocatorTest {
         expected.add("call print@PLT");
 
         expected.add(ApplyAssignment.FINAL_BLOCK_LABEL + ":");
-        expected.add("popq %r10 # restore callee-saved register");
+        expected.add("popq %r12 # restore callee-saved register");
         expected.add("popq %rbx # restore callee-saved register");
         expected.add("leave");
         expected.add("ret");

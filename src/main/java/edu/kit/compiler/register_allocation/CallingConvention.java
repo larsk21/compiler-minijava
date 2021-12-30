@@ -8,7 +8,8 @@ import java.util.Optional;
 
 public class CallingConvention {
     public static final CallingConvention X86_64 = new CallingConvention(
-            EnumSet.of(Register.RDI, Register.RSI, Register.RDX, Register.RCX, Register.R8, Register.R9, Register.RAX),
+            EnumSet.of(Register.RDI, Register.RSI, Register.RDX, Register.RCX, Register.R8,
+                    Register.R9, Register.R10, Register.R11, Register.RAX),
             new Register[] {Register.RDI, Register.RSI, Register.RDX, Register.RCX, Register.R8, Register.R9},
             Register.RAX
     );

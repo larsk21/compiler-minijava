@@ -15,10 +15,10 @@ import java.util.stream.Stream;
 public class RegisterPreference {
     private static final EnumSet<Register> x86_DIV_REGISTERS = EnumSet.of(Register.RAX, Register.RDX);
     private static final EnumSet<Register> x86_GENERAL_CALLER_SAVED = EnumSet.of(
-            Register.RDI, Register.RSI, Register.RCX, Register.R8, Register.R9
+            Register.RDI, Register.RSI, Register.RCX, Register.R8, Register.R9, Register.R10, Register.R11
     );
     private static final EnumSet<Register> x86_CALLEE_SAVED = EnumSet.of(
-            Register.R10, Register.R11, Register.R12, Register.R13, Register.R14, Register.R15, Register.RBX
+            Register.R12, Register.R13, Register.R14, Register.R15, Register.RBX
     );
 
     public static final RegisterPreference PREFER_CALLEE_SAVED =
