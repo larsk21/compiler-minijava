@@ -204,15 +204,15 @@ public class ApplyAssignment {
 
         // handle the divisor
         Register divisorRegister;
-        if (!assignment[divisor].isSpilled() && lifetimes[divisor].isLastInstructionAndInput(index)) {
+        if (assignment[divisor].isSpilled()) {
+            // move divisor to temporary register
+            int stackSlot = assignment[divisor].getStackSlot().get();
+            divisorRegister = tracker.getDivRegister();
+            output("movq %d(%%rbp), %s # get divisor", stackSlot, divisorRegister.getAsQuad());
+        } else {
             Register r = assignment[divisor].getRegister().get();
             tracker.assertMapping(divisor, r);
             divisorRegister = r;
-        } else {
-            // move divisor to temporary register
-            divisorRegister = tracker.getDivRegister();
-            String getDivisor = getVRegisterValue(divisor, RegisterSize.QUAD);
-            output("movq %s, %s # get divisor", getDivisor, divisorRegister.getAsQuad());
         }
 
         // output the instruction itself
