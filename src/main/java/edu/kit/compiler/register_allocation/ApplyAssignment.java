@@ -259,13 +259,13 @@ public class ApplyAssignment {
         }
 
         // downcast uses same size for both operands (a downcast is a plain `movl`)
-        RegisterSize sourceSize = isSignedUpcast ? sizes[source] : sizes[target];
+        RegisterSize sourceSize = isUpcast ? sizes[source] : sizes[target];
         String getSource = getVRegisterValue(source, sourceSize);
         RegisterSize targetSize = isUpcast && !isSignedUpcast ? sizes[source] : sizes[target];
         String getTarget = getVRegisterValue(target, targetSize);
 
         String cmd;
-        if (isSignedUpcast && instr.getType() == InstructionType.MOV_S) {
+        if (isSignedUpcast) {
             // currently, only conversions from double to quad are supported
             assert sourceSize == RegisterSize.DOUBLE && targetSize == RegisterSize.QUAD;
             cmd = "movslq";
