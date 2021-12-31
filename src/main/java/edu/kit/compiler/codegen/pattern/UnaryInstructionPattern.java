@@ -1,11 +1,11 @@
 package edu.kit.compiler.codegen.pattern;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import edu.kit.compiler.codegen.Instructions;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
@@ -64,11 +64,8 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
 
         @Override
         public List<Instruction> getInstructions() {
-            if (targetRegister.isPresent()) {
-                return List.of(getAsOperation());
-            } else {
-                return List.of(getAsInput());
-            }
+            return List.of(Instructions.newUnary(command, source.getOperand().getSize(),
+                    source.getOperand(), targetRegister));
         }
 
         @Override
@@ -86,32 +83,6 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
         @Override
         public Stream<Operand> getOperands() {
             return Stream.of(source.getOperand());
-        }
-
-        private Instruction getAsOperation() {
-            assert targetRegister.isPresent();
-
-            var targetOperand = Operand.register(source.getOperand().getMode(), targetRegister.get());
-
-            var inputRegisters = new ArrayList<>(source.getOperand().getSourceRegisters());
-            var overwriteRegister = source.getOperand().getTargetRegister();
-
-            // make sure the overwritten register is not part of input registers
-            if (overwriteRegister.isPresent()) {
-                inputRegisters.remove(overwriteRegister.get());
-            }
-
-            return Instruction.newOp(
-                    Util.formatCmd(command, source.getOperand().getSize(), targetOperand),
-                    inputRegisters, overwriteRegister, targetRegister.get());
-        }
-
-        private Instruction getAsInput() {
-            assert !targetRegister.isPresent();
-
-            return Instruction.newInput(
-                    Util.formatCmd(command, source.getOperand().getSize(), source.getOperand()),
-                    source.getOperand().getSourceRegisters());
         }
     }
 }
