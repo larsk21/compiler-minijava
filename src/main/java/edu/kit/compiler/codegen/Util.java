@@ -16,8 +16,16 @@ public class Util {
         return String.format("%s%c %s", cmd, size.getSuffix(), op.format());
     }
 
+    public static String formatCmd(String cmd, RegisterSize size, int targetRegister) {
+        return String.format("%s%c @%d", cmd, size.getSuffix(), targetRegister);
+    }
+
     public static String formatCmd(String cmd, RegisterSize size, Operand lhs, Operand rhs) {
         return String.format("%s%c %s, %s", cmd, size.getSuffix(), lhs.format(), rhs.format());
+    }
+
+    public static String formatCmd(String cmd, RegisterSize size, Operand lhs, int targetRegister) {
+        return String.format("%s%c %s, @%d", cmd, size.getSuffix(), lhs.format(), targetRegister);
     }
 
     public static String formatJmp(String cmd, int destination) {

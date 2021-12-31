@@ -1,11 +1,11 @@
 package edu.kit.compiler.codegen.pattern;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.function.IntSupplier;
 import java.util.stream.Stream;
 
+import edu.kit.compiler.codegen.Instructions;
 import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
@@ -64,9 +64,9 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
     protected abstract InstructionMatch getMatch(Node node, OperandMatch<T> target,
             OperandMatch<S> source, MatcherState matcher);
 
-    private static Optional<Integer> getTarget(Operand.Target operand, Supplier<Integer> register) {
+    private static Optional<Integer> getTarget(Operand.Target operand, IntSupplier register) {
         if (operand.getTargetRegister().isPresent()) {
-            return Optional.of(register.get());
+            return Optional.of(register.getAsInt());
         } else {
             return Optional.empty();
         }
@@ -88,11 +88,8 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
 
         @Override
         public List<Instruction> getInstructions() {
-            if (targetRegister.isPresent()) {
-                return List.of(getAsOperation());
-            } else {
-                return List.of(getAsInput());
-            }
+            return List.of(Instructions.newBinary(command, source.getOperand().getSize(),
+                    target.getOperand(), source.getOperand(), targetRegister));
         }
 
         @Override
@@ -110,43 +107,6 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
         @Override
         public Stream<Operand> getOperands() {
             return Stream.of(target.getOperand(), source.getOperand());
-        }
-
-        private Instruction getAsOperation() {
-            assert targetRegister.isPresent();
-
-            var mode = source.getOperand().getMode();
-            var size = source.getOperand().getSize();
-
-            var targetOperand = Operand.register(mode, targetRegister.get());
-
-            var inputRegisters = getInputRegisters();
-            var overwriteRegister = target.getOperand().getTargetRegister();
-
-            // make sure the overwritten register is not part of input registers
-            if (overwriteRegister.isPresent()) {
-                inputRegisters.removeIf(overwriteRegister.get()::equals);
-            }
-
-            return Instruction.newOp(
-                    Util.formatCmd(command, size, source.getOperand(), targetOperand),
-                    inputRegisters, overwriteRegister, targetRegister.get());
-        }
-
-        private Instruction getAsInput() {
-            assert !targetRegister.isPresent();
-
-            var size = source.getOperand().getSize();
-            return Instruction.newInput(
-                    Util.formatCmd(command, size, source.getOperand(), target.getOperand()),
-                    getInputRegisters());
-        }
-
-        private List<Integer> getInputRegisters() {
-            var input = new ArrayList<>(target.getOperand().getSourceRegisters());
-            input.addAll(source.getOperand().getSourceRegisters());
-
-            return input;
         }
     }
 }

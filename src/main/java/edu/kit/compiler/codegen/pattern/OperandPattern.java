@@ -3,7 +3,7 @@ package edu.kit.compiler.codegen.pattern;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -48,6 +48,15 @@ public final class OperandPattern {
     }
 
     /**
+     * Returns a pattern that will match any Const node for whose TargetValue
+     * the given predicate returns true.
+     */
+    public static Pattern<OperandMatch<Immediate>> immediate(
+            Predicate<TargetValue> predicate) {
+        return new ImmediatePattern(predicate);
+    }
+
+    /**
      * Return a pattern that will match any Const node that can be used as scale
      * in address, i.e. the values 1, 2, 4, or 8.
      */
@@ -85,7 +94,7 @@ public final class OperandPattern {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class ImmediatePattern implements Pattern<OperandMatch<Immediate>> {
 
-        private final Function<TargetValue, Boolean> constraint;
+        private final Predicate<TargetValue> predicate;
 
         @Override
         public OperandMatch<Immediate> match(Node node, MatcherState matcher) {
@@ -115,7 +124,7 @@ public final class OperandPattern {
 
         private OperandMatch<Immediate> checkSize(OperandMatch<Immediate> match) {
             if (match.matches()) {
-                if (constraint.apply(match.getOperand().get())) {
+                if (predicate.test(match.getOperand().get())) {
                     return match;
                 } else {
                     return OperandMatch.none();

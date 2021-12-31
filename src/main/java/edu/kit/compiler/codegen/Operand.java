@@ -14,8 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
- * Base for operands used during instruction selection. Implementations will
- * will implement one of the interfaces `Source` or `Target`.
+ * Base for operands used during instruction selection. Implementors will
+ * implement one of the interfaces `Source` or `Target`.
  */
 public interface Operand {
 
@@ -57,6 +57,13 @@ public interface Operand {
      */
     public static Immediate immediate(TargetValue value) {
         return new Immediate(value);
+    }
+
+    /**
+     * Same as `Operand.immediate(new TargetValue(value, mode))`
+     */
+    public static Immediate immediate(int value, Mode mode) {
+        return new Immediate(new TargetValue(value, mode));
     }
 
     /**
