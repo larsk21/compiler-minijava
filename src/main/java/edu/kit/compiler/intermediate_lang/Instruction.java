@@ -77,7 +77,7 @@ public class Instruction {
                        Optional<Integer> overwriteRegister, Optional<Integer> targetRegister,
                        List<Integer> dataDependencies, Optional<Integer> jumpTarget) {
         // some input validation
-        assert overwriteRegister.isEmpty() || targetRegister.isPresent();
+        assert overwriteRegister.isEmpty() || (targetRegister.isPresent() && type == InstructionType.GENERAL);
         for (int reg: inputRegisters) {
             assert overwriteRegister.isEmpty() || reg != overwriteRegister.get();
             assert targetRegister.isEmpty() || reg != targetRegister.get();
@@ -107,6 +107,9 @@ public class Instruction {
         for (int i: inputRegisters) {
             toReplace.add(i);
         }
+        if (overwriteRegister.isPresent()) {
+            toReplace.add(overwriteRegister.get());
+        }
         if (targetRegister.isPresent()) {
             toReplace.add(targetRegister.get());
         }
@@ -125,6 +128,14 @@ public class Instruction {
             suffix = String.format(" /* overwrite: @%d */", overwriteRegister.get());
         }
         return text + suffix;
+    }
+
+    public boolean isDivOrMod() {
+        return type == InstructionType.DIV || type == InstructionType.MOD;
+    }
+
+    public int inputRegister(int index) {
+        return inputRegisters.get(index);
     }
 
     // ==== some helper methods for simplifying construction ====
