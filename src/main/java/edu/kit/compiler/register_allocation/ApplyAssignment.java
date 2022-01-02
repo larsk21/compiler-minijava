@@ -114,7 +114,12 @@ public class ApplyAssignment {
                                           Instruction instr, int index) {
         assert instr.getType() == InstructionType.GENERAL;
         tracker.enterInstruction(index);
-        List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(instr));
+
+        Optional<Register> excluded = Optional.empty();
+        if (instr.getOverwriteRegister().isPresent()) {
+            excluded = instr.getTargetRegister().flatMap(vRegister -> assignment[vRegister].getRegister());
+        }
+        List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(instr), excluded);
 
         // handle spilled input registers and set names
         int tmpIdx = 0;
@@ -153,6 +158,13 @@ public class ApplyAssignment {
 
             // handle the overwrite register
             if (instr.getOverwriteRegister().isPresent()) {
+                Optional<Register> targetRegister = assignment[instr.getTargetRegister().get()].getRegister();
+                if (targetRegister.isPresent()) {
+                    for (int iRegister: instr.getInputRegisters()) {
+                        assert !assignment[iRegister].getRegister().equals(targetRegister);
+                    }
+                }
+
                 int overwrite = instr.getOverwriteRegister().get();
                 if (assignment[overwrite].isSpilled()) {
                     int stackSlot = assignment[overwrite].getStackSlot().get();
@@ -280,7 +292,7 @@ public class ApplyAssignment {
 
         // output the instruction itself
         if (assignment[source].isSpilled() && assignment[target].isSpilled()) {
-            String tmpRegister = tracker.getTmpRegisters(1).get(0).asSize(targetSize);
+            String tmpRegister = tracker.getTmpRegisters(1, Optional.empty()).get(0).asSize(targetSize);
             output("%s %s, %s # load to temporary...",
                     cmd, getSource, tmpRegister);
             output("mov%c %s, %s # ...and spill to target",
@@ -624,16 +636,18 @@ public class ApplyAssignment {
          * Temporary register do _not_ outlive the execution of an original instruction
          * (unless special care is taken).
          */
-        public List<Register> getTmpRegisters(int num) {
+        public List<Register> getTmpRegisters(int num, Optional<Register> excluded) {
             assert !tmpRequested;
             tmpRequested = true;
-            return registers.getFreeRegisters(num);
+            return registers.getFreeRegisters(num, excluded);
         }
 
         public Register getDivRegister() {
             assert !tmpRequested;
             tmpRequested = true;
-            return registers.getFreeRegisters(1, RegisterPreference.PREFER_CALLEE_SAVED_NO_DIV).get(0);
+            return registers.getFreeRegisters(
+                    1, RegisterPreference.PREFER_CALLEE_SAVED_NO_DIV, Optional.empty()
+            ).get(0);
         }
 
         /**

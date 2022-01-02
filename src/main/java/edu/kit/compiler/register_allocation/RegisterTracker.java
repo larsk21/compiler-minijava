@@ -58,17 +58,19 @@ public class RegisterTracker {
     /**
      * Free registers must always ve requested together.
      */
-    public List<Register> getFreeRegisters(int num) {
-        return getFreeRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED);
+    public List<Register> getFreeRegisters(int num, Optional<Register> exludedRegister) {
+        return getFreeRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED, exludedRegister);
     }
 
-    public List<Register> getFreeRegisters(int num, RegisterPreference pref) {
+    public List<Register> getFreeRegisters(int num, RegisterPreference pref,
+                                           Optional<Register> exludedRegister) {
         List<Register> result = new ArrayList<>();
         if (num == 0) {
             return result;
         }
         for (Register r: pref.inPreferenceOrder().filter(
-                r -> !isReservedRegister(r) && isFree(r)
+                r -> !isReservedRegister(r) && isFree(r) &&
+                        (exludedRegister.isEmpty() || r != exludedRegister.get())
         ).collect(Collectors.toList())) {
             result.add(r);
             usedRegisters.add(r);

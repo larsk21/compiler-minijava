@@ -77,7 +77,7 @@ public class Instruction {
                        Optional<Integer> overwriteRegister, Optional<Integer> targetRegister,
                        List<Integer> dataDependencies, Optional<Integer> jumpTarget) {
         // some input validation
-        assert overwriteRegister.isEmpty() || targetRegister.isPresent();
+        assert overwriteRegister.isEmpty() || (targetRegister.isPresent() && type == InstructionType.GENERAL);
         for (int reg: inputRegisters) {
             assert overwriteRegister.isEmpty() || reg != overwriteRegister.get();
             assert targetRegister.isEmpty() || reg != targetRegister.get();
