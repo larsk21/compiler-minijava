@@ -25,10 +25,10 @@ public final class InstructionSelection {
     @Getter
     private final BasicBlocks blocks;
 
-    private InstructionSelection(Graph graph) {
+    private InstructionSelection(Graph graph, int blockId) {
         // todo is this the idiomatic way of getting number of parameters
         var type = (MethodType) graph.getEntity().getType();
-        blocks = new BasicBlocks(graph);
+        blocks = new BasicBlocks(graph, blockId);
 
         var parameters = new ArrayList<RegisterSize>(type.getNParams());
         for (int i = 0; i < type.getNParams(); ++i) {
@@ -37,8 +37,8 @@ public final class InstructionSelection {
         matcher = new MatcherState(graph, parameters);
     }
 
-    public static InstructionSelection apply(Graph graph, PatternCollection patterns) {
-        var instance = new InstructionSelection(graph);
+    public static InstructionSelection apply(Graph graph, PatternCollection patterns, int blockId) {
+        var instance = new InstructionSelection(graph, blockId);
 
         var matchingVisitor = instance.new MatchingVisitor(patterns);
         graph.walkTopological(matchingVisitor);

@@ -2,6 +2,7 @@ package edu.kit.compiler.codegen;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -23,13 +24,19 @@ import lombok.RequiredArgsConstructor;
 /**
  * Represents the basic blocks of a function.
  */
-@RequiredArgsConstructor
 public class BasicBlocks {
 
     @Getter
     private final Graph graph;
 
     private final HashMap<Integer, BlockEntry> blocks = new HashMap<>();
+
+    private int currentLabel;
+
+    public BasicBlocks(Graph graph, int jumpLabel) {
+        this.graph = graph;
+        this.currentLabel = jumpLabel;
+    }
 
     /**
      * Return the entry for the given Firm block. The caller must ensure that
@@ -38,7 +45,19 @@ public class BasicBlocks {
     public BlockEntry getEntry(Node block) {
         assert block.getOpCode() == ir_opcode.iro_Block;
         return blocks.computeIfAbsent(block.getNr(),
-                n -> new BlockEntry((Block) block));
+                n -> new BlockEntry((Block) block, newLabel()));
+    }
+
+    public int newLabel() {
+        return currentLabel++;
+    }
+
+    public Collection<BlockEntry> getEntries() {
+        return blocks.values();
+    }
+
+    public BlockEntry getStartBlock() {
+        return blocks.get(graph.getStartBlock().getNr());
     }
 
     @Override
@@ -54,17 +73,19 @@ public class BasicBlocks {
 
         @Getter
         private final Block firmBlock;
+        private final int jumpLabel;
 
         private final List<Instruction> instructions = new ArrayList<>();
         private final List<PhiInstruction> phiInstructions = new ArrayList<>();
 
+        @Getter
         private Optional<ExitCondition> exitCondition = Optional.empty();
 
         /**
          * Return the jump label of the block.
          */
         public int getLabel() {
-            return firmBlock.getNr();
+            return jumpLabel;
         }
 
         /**
@@ -110,9 +131,9 @@ public class BasicBlocks {
             var condition = exitCondition.get();
             if (node.getPred().getOpCode() == ir_opcode.iro_Cond) {
                 if (node.getNum() == Cond.pnTrue) {
-                    condition.setTrueBlock(entry);
+                    condition.setTrueBlock(entry.getLabel());
                 } else if (node.getNum() == Cond.pnFalse) {
-                    condition.setFalseBlock(entry);
+                    condition.setFalseBlock(entry.getLabel());
                 } else {
                     throw new IllegalStateException();
                 }
@@ -129,7 +150,7 @@ public class BasicBlocks {
 
             var entry = getEntry(block);
             var condition = exitCondition.get();
-            condition.setTrueBlock(entry);
+            condition.setTrueBlock(entry.getLabel());
         }
 
         /**
@@ -157,7 +178,7 @@ public class BasicBlocks {
         public String toString() {
             var instructions = Stream.concat(getInstructions().stream(),
                     getExitInstructions().stream()).collect(Collectors.toList());
-            return String.format("(%s, %s)", phiInstructions, instructions.toString());
+            return String.format("(.L%d: %s, %s)", jumpLabel, phiInstructions, instructions.toString());
         }
     }
 }
