@@ -107,6 +107,9 @@ public class Instruction {
         for (int i: inputRegisters) {
             toReplace.add(i);
         }
+        if (overwriteRegister.isPresent()) {
+            toReplace.add(overwriteRegister.get());
+        }
         if (targetRegister.isPresent()) {
             toReplace.add(targetRegister.get());
         }

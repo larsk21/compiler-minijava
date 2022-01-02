@@ -166,6 +166,7 @@ public class ApplyAssignment {
                 }
 
                 int overwrite = instr.getOverwriteRegister().get();
+                replace.put(overwrite, targetName);
                 if (assignment[overwrite].isSpilled()) {
                     int stackSlot = assignment[overwrite].getStackSlot().get();
                     output("mov%c %d(%%rbp), %s # reload for @%s [overwrite]",
