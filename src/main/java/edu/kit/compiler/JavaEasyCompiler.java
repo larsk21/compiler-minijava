@@ -241,7 +241,7 @@ public class JavaEasyCompiler {
                 var type = (MethodType) graph.getEntity().getType();
                 int nArgs = type.getNParams();
                 List<String> instructions = allocator.performAllocation(
-                        nArgs, il, selection.getMatcher().getRegisterSizes().toArray(new RegisterSize[0]));
+                        nArgs, il, selection.getMatcher().getRegisterSizes());
 
                 functions.add(new FunctionInstructions(graph.getEntity().getLdName(), instructions));
             }
