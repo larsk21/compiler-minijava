@@ -468,8 +468,7 @@ public class ApplyAssignment {
         }
 
         // initialize vRegisters that are function arguments
-        for (int vRegister = 0; vRegister < nArgs; vRegister++) {
-            // check whether the argument is used at all
+        for (int vRegister = nArgs - 1; vRegister >= 0; vRegister--) {
             if (!lifetimes[vRegister].isTrivial()) {
                 RegisterSize size = sizes[vRegister];
                 String toVRegister = getVRegisterValue(vRegister, size);
@@ -482,10 +481,20 @@ public class ApplyAssignment {
                     }
                 } else {
                     // the argument is passed on the stack
-                    // TODO: special case for spilled registers?
                     int offset = 16 + 8 * (nArgs - vRegister - 1);
-                    output("mov%c %d(%%rbp), %s # initialize @%d from arg",
-                            size.getSuffix(), offset, toVRegister, vRegister);
+                    if (assignment[vRegister].isSpilled()) {
+                        int stackSlot = assignment[vRegister].getStackSlot().get();
+                        if (offset != stackSlot) {
+                            String tmpRegister = cconv.getReturnRegister().asSize(size);
+                            output("mov%c %d(%%rbp), %s # load to temporary...",
+                                    size.getSuffix(), offset, tmpRegister);
+                            output("mov%c %s, %d(%%rbp) # ...initialize @%d from arg",
+                                    size.getSuffix(), tmpRegister, stackSlot, vRegister);
+                        }
+                    } else {
+                        output("mov%c %d(%%rbp), %s # initialize @%d from arg",
+                                size.getSuffix(), offset, toVRegister, vRegister);
+                    }
                 }
             }
         }
