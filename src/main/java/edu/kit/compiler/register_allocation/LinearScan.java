@@ -33,8 +33,11 @@ public class LinearScan implements RegisterAllocator {
                 state.enterInstruction(i);
                 switch (instr.getType()) {
                     case GENERAL -> {
+                        Optional<Register> excluded = instr.getTargetRegister().flatMap(
+                                vRegister -> assignment[vRegister].getRegister()
+                        );
                         int nTemps = countRequiredTmps(assignment, instr);
-                        state.assertCapacity(nTemps, false);
+                        state.assertCapacity(nTemps, excluded);
                     }
                     case DIV, MOD -> {
                         int dividend = instr.inputRegister(0);
@@ -46,13 +49,13 @@ public class LinearScan implements RegisterAllocator {
                         }
                         state.assertFree(Register.RDX);
                         if (assignment[divisor].isSpilled()) {
-                            state.assertCapacity(freeRAX ? 3 : 2, true);
+                            state.assertCapacity(freeRAX ? 3 : 2, Optional.of(Register.RAX));
                         }
                     }
                     case MOV_S, MOV_U -> {
                         if (assignment[instr.inputRegister(0)].isSpilled() &&
                                 assignment[instr.getTargetRegister().get()].isSpilled()) {
-                            state.assertCapacity(1, false);
+                            state.assertCapacity(1, Optional.empty());
                         }
                     }
                     case CALL, RET -> { }
@@ -258,8 +261,7 @@ class ScanState {
         return allocated;
     }
 
-    public void assertCapacity(int capacity, boolean excludeRAX) {
-        Optional<Register> excluded = excludeRAX ? Optional.of(Register.RAX) : Optional.empty();
+    public void assertCapacity(int capacity, Optional<Register> excluded) {
         while (registers.numFree() < capacity) {
             spill(selectSpillRegister(registers.getCurrentVRegisters(excluded)));
         }
