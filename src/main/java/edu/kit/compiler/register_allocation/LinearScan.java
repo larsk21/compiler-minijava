@@ -68,8 +68,12 @@ public class LinearScan implements RegisterAllocator {
                         allocateTargetRegister(state, i, instr);
                     }
                     case MOV_S, MOV_U -> {
-                        if (assignment[instr.inputRegister(0)].isSpilled() &&
-                                assignment[instr.getTargetRegister().get()].isSpilled()) {
+                        int source = instr.inputRegister(0);
+                        int target = instr.getTargetRegister().get();
+                        boolean isSignedUpcast = sizes[target].getBytes() > sizes[source].getBytes()
+                                && instr.getType() == InstructionType.MOV_S;
+                        if ((!assignment[source].isInRegister() || isSignedUpcast) &&
+                                !assignment[target].isInRegister()) {
                             state.assertCapacity(1, Optional.empty());
                         }
                         state.leaveInstruction(i);
