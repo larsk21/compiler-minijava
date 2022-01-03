@@ -1,6 +1,7 @@
 package edu.kit.compiler.register_allocation;
 
 import edu.kit.compiler.intermediate_lang.*;
+import lombok.Getter;
 
 import java.util.*;
 
@@ -33,11 +34,23 @@ public class LinearScan implements RegisterAllocator {
                 state.enterInstruction(i);
                 switch (instr.getType()) {
                     case GENERAL -> {
-                        Optional<Register> excluded = instr.getTargetRegister().flatMap(
-                                vRegister -> assignment[vRegister].getRegister()
-                        );
-                        int nTemps = countRequiredTmps(assignment, instr);
-                        state.assertCapacity(nTemps, excluded);
+                        if (instr.getOverwriteRegister().isPresent()) {
+                            int overwrite = instr.getOverwriteRegister().get();
+                            if (analysis.getLifetime(overwrite).isLastInstructionAndInput(i)) {
+                                state.clear(overwrite);
+                            }
+                            // target register must be disjoint from input registers
+                            allocateTargetRegister(state, i, instr);
+                            int nTemps = countRequiredTmps(assignment, instr);
+                            state.assertCapacity(nTemps, Optional.empty());
+                            state.leaveInstruction(i);
+                        } else {
+                            // conservatively, always allocate a tmp for the target
+                            int nTemps = countRequiredTmps(assignment, instr) + 1;
+                            state.assertCapacity(nTemps, Optional.empty());
+                            state.leaveInstruction(i);
+                            allocateTargetRegister(state, i, instr);
+                        }
                     }
                     case DIV, MOD -> {
                         int dividend = instr.inputRegister(0);
@@ -51,25 +64,23 @@ public class LinearScan implements RegisterAllocator {
                         if (assignment[divisor].isSpilled()) {
                             state.assertCapacity(freeRAX ? 3 : 2, Optional.of(Register.RAX));
                         }
+                        state.leaveInstruction(i);
+                        allocateTargetRegister(state, i, instr);
                     }
                     case MOV_S, MOV_U -> {
                         if (assignment[instr.inputRegister(0)].isSpilled() &&
                                 assignment[instr.getTargetRegister().get()].isSpilled()) {
                             state.assertCapacity(1, Optional.empty());
                         }
+                        state.leaveInstruction(i);
+                        allocateTargetRegister(state, i, instr);
                     }
-                    case CALL, RET -> { }
+                    case CALL, RET -> {
+                        state.leaveInstruction(i);
+                        allocateTargetRegister(state, i, instr);
+                    }
                 }
 
-                state.leaveInstruction(i);
-                if (instr.getTargetRegister().isPresent()) {
-                    int target = instr.getTargetRegister().get();
-                    if (analysis.getLifetime(target).getBegin() == i) {
-                        // allocate the new register
-                        RegisterPreference preference = calculatePreference(target, assignment, analysis);
-                        state.allocateRegister(target, preference);
-                    }
-                }
                 i++;
             }
         }
@@ -78,6 +89,18 @@ public class LinearScan implements RegisterAllocator {
 
         return ApplyAssignment.createFunctionBody(
                 assignment, sizes, analysis.getLifetimes(), input, analysis.getNumInstructions(), nArgs);
+    }
+
+    private void allocateTargetRegister(ScanState state, int index, Instruction instr) {
+        if (instr.getTargetRegister().isPresent()) {
+            LifetimeAnalysis analysis = state.getAnalysis();
+            int target = instr.getTargetRegister().get();
+            if (analysis.getLifetime(target).getBegin() == index) {
+                // allocate the new register
+                RegisterPreference preference = calculatePreference(target, state.getAssignment(), analysis);
+                state.allocateRegister(target, preference);
+            }
+        }
     }
 
     private static RegisterPreference calculatePreference(int vRegister, RegisterAssignment[] assignment,
@@ -186,7 +209,9 @@ public class LinearScan implements RegisterAllocator {
 }
 
 class ScanState {
+    @Getter
     private LifetimeAnalysis analysis;
+    @Getter
     private RegisterAssignment[] assignment;
     private RegisterSize[] sizes;
     private RegisterTracker registers;
@@ -209,6 +234,9 @@ class ScanState {
         }
 
         lifetimeEnds.sort((j, k) -> {
+            if (j == k) {
+                return 0;
+            }
             // We want to sort in descending order, so we can pop the last elements
             Lifetime l1 = analysis.getLifetime(k);
             Lifetime l2 = analysis.getLifetime(j);
@@ -220,6 +248,13 @@ class ScanState {
                 return -1;
             } else if (!l1.isLastInstrIsInput() && l2.isLastInstrIsInput()) {
                 return 1;
+            } else if (l1.isLastInstrIsInput() && l2.isLastInstrIsInput()) {
+                var overwrite = analysis.getLastInstruction(j).get().getOverwriteRegister();
+                if (overwrite.isPresent() && overwrite.get().equals(k)) {
+                    return -1;
+                } else if (overwrite.isPresent() && overwrite.get().equals(j)) {
+                    return 1;
+                }
             }
             return 0;
         });
@@ -253,6 +288,8 @@ class ScanState {
     }
 
     public Optional<Register> allocateRegister(int vRegister, RegisterPreference preference) {
+        assert !assignment[vRegister].isAssigned();
+
         Optional<Register> allocated = tryFindRegister(vRegister, preference);
         if (allocated.isPresent()) {
             registers.set(allocated.get(), vRegister);
@@ -293,6 +330,11 @@ class ScanState {
         if (r.isPresent()) {
             registers.clear(r.get());
         }
+    }
+
+    public void clear(int vRegister) {
+        assert lifetimeEnds.get(lifetimeEnds.size() - 1) == vRegister;
+        clearNext();
     }
 
     private int selectSpillRegister(Iterable<Integer> vRegisters) {
