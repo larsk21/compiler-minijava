@@ -288,7 +288,7 @@ public class ApplyAssignmentTest {
         expected.add("movq 8(%rsp), %rbx # reload @0 as arg 0");
         expected.add("movl %r8d, %ecx # move @1 into arg 1");
         expected.add("movl -8(%rbp), %edx # load @2 as arg 2");
-        expected.add("movl -16(%rbp), %rax # reload @3 ...");
+        expected.add("movl -16(%rbp), %eax # reload @3 ...");
         expected.add("pushq %rax # ... and pass it as arg 3");
         expected.add("pushq %r9 # pass @4 as arg 4");
         expected.add("pushq 0(%rsp) # reload @5 as arg 5");
