@@ -292,7 +292,7 @@ public class ApplyAssignment {
         }
 
         // output the instruction itself
-        if (assignment[source].isSpilled() && assignment[target].isSpilled()) {
+        if ((assignment[source].isSpilled() || isSignedUpcast) && assignment[target].isSpilled()) {
             String tmpRegister = tracker.getTmpRegisters(1, Optional.empty()).get(0).asSize(targetSize);
             output("%s %s, %s # load to temporary...",
                     cmd, getSource, tmpRegister);
@@ -692,7 +692,7 @@ public class ApplyAssignment {
         }
 
         public void assertMapping(int vRegister, Register r) {
-            if (!registers.get(r).isPresent() || !(registers.get(r).get() == vRegister)) {
+            if (!registers.get(r).isPresent() || !(registers.get(r).get().equals(vRegister))) {
                 throw new IllegalStateException(String.format(
                         "Expected that %s is mapped to @%d", r.getAsQuad(), vRegister));
             }
