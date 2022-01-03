@@ -47,13 +47,7 @@ public class LinearScanTest {
         expected.add(".L0:");
         expected.add("movl $0x1, %edi");
         expected.add("movl $0x4, %esi");
-        expected.add("pushq %rsi # push caller-saved register");
-        expected.add("pushq %rdi # push caller-saved register");
-        expected.add("movq 0(%rsp), %rdi # reload @6 as arg 0");
-        expected.add("movq 8(%rsp), %rsi # reload @7 as arg 1");
         expected.add("call calloc@PLT");
-        expected.add("addq $8, %rsp # clear stack");
-        expected.add("addq $8, %rsp # clear stack");
         expected.add("movl $0x7, %edx");
         expected.add("addl $77, %edx");
         expected.add("movl %edx, (%rax)");
@@ -62,12 +56,7 @@ public class LinearScanTest {
         expected.add("cqto # sign extension to octoword");
         expected.add("idivq %rcx");
         expected.add("movl %eax, %edi # move result to @3");
-        expected.add("pushq %rdi # push caller-saved register");
-        expected.add("movq 0(%rsp), %rdi # reload @3 as arg 0");
-        expected.add("subq $8, %rsp # align stack to 16 byte");
         expected.add("call print@PLT");
-        expected.add("addq $8, %rsp # remove args from stack");
-        expected.add("addq $8, %rsp # clear stack");
 
         expected.add(ApplyAssignment.FINAL_BLOCK_LABEL + ":");
         expected.add("leave");
