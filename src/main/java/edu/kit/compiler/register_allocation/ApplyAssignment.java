@@ -355,7 +355,7 @@ public class ApplyAssignment {
                     RegisterSize size = sizes[vRegister];
                     // to ensure that we read with correct size, we first move into a register
                     output("mov%c %d(%%rbp), %s # reload @%d ...",
-                            size.getSuffix(), stackSlot, cconv.getReturnRegister().getAsQuad(), vRegister);
+                            size.getSuffix(), stackSlot, cconv.getReturnRegister().asSize(size), vRegister);
                     output("pushq %s # ... and pass it as arg %d",
                             cconv.getReturnRegister().getAsQuad(), i);
                 } else {
