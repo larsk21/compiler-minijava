@@ -3,7 +3,6 @@ package edu.kit.compiler.codegen;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.kit.compiler.codegen.BasicBlocks.BlockEntry;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import firm.Relation;
 import lombok.AccessLevel;
@@ -109,27 +108,6 @@ public abstract class ExitCondition {
         private int falseLabel = -1;
 
         @Override
-        public List<Instruction> getInstructions() {
-            assert trueLabel >= 0 && falseLabel >= 0;
-
-            return switch (relation) {
-                case True -> new UnconditionalJump(trueLabel).getInstructions();
-                case False -> new UnconditionalJump(falseLabel).getInstructions();
-                case LessEqualGreater -> new UnconditionalJump(trueLabel).getInstructions();
-                default -> List.of(
-                        Instruction.newInput(
-                                Util.formatCmd(kind.getCmpCommand(), first.getSize(), second, first),
-                                getInputRegisters(second, first)),
-                        Instruction.newJmp(
-                                Util.formatJmp(getJmpCmd(), trueLabel),
-                                trueLabel),
-                        Instruction.newJmp(
-                                Util.formatJmp("jmp", falseLabel),
-                                falseLabel));
-            };
-        }
-
-        @Override
         public void setTrueBlock(int label) {
             this.trueLabel = label;
         }
@@ -162,17 +140,13 @@ public abstract class ExitCondition {
                 case LessEqualGreater -> asUnconditional(true).getInstructions();
                 default -> List.of(
                         getCmpInstruction(),
-                        Instruction.newJmp(
-                                Util.formatJmp(getTrueJump(), trueBlock.getLabel()),
-                                trueBlock.getLabel()),
-                        Instruction.newJmp(
-                                Util.formatJmp("jmp", falseBlock.getLabel()),
-                                falseBlock.getLabel()));
+                        Instruction.newJmp(Util.formatJmp(getTrueJump(), trueLabel), trueLabel),
+                        Instruction.newJmp(Util.formatJmp("jmp", falseLabel), falseLabel));
             };
         }
 
         protected UnconditionalJump asUnconditional(boolean value) {
-            return new UnconditionalJump(value ? trueBlock : falseBlock);
+            return new UnconditionalJump(value ? trueLabel : falseLabel);
         }
 
         protected abstract String getTrueJump();
