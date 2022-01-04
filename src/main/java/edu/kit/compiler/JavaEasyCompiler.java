@@ -16,6 +16,7 @@ import edu.kit.compiler.codegen.ReversePostfixOrder;
 import edu.kit.compiler.intermediate_lang.Block;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import edu.kit.compiler.register_allocation.DumbAllocator;
+import edu.kit.compiler.register_allocation.LinearScan;
 import edu.kit.compiler.register_allocation.RegisterAllocator;
 import edu.kit.compiler.transform.IRVisitor;
 import firm.*;
@@ -223,13 +224,12 @@ public class JavaEasyCompiler {
      * @param logger the logger
      * @return Ok or an according error
      */
-    private static Result compile(String filePath, Logger logger, Iterable<Optimization> optimizations) {
+    private static Result compile(String filePath, Logger logger, Iterable<Optimization> optimizations,
+                                  RegisterAllocator allocator) {
         try {
             createOptimizedIR(filePath, logger, optimizations);
 
             PatternCollection coll = new PatternCollection();
-            RegisterAllocator allocator = new DumbAllocator();
-
             List<FunctionInstructions> functions = new ArrayList<>();
             int blockId = 0;
             for (Graph graph : Program.getGraphs()) {
@@ -397,12 +397,15 @@ public class JavaEasyCompiler {
 
         // execute requested function
         Iterable<Optimization> optimizations;
+        RegisterAllocator allocator;
         if (cmd.hasOption("0")) {
             optimizations = Arrays.asList();
+            allocator = new DumbAllocator();
         } else {
             optimizations = Arrays.asList(
                     new ConstantOptimization()
             );
+            allocator = new LinearScan();
         }
 
         Result result;
@@ -442,7 +445,7 @@ public class JavaEasyCompiler {
         } else if (cmd.hasOption("co")) {
             String filePath = cmd.getOptionValue("co");
 
-            result = compile(filePath, logger, optimizations);
+            result = compile(filePath, logger, optimizations, allocator);
         }  else {
             if (cmd.getArgs().length == 0) {
                 System.err.println("Wrong command line arguments, see --help for supported commands.");
@@ -451,7 +454,7 @@ public class JavaEasyCompiler {
             } else {
                 String filePath = cmd.getArgs()[0];
 
-                result = compile(filePath, logger, optimizations);
+                result = compile(filePath, logger, optimizations, allocator);
             }
         }
 
