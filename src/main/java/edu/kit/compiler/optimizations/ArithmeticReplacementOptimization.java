@@ -42,7 +42,6 @@ public class ArithmeticReplacementOptimization implements Optimization {
         private final Worklist<Node> worklist = new StackWorklist<>();
         private final Graph graph;
 
-        // todo actually set this value
         private boolean changes = false;
 
         private void apply() {
@@ -56,27 +55,50 @@ public class ArithmeticReplacementOptimization implements Optimization {
         @Override
         public void visit(Mul node) {
             var multiplier = ReplaceableMultiplier.of(node.getLeft());
+            Node multiplicand = null;
             if (multiplier != null) {
-                multiplier.replace(node, node.getRight());
-            } else if ((multiplier = ReplaceableMultiplier.of(node.getRight())) != null) {
-                multiplier.replace(node, node.getLeft());
+                multiplicand = node.getRight();
+            } else {
+                multiplier = ReplaceableMultiplier.of(node.getRight());
+                multiplicand = node.getLeft();
+            }
+
+            if (multiplier != null) {
+                var block = node.getBlock();
+                exchange(node, multiplier.getReplacement(block, multiplicand));
             }
         }
 
         @Override
         public void visit(Div node) {
-            if (node.getMode().equals(Mode.getLs())
+            if (node.getResmode().equals(Mode.getLs())
                     && node.getRight().getOpCode() == ir_opcode.iro_Const
                     && node.getLeft().getOpCode() == ir_opcode.iro_Conv) {
-                // var divisor = ((Const) node.getRight()).getTarval();
                 var divisor = ReplaceableDivisor.of((Const) node.getRight());
                 if (divisor != null) {
-                    divisor.replace(node, node.getLeft().getPred(0));
+                    var block = node.getBlock();
+                    var dividend = node.getLeft().getPred(0);
+                    var newNode = divisor.getReplacement(block, dividend);
+                    replaceDiv(node, newNode);
                 }
             }
         }
 
-        // todo
+        private void replaceDiv(Div node, Node newNode) {
+            assert newNode.getMode().equals(Mode.getLs());
+
+            for (var edge : BackEdges.getOuts(node)) {
+                if (edge.node.getMode().equals(Mode.getM())) {
+                    exchange(edge.node, node.getMem());
+                } else if (edge.node.getMode().equals(Mode.getLs())) {
+                    exchange(edge.node, newNode);
+                } else {
+                    throw new UnsupportedOperationException(
+                            "Div control flow projections not supported");
+                }
+            }
+        }
+
         private void exchange(Node oldNode, Node newNode) {
             Graph.exchange(oldNode, newNode);
             this.changes = true;
@@ -86,7 +108,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static abstract class ReplaceableDivisor {
 
-        public abstract void replace(Div div, Node dividend);
+        public abstract Node getReplacement(Node block, Node dividend);
 
         public static ReplaceableDivisor of(Const node) {
             if (node.getOpCode() == ir_opcode.iro_Const) {
@@ -109,27 +131,10 @@ public class ArithmeticReplacementOptimization implements Optimization {
             assert divisor.getMode().equals(Mode.getIs());
 
             var powerOfTwo = PowerOfTwoDivisor.of(divisor);
-            if (powerOfTwo == null) {
+            if (powerOfTwo != null) {
                 return powerOfTwo;
             } else {
                 return ConstantDivisor.of(divisor);
-            }
-        }
-
-        private void replaceDiv(Div node, Node newNode) {
-            assert newNode.getMode().equals(Mode.getIs());
-
-            for (var edge : BackEdges.getOuts(node)) {
-                if (edge.node.getMode().equals(Mode.getM())) {
-                    Graph.exchange(edge.node, node.getMem());
-                } else if (edge.node.getMode().equals(Mode.getLs())) {
-                    var graph = node.getGraph();
-                    var conv = graph.newConv(node.getBlock(), newNode, Mode.getLs());
-                    Graph.exchange(edge.node, conv);
-                } else {
-                    throw new UnsupportedOperationException(
-                            "Div control flow projections not supported");
-                }
             }
         }
     }
@@ -150,12 +155,10 @@ public class ArithmeticReplacementOptimization implements Optimization {
         }
 
         @Override
-        public void replace(Div div, Node dividend) {
+        public Node getReplacement(Node block, Node dividend) {
             assert dividend.getMode().equals(Mode.getIs());
-            assert div.getResmode().equals(Mode.getLs());
 
-            var block = div.getBlock();
-            var graph = div.getGraph();
+            var graph = block.getGraph();
             Node signValue;
 
             // extract (and replicate) the sign bit as needed
@@ -181,7 +184,8 @@ public class ArithmeticReplacementOptimization implements Optimization {
                 quotient = graph.newMinus(block, quotient);
             }
 
-            super.replaceDiv(div, quotient);
+            // convert the result to Ls, to keep correct modes
+            return graph.newConv(block, quotient, Mode.getLs());
         }
     }
 
@@ -192,17 +196,18 @@ public class ArithmeticReplacementOptimization implements Optimization {
         private final MagicNumber magic;
 
         private static ConstantDivisor of(TargetValue divisor) {
+            assert !divisor.isNull();
+            assert getShiftWidth(divisor) == -1;
+
             var magic = MagicNumber.of(divisor.asInt());
             return new ConstantDivisor(divisor, magic);
         }
 
         @Override
-        public void replace(Div div, Node dividend) {
+        public Node getReplacement(Node block, Node dividend) {
             assert dividend.getMode().equals(Mode.getIs());
-            assert div.getResmode().equals(Mode.getLs());
 
-            var block = div.getBlock();
-            var graph = div.getGraph();
+            var graph = block.getGraph();
             var magicValue = new TargetValue(magic.getNumber(), Mode.getIs());
 
             // multiply dividend with the magic number
@@ -228,7 +233,8 @@ public class ArithmeticReplacementOptimization implements Optimization {
             var signBit = graph.newShr(block, quotient, signShift);
             quotient = graph.newAdd(block, quotient, signBit);
 
-            super.replaceDiv(div, quotient);
+            // convert the result to Ls, to keep correct modes
+            return graph.newConv(block, quotient, Mode.getLs());
         }
     }
 
@@ -249,7 +255,6 @@ public class ArithmeticReplacementOptimization implements Optimization {
             if (node.getOpCode() == ir_opcode.iro_Const) {
                 var value = ((Const) node).getTarval();
                 var shift = getShiftWidth(value);
-                // System.err.println(shift + " " + shouldReplace(value));
 
                 if (shift > 0 && shouldReplace(value)) {
                     return new ReplaceableMultiplier(shift, value.isNegative());
@@ -261,15 +266,16 @@ public class ArithmeticReplacementOptimization implements Optimization {
             }
         }
 
-        public void replace(Mul mul, Node operand) {
-            var graph = mul.getGraph();
-            var shiftNode = graph.newShl(mul.getBlock(),
-                    operand, shiftConst(graph, shift));
+        public Node getReplacement(Node block, Node operand) {
+            var graph = block.getGraph();
+
+            var shiftConst = shiftConst(graph, shift);
+            var shiftNode = graph.newShl(block, operand, shiftConst);
 
             if (negative) {
-                Graph.exchange(mul, graph.newMinus(mul.getBlock(), shiftNode));
+                return graph.newMinus(block, shiftNode);
             } else {
-                Graph.exchange(mul, shiftNode);
+                return shiftNode;
             }
         }
 
