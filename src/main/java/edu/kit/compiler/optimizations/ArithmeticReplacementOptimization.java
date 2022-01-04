@@ -208,12 +208,17 @@ public class ArithmeticReplacementOptimization implements Optimization {
             assert dividend.getMode().equals(Mode.getIs());
 
             var graph = block.getGraph();
-            var magicValue = new TargetValue(magic.getNumber(), Mode.getIs());
 
             // multiply dividend with the magic number
-            // ? how is Mulh handeled?
+            var longDiv = graph.newConv(block, dividend, Mode.getLs());
+            var magicValue = new TargetValue(magic.getNumber(), Mode.getLs());
             var magicConst = graph.newConst(magicValue);
-            var quotient = graph.newMulh(block, dividend, magicConst);
+            var quotient = graph.newMul(block, longDiv, magicConst);
+
+            // get the upper part of the result
+            var shiftHigh = shiftConst(graph, Mode.getIs().getSizeBits());
+            quotient = graph.newShr(block, quotient, shiftHigh);
+            quotient = graph.newConv(block, quotient, Mode.getIs());
 
             // add or subtract the dividend from the result
             if (divisor.neg().isNegative() && magic.getNumber() < 0) {
