@@ -10,6 +10,7 @@ import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -32,9 +33,11 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
             @Override
             protected InstructionMatch getMatch(Node node, OperandMatch<T> target,
                     OperandMatch<S> source, MatcherState matcher) {
+                var size = getSize(node, target.getOperand(), source.getOperand());
                 var targetRegister = getTarget(target.getOperand(),
-                        () -> matcher.getNewRegister(source.getOperand().getSize()));
-                return new BinaryInstructionMatch(node, command, target, source, targetRegister);
+                        () -> matcher.getNewRegister(size));
+                return new BinaryInstructionMatch(node, command, target, source,
+                        targetRegister, size);
             }
         };
     }
@@ -72,6 +75,13 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
         }
     }
 
+    private static RegisterSize getSize(Node node, Operand target, Operand source) {
+        return switch (node.getOpCode()) {
+            case iro_Shl, iro_Shr, iro_Shrs -> target.getSize();
+            default -> source.getSize();
+        };
+    }
+
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public final class BinaryInstructionMatch extends InstructionMatch.Basic {
 
@@ -80,6 +90,7 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
         private final OperandMatch<T> target;
         private final OperandMatch<S> source;
         private final Optional<Integer> targetRegister;
+        private final RegisterSize size;
 
         @Override
         public Node getNode() {
@@ -88,7 +99,7 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
 
         @Override
         public List<Instruction> getInstructions() {
-            return List.of(Instructions.newBinary(command, source.getOperand().getSize(),
+            return List.of(Instructions.newBinary(command, size,
                     target.getOperand(), source.getOperand(), targetRegister));
         }
 
