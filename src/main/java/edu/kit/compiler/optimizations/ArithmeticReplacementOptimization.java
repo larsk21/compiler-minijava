@@ -214,7 +214,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
             // ? how is Mulh handeled?
             var magicConst = graph.newConst(magicValue);
             var quotient = graph.newMulh(block, dividend, magicConst);
-            
+
             // add or subtract the dividend from the result
             if (divisor.neg().isNegative() && magic.getNumber() < 0) {
                 quotient = graph.newAdd(block, quotient, dividend);
@@ -328,6 +328,17 @@ public class ArithmeticReplacementOptimization implements Optimization {
         private final int shift;
 
         public static MagicNumber of(int divisor) {
+            // factors of 2^32 + 2 (= 2 * 3 * 715.827.883) are special cased
+            if (divisor == -3) {
+                return new MagicNumber(-1431655765, 0);
+            } else if (divisor == -715_827_883) {
+                return new MagicNumber(-5, 0);
+            } else {
+                return computeMagic(divisor);
+            }
+        }
+
+        private static MagicNumber computeMagic(int divisor) {
             int absDiv = Math.abs(divisor);
             int t = TWO_31 + (divisor >> 31);
             int absNc = t - 1 - Integer.remainderUnsigned(t, absDiv);
