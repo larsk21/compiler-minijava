@@ -170,20 +170,19 @@ public class RegisterTracker {
      *
      * This will try to avoid killing temporary register assignments.
      */
-    public List<Register> getTmpRegisters(int num, Optional<Register> exludedRegister) {
-        return getTmpRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED_AVOID_DIV, exludedRegister);
+    public List<Register> getTmpRegisters(int num, Set<Register> excluded) {
+        return getTmpRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED_AVOID_DIV, excluded);
     }
 
     public List<Register> getTmpRegisters(int num, RegisterPreference pref,
-                                          Optional<Register> exludedRegister) {
+                                          Set<Register> excluded) {
         List<Register> result = new ArrayList<>();
         if (num == 0) {
             return result;
         }
         // try find completely free registers
         for (Register r: pref.inPreferenceOrder().filter(
-                r -> !isReservedRegister(r) && isFree(r) && !isTmp(r) &&
-                        (exludedRegister.isEmpty() || r != exludedRegister.get())
+                r -> !isReservedRegister(r) && isFree(r) && !isTmp(r) && !excluded.contains(r)
         ).collect(Collectors.toList())) {
             result.add(r);
             usedRegisters.add(r);
@@ -193,8 +192,7 @@ public class RegisterTracker {
         }
         // if not sufficient, kill temporary assignments
         for (Register r: pref.inPreferenceOrder().filter(
-                r -> !isReservedRegister(r) && isFree(r) && isTmp(r) &&
-                        (exludedRegister.isEmpty() || r != exludedRegister.get())
+                r -> !isReservedRegister(r) && isFree(r) && isTmp(r) && !excluded.contains(r)
         ).collect(Collectors.toList())) {
             result.add(r);
             if (result.size() == num) {

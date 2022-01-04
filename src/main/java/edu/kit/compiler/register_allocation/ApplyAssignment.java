@@ -117,9 +117,16 @@ public class ApplyAssignment {
         assert instr.getType() == InstructionType.GENERAL;
         tracker.enterInstruction(index);
 
-        Optional<Register> excluded = Optional.empty();
+        Set<Register> excluded = new HashSet<>();
         if (instr.getOverwriteRegister().isPresent()) {
-            excluded = instr.getTargetRegister().flatMap(vRegister -> assignment[vRegister].getRegister());
+            int target = instr.getTargetRegister().get();
+            int overwrite = instr.getOverwriteRegister().get();
+            assignment[target].getRegister().ifPresent(r -> excluded.add(r));
+            tracker.getRegisters().getTmp(target).ifPresent(r -> excluded.add(r));
+            tracker.getRegisters().getTmp(overwrite).ifPresent(r -> excluded.add(r));
+        }
+        for (int vRegister: instr.getInputRegisters()) {
+            tracker.getRegisters().getTmp(vRegister).ifPresent(r -> excluded.add(r));
         }
         List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(tracker, instr, index), excluded);
 
@@ -307,8 +314,8 @@ public class ApplyAssignment {
         }
 
         // output the instruction itself
-        if ((isOnStack(tracker, source) || isSignedUpcast) && isOnStack(tracker, target)) {
-            Register tmp = tracker.getTmpRegisters(1, Optional.empty()).get(0);
+        if ((isOnStack(tracker, source) || isSignedUpcast) && assignment[target].isSpilled()) {
+            Register tmp = tracker.getTmpRegisters(1, Set.of()).get(0);
             output("%s %s, %s # load to temporary...",
                     cmd, getSource, tmp.asSize(targetSize));
             output("mov%c %s, %s # ...and spill to target",
@@ -741,7 +748,7 @@ public class ApplyAssignment {
          * Temporary register do _not_ outlive the execution of an original instruction
          * (unless special care is taken).
          */
-        public List<Register> getTmpRegisters(int num, Optional<Register> excluded) {
+        public List<Register> getTmpRegisters(int num, Set<Register> excluded) {
             assert !tmpRequested;
             tmpRequested = true;
             return registers.getTmpRegisters(num, excluded);
@@ -751,7 +758,7 @@ public class ApplyAssignment {
             assert !tmpRequested;
             tmpRequested = true;
             return registers.getTmpRegisters(
-                    1, RegisterPreference.PREFER_CALLEE_SAVED_NO_DIV, Optional.empty()
+                    1, RegisterPreference.PREFER_CALLEE_SAVED_NO_DIV, Set.of()
             ).get(0);
         }
 
