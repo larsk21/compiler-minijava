@@ -40,8 +40,8 @@ public interface Operand {
      * nothing here. Only `ImmediateRegister`s will actually return an
      * instruction, namely a move of their immediate to their target register.
      */
-    default Optional<Instruction> getInstruction() {
-        return Optional.empty();
+    default Stream<Instruction> getInstructions() {
+        return Stream.empty();
     }
 
     /**
@@ -239,8 +239,8 @@ public interface Operand {
         }
 
         @Override
-        public Optional<Instruction> getInstruction() {
-            return Optional.of(Instruction.newOp(
+        public Stream<Instruction> getInstructions() {
+            return Stream.of(Instruction.newOp(
                     Util.formatLoad(getSize(), value, this),
                     Collections.emptyList(), Optional.empty(),
                     this.get()));
@@ -313,6 +313,12 @@ public interface Operand {
                     .concat(baseRegister.stream(), indexRegister.stream())
                     .map(register -> register.get())
                     .collect(Collectors.toList());
+        }
+
+        @Override
+        public Stream<Instruction> getInstructions() {
+            return Stream.concat(baseRegister.stream(), indexRegister.stream())
+                    .flatMap(x -> x.getInstructions());
         }
     }
 }

@@ -52,4 +52,8 @@ class Main {
             return 0;
         }
     }
+
+    public int largIndex(int[] arr) {
+        return arr[2147483647];
+    }
 }

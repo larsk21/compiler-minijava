@@ -17,12 +17,12 @@ import lombok.RequiredArgsConstructor;
 
 public class LoadMemoryPattern implements Pattern<InstructionMatch> {
 
-    public final Pattern<OperandMatch<Operand.Memory>> pattern = OperandPattern.memory();
+    private static final Pattern<OperandMatch<Operand.Memory>> MEMORY = OperandPattern.memory();
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
         if (node.getOpCode() == ir_opcode.iro_Load) {
-            var match = pattern.match(node.getPred(1), matcher);
+            var match = MEMORY.match(node.getPred(1), matcher);
             if (match.matches()) {
                 var mode = ((Load) node).getLoadMode();
                 var targetRegister = matcher.getNewRegister(Util.getSize(mode));

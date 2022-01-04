@@ -75,7 +75,7 @@ public final class InstructionSelection {
             var node = match.getNode();
             var entry = blocks.getEntry(node.getBlock());
             match.getOperands()
-                    .flatMap(o -> o.getInstruction().stream())
+                    .flatMap(Operand::getInstructions)
                     .forEach(entry::add);
             entry.append(match.getInstructions());
         }
@@ -89,7 +89,7 @@ public final class InstructionSelection {
             for (var phiEntry : phi.getEntries()) {
                 // add necessary instruction for operand to be available
                 var predBlock = blocks.getEntry(phiEntry.getPredBlock());
-                phiEntry.getOperand().getInstruction().ifPresent(predBlock::add);
+                phiEntry.getOperand().getInstructions().forEach(predBlock::add);
             }
         }
 
@@ -101,7 +101,7 @@ public final class InstructionSelection {
                     var entry = blocks.getEntry(node.getBlock());
                     entry.setExitCondition(match.getCondition());
                     match.getOperands()
-                            .flatMap(op -> op.getInstruction().stream())
+                            .flatMap(Operand::getInstructions)
                             .forEach(entry::add);
                 }
                 default -> {
