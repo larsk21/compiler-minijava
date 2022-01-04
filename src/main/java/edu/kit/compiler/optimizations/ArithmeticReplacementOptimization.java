@@ -86,7 +86,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static abstract class ReplaceableDivisor {
 
-        public abstract void replace(Div div, Node operand);
+        public abstract void replace(Div div, Node dividend);
 
         public static ReplaceableDivisor of(Const node) {
             if (node.getOpCode() == ir_opcode.iro_Const) {
@@ -150,8 +150,8 @@ public class ArithmeticReplacementOptimization implements Optimization {
         }
 
         @Override
-        public void replace(Div div, Node operand) {
-            assert operand.getMode().equals(Mode.getIs());
+        public void replace(Div div, Node dividend) {
+            assert dividend.getMode().equals(Mode.getIs());
             assert div.getResmode().equals(Mode.getLs());
 
             var block = div.getBlock();
@@ -163,15 +163,15 @@ public class ArithmeticReplacementOptimization implements Optimization {
                 var signShift = shiftConst(graph, shift - 1);
                 var restShift = shiftConst(graph, Mode.getIs().getSizeBits() - shift);
 
-                signValue = graph.newShrs(block, operand, signShift);
+                signValue = graph.newShrs(block, dividend, signShift);
                 signValue = graph.newShr(block, signValue, restShift);
             } else {
                 var signShift = shiftConst(graph, Mode.getIs().getSizeBits() - 1);
-                signValue = graph.newShr(block, operand, signShift);
+                signValue = graph.newShr(block, dividend, signShift);
             }
 
             // add the (replicated) sign bit to the dividend
-            var quotient = graph.newAdd(block, operand, signValue);
+            var quotient = graph.newAdd(block, dividend, signValue);
 
             // shift the divided right n times
             quotient = graph.newShrs(block, quotient, shiftConst(graph, shift));
@@ -197,8 +197,38 @@ public class ArithmeticReplacementOptimization implements Optimization {
         }
 
         @Override
-        public void replace(Div div, Node operand) {
-            // TODO Auto-generated method stub
+        public void replace(Div div, Node dividend) {
+            assert dividend.getMode().equals(Mode.getIs());
+            assert div.getResmode().equals(Mode.getLs());
+
+            var block = div.getBlock();
+            var graph = div.getGraph();
+            var magicValue = new TargetValue(magic.getNumber(), Mode.getIs());
+
+            // multiply dividend with the magic number
+            // ? how is Mulh handeled?
+            var magicConst = graph.newConst(magicValue);
+            var quotient = graph.newMulh(block, dividend, magicConst);
+            
+            // add or subtract the dividend from the result
+            if (divisor.neg().isNegative() && magic.getNumber() < 0) {
+                quotient = graph.newAdd(block, quotient, dividend);
+            } else if (divisor.isNegative() && magic.getNumber() > 0) {
+                quotient = graph.newSub(block, quotient, dividend);
+            }
+
+            // shift the result right by the amount required by the magic number
+            if (magic.getShift() > 0) {
+                var magicShift = shiftConst(graph, magic.getShift());
+                quotient = graph.newShrs(block, quotient, magicShift);
+            }
+
+            // extract the sign bit and it to the quotient
+            var signShift = shiftConst(graph, Mode.getIs().getSizeBits() - 1);
+            var signBit = graph.newShr(block, quotient, signShift);
+            quotient = graph.newAdd(block, quotient, signBit);
+
+            super.replaceDiv(div, quotient);
         }
     }
 
