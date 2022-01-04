@@ -42,6 +42,13 @@ public class MatcherState {
     }
 
     /**
+     * Returns the number of allocated virtual registers.
+     */
+    public int getNRegisters() {
+        return registerSizes.size();
+    }
+
+    /**
      * Returns the number of a new virtual register, unique to this function.
      * The size of the register is set according to the given RegisterSize.
      */
@@ -94,7 +101,24 @@ public class MatcherState {
      */
     public int getPhiRegister(Node phi, RegisterSize size) {
         assert phi.getOpCode() == ir_opcode.iro_Phi;
-        return getPhiRegister(phi.getNr(), size);
+        var existing = peekPhiRegister(phi);
+        if (existing == -1) {
+            var register = getNewRegister(size);
+            phiRegisters.put(phi.getNr(), register);
+            return register;
+        } else {
+            return existing;
+        }
+    }
+
+    /**
+     * Returns the target register for the given Phi node or -1 if no register
+     * has been allocated.
+     */
+    protected int peekPhiRegister(Node phi) {
+        assert phi.getOpCode() == ir_opcode.iro_Phi;
+        var register = phiRegisters.get(phi.getNr());
+        return register == null ? -1 : register;
     }
 
     /**
@@ -149,9 +173,5 @@ public class MatcherState {
             match.accept(walker);
         }
         node.markVisited();
-    }
-
-    private int getPhiRegister(int node, RegisterSize size) {
-        return phiRegisters.computeIfAbsent(node, i -> getNewRegister(size));
     }
 }

@@ -167,6 +167,7 @@ public interface Operand {
     }
 
     @RequiredArgsConstructor
+    @ToString
     public static abstract class Register implements Target {
 
         private final int register;
@@ -194,7 +195,7 @@ public interface Operand {
         }
     }
 
-    @ToString
+    @ToString(callSuper = true)
     public static class NormalRegister extends Register {
 
         private final Mode mode;
@@ -215,7 +216,7 @@ public interface Operand {
         }
     }
 
-    @ToString
+    @ToString(callSuper = true)
     public static final class ImmediateRegister extends Register {
 
         // ? would is make sense for getConstValue return the Tarval ?
