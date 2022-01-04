@@ -2,11 +2,9 @@ package edu.kit.compiler.optimizations;
 
 import java.util.Objects;
 
-import edu.kit.compiler.codegen.Operand.Target;
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
 import firm.BackEdges;
-import firm.Backend;
 import firm.Graph;
 import firm.Mode;
 import firm.TargetValue;
@@ -69,8 +67,11 @@ public class ArithmeticReplacementOptimization implements Optimization {
             if (node.getMode().equals(Mode.getLs())
                     && node.getRight().getOpCode() == ir_opcode.iro_Const
                     && node.getLeft().getOpCode() == ir_opcode.iro_Conv) {
-                var divisor = ((Const) node.getRight()).getTarval();
-
+                // var divisor = ((Const) node.getRight()).getTarval();
+                var divisor = ReplaceableDivisor.of((Const) node.getRight());
+                if (divisor != null) {
+                    divisor.replace(node, node.getLeft().getPred(0));
+                }
             }
         }
 
@@ -83,6 +84,8 @@ public class ArithmeticReplacementOptimization implements Optimization {
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static abstract class ReplaceableDivisor {
+
+        public abstract void replace(Div div, Node operand);
 
         public static ReplaceableDivisor of(Const node) {
             if (node.getOpCode() == ir_opcode.iro_Const) {
@@ -112,7 +115,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
             }
         }
 
-        private void replace(Div node, Node newNode) {
+        private void replaceDiv(Div node, Node newNode) {
             assert newNode.getMode().equals(Mode.getIs());
 
             for (var edge : BackEdges.getOuts(node)) {
@@ -145,10 +148,39 @@ public class ArithmeticReplacementOptimization implements Optimization {
             }
         }
 
-        private void replace(Div div, Node operand) {
+        @Override
+        public void replace(Div div, Node operand) {
             assert operand.getMode().equals(Mode.getIs());
             assert div.getResmode().equals(Mode.getLs());
 
+            var block = div.getBlock();
+            var graph = div.getGraph();
+            Node signValue;
+
+            // extract (and replicate) the sign bit as needed
+            if (shift > 1) {
+                var signShift = shiftConst(graph, shift - 1);
+                var restShift = shiftConst(graph, Mode.getIs().getSizeBits() - shift);
+
+                signValue = graph.newShrs(block, operand, signShift);
+                signValue = graph.newShr(block, signValue, restShift);
+            } else {
+                var signShift = shiftConst(graph, Mode.getIs().getSizeBits() - 1);
+                signValue = graph.newShr(block, operand, signShift);
+            }
+
+            // add the (replicated) sign bit to the dividend
+            var quotient = graph.newAdd(block, operand, signValue);
+
+            // shift the divided right n times
+            quotient = graph.newShrs(block, quotient, shiftConst(graph, shift));
+
+            // negate the quotient if necessary
+            if (negative) {
+                quotient = graph.newMinus(block, quotient);
+            }
+
+            super.replaceDiv(div, quotient);
         }
     }
 
@@ -161,6 +193,11 @@ public class ArithmeticReplacementOptimization implements Optimization {
 
         private static AnyDivisor of(TargetValue divisor) {
             throw new IllegalStateException();
+        }
+
+        @Override
+        public void replace(Div div, Node operand) {
+            // TODO Auto-generated method stub
         }
     }
 
@@ -195,9 +232,8 @@ public class ArithmeticReplacementOptimization implements Optimization {
 
         public void replace(Mul mul, Node operand) {
             var graph = mul.getGraph();
-            // todo ? is Is correct here?
-            var shiftConst = graph.newConst(new TargetValue(shift, Mode.getIs()));
-            var shiftNode = graph.newShl(mul.getBlock(), operand, shiftConst);
+            var shiftNode = graph.newShl(mul.getBlock(),
+                    operand, shiftConst(graph, shift));
 
             if (negative) {
                 Graph.exchange(mul, graph.newMinus(mul.getBlock(), shiftNode));
@@ -236,5 +272,9 @@ public class ArithmeticReplacementOptimization implements Optimization {
         }
 
         return lowest == highest ? lowest : -1;
+    }
+
+    private static Node shiftConst(Graph graph, int shift) {
+        return graph.newConst(new TargetValue(shift, Mode.getBu()));
     }
 }
