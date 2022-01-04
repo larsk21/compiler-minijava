@@ -15,6 +15,7 @@ import firm.nodes.Mul;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
 import lombok.AccessLevel;
+import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -111,7 +112,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
             if (powerOfTwo == null) {
                 return powerOfTwo;
             } else {
-                return AnyDivisor.of(divisor);
+                return ConstantDivisor.of(divisor);
             }
         }
 
@@ -185,14 +186,14 @@ public class ArithmeticReplacementOptimization implements Optimization {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class AnyDivisor extends ReplaceableDivisor {
+    private static final class ConstantDivisor extends ReplaceableDivisor {
 
         private final TargetValue divisor;
-        private final int magicNumber;
-        private final int shift;
+        private final MagicNumber magic;
 
-        private static AnyDivisor of(TargetValue divisor) {
-            throw new IllegalStateException();
+        private static ConstantDivisor of(TargetValue divisor) {
+            var magic = MagicNumber.of(divisor.asInt());
+            return new ConstantDivisor(divisor, magic);
         }
 
         @Override
@@ -276,5 +277,53 @@ public class ArithmeticReplacementOptimization implements Optimization {
 
     private static Node shiftConst(Graph graph, int shift) {
         return graph.newConst(new TargetValue(shift, Mode.getBu()));
+    }
+
+    /**
+     * Source: "Hackers Delight", Chapter 10.6 (Henry S. Warren, 2002)
+     * as well as LLVM's implementation of the algorithm
+     */
+    @Data
+    private static final class MagicNumber {
+
+        private static final int TWO_31 = 0x80000000; // = 2^31
+
+        private final int number;
+        private final int shift;
+
+        public static MagicNumber of(int divisor) {
+            int absDiv = Math.abs(divisor);
+            int t = TWO_31 + (divisor >> 31);
+            int absNc = t - 1 - Integer.remainderUnsigned(t, absDiv);
+
+            int q1 = Integer.divideUnsigned(TWO_31, absNc);
+            int r1 = TWO_31 - q1 * absNc;
+            int q2 = Integer.divideUnsigned(TWO_31, absDiv);
+            int r2 = TWO_31 - q2 * absDiv;
+
+            int p = 31;
+            int delta;
+            do {
+                p += 1;
+                q1 *= 2;
+                r1 *= 2;
+                if (Integer.compareUnsigned(r1, absNc) >= 0) {
+                    q1 += 1;
+                    r1 -= absNc;
+                }
+
+                q2 *= 2;
+                r2 *= 2;
+                if (Integer.compareUnsigned(r2, absDiv) >= 0) {
+                    q2 += 1;
+                    r2 -= absDiv;
+                }
+
+                delta = absDiv - r2;
+            } while (Integer.compareUnsigned(q1, delta) < 0 || (q1 == delta && r1 == 0));
+
+            int magic = divisor < 0 ? -(q2 + 1) : (q2 + 1);
+            return new MagicNumber(magic, p - 32);
+        }
     }
 }
