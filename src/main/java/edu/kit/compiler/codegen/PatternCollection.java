@@ -160,19 +160,24 @@ public class PatternCollection implements Pattern<InstructionMatch> {
         }
 
         @Override
-        public InstructionMatch getMatch(Node node) {
-            return subject.getMatch(node);
+        public int getNRegisters() {
+            return subject.getNRegisters() + super.getNRegisters();
         }
 
         @Override
         public int getNewRegister(RegisterSize size) {
             var register = super.getNewRegister(size);
-            return subject.registerSizes.size() + register;
+            return subject.getNRegisters() + register;
+        }
+
+        @Override
+        public InstructionMatch getMatch(Node node) {
+            return subject.getMatch(node);
         }
 
         @Override
         public RegisterSize getRegisterSize(int register) {
-            var pivot = subject.registerSizes.size();
+            var pivot = subject.getNRegisters();
             if (register < pivot) {
                 return subject.getRegisterSize(register);
             } else {
@@ -181,12 +186,12 @@ public class PatternCollection implements Pattern<InstructionMatch> {
         }
 
         @Override
-        public int getPhiRegister(Node phi, RegisterSize size) {
-            var register = subject.phiRegisters.get(phi.getNr());
-            if (register == null) {
-                return super.getPhiRegister(phi, size);
+        protected int peekPhiRegister(Node phi) {
+            var existing = subject.peekPhiRegister(phi);
+            if (existing == -1) {
+                return super.peekPhiRegister(phi);
             } else {
-                return register;
+                return existing;
             }
         }
 
