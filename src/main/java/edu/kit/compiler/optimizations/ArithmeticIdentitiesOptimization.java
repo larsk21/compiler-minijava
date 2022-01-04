@@ -35,6 +35,7 @@ import lombok.RequiredArgsConstructor;
  * - Replace multiplication with constant 0 (left or right operand)
  * - Replace multiplication with constant -1 (left or right operand)
  * - Remove division by constant 1 (right operand only)
+ * - Remove division with dividend 0
  * - Replace division by constant -1 with negation (right operand only)
  * - Replace modulo constant 1 or -1 with constant 0 (right operand only)
  * - Perform the following normalizations:
@@ -244,6 +245,9 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 // x / -1 --> -x
                 var minus = graph.newMinus(node.getBlock(), node.getLeft());
                 exchangeDivOrMod(node, node.getMem(), enqueued(minus));
+            } else if (isConstZero(node.getLeft())) {
+                // 0 / x --> 0
+                exchangeDivOrMod(node, node.getMem(), node.getLeft());
             }
         }
 
