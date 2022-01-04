@@ -127,8 +127,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             if (isConstZero(node.getLeft())) {
                 // 0 - x --> -x
                 var minusNode = graph.newMinus(node.getBlock(), node.getRight());
-                worklist.enqueue(minusNode);
-                exchange(node, minusNode);
+                exchange(node, enqueued(minusNode));
             } else if (isConstZero(node.getRight())) {
                 // x - 0 --> x
                 exchange(node, node.getLeft());
