@@ -14,7 +14,6 @@ import edu.kit.compiler.codegen.PatternCollection;
 import edu.kit.compiler.codegen.PhiResolver;
 import edu.kit.compiler.codegen.ReversePostfixOrder;
 import edu.kit.compiler.intermediate_lang.Block;
-import edu.kit.compiler.intermediate_lang.RegisterSize;
 import edu.kit.compiler.register_allocation.DumbAllocator;
 import edu.kit.compiler.register_allocation.RegisterAllocator;
 import edu.kit.compiler.transform.IRVisitor;
@@ -346,6 +345,7 @@ public class JavaEasyCompiler {
         Lower.lower(irv.getTypeMapper());
 
         for (Graph graph : Program.getGraphs()) {
+            Dump.dumpGraph(graph, "before");
             boolean changed;
             do {
                 changed = false;
@@ -353,6 +353,7 @@ public class JavaEasyCompiler {
                     changed |= optimization.optimize(graph);
                 }
             } while (changed);
+            Dump.dumpGraph(graph, "after");
         }
     }
 

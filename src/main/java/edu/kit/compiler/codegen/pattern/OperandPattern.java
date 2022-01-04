@@ -193,8 +193,20 @@ public final class OperandPattern {
             }
 
             // todo (2,4,8) + 1 * %rax = (%rax,%rax,8)
-            return getMatch(nodes.offset, nodes.firstRegister,
+            var match = getMatch(nodes.offset, nodes.firstRegister,
                     nodes.secondRegister, matcher);
+            if (match == null) {
+                // fallback if something goes awry
+                var register = REGISTER.match(node, matcher);
+                var operand = Operand.memory(Optional.empty(),
+                        Optional.of(register.getOperand()),
+                        Optional.empty(), Optional.empty());
+                var predecessors = register.getPredecessors()
+                        .collect(Collectors.toList());
+                return OperandMatch.some(operand, predecessors);
+            } else {
+                return match;
+            }
         }
 
         /**
@@ -272,10 +284,9 @@ public final class OperandPattern {
         public final Node offset;
 
         public static AddressNodes of(Node node) {
-
             if (node.getOpCode() == ir_opcode.iro_Add) {
                 var add = (Add) node;
-                if (add.getRight().getOpCode() == ir_opcode.iro_Const) {
+                if (isOffset(add.getRight())) {
                     var offset = add.getRight();
                     if (add.getLeft().getOpCode() == ir_opcode.iro_Add) {
                         // Add(Add(r1, r2), c)
@@ -302,7 +313,16 @@ public final class OperandPattern {
 
         private static boolean isAddConst(Node node) {
             return node.getOpCode() == ir_opcode.iro_Add
-                    && node.getPred(1).getOpCode() == ir_opcode.iro_Const;
+                    && isOffset(node.getPred(1));
+        }
+
+        private static boolean isOffset(Node node) {
+            if (node.getOpCode() == ir_opcode.iro_Const) {
+                TargetValue value = ((Const) node).getTarval();
+                return !Util.isOverflow(value, RegisterSize.DOUBLE);
+            } else {
+                return false;
+            }
         }
     }
 }
