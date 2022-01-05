@@ -370,12 +370,12 @@ public class ApplyAssignmentTest {
         expectedProlog.add("pushq %r8 # push callee-saved register");
         expectedProlog.add("pushq %r9 # push callee-saved register");
         expectedProlog.add("pushq %r10 # push callee-saved register");
-        expectedProlog.add("movl 16(%rbp), %r8d # initialize @5 from arg");
-        expectedProlog.add("movl 24(%rbp), %ebx # initialize @4 from arg");
+        expectedProlog.add("movl %edx, -8(%rbp) # initialize @2 from arg");
         expectedProlog.add("movl 32(%rbp), %eax # load to temporary...");
         expectedProlog.add("movl %eax, -12(%rbp) # ...initialize @3 from arg");
-        expectedProlog.add("movl %edx, -8(%rbp) # initialize @2 from arg");
-        expectedProlog.add("movl %ebx, %edx # initialize @0 from arg");
+        expectedProlog.add("mov %rbx, %rdx # assign args to registers");
+        expectedProlog.add("movl 24(%rbp), %ebx # initialize @4 from arg");
+        expectedProlog.add("movl 16(%rbp), %r8d # initialize @5 from arg");
         assertEquals(expectedProlog, prolog);
 
         var epilog = ass.createFunctionEpilog();
