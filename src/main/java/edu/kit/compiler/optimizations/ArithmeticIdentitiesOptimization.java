@@ -6,7 +6,6 @@ import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
 import firm.BackEdges;
 import firm.Graph;
-import firm.Mode;
 import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
@@ -239,14 +238,14 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         public void visit(Div node) {
             if (isConstOne(node.getRight())) {
                 // x / 1 --> x
-                exchangeDivOrMod(node, node.getMem(), node.getLeft());
+                Util.exchangeDivOrMod(node, node.getLeft(), node.getMem());
             } else if (isConstNegOne(node.getRight())) {
                 // x / -1 --> -x
                 var minus = graph.newMinus(node.getBlock(), node.getLeft());
-                exchangeDivOrMod(node, node.getMem(), enqueued(minus));
+                Util.exchangeDivOrMod(node, enqueued(minus), node.getMem());
             } else if (isConstZero(node.getLeft())) {
                 // 0 / x --> 0
-                exchangeDivOrMod(node, node.getMem(), node.getLeft());
+                Util.exchangeDivOrMod(node, node.getLeft(), node.getMem());
             }
         }
 
@@ -256,22 +255,13 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 // x % 1 --> 0
                 // x % -1 --> 0
                 var zero = node.getLeft().getMode().getNull();
-                exchangeDivOrMod(node, node.getMem(), graph.newConst(zero));
+                Util.exchangeDivOrMod(node, graph.newConst(zero), node.getMem());
             }
         }
 
         @Override
         public void visit(Conv node) {
-            // ? make this more generic??
-            if (node.getOp().getOpCode() == ir_opcode.iro_Conv) {
-                // remove casts introduced by 64 bit division where possible
-                var op = (Conv) node.getOp();
-                if (node.getMode().equals(Mode.getIs())
-                        && op.getMode().equals(Mode.getLs())
-                        && op.getOp().getMode().equals(Mode.getIs())) {
-                    exchange(node, op.getOp());
-                }
-            }
+            changes |= Util.contractConv(node);
         }
 
         /**
@@ -320,26 +310,6 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 var newNode = graph.newMul(node.getBlock(), restNode, constNode);
 
                 exchange(node, enqueued(newNode));
-            }
-        }
-
-        /**
-         * Replace the given Div or Mode node. Result projections are replaced
-         * with `val`. Memory projections are replaced with `mem`.
-         */
-        private void exchangeDivOrMod(Node node, Node mem, Node val) {
-            assert node.getOpCode() == ir_opcode.iro_Div
-                    || node.getOpCode() == ir_opcode.iro_Mod;
-
-            for (var edge : BackEdges.getOuts(node)) {
-                if (edge.node.getMode().equals(Mode.getM())) {
-                    exchange(edge.node, mem);
-                } else if (edge.node.getMode().equals(val.getMode())) {
-                    exchange(edge.node, val);
-                } else {
-                    throw new UnsupportedOperationException(
-                            "Div control flow projections not supported");
-                }
             }
         }
 

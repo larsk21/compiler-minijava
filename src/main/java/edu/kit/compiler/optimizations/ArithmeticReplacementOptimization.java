@@ -10,6 +10,7 @@ import firm.Mode;
 import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Const;
+import firm.nodes.Conv;
 import firm.nodes.Div;
 import firm.nodes.Mod;
 import firm.nodes.Mul;
@@ -81,13 +82,18 @@ public class ArithmeticReplacementOptimization implements Optimization {
         @Override
         public void visit(Div node) {
             getDivOrModReplacement(node, node.getResmode())
-                    .ifPresent(newNode -> replaceDivOrMod(node, newNode, node.getMem()));
+                    .ifPresent(newNode -> Util.exchangeDivOrMod(node, newNode, node.getMem()));
         }
 
         @Override
         public void visit(Mod node) {
             getDivOrModReplacement(node, node.getResmode())
-                    .ifPresent(newNode -> replaceDivOrMod(node, newNode, node.getMem()));
+                    .ifPresent(newNode -> Util.exchangeDivOrMod(node, newNode, node.getMem()));
+        }
+
+        @Override
+        public void visit(Conv node) {
+            hasChanged |= Util.contractConv(node);
         }
 
         /**
@@ -122,24 +128,6 @@ public class ArithmeticReplacementOptimization implements Optimization {
                 });
             } else {
                 return Optional.empty();
-            }
-        }
-
-        /**
-         * Replace the given Div node with the new node.
-         */
-        private void replaceDivOrMod(Node node, Node newNode, Node newMem) {
-            assert newNode.getMode().equals(Mode.getLs());
-
-            for (var edge : BackEdges.getOuts(node)) {
-                if (edge.node.getMode().equals(Mode.getM())) {
-                    exchange(edge.node, newMem);
-                } else if (edge.node.getMode().equals(Mode.getLs())) {
-                    exchange(edge.node, newNode);
-                } else {
-                    throw new UnsupportedOperationException(
-                            "Div control flow projections not supported");
-                }
             }
         }
 
