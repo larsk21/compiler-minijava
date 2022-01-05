@@ -48,6 +48,16 @@ class Main {
         m.testDivAny(-1337);
         m.testDivAny(-2147483648);
         m.testDivAny(2147483647);
+
+        m.testMod2(0);
+        m.testMod2(1);
+        m.testMod2(-1);
+        m.testMod2(1024);
+        m.testMod2(2048);
+        m.testMod2(-1337);
+        m.testMod2(-1048576);
+        m.testMod2(-2147483648);
+        m.testMod2(2147483647);
     }
 
     public int mulP2(int x) {
@@ -570,5 +580,70 @@ class Main {
         System.out.println(x / -934065873);
         System.out.println(x / -1076852197);
 
+    }
+
+    public void testMod2(int x) {
+        System.out.println(x % 2);
+        System.out.println(x % 4);
+        System.out.println(x % 8);
+        System.out.println(x % 16);
+        System.out.println(x % 32);
+        System.out.println(x % 64);
+        System.out.println(x % 128);
+        System.out.println(x % 256);
+        System.out.println(x % 512);
+        System.out.println(x % 1024);
+        System.out.println(x % 2048);
+        System.out.println(x % 4096);
+        System.out.println(x % 8192);
+        System.out.println(x % 16384);
+        System.out.println(x % 32768);
+        System.out.println(x % 65536);
+        System.out.println(x % 131072);
+        System.out.println(x % 262144);
+        System.out.println(x % 524288);
+        System.out.println(x % 1048576);
+        System.out.println(x % 2097152);
+        System.out.println(x % 4194304);
+        System.out.println(x % 8388608);
+        System.out.println(x % 16777216);
+        System.out.println(x % 33554432);
+        System.out.println(x % 67108864);
+        System.out.println(x % 134217728);
+        System.out.println(x % 268435456);
+        System.out.println(x % 536870912);
+        System.out.println(x % 1073741824);
+
+        System.out.println(x % -2);
+        System.out.println(x % -4);
+        System.out.println(x % -8);
+        System.out.println(x % -16);
+        System.out.println(x % -32);
+        System.out.println(x % -64);
+        System.out.println(x % -128);
+        System.out.println(x % -256);
+        System.out.println(x % -512);
+        System.out.println(x % -1024);
+        System.out.println(x % -2048);
+        System.out.println(x % -4096);
+        System.out.println(x % -8192);
+        System.out.println(x % -16384);
+        System.out.println(x % -32768);
+        System.out.println(x % -65536);
+        System.out.println(x % -131072);
+        System.out.println(x % -262144);
+        System.out.println(x % -524288);
+        System.out.println(x % -1048576);
+        System.out.println(x % -2097152);
+        System.out.println(x % -4194304);
+        System.out.println(x % -8388608);
+        System.out.println(x % -16777216);
+        System.out.println(x % -33554432);
+        System.out.println(x % -67108864);
+        System.out.println(x % -134217728);
+        System.out.println(x % -268435456);
+        System.out.println(x % -536870912);
+        System.out.println(x % -1073741824);
+        System.out.println(x % -2147483648);
     }
 }
