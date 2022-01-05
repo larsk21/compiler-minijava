@@ -34,11 +34,8 @@ import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
-<<<<<<< HEAD
 import edu.kit.compiler.optimizations.ArithmeticIdentitiesOptimization;
-=======
 import edu.kit.compiler.optimizations.ArithmeticReplacementOptimization;
->>>>>>> 33e4c3e (Add optimization framework)
 import edu.kit.compiler.optimizations.ConstantOptimization;
 import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.parser.Parser;
@@ -408,7 +405,7 @@ public class JavaEasyCompiler {
         } else {
             optimizations = Arrays.asList(
                     new ConstantOptimization(),
-                    new ArithmeticIdentitiesOptimization()
+                    new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization()
             );
         }
