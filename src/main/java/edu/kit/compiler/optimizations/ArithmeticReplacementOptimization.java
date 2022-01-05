@@ -115,12 +115,12 @@ public class ArithmeticReplacementOptimization implements Optimization {
             // this code is quite specific to our solution to division and modulo,
             // i.e. the operation has mode Ls, but the operands always fit into Is.
             if (mode.equals(Mode.getLs())
-                    && node.getPred(1).getOpCode() == ir_opcode.iro_Const
-                    && node.getPred(0).getOpCode() == ir_opcode.iro_Conv) {
+                    && node.getPred(2).getOpCode() == ir_opcode.iro_Const
+                    && node.getPred(1).getOpCode() == ir_opcode.iro_Conv) {
 
-                return ReplaceableDivisor.of(node.getPred(1)).map(divisor -> {
+                return ReplaceableDivisor.of(node.getPred(2)).map(divisor -> {
                     var block = node.getBlock();
-                    var dividend = node.getPred(0).getPred(0);
+                    var dividend = node.getPred(1).getPred(0);
 
                     return node.getOpCode() == ir_opcode.iro_Div
                             ? divisor.getDivReplacement(block, dividend)
