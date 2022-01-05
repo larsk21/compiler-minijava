@@ -238,14 +238,14 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         public void visit(Div node) {
             if (isConstOne(node.getRight())) {
                 // x / 1 --> x
-                Util.exchangeDivOrMod(node, node.getLeft(), node.getMem());
+                exchangeDivOrMod(node, node.getLeft(), node.getMem());
             } else if (isConstNegOne(node.getRight())) {
                 // x / -1 --> -x
                 var minus = graph.newMinus(node.getBlock(), node.getLeft());
-                Util.exchangeDivOrMod(node, enqueued(minus), node.getMem());
+                exchangeDivOrMod(node, enqueued(minus), node.getMem());
             } else if (isConstZero(node.getLeft())) {
                 // 0 / x --> 0
-                Util.exchangeDivOrMod(node, node.getLeft(), node.getMem());
+                exchangeDivOrMod(node, node.getLeft(), node.getMem());
             }
         }
 
@@ -255,7 +255,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 // x % 1 --> 0
                 // x % -1 --> 0
                 var zero = node.getLeft().getMode().getNull();
-                Util.exchangeDivOrMod(node, graph.newConst(zero), node.getMem());
+                exchangeDivOrMod(node, graph.newConst(zero), node.getMem());
             }
         }
 
@@ -410,6 +410,11 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
          */
         private void exchange(Node oldNode, Node newNode) {
             Graph.exchange(oldNode, newNode);
+            this.changes = true;
+        }
+
+        private void exchangeDivOrMod(Node node, Node newNode, Node newMem) {
+            Util.exchangeDivOrMod(node, newNode, newMem);
             this.changes = true;
         }
     }

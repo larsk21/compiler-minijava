@@ -82,13 +82,13 @@ public class ArithmeticReplacementOptimization implements Optimization {
         @Override
         public void visit(Div node) {
             getDivOrModReplacement(node, node.getResmode())
-                    .ifPresent(newNode -> Util.exchangeDivOrMod(node, newNode, node.getMem()));
+                    .ifPresent(newNode -> exchangeDivOrMod(node, newNode, node.getMem()));
         }
 
         @Override
         public void visit(Mod node) {
             getDivOrModReplacement(node, node.getResmode())
-                    .ifPresent(newNode -> Util.exchangeDivOrMod(node, newNode, node.getMem()));
+                    .ifPresent(newNode -> exchangeDivOrMod(node, newNode, node.getMem()));
         }
 
         @Override
@@ -136,6 +136,14 @@ public class ArithmeticReplacementOptimization implements Optimization {
          */
         private void exchange(Node oldNode, Node newNode) {
             Graph.exchange(oldNode, newNode);
+            this.hasChanged = true;
+        }
+
+        /**
+         * Wraps around Util#exchangeDivOrMod and sets the hasChanged flag.
+         */
+        private void exchangeDivOrMod(Node node, Node newNode, Node newMem) {
+            Util.exchangeDivOrMod(node, newNode, newMem);
             this.hasChanged = true;
         }
     }
