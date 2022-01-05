@@ -11,6 +11,7 @@ import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Const;
 import firm.nodes.Div;
+import firm.nodes.Mod;
 import firm.nodes.Mul;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
@@ -30,6 +31,9 @@ import lombok.RequiredArgsConstructor;
  * with a kind of reciprocal of the divisor (in practice it is not quite as
  * simple as that, the algorithm is also implemented by LLVM and is taken from
  * "Hacker's Delight" by Henry S. Warren (2002))
+ * - Any Modulo with a divisor that could be replaced if used in a division is
+ * replaced with a division. Subsequently the remainder is calculated using
+ * the relationship (a % b) = a - (a / b) * b
  */
 public class ArithmeticReplacementOptimization implements Optimization {
 
@@ -83,8 +87,24 @@ public class ArithmeticReplacementOptimization implements Optimization {
                 ReplaceableDivisor.of(node.getRight()).ifPresent(divisor -> {
                     var block = node.getBlock();
                     var dividend = node.getLeft().getPred(0);
-                    var newNode = divisor.getReplacement(block, dividend);
-                    replaceDiv(node, newNode);
+                    var newNode = divisor.getDivReplacement(block, dividend);
+                    replaceDivOrMod(node, newNode, node.getMem());
+                });
+            }
+        }
+
+        @Override
+        public void visit(Mod node) {
+            // note about Div also applies here
+            if (node.getResmode().equals(Mode.getLs())
+                    && node.getRight().getOpCode() == ir_opcode.iro_Const
+                    && node.getLeft().getOpCode() == ir_opcode.iro_Conv) {
+
+                ReplaceableDivisor.of(node.getRight()).ifPresent(divisor -> {
+                    var block = node.getBlock();
+                    var dividend = node.getLeft().getPred(0);
+                    var newNode = divisor.getModReplacement(block, dividend);
+                    replaceDivOrMod(node, newNode, node.getMem());
                 });
             }
         }
@@ -97,12 +117,12 @@ public class ArithmeticReplacementOptimization implements Optimization {
         /**
          * Replace the given Div node with the new node.
          */
-        private void replaceDiv(Div node, Node newNode) {
+        private void replaceDivOrMod(Node node, Node newNode, Node newMem) {
             assert newNode.getMode().equals(Mode.getLs());
 
             for (var edge : BackEdges.getOuts(node)) {
                 if (edge.node.getMode().equals(Mode.getM())) {
-                    exchange(edge.node, node.getMem());
+                    exchange(edge.node, newMem);
                 } else if (edge.node.getMode().equals(Mode.getLs())) {
                     exchange(edge.node, newNode);
                 } else {
@@ -130,7 +150,12 @@ public class ArithmeticReplacementOptimization implements Optimization {
         /**
          * Returns the replacement for the division encoded in the instance.
          */
-        public abstract Node getReplacement(Node block, Node dividend);
+        public abstract Node getDivReplacement(Node block, Node dividend);
+
+        /**
+         * todo
+         */
+        public abstract Node getModReplacement(Node block, Node dividend);
 
         /**
          * Returns an instance of this class if a division by the given node
@@ -171,20 +196,52 @@ public class ArithmeticReplacementOptimization implements Optimization {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class PowerOfTwoDivisor extends ReplaceableDivisor {
 
+        private final TargetValue divisor;
         private final int shift;
-        private final boolean negative;
 
         public static Optional<ReplaceableDivisor> of(TargetValue divisor) {
             var shift = getShiftWidth(divisor);
             if (shift > 0) {
-                return Optional.of(new PowerOfTwoDivisor(shift, divisor.isNegative()));
+                return Optional.of(new PowerOfTwoDivisor(divisor, shift));
             } else {
                 return Optional.empty();
             }
         }
 
         @Override
-        public Node getReplacement(Node block, Node dividend) {
+        public Node getDivReplacement(Node block, Node dividend) {
+            var quotient = getQuotientBase(block, dividend);
+            var graph = block.getGraph();
+
+            // shift the divided right n times
+            quotient = graph.newShrs(block, quotient, shiftConst(graph, shift));
+
+            // negate the quotient if necessary
+            if (divisor.isNegative()) {
+                quotient = graph.newMinus(block, quotient);
+            }
+
+            // convert the result to Ls, to keep correct modes
+            return graph.newConv(block, quotient, Mode.getLs());
+        }
+
+        @Override
+        public Node getModReplacement(Node block, Node dividend) {
+            var quotient = getQuotientBase(block, dividend);
+            var graph = block.getGraph();
+
+            // combine right and left shift into a single And operation
+            var mask = divisor.isNegative() ? divisor : divisor.neg();
+            var product = graph.newAnd(block, quotient, graph.newConst(mask));
+
+            // subtract product from dividend to get remainder
+            var remainder = graph.newSub(block, dividend, product);
+
+            // convert the result to Ls, to keep correct modes
+            return graph.newConv(block, remainder, Mode.getLs());
+        }
+
+        private Node getQuotientBase(Node block, Node dividend) {
             assert dividend.getMode().equals(Mode.getIs());
 
             var graph = block.getGraph();
@@ -203,18 +260,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
             }
 
             // add the (replicated) sign bit to the dividend
-            var quotient = graph.newAdd(block, dividend, signValue);
-
-            // shift the divided right n times
-            quotient = graph.newShrs(block, quotient, shiftConst(graph, shift));
-
-            // negate the quotient if necessary
-            if (negative) {
-                quotient = graph.newMinus(block, quotient);
-            }
-
-            // convert the result to Ls, to keep correct modes
-            return graph.newConv(block, quotient, Mode.getLs());
+            return graph.newAdd(block, dividend, signValue);
         }
     }
 
@@ -237,14 +283,37 @@ public class ArithmeticReplacementOptimization implements Optimization {
         }
 
         @Override
-        public Node getReplacement(Node block, Node dividend) {
-            assert dividend.getMode().equals(Mode.getIs());
+        public Node getDivReplacement(Node block, Node dividend) {
+            var graph = block.getGraph();
 
+            var quotient = getQuotientBase(block, dividend);
+
+            // convert the result to Ls, to keep correct modes
+            return graph.newConv(block, quotient, Mode.getLs());
+        }
+
+        @Override
+        public Node getModReplacement(Node block, Node dividend) {
+            var graph = block.getGraph();
+            var quotient = getQuotientBase(block, dividend);
+
+            // multiply the quotient with the divisor
+            var product = graph.newMul(block, quotient, graph.newConst(divisor));
+
+            // subtract the product from the dividend
+            var remainder = graph.newSub(block, dividend, product);
+
+            // convert the result to Ls, to keep correct modes
+            return graph.newConv(block, remainder, Mode.getLs());
+        }
+
+        private Node getQuotientBase(Node block, Node dividend) {
+            assert dividend.getMode().equals(Mode.getIs());
             var graph = block.getGraph();
 
             // Note: We actually need a Mulh here. However, as there is no
-            // support for it during instruction selection, we do cast up to Ls
-            // multiply, shift right by 32 and cast back down to Is
+            // support for it during instruction selection, we instead cast up
+            // to Ls multiply, shift right by 32 and cast back down to Is
 
             // multiply dividend with the magic number
             var longDiv = graph.newConv(block, dividend, Mode.getLs());
@@ -273,10 +342,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
             // extract the sign bit and it to the quotient
             var signShift = shiftConst(graph, Mode.getIs().getSizeBits() - 1);
             var signBit = graph.newShr(block, quotient, signShift);
-            quotient = graph.newAdd(block, quotient, signBit);
-
-            // convert the result to Ls, to keep correct modes
-            return graph.newConv(block, quotient, Mode.getLs());
+            return graph.newAdd(block, quotient, signBit);
         }
     }
 

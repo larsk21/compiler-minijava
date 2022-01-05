@@ -54,6 +54,7 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Add, new ArithmeticPattern(iro_Add, "add", 0, true)),
                 Map.entry(iro_Sub, new ArithmeticPattern(iro_Sub, "sub", 0, false)),
                 Map.entry(iro_Mul, new ArithmeticPattern(iro_Mul, "imul", 0, true)),
+                Map.entry(iro_And, new ArithmeticPattern(iro_And, "and", 0, true)),
                 Map.entry(iro_Eor, new ArithmeticPattern(iro_Eor, "xor", 0, true)),
 
                 Map.entry(iro_Shl, BinaryInstructionPattern.of(iro_Shl, "shl", REG, IMM8, 0, false)),
