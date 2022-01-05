@@ -25,6 +25,8 @@ import lombok.RequiredArgsConstructor;
  * of arithmetic expression. Currently the follows replacements are made:
  * 
  * - Multiplication by any non-zero power of two is replaced with a left shift
+ * (exception: 2, 4, and 8 are not replaced, as they also may be expressed
+ * as scaling factor, using x86's addressing modes)
  * - Division by a any non-zero power of two is replaced with a right shift and
  * some more instructions to achieve correct rounding of the result
  * - Division by any other integer greater than 3 is replaced with something
@@ -71,47 +73,56 @@ public class ArithmeticReplacementOptimization implements Optimization {
         @Override
         public void visit(Mul node) {
             var block = node.getBlock();
-            tryReplaceMul(block, node.getLeft(), node.getRight())
-                    .or(() -> tryReplaceMul(block, node.getRight(), node.getLeft()))
-                    .ifPresent(replacement -> exchange(node, replacement));
+            getMulReplacement(block, node.getLeft(), node.getRight())
+                    .or(() -> getMulReplacement(block, node.getRight(), node.getLeft()))
+                    .ifPresent(newNode -> exchange(node, newNode));
         }
 
         @Override
         public void visit(Div node) {
-            // this code is quite specific to our solution to division, i.e. the
-            // operation has mode Ls, but the operands always fit into Is.
-            if (node.getResmode().equals(Mode.getLs())
-                    && node.getRight().getOpCode() == ir_opcode.iro_Const
-                    && node.getLeft().getOpCode() == ir_opcode.iro_Conv) {
-
-                ReplaceableDivisor.of(node.getRight()).ifPresent(divisor -> {
-                    var block = node.getBlock();
-                    var dividend = node.getLeft().getPred(0);
-                    var newNode = divisor.getDivReplacement(block, dividend);
-                    replaceDivOrMod(node, newNode, node.getMem());
-                });
-            }
+            getDivOrModReplacement(node, node.getResmode())
+                    .ifPresent(newNode -> replaceDivOrMod(node, newNode, node.getMem()));
         }
 
         @Override
         public void visit(Mod node) {
-            // note about Div also applies here
-            if (node.getResmode().equals(Mode.getLs())
-                    && node.getRight().getOpCode() == ir_opcode.iro_Const
-                    && node.getLeft().getOpCode() == ir_opcode.iro_Conv) {
-
-                ReplaceableDivisor.of(node.getRight()).ifPresent(divisor -> {
-                    var block = node.getBlock();
-                    var dividend = node.getLeft().getPred(0);
-                    var newNode = divisor.getModReplacement(block, dividend);
-                    replaceDivOrMod(node, newNode, node.getMem());
-                });
-            }
+            getDivOrModReplacement(node, node.getResmode())
+                    .ifPresent(newNode -> replaceDivOrMod(node, newNode, node.getMem()));
         }
 
-        private Optional<Node> tryReplaceMul(Node block, Node multiplicand, Node multiplier) {
+        /**
+         * Returns a replacement for a multiplication if one is found using
+         * ReplaceableMultiplier#of.
+         */
+        private Optional<Node> getMulReplacement(Node block, Node multiplicand, Node multiplier) {
             return ReplaceableMultiplier.of(multiplier)
                     .map(mult -> mult.getReplacement(block, multiplicand));
+        }
+
+        /**
+         * Returns a replacement for a division or modulo operation if one is
+         * found using ReplaceableDivisor#of
+         */
+        private Optional<Node> getDivOrModReplacement(Node node, Mode mode) {
+            assert node.getOpCode() == ir_opcode.iro_Div || node.getOpCode() == ir_opcode.iro_Mod;
+
+            // this code is quite specific to our solution to division and modulo,
+            // i.e. the operation has mode Ls, but the operands always fit into Is.
+            if (mode.equals(Mode.getLs())
+                    && node.getPred(1).getOpCode() == ir_opcode.iro_Const
+                    && node.getPred(0).getOpCode() == ir_opcode.iro_Conv) {
+
+                return ReplaceableDivisor.of(node.getPred(1)).map(divisor -> {
+                    var block = node.getBlock();
+                    var dividend = node.getPred(0).getPred(0);
+
+                    return node.getOpCode() == ir_opcode.iro_Div
+                            ? divisor.getDivReplacement(block, dividend)
+                            : divisor.getModReplacement(block, dividend);
+                });
+            } else {
+                return Optional.empty();
+            }
         }
 
         /**
@@ -148,12 +159,12 @@ public class ArithmeticReplacementOptimization implements Optimization {
     private static abstract class ReplaceableDivisor {
 
         /**
-         * Returns the replacement for the division encoded in the instance.
+         * Returns the replacement for the encoded division.
          */
         public abstract Node getDivReplacement(Node block, Node dividend);
 
         /**
-         * todo
+         * Returns the replacement for the encoded modulo operation.
          */
         public abstract Node getModReplacement(Node block, Node dividend);
 
@@ -396,12 +407,11 @@ public class ArithmeticReplacementOptimization implements Optimization {
 
         /**
          * Returns true if the given value is not one of x86 scaling factors
-         * (1, 2, 4, or 8; positive or negative). The value is assumed to be
-         * a power of two.
+         * (1, 2, 4, or 8). The value is assumed to be a power of two.
          */
         private static final boolean shouldReplace(TargetValue multiplier) {
             var mask = new TargetValue(0b1111, multiplier.getMode());
-            return multiplier.abs().and(mask).isNull();
+            return multiplier.and(mask).isNull();
         }
     }
 
