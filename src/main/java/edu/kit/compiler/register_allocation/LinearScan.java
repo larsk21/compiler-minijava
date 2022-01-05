@@ -6,7 +6,13 @@ import lombok.Getter;
 import java.util.*;
 
 /**
- * Allocate registers by assigning a stack slot to each vRegister.
+ * Allocate registers with a linear scan algorithm.
+ *
+ * In addition to a basic linear scan, this implementation analyzes
+ * the lifetimes and usages of virtual register to calculate a preference
+ * for the assignment of the register (e.g. avoiding caller-saved registers
+ * if the lifetime contains a call or preferring %rax for a vRegister that
+ * represents the result of a function call).
  */
 public class LinearScan implements RegisterAllocator {
     private static final CallingConvention CCONV = CallingConvention.X86_64;
@@ -253,6 +259,7 @@ class ScanState {
             } else if (!l1.isLastInstrIsInput() && l2.isLastInstrIsInput()) {
                 return 1;
             } else if (l1.isLastInstrIsInput() && l2.isLastInstrIsInput()) {
+                // sort lifetimes that end with an overwrite to the front
                 var overwrite = analysis.getLastInstruction(j).get().getOverwriteRegister();
                 if (overwrite.isPresent() && overwrite.get().equals(k)) {
                     return -1;

@@ -5,10 +5,7 @@ import edu.kit.compiler.logger.Logger;
 import lombok.Getter;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static edu.kit.compiler.intermediate_lang.Register.*;
 
 public class RegisterTracker {
     // don't count reserved registers
@@ -116,11 +113,6 @@ public class RegisterTracker {
         return getTmp(vRegister).isPresent();
     }
 
-    public void clearSlotFromTmp(Register r) {
-        assert isFree(r);
-        registers.remove(r);
-    }
-
     public void markUsed(Register r) {
         usedRegisters.add(r);
     }
@@ -137,32 +129,6 @@ public class RegisterTracker {
             }
         }
         return result;
-    }
-
-    /**
-     * Free registers must always be requested together.
-     */
-    public List<Register> getFreeRegisters(int num, Optional<Register> exludedRegister) {
-        return getFreeRegisters(num, RegisterPreference.PREFER_CALLEE_SAVED_AVOID_DIV, exludedRegister);
-    }
-
-    public List<Register> getFreeRegisters(int num, RegisterPreference pref,
-                                           Optional<Register> exludedRegister) {
-        List<Register> result = new ArrayList<>();
-        if (num == 0) {
-            return result;
-        }
-        for (Register r: pref.inPreferenceOrder().filter(
-                r -> !isReservedRegister(r) && isFree(r) &&
-                        (exludedRegister.isEmpty() || r != exludedRegister.get())
-        ).collect(Collectors.toList())) {
-            result.add(r);
-            usedRegisters.add(r);
-            if (result.size() == num) {
-                return result;
-            }
-        }
-        throw new IllegalStateException("Not enough registers available.");
     }
 
     /**
@@ -202,10 +168,6 @@ public class RegisterTracker {
         throw new IllegalStateException("Not enough registers available.");
     }
 
-    public Optional<Register> tryGetFreeRegister() {
-        return tryGetFreeRegister(RegisterPreference.PREFER_CALLEE_SAVED_AVOID_DIV);
-    }
-
     public Optional<Register> tryGetFreeRegister(RegisterPreference pref) {
         for (Register r: pref.inPreferenceOrder().filter(
                 r -> !isReservedRegister(r) && isFree(r)
@@ -215,24 +177,6 @@ public class RegisterTracker {
         }
         return Optional.empty();
     }
-
-    // high value => high priority
-//    public Register getPrioritizedRegister(Function<Register, Integer> priorities) {
-//        Register best = RAX;
-//        int maxPrio = -1;
-//        for (Register r: Register.values()) {
-//            if (!isReservedRegister(r) && isFree(r)) {
-//                int prio = priorities.apply(r);
-//                if (prio > maxPrio) {
-//                    best = r;
-//                    maxPrio = prio;
-//                }
-//            }
-//        }
-//        assert maxPrio > -1;
-//        usedRegisters.add(best);
-//        return best;
-//    }
 
     private boolean isReservedRegister(Register r) {
         return switch (r) {

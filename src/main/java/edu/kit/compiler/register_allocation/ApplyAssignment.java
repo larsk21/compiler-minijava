@@ -121,12 +121,12 @@ public class ApplyAssignment {
         if (instr.getOverwriteRegister().isPresent()) {
             int target = instr.getTargetRegister().get();
             int overwrite = instr.getOverwriteRegister().get();
-            assignment[target].getRegister().ifPresent(r -> excluded.add(r));
-            tracker.getRegisters().getTmp(target).ifPresent(r -> excluded.add(r));
-            tracker.getRegisters().getTmp(overwrite).ifPresent(r -> excluded.add(r));
+            assignment[target].getRegister().ifPresent(excluded::add);
+            tracker.getRegisters().getTmp(target).ifPresent(excluded::add);
+            tracker.getRegisters().getTmp(overwrite).ifPresent(excluded::add);
         }
         for (int vRegister: instr.getInputRegisters()) {
-            tracker.getRegisters().getTmp(vRegister).ifPresent(r -> excluded.add(r));
+            tracker.getRegisters().getTmp(vRegister).ifPresent(excluded::add);
         }
         List<Register> tmpRegisters = tracker.getTmpRegisters(countRequiredTmps(tracker, instr, index), excluded);
 
@@ -283,7 +283,6 @@ public class ApplyAssignment {
         boolean isSignedUpcast = isUpcast && instr.getType() == InstructionType.MOV_S;
         if (!isSignedUpcast && assignment[source].isEquivalent(assignment[target]) ) {
             // eliminate unnecessary move
-            // TODO: is this correct for unsigned upcast?
             tracker.leaveInstruction(index);
             return;
         }
@@ -334,13 +333,11 @@ public class ApplyAssignment {
         // handle caller-saved registers
         int savedOffset = 0;
         ArrayDeque<Register> saved = new ArrayDeque<>();
-        EnumMap<Register, Integer> offsets = new EnumMap<>(Register.class);
         for (Register r: cconv.getCallerSaved()) {
             if (!tracker.getRegisters().isFree(r)) {
                 int vRegister = tracker.getRegisters().get(r).get();
                 if (!lifetimes[vRegister].isLastInstructionAndInput(index)) {
                     savedOffset += 8;
-                    offsets.put(r, savedOffset);
                     saved.push(r);
                     output("pushq %s # push caller-saved register", r.getAsQuad());
                 }
@@ -547,7 +544,7 @@ public class ApplyAssignment {
         // initialize remaining registers from args
         for (int vRegister = cconv.numArgRegisters(); vRegister < nArgs; vRegister++) {
             if (!lifetimes[vRegister].isTrivial()) {
-                assert !cconv.getArgRegister(vRegister).isPresent();
+                assert cconv.getArgRegister(vRegister).isEmpty();
                 if (!assignment[vRegister].isSpilled()) {
                     RegisterSize size = sizes[vRegister];
                     int offset = 16 + 8 * (nArgs - vRegister - 1);
@@ -697,17 +694,6 @@ public class ApplyAssignment {
     }
 
     /**
-     * Returns lifetimes that contain all instructions.
-     */
-    private static Lifetime[] completeLifetimes(int nRegisters, int nInstructions) {
-        Lifetime[] lifetimes = new Lifetime[nRegisters];
-        for(int i = 0; i < nRegisters; i++) {
-            lifetimes[i] = new Lifetime(-1, nInstructions, false);
-        }
-        return  lifetimes;
-    }
-
-    /**
      * Tracks the mapping of hardware registers to virtual registers during the
      * allocation in order to correctly provide free registers when needed
      */
@@ -725,7 +711,7 @@ public class ApplyAssignment {
 
         LifetimeTracker() {
             this.registers = new RegisterTracker();
-            this.lifetimeStarts = sortByLifetime((l1, l2) -> l1.getBegin() - l2.getBegin(), true);
+            this.lifetimeStarts = sortByLifetime(Comparator.comparingInt(Lifetime::getBegin), true);
             this.lifetimeEnds = sortByLifetime((l1, l2) -> {
                 int val = l1.getEnd() - l2.getEnd();
                 if (val != 0) {
@@ -839,20 +825,6 @@ public class ApplyAssignment {
 
         private int peek(List<Integer> l) {
             return l.get(l.size()- 1);
-        }
-
-        // debugging
-        public void printState(Logger logger) {
-            logger.debug("== Register tracking state ==");
-            if (!lifetimeStarts.isEmpty()) {
-                int vR = peek(lifetimeStarts);
-                logger.debug("- starting lifetime for vRegister %d at index %d", vR, lifetimes[vR].getBegin());
-            }
-            if (!lifetimeEnds.isEmpty()) {
-                int vR = peek(lifetimeEnds);
-                logger.debug("- ending lifetime for vRegister %d at index %d", vR, lifetimes[vR].getEnd());
-            }
-            registers.printState(logger);
         }
     }
 }
