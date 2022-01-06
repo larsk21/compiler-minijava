@@ -58,7 +58,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class Visitor extends NodeVisitor.Default {
 
-        private final Worklist<Node> worklist = new StackWorklist<>();
+        private final Worklist<Node> worklist = new StackWorklist<>(false);
         private final Graph graph;
 
         private boolean hasChanged = false;
