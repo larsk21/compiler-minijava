@@ -1,5 +1,8 @@
 package edu.kit.compiler.optimizations;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
@@ -26,6 +29,8 @@ import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Div;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
 public class ArithmeticReplacementOptimizationTest {
 
@@ -61,15 +66,15 @@ public class ArithmeticReplacementOptimizationTest {
     public void testTrivialMul() {
         createMul(initGraph(), 1);
         optimization.optimize(graph());
-        assertHas(graph(), ir_opcode.iro_Mul, "expected x*1 not to be replaced");
+        assertEquals(1, count(ir_opcode.iro_Mul));
 
         createMul(initGraph(), 0);
         optimization.optimize(graph());
-        assertHas(graph(), ir_opcode.iro_Mul, "expected x*0 not to be replaced");
+        assertEquals(1, count(ir_opcode.iro_Mul));
 
         createMul(initGraph(), -1);
         optimization.optimize(graph());
-        assertHas(graph(), ir_opcode.iro_Mul, "expected x*-1 not to be replaced");
+        assertEquals(1, count(ir_opcode.iro_Mul));
     }
 
     @Test
@@ -77,13 +82,13 @@ public class ArithmeticReplacementOptimizationTest {
         for (int i = 0; i < 2; ++i) {
             createMul(initGraph(), randomPower(3));
             optimization.optimize(graph());
-            assertNo(graph(), ir_opcode.iro_Mul);
+            assertEquals(0, count(ir_opcode.iro_Mul));
         }
 
         for (int i = 0; i < 2; ++i) {
             createMul(initGraph(), -randomPower(3));
             optimization.optimize(graph());
-            assertNo(graph(), ir_opcode.iro_Mul);
+            assertEquals(0, count(ir_opcode.iro_Mul));
         }
     }
 
@@ -91,11 +96,11 @@ public class ArithmeticReplacementOptimizationTest {
     public void testMulIntBounds() {
         createMul(initGraph(), Integer.MAX_VALUE);
         optimization.optimize(graph());
-        assertHas(graph(), ir_opcode.iro_Mul);
+        assertNotEquals(0, count(ir_opcode.iro_Mul));
 
         createMul(initGraph(), Integer.MIN_VALUE);
         optimization.optimize(graph());
-        assertNo(graph(), ir_opcode.iro_Mul);
+        assertEquals(0, count(ir_opcode.iro_Mul));
     }
 
     @Test
@@ -103,13 +108,13 @@ public class ArithmeticReplacementOptimizationTest {
         for (int i = 0; i < 2; ++i) {
             createMul(initGraph(), randomDivisor());
             optimization.optimize(graph());
-            assertHas(graph(), ir_opcode.iro_Mul);
+            assertNotEquals(0, count(ir_opcode.iro_Mul));
         }
 
         for (int i = 0; i < 2; ++i) {
             createMul(initGraph(), -randomDivisor());
             optimization.optimize(graph());
-            assertHas(graph(), ir_opcode.iro_Mul);
+            assertNotEquals(0, count(ir_opcode.iro_Mul));
         }
     }
 
@@ -118,15 +123,15 @@ public class ArithmeticReplacementOptimizationTest {
     public void testTrivialDiv() {
         createDiv(initGraph(), 1);
         optimization.optimize(graph());
-        assertHas(graph(), ir_opcode.iro_Div, "expected x/1 not to be replaced");
+        assertEquals(1, count(ir_opcode.iro_Div));
 
         createDiv(initGraph(), 0);
         optimization.optimize(graph());
-        assertHas(graph(), ir_opcode.iro_Div, "expected x/0 not to be replaced");
+        assertEquals(1, count(ir_opcode.iro_Div));
 
         createDiv(initGraph(), -1);
         optimization.optimize(graph());
-        assertHas(graph(), ir_opcode.iro_Div, "expected x/-1 not to be replaced");
+        assertEquals(1, count(ir_opcode.iro_Div));
     }
 
     @Test
@@ -134,15 +139,15 @@ public class ArithmeticReplacementOptimizationTest {
         for (int i = 0; i < 2; ++i) {
             createDiv(initGraph(), randomPower());
             optimization.optimize(graph());
-            assertNo(graph(), ir_opcode.iro_Div);
-            assertNo(graph(), ir_opcode.iro_Mul);
+            assertEquals(0, count(ir_opcode.iro_Div));
+            assertEquals(0, count(ir_opcode.iro_Mul));
         }
 
         for (int i = 0; i < 2; ++i) {
             createDiv(initGraph(), -randomPower());
             optimization.optimize(graph());
-            assertNo(graph(), ir_opcode.iro_Div);
-            assertNo(graph(), ir_opcode.iro_Mul);
+            assertEquals(0, count(ir_opcode.iro_Div));
+            assertEquals(0, count(ir_opcode.iro_Mul));
         }
     }
 
@@ -150,12 +155,12 @@ public class ArithmeticReplacementOptimizationTest {
     public void testDivIntBounds() {
         createDiv(initGraph(), Integer.MAX_VALUE);
         optimization.optimize(graph());
-        assertNo(graph(), ir_opcode.iro_Div);
+        assertEquals(0, count(ir_opcode.iro_Div));
 
         createDiv(initGraph(), Integer.MIN_VALUE);
         optimization.optimize(graph());
-        assertNo(graph(), ir_opcode.iro_Div);
-        assertNo(graph(), ir_opcode.iro_Mul);
+        assertEquals(0, count(ir_opcode.iro_Div));
+        assertEquals(0, count(ir_opcode.iro_Mul));
     }
 
     @Test
@@ -163,18 +168,22 @@ public class ArithmeticReplacementOptimizationTest {
         for (int i = 0; i < 4; ++i) {
             createDiv(initGraph(), randomDivisor());
             optimization.optimize(graph());
-            assertNo(graph(), ir_opcode.iro_Div);
+            assertEquals(0, count(ir_opcode.iro_Div));
         }
 
         for (int i = 0; i < 4; ++i) {
             createDiv(initGraph(), -randomDivisor());
             optimization.optimize(graph());
-            assertNo(graph(), ir_opcode.iro_Div);
+            assertEquals(0, count(ir_opcode.iro_Div));
         }
     }
 
     private Graph graph() {
         return graphs.peek();
+    }
+
+    private int count(ir_opcode opcode) {
+        return Counter.count(opcode, graph());
     }
 
     private int randomPower() {
@@ -189,41 +198,6 @@ public class ArithmeticReplacementOptimizationTest {
         return random.ints(3, Integer.MAX_VALUE)
                 .filter(x -> Arrays.binarySearch(POWERS, x) < 0)
                 .findFirst().getAsInt();
-    }
-
-    private static void assertNo(Graph graph, ir_opcode opcode) {
-        assertNo(graph, opcode, String.format("expected no %s node in graph", opcode));
-    }
-
-    private static void assertNo(Graph graph, ir_opcode opcode, String message) {
-        graph.walk(new NodeVisitor.Default() {
-            @Override
-            public void defaultVisit(Node node) {
-                if (node.getOpCode() == opcode) {
-                    throw new AssertionError(message);
-                }
-            }
-        });
-    }
-
-    private static void assertHas(Graph graph, ir_opcode opcode) {
-        assertHas(graph, opcode, String.format("expected %s node in graph", opcode));
-    }
-
-    private static void assertHas(Graph graph, ir_opcode opcode, String message) {
-        try {
-            graph.walk(new NodeVisitor.Default() {
-                @Override
-                public void defaultVisit(Node node) {
-                    if (node.getOpCode() == opcode) {
-                        throw new IllegalArgumentException();
-                    }
-                }
-            });
-        } catch (IllegalArgumentException e) {
-            return;
-        }
-        throw new AssertionError(message);
     }
 
     private static void createDiv(Graph graph, int value) {
@@ -260,9 +234,30 @@ public class ArithmeticReplacementOptimizationTest {
         var uuid = UUID.randomUUID();
         var intType = new PrimitiveType(Mode.getIs());
         var methodType = new MethodType(new Type[] { intType }, new Type[] { intType });
-        var entity = new Entity(Program.getGlobalType(), "div_test_" + uuid, methodType);
+        var entity = new Entity(Program.getGlobalType(), "test_" + uuid, methodType);
         var graph = new Graph(entity, 1);
         graphs.push(graph);
         return graphs.peek();
+    }
+
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class Counter extends NodeVisitor.Default {
+
+        private final ir_opcode opcode;
+
+        private int counter = 0;
+
+        public static int count(ir_opcode opcode, Graph graph) {
+            var visitor = new Counter(opcode);
+            graph.walk(visitor);
+            return visitor.counter;
+        }
+
+        @Override
+        public void defaultVisit(Node node) {
+            if (node.getOpCode() == opcode) {
+                counter += 1;
+            }
+        }
     }
 }

@@ -45,12 +45,6 @@ import lombok.RequiredArgsConstructor;
  * --> e.g. 5 - (x + 10) --> -5 - x
  * --> e.g. 2 * (x * 21) --> x * 42
  * - Fold negation of addition, subtraction or multiplication with constant
- * 
- * Optimizations better done during instruction selection:
- * - Replace multiplication by constant power of two with shifts or lea
- * - Replace division by constant power of two with shifts or lea
- * -> These and similar optimizations are more dependant on the target
- * architecture
  */
 public final class ArithmeticIdentitiesOptimization implements Optimization {
     @Override
