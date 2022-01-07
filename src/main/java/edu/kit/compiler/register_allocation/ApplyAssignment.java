@@ -720,9 +720,7 @@ public class ApplyAssignment {
         public Register getDivRegister() {
             assert !tmpRequested;
             tmpRequested = true;
-            return registers.getTmpRegisters(
-                    1, RegisterPreference.PREFER_CALLEE_SAVED_NO_DIV, Set.of()
-            ).get(0);
+            return registers.getTmpRegisters(1, Set.of(Register.RAX, Register.RDX)).get(0);
         }
 
         /**

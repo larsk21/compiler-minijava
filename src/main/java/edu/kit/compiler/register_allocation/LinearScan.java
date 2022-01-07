@@ -216,6 +216,12 @@ public class LinearScan implements RegisterAllocator {
     }
 }
 
+/**
+ * Tracks the necessary state for the linear scan. Specifically, this includes
+ * register assignments, lifetimes and the state of the hardware registers.
+ *
+ * Also handles register assignments and spilling.
+ */
 class ScanState {
     @Getter
     private LifetimeAnalysis analysis;
