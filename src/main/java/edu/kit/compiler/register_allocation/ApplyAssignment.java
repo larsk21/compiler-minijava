@@ -333,57 +333,39 @@ public class ApplyAssignment {
         // handle args
         int numArgsOnStack = 0;
         List<Integer> args = instr.getInputRegisters();
-        PermutationSolver solver = new PermutationSolver();
+        Permuter permuter = new Permuter();
         for (int i = 0; i < args.size(); i++) {
             int vRegister = args.get(i);
-            if (cconv.getArgRegister(i).isPresent()) {
-                // the argument is passed within a register
+            RegisterSize size = sizes[vRegister];
+
+            if (cconv.isPassedInRegister(i)) {
                 Register argReg = cconv.getArgRegister(i).get();
-                if (!isOnStack(tracker, vRegister)) {
-                    Register r = getRegisterOrTmp(tracker, vRegister);
-                    solver.addMapping(r.ordinal(), argReg.ordinal());
+                if (isOnStack(tracker, vRegister)) {
+                    permuter.stackToRegister("mov%c %d(%%rbp), %s # load @%d as arg %d",
+                            size.getSuffix(), getStackSlot(vRegister), argReg.asSize(size), vRegister, i);
+                } else {
+                    permuter.registerToRegister(getRegisterOrTmp(tracker, vRegister), argReg);
                 }
-                // spilled values are assigned later
             } else {
-                // the argument is passed on the stack
                 numArgsOnStack++;
                 if (isOnStack(tracker, vRegister)) {
-                    RegisterSize size = sizes[vRegister];
-                    // to ensure that we read with correct size, we first move into a register
-                    output("mov%c %d(%%rbp), %s # reload @%d ...",
+                    permuter.stackToStack("mov%c %d(%%rbp), %s # reload @%d ...",
                             size.getSuffix(), getStackSlot(vRegister), cconv.getReturnRegister().asSize(size), vRegister);
-                    output("pushq %s # ... and pass it as arg %d",
+                    permuter.stackToStack("pushq %s # ... and pass it as arg %d",
                             cconv.getReturnRegister().getAsQuad(), i);
                 } else {
-                    Register r = getRegisterOrTmp(tracker, vRegister);
-                    output("pushq %s # pass @%d as arg %d", r.getAsQuad(), vRegister, i);
+                    permuter.registerToStack("pushq %s # pass @%d as arg %d",
+                            getRegisterOrTmp(tracker, vRegister).getAsQuad(), vRegister, i);
                 }
             }
         }
+        permuter.outputAll(cconv.getReturnRegister(), "assign arg registers");
 
         // align to 16 byte (only required for external functions, which take all args in registers)
         int alignmentOffset = 0;
         if (numArgsOnStack == 0 && (savedOffset % 16 != 0)) {
             alignmentOffset = 8;
             output("subq $8, %rsp # align stack to 16 byte");
-        }
-
-        // we create the correct register permutation
-        for (var move: solver.solveFromNonCycle(cconv.getReturnRegister().ordinal())) {
-            Register from = Register.fromOrdinal(move.getInput());
-            Register to = Register.fromOrdinal(move.getTarget());
-            output("mov %s, %s # assign arg registers", from.getAsQuad(), to.getAsQuad());
-        }
-
-        // we assign register args from spilled values
-        for (int i = 0; i < Math.min(args.size(), cconv.numArgRegisters()); i++) {
-            int vRegister = args.get(i);
-            if (isOnStack(tracker, vRegister)) {
-                Register argReg = cconv.getArgRegister(i).get();
-                RegisterSize size = sizes[vRegister];
-                output("mov%c %d(%%rbp), %s # load @%d as arg %d",
-                        size.getSuffix(), getStackSlot(vRegister), argReg.asSize(size), vRegister, i);
-            }
         }
 
         // output the instruction itself
@@ -459,7 +441,6 @@ public class ApplyAssignment {
                 totalSize += 8;
             }
         }
-
         if (totalSize % 16 != 0) {
             // align to 16 byte
             assert (totalSize + 8) % 16 == 0;
@@ -477,35 +458,40 @@ public class ApplyAssignment {
             }
         }
 
-        // initialize stack slots from args and collect registers for permutation
-        PermutationSolver solver = new PermutationSolver();
+        // initialize all args
+        Permuter permuter = new Permuter();
         Set<Register> targets = new HashSet<>();
         for (int vRegister = 0; vRegister < nArgs; vRegister++) {
             if (!lifetimes[vRegister].isTrivial()) {
                 RegisterSize size = sizes[vRegister];
-                if (cconv.getArgRegister(vRegister).isPresent()) {
+
+                if (cconv.isPassedInRegister(vRegister)) {
                     Register argReg = cconv.getArgRegister(vRegister).get();
                     if (assignment[vRegister].isSpilled()) {
-                        output("mov%c %s, %d(%%rbp) # initialize @%d from arg",
+                        permuter.registerToStack("mov%c %s, %d(%%rbp) # initialize @%d from arg",
                                 size.getSuffix(), argReg.asSize(size), getStackSlot(vRegister), vRegister);
                     } else {
-                        solver.addMapping(argReg.ordinal(), getRegister(vRegister).ordinal());
+                        permuter.registerToRegister(argReg, getRegister(vRegister));
                         targets.add(getRegister(vRegister));
                     }
-                } else if (assignment[vRegister].isSpilled()) {
-                    int offset = argOffsetOnStack(nArgs, vRegister);
-                    if (offset != getStackSlot(vRegister)) {
-                        String tmpRegister = cconv.getReturnRegister().asSize(size);
-                        output("mov%c %d(%%rbp), %s # load to temporary...",
-                                size.getSuffix(), offset, tmpRegister);
-                        output("mov%c %s, %d(%%rbp) # ...initialize @%d from arg",
-                                size.getSuffix(), tmpRegister, getStackSlot(vRegister), vRegister);
+                } else {
+                    if (assignment[vRegister].isSpilled()) {
+                        int offset = argOffsetOnStack(nArgs, vRegister);
+                        if (offset != getStackSlot(vRegister)) {
+                            String tmpRegister = cconv.getReturnRegister().asSize(size);
+                            permuter.stackToStack("mov%c %d(%%rbp), %s # load to temporary...",
+                                    size.getSuffix(), offset, tmpRegister);
+                            permuter.stackToStack("mov%c %s, %d(%%rbp) # ...initialize @%d from arg",
+                                    size.getSuffix(), tmpRegister, getStackSlot(vRegister), vRegister);
+                        }
+                    } else {
+                        permuter.stackToRegister("mov%c %d(%%rbp), %s # initialize @%d from arg",
+                                size.getSuffix(), argOffsetOnStack(nArgs, vRegister),
+                                getRegister(vRegister).asSize(size), vRegister);
                     }
                 }
             }
         }
-
-        // we create the correct register permutation
         Register freeRegister = null;
         for (Register r: cconv.getCallerSaved()) {
             if (!targets.contains(r)) {
@@ -513,24 +499,7 @@ public class ApplyAssignment {
                 break;
             }
         }
-        for (var move: solver.solveFromNonCycle(freeRegister.ordinal())) {
-            Register from = Register.fromOrdinal(move.getInput());
-            Register to = Register.fromOrdinal(move.getTarget());
-            output("mov %s, %s # assign args to registers", from.getAsQuad(), to.getAsQuad());
-        }
-
-        // initialize remaining registers from args
-        for (int vRegister = cconv.numArgRegisters(); vRegister < nArgs; vRegister++) {
-            if (!lifetimes[vRegister].isTrivial()) {
-                assert cconv.getArgRegister(vRegister).isEmpty();
-                if (!assignment[vRegister].isSpilled()) {
-                    RegisterSize size = sizes[vRegister];
-                    output("mov%c %d(%%rbp), %s # initialize @%d from arg",
-                            size.getSuffix(), argOffsetOnStack(nArgs, vRegister),
-                            getRegister(vRegister).asSize(size), vRegister);
-                }
-            }
-        }
+        permuter.outputAll(freeRegister, "assign args to registers");
 
         return result;
     }
@@ -831,6 +800,48 @@ public class ApplyAssignment {
 
         private int peek(List<Integer> l) {
             return l.get(l.size()- 1);
+        }
+    }
+
+    /**
+     * Helper class for creating permutations where both source and target can be
+     * either a register or on the stack.
+     */
+    private class Permuter {
+        private PermutationSolver solver = new PermutationSolver();
+        private List<String> stackAssignments = new ArrayList<>();
+        private List<String> stackToRegisterAssignments = new ArrayList<>();
+
+        public void stackToStack(String format, Object... args) {
+            stackAssignments.add(String.format(format, args));
+        }
+
+        public void registerToStack(String format, Object... args) {
+            stackAssignments.add(String.format(format, args));
+        }
+
+        public void registerToRegister(Register source, Register target) {
+            solver.addMapping(source.ordinal(), target.ordinal());
+        }
+
+        public void stackToRegister(String format, Object... args) {
+            stackToRegisterAssignments.add(String.format(format, args));
+        }
+
+        public void outputAll(Register freeRegister, String comment) {
+            // the correct order is crucial for not accidentally
+            // overwriting a value that needs to be used later
+            for (String line: stackAssignments) {
+                output(line);
+            }
+            for (var move: solver.solveFromNonCycle(freeRegister.ordinal())) {
+                Register from = Register.fromOrdinal(move.getInput());
+                Register to = Register.fromOrdinal(move.getTarget());
+                output("mov %s, %s # %s", from.getAsQuad(), to.getAsQuad(), comment);
+            }
+            for (String line: stackToRegisterAssignments) {
+                output(line);
+            }
         }
     }
 }

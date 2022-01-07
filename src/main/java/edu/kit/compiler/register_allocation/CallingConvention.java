@@ -35,8 +35,12 @@ public class CallingConvention {
         return callerSaved.contains(r);
     }
 
+    public boolean isPassedInRegister(int argPos) {
+        return argPos < argRegisters.length;
+    }
+
     public Optional<Register> getArgRegister(int argPos) {
-        if (argPos < argRegisters.length) {
+        if (isPassedInRegister(argPos)) {
             return Optional.of(argRegisters[argPos]);
         }
         return Optional.empty();
