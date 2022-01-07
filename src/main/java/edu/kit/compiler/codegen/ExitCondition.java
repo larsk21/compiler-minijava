@@ -73,8 +73,7 @@ public abstract class ExitCondition {
         public List<Instruction> getInstructions() {
             assert label >= 0;
             return List.of(Instruction.newJmp(
-                    Util.formatJmp("jmp", label), label)
-            );
+                    Util.formatJmp("jmp", label), label));
         }
 
         @Override

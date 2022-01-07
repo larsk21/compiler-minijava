@@ -35,7 +35,7 @@ public class ConversionPattern implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class ConversionMatch extends InstructionMatch.Basic {
+    private static final class ConversionMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final OperandMatch<Operand.Register> source;

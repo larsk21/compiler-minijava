@@ -79,7 +79,7 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
         public Stream<Node> getPredecessors() {
             return preds.stream().flatMap(match -> match.getPredecessors());
         }
-        
+
         @Override
         public Stream<Operand> getOperands() {
             return preds.stream().map(OperandMatch::getOperand);

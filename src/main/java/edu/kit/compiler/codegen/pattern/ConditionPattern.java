@@ -68,8 +68,8 @@ public final class ConditionPattern {
     public static final class Comparison<S extends Operand.Source, T extends Operand.Source> extends Conditional<S, T> {
 
         public Comparison(Pattern<? extends OperandMatch<S>> left, Pattern<? extends OperandMatch<T>> right,
-                boolean swapOperands) {
-            super(left, right, swapOperands);
+                boolean commutate) {
+            super(left, right, commutate);
         }
 
         @Override
@@ -86,8 +86,8 @@ public final class ConditionPattern {
         private static final Pattern<OperandMatch<Register>> REGISTER = OperandPattern.register();
         private static final Pattern<OperandMatch<Immediate>> ZERO = OperandPattern.zero();
 
-        public Test(boolean swapOperands) {
-            super(REGISTER, ZERO, swapOperands);
+        public Test(boolean commutate) {
+            super(REGISTER, ZERO, commutate);
         }
 
         @Override

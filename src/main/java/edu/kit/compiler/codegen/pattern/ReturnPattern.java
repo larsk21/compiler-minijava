@@ -38,7 +38,7 @@ public final class ReturnPattern implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class ReturnMatch extends InstructionMatch.Basic {
+    private static final class ReturnMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final Optional<OperandMatch<Operand.Register>> source;
