@@ -134,6 +134,10 @@ public class Instruction {
         return type == InstructionType.DIV || type == InstructionType.MOD;
     }
 
+    public boolean isMov() {
+        return type == InstructionType.MOV_S || type == InstructionType.MOV_U;
+    }
+
     public int inputRegister(int index) {
         return inputRegisters.get(index);
     }

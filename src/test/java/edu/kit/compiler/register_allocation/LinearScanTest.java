@@ -11,7 +11,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class DumbAllocatorTest {
+public class LinearScanTest {
 
     @Test
     public void testCompareToFirm() {
@@ -38,46 +38,27 @@ public class DumbAllocatorTest {
                 Instruction.newCall(List.of(3), Optional.empty(), "print@PLT")
         ), 0, 0);
 
-        RegisterAllocator alloc = new DumbAllocator();
+        RegisterAllocator alloc = new LinearScan();
         var result = alloc.performAllocation(0, List.of(block), sizes);
         var expected = new ArrayList<>();
         expected.add("pushq %rbp");
         expected.add("movq %rsp, %rbp");
-        expected.add("subq $72, %rsp # allocate activation record");
-        expected.add("pushq %rbx # push callee-saved register");
-        expected.add("pushq %r12 # push callee-saved register");
-        expected.add("pushq %r13 # push callee-saved register");
 
         expected.add(".L0:");
-        expected.add("movl $0x1, %ebx");
-        expected.add("movl %ebx, -56(%rbp) # spill for @6");
-        expected.add("movl $0x4, %r12d");
-        expected.add("movl %r12d, -64(%rbp) # spill for @7");
-        expected.add("mov %rbx, %rdi # assign arg registers");
-        expected.add("mov %r12, %rsi # assign arg registers");
+        expected.add("movl $0x1, %edi");
+        expected.add("movl $0x4, %esi");
         expected.add("call calloc@PLT");
-        expected.add("movq %rax, -24(%rbp) # spill return value for @2");
-        expected.add("movl $0x7, %ebx");
-        expected.add("movl %ebx, -8(%rbp) # spill for @0");
-        expected.add("addl $77, %ebx");
-        expected.add("movl %ebx, -16(%rbp) # spill for @1");
-        expected.add("movl %ebx, (%rax)");
-        expected.add("movslq (%rax), %rbx");
-        expected.add("movq %rbx, -40(%rbp) # spill for @4");
-        expected.add("movq $0x2, %r12");
-        expected.add("movq %r12, -48(%rbp) # spill for @5");
-        expected.add("movq %rbx, %rax # get dividend");
-        expected.add("movq %r12, %r13 # get divisor");
+        expected.add("movl $0x7, %edx");
+        expected.add("addl $77, %edx");
+        expected.add("movl %edx, (%rax)");
+        expected.add("movslq (%rax), %rax");
+        expected.add("movq $0x2, %rcx");
         expected.add("cqto # sign extension to octoword");
-        expected.add("idivq %r13");
-        expected.add("movl %eax, -32(%rbp) # spill for @3");
-        expected.add("mov %rax, %rdi # assign arg registers");
+        expected.add("idivq %rcx");
+        expected.add("movl %eax, %edi # move result to @3");
         expected.add("call print@PLT");
 
         expected.add(ApplyAssignment.FINAL_BLOCK_LABEL + ":");
-        expected.add("popq %r13 # restore callee-saved register");
-        expected.add("popq %r12 # restore callee-saved register");
-        expected.add("popq %rbx # restore callee-saved register");
         expected.add("leave");
         expected.add("ret");
         assertEquals(expected, result);

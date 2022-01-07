@@ -47,4 +47,8 @@ public enum Register {
             case QUAD -> asQuad;
         };
     }
+
+    public static Register fromOrdinal(int ord) {
+        return values()[ord];
+    }
 }

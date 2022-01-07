@@ -59,7 +59,6 @@ public class ApplyAssignmentTest {
         expected.add("movq %rbx, -8(%rbp) # spill for @1");
         expected.add("incrl %rbx");
         expected.add("movq %rbx, -8(%rbp) # spill for @1");
-        expected.add("movq -8(%rbp), %rbx # reload for @1");
         expected.add("addl %rax, %rbx, %r12");
         expected.add("movq %r12, -16(%rbp) # spill for @2");
         assertEquals(expected, result.getInstructions());
@@ -84,21 +83,22 @@ public class ApplyAssignmentTest {
                 RegisterSize.QUAD,
         };
         Lifetime[] lifetimes = new Lifetime[] {
-                new Lifetime(-1, 5),
+                new Lifetime(-1, 6),
                 new Lifetime(-1, 3, true),
-                new Lifetime(-1, 5),
-                new Lifetime(-1, 5),
-                new Lifetime(2, 5),
-                new Lifetime(-1, 5),
+                new Lifetime(-1, 6),
+                new Lifetime(-1, 6, true),
+                new Lifetime(2, 6),
+                new Lifetime(-1, 6),
         };
         Block block = new Block(List.of(
                 Instruction.newOp("addl @0, @2", List.of( 0 ), Optional.of(1), 2),
                 Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(1), 3),
                 Instruction.newOp("subl @0, @4", List.of( 0 ), Optional.of(1), 4),
                 Instruction.newOp("addl @0, @4", List.of( 0 ), Optional.of(5), 4),
-                Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(5), 3)
+                Instruction.newOp("xorl @0, @3", List.of( 0 ), Optional.of(5), 3),
+                Instruction.newOp("mull @0, @5", List.of( 0 ), Optional.of(3), 5)
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 5);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 6);
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add(".L0:");
@@ -113,6 +113,8 @@ public class ApplyAssignmentTest {
         expected.add("movq -16(%rbp), %r12 # reload for @5 [overwrite]");
         expected.add("xorl %rax, %r12");
         expected.add("movq %r12, -8(%rbp) # spill for @3");
+        expected.add("mull %rax, %r12");
+        expected.add("movq %r12, -16(%rbp) # spill for @5");
         assertEquals(expected, result.getInstructions());
         // check that temporary registers are marked as used
         assert result.getUsedRegisters().contains(Register.R12);
@@ -283,20 +285,15 @@ public class ApplyAssignmentTest {
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add(".L0:");
-        expected.add("pushq %rbx # push caller-saved register");
-        expected.add("pushq %rcx # push caller-saved register");
-        expected.add("movq 8(%rsp), %rbx # reload @0 as arg 0");
-        expected.add("movl %r8d, %ecx # move @1 into arg 1");
-        expected.add("movl -8(%rbp), %edx # load @2 as arg 2");
         expected.add("movl -16(%rbp), %eax # reload @3 ...");
         expected.add("pushq %rax # ... and pass it as arg 3");
         expected.add("pushq %r9 # pass @4 as arg 4");
-        expected.add("pushq 0(%rsp) # reload @5 as arg 5");
+        expected.add("pushq %rcx # pass @5 as arg 5");
+        expected.add("mov %r8, %rcx # assign arg registers");
+        expected.add("movl -8(%rbp), %edx # load @2 as arg 2");
         expected.add("call _foo");
         expected.add("addq $24, %rsp # remove args from stack");
         expected.add("movl %eax, %edi # move return value into @6");
-        expected.add("addq $8, %rsp # clear stack");
-        expected.add("addq $8, %rsp # clear stack");
         assertEquals(expected, result.getInstructions());
     }
 
@@ -375,12 +372,12 @@ public class ApplyAssignmentTest {
         expectedProlog.add("pushq %r8 # push callee-saved register");
         expectedProlog.add("pushq %r9 # push callee-saved register");
         expectedProlog.add("pushq %r10 # push callee-saved register");
-        expectedProlog.add("movl 16(%rbp), %r8d # initialize @5 from arg");
-        expectedProlog.add("movl 24(%rbp), %ebx # initialize @4 from arg");
+        expectedProlog.add("movl %edx, -8(%rbp) # initialize @2 from arg");
         expectedProlog.add("movl 32(%rbp), %eax # load to temporary...");
         expectedProlog.add("movl %eax, -12(%rbp) # ...initialize @3 from arg");
-        expectedProlog.add("movl %edx, -8(%rbp) # initialize @2 from arg");
-        expectedProlog.add("movl %ebx, %edx # initialize @0 from arg");
+        expectedProlog.add("mov %rbx, %rdx # assign args to registers");
+        expectedProlog.add("movl 24(%rbp), %ebx # initialize @4 from arg");
+        expectedProlog.add("movl 16(%rbp), %r8d # initialize @5 from arg");
         assertEquals(expectedProlog, prolog);
 
         var epilog = ass.createFunctionEpilog();
