@@ -36,7 +36,7 @@ public class LoadMemoryPattern implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class LoadMemoryMatch extends InstructionMatch.Basic {
+    private static final class LoadMemoryMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final OperandMatch<Operand.Memory> source;

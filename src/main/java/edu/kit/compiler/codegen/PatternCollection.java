@@ -63,8 +63,8 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Conv, new ConversionPattern()),
 
                 Map.entry(iro_Store, new CompoundPattern(List.of(
-                        BinaryInstructionPattern.of(iro_Store, "mov", MEM, IMM, 1, false),
-                        BinaryInstructionPattern.of(iro_Store, "mov", MEM, REG, 1, false)))),
+                        new BinaryInstructionPattern(iro_Store, "mov", MEM, IMM, 1, false),
+                        new BinaryInstructionPattern(iro_Store, "mov", MEM, REG, 1, false)))),
                 Map.entry(iro_Load, new LoadMemoryPattern()),
 
                 Map.entry(iro_Call, new CallPattern()),
@@ -135,8 +135,8 @@ public class PatternCollection implements Pattern<InstructionMatch> {
 
         public ArithmeticPattern(ir_opcode opcode, String command, int offset, boolean commutate) {
             this.patterns = new CompoundPattern(List.of(
-                    BinaryInstructionPattern.of(opcode, command, REG, IMM, offset, commutate),
-                    BinaryInstructionPattern.of(opcode, command, REG, REG, offset, false)));
+                    new BinaryInstructionPattern(opcode, command, REG, IMM, offset, commutate),
+                    new BinaryInstructionPattern(opcode, command, REG, REG, offset, false)));
         }
 
         @Override

@@ -140,7 +140,7 @@ public class MatcherState {
      * Walk the matches in topological order. This is functionally the same as
      * the function implemented for Firm graphs, except that instead of using
      * the predecessors of a node to recurse, it uses those nodes return by
-     * `Match#getPredecessors`. 
+     * `Match#getPredecessors`.
      */
     public void walkTopological(InstructionMatchVisitor walker) {
         graph.incVisited();

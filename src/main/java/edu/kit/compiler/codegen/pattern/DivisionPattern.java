@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DivisionPattern implements Pattern<InstructionMatch> {
 
-    private  static final Pattern<OperandMatch<Operand.Register>> REGISTER = OperandPattern.register();
+    private static final Pattern<OperandMatch<Operand.Register>> REGISTER = OperandPattern.register();
 
     private final Type type;
 
@@ -85,7 +85,7 @@ public class DivisionPattern implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class DivisionMatch extends InstructionMatch.Basic {
+    private final class DivisionMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final OperandMatch<Operand.Register> left;

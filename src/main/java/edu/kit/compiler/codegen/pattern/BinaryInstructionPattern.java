@@ -16,28 +16,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public abstract class BinaryInstructionPattern<T extends Operand.Target, S extends Operand.Source>
-        implements Pattern<InstructionMatch> {
+public final class BinaryInstructionPattern implements Pattern<InstructionMatch> {
 
     private final ir_opcode opcode;
-    private final Pattern<? extends OperandMatch<T>> targetPattern;
-    private final Pattern<? extends OperandMatch<S>> sourcePattern;
+    private final String command;
+    private final Pattern<? extends OperandMatch<? extends Operand.Target>> targetPattern;
+    private final Pattern<? extends OperandMatch<? extends Operand.Source>> sourcePattern;
     private final int offset;
     private final boolean commutate;
-
-    public static <T extends Operand.Target, S extends Operand.Source> BinaryInstructionPattern<T, S> of(
-            ir_opcode opcode, String command, Pattern<? extends OperandMatch<T>> target,
-            Pattern<? extends OperandMatch<S>> source, int offset, boolean commutate) {
-        return new BinaryInstructionPattern<T, S>(opcode, target, source, offset, commutate) {
-            @Override
-            protected InstructionMatch getMatch(Node node, OperandMatch<T> target,
-                    OperandMatch<S> source, MatcherState matcher) {
-                var targetRegister = getTarget(target.getOperand(),
-                        () -> matcher.getNewRegister(source.getOperand().getSize()));
-                return new BinaryInstructionMatch(node, command, target, source, targetRegister);
-            }
-        };
-    }
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
@@ -52,7 +38,10 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
             }
 
             if (targetMatch.matches() && sourceMatch.matches()) {
-                return getMatch(node, targetMatch, sourceMatch, matcher);
+                var size = sourceMatch.getOperand().getSize();
+                var targetRegister = getTarget(targetMatch.getOperand(),
+                        () -> matcher.getNewRegister(size));
+                return new BinaryInstructionMatch(node, targetMatch, sourceMatch, targetRegister);
             } else {
                 return InstructionMatch.none();
             }
@@ -60,9 +49,6 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
             return InstructionMatch.none();
         }
     }
-
-    protected abstract InstructionMatch getMatch(Node node, OperandMatch<T> target,
-            OperandMatch<S> source, MatcherState matcher);
 
     private static Optional<Integer> getTarget(Operand.Target operand, IntSupplier register) {
         if (operand.getTargetRegister().isPresent()) {
@@ -73,12 +59,11 @@ public abstract class BinaryInstructionPattern<T extends Operand.Target, S exten
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class BinaryInstructionMatch extends InstructionMatch.Basic {
+    private final class BinaryInstructionMatch extends InstructionMatch.Basic {
 
         private final Node node;
-        private final String command;
-        private final OperandMatch<T> target;
-        private final OperandMatch<S> source;
+        private final OperandMatch<? extends Operand.Target> target;
+        private final OperandMatch<? extends Operand.Source> source;
         private final Optional<Integer> targetRegister;
 
         @Override

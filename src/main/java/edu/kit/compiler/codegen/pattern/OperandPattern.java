@@ -99,8 +99,8 @@ public final class OperandPattern {
         @Override
         public OperandMatch<Immediate> match(Node node, MatcherState matcher) {
             return switch (node.getOpCode()) {
-                case iro_Const -> checkSize(matchConst(node, matcher));
-                case iro_Conv -> checkSize(matchConv(node, matcher));
+                case iro_Const -> checkPredicate(matchConst(node, matcher));
+                case iro_Conv -> checkPredicate(matchConv(node, matcher));
                 default -> OperandMatch.none();
             };
         }
@@ -122,7 +122,7 @@ public final class OperandPattern {
             }
         }
 
-        private OperandMatch<Immediate> checkSize(OperandMatch<Immediate> match) {
+        private OperandMatch<Immediate> checkPredicate(OperandMatch<Immediate> match) {
             if (match.matches()) {
                 if (predicate.test(match.getOperand().get())) {
                     return match;
@@ -192,10 +192,10 @@ public final class OperandPattern {
                 return indexLeft;
             }
 
-            // todo (2,4,8) + 1 * %rax = (%rax,%rax,8)
+            // ! possible improvement: (2,4,8) + 1 * %rax = (%rax,%rax,8)
             var match = getMatch(nodes.offset, nodes.firstRegister,
                     nodes.secondRegister, matcher);
-            if (match == null) {
+            if (!match.matches()) {
                 // fallback if something goes awry
                 var register = REGISTER.match(node, matcher);
                 var operand = Operand.memory(Optional.empty(),

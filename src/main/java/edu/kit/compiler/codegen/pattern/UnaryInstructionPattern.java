@@ -51,7 +51,7 @@ public class UnaryInstructionPattern implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class UnaryInstructionMatch extends InstructionMatch.Basic {
+    private final class UnaryInstructionMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final OperandMatch<? extends Operand.Target> source;

@@ -66,7 +66,7 @@ public class CallPattern implements Pattern<InstructionMatch> {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public final class CallMatch extends InstructionMatch.Basic {
+    private final class CallMatch extends InstructionMatch.Basic {
 
         private final Node node;
         private final String callName;

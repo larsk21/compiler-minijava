@@ -345,7 +345,6 @@ public class JavaEasyCompiler {
         Lower.lower(irv.getTypeMapper());
 
         for (Graph graph : Program.getGraphs()) {
-            Dump.dumpGraph(graph, "before");
             boolean changed;
             do {
                 changed = false;
@@ -353,7 +352,6 @@ public class JavaEasyCompiler {
                     changed |= optimization.optimize(graph);
                 }
             } while (changed);
-            Dump.dumpGraph(graph, "after");
         }
     }
 
