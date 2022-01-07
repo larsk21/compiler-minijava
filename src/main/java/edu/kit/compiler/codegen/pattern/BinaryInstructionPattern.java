@@ -10,6 +10,7 @@ import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
+import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -38,10 +39,10 @@ public final class BinaryInstructionPattern implements Pattern<InstructionMatch>
             }
 
             if (targetMatch.matches() && sourceMatch.matches()) {
-                var size = sourceMatch.getOperand().getSize();
+                var size = getSize(node, targetMatch.getOperand(), sourceMatch.getOperand());
                 var targetRegister = getTarget(targetMatch.getOperand(),
                         () -> matcher.getNewRegister(size));
-                return new BinaryInstructionMatch(node, targetMatch, sourceMatch, targetRegister);
+                return new BinaryInstructionMatch(node, targetMatch, sourceMatch, targetRegister, size);
             } else {
                 return InstructionMatch.none();
             }
@@ -58,6 +59,13 @@ public final class BinaryInstructionPattern implements Pattern<InstructionMatch>
         }
     }
 
+    private static RegisterSize getSize(Node node, Operand target, Operand source) {
+        return switch (node.getOpCode()) {
+            case iro_Shl, iro_Shr, iro_Shrs -> target.getSize();
+            default -> source.getSize();
+        };
+    }
+
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private final class BinaryInstructionMatch extends InstructionMatch.Basic {
 
@@ -65,6 +73,7 @@ public final class BinaryInstructionPattern implements Pattern<InstructionMatch>
         private final OperandMatch<? extends Operand.Target> target;
         private final OperandMatch<? extends Operand.Source> source;
         private final Optional<Integer> targetRegister;
+        private final RegisterSize size;
 
         @Override
         public Node getNode() {
@@ -73,7 +82,7 @@ public final class BinaryInstructionPattern implements Pattern<InstructionMatch>
 
         @Override
         public List<Instruction> getInstructions() {
-            return List.of(Instructions.newBinary(command, source.getOperand().getSize(),
+            return List.of(Instructions.newBinary(command, size,
                     target.getOperand(), source.getOperand(), targetRegister));
         }
 
