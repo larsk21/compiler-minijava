@@ -16,6 +16,7 @@ import firm.nodes.Mod;
 import firm.nodes.Mul;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
+import firm.nodes.Proj;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -96,6 +97,11 @@ public class ArithmeticReplacementOptimization implements Optimization {
             hasChanged |= Util.contractConv(node);
         }
 
+        @Override
+        public void visit(Proj node) {
+            hasChanged |= Util.skipTuple(node);
+        }
+
         /**
          * Returns a replacement for a multiplication if one is found using
          * ReplaceableMultiplier#of.
@@ -143,7 +149,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
          * Wraps around Util#exchangeDivOrMod and sets the hasChanged flag.
          */
         private void exchangeDivOrMod(Node node, Node newNode, Node newMem) {
-            Util.exchangeDivOrMod(node, newNode, newMem);
+            Graph.turnIntoTuple(node, new Node[] { newMem, newNode });
             this.hasChanged = true;
         }
     }

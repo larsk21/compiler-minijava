@@ -16,8 +16,8 @@ import lombok.RequiredArgsConstructor;
 /**
  * 
  * This optimization should be run after constants have been propagated. One may
- * also benefit from propagating constants again after running this optimization,
- * as new constants may be introduced.
+ * also benefit from propagating constants again after running this
+ * optimization, as new constants may be introduced.
  * 
  * 
  * Important Note: Some optimizations like `0 * x --> 0` or `-(x - y) = (y - x)`
@@ -264,6 +264,11 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             changes |= Util.contractConv(node);
         }
 
+        @Override
+        public void visit(Proj node) {
+            changes |= Util.skipTuple(node);
+        }
+
         /**
          * If possible, simplify the given node using the associative properties
          * of addition and subtraction. `nestedNode` and `constNode` must be
@@ -414,7 +419,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         }
 
         private void exchangeDivOrMod(Node node, Node newNode, Node newMem) {
-            Util.exchangeDivOrMod(node, newNode, newMem);
+            Graph.turnIntoTuple(node, new Node[] { newMem, newNode });
             this.changes = true;
         }
     }
