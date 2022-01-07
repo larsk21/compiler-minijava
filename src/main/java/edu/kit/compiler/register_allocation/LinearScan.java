@@ -142,17 +142,13 @@ public class LinearScan implements RegisterAllocator {
                 preference = withPrefIfNotAvoided(preference, CCONV.getReturnRegister());
             } else if (first.isMov()) {
                 Optional<Register> source = assignment[first.inputRegister(0)].getRegister();
-                if (source.isPresent()) {
-                    preference = withPrefIfNotAvoided(preference, source.get());
-                }
+                preference = withPrefIfNotAvoided(preference, source);
             } else if (first.getType() == InstructionType.GENERAL) {
                 // check for overwrite
                 Optional<Integer> overwrite = first.getOverwriteRegister();
                 if (overwrite.isPresent()) {
                     Optional<Register> ovRegister = assignment[overwrite.get()].getRegister();
-                    if (ovRegister.isPresent()) {
-                        preference = withPrefIfNotAvoided(preference, ovRegister.get());
-                    }
+                    preference = withPrefIfNotAvoided(preference, ovRegister);
                 }
             }
         } else {
@@ -160,9 +156,7 @@ public class LinearScan implements RegisterAllocator {
             assert analysis.getLifetime(vRegister).getBegin() < 0;
 
             Optional<Register> argRegister = CCONV.getArgRegister(vRegister);
-            if (argRegister.isPresent()) {
-                preference = withPrefIfNotAvoided(preference, argRegister.get());
-            }
+            preference = withPrefIfNotAvoided(preference, argRegister);
         }
         if (analysis.getLastInstruction(vRegister).isPresent() &&
                 analysis.getLifetime(vRegister).isLastInstrIsInput()) {
@@ -173,9 +167,7 @@ public class LinearScan implements RegisterAllocator {
                 assert argIndex >= 0;
 
                 Optional<Register> argRegister = CCONV.getArgRegister(argIndex);
-                if (argRegister.isPresent()) {
-                    preference = withPrefIfNotAvoided(preference, argRegister.get());
-                }
+                preference = withPrefIfNotAvoided(preference, argRegister);
             } else if (last.getType() == InstructionType.RET) {
                 // return value
                 assert last.inputRegister(0) == vRegister;
@@ -186,13 +178,19 @@ public class LinearScan implements RegisterAllocator {
                 }
             } else if (last.isMov()) {
                 Optional<Register> target = assignment[last.getTargetRegister().get()].getRegister();
-                if (target.isPresent()) {
-                    preference = withPrefIfNotAvoided(preference, target.get());
-                }
+                preference = withPrefIfNotAvoided(preference, target);
             }
         }
 
         return preference;
+    }
+
+    private static RegisterPreference withPrefIfNotAvoided(RegisterPreference preference, Optional<Register> r) {
+        if (r.isPresent()) {
+            return withPrefIfNotAvoided(preference, r.get());
+        } else {
+            return preference;
+        }
     }
 
     private static RegisterPreference withPrefIfNotAvoided(RegisterPreference preference, Register r) {
