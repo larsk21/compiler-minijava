@@ -77,19 +77,28 @@ public class ArithmeticReplacementOptimization implements Optimization {
             var block = node.getBlock();
             getMulReplacement(block, node.getLeft(), node.getRight())
                     .or(() -> getMulReplacement(block, node.getRight(), node.getLeft()))
-                    .ifPresent(newNode -> exchange(node, newNode));
+                    .ifPresent(newNode -> {
+                        Graph.exchange(node, newNode);
+                        this.hasChanged = true;
+                    });
         }
 
         @Override
         public void visit(Div node) {
             getDivOrModReplacement(node, node.getResmode())
-                    .ifPresent(newNode -> exchangeDivOrMod(node, newNode, node.getMem()));
+                    .ifPresent(newNode -> {
+                        Util.exchangeDivOrMod(node, newNode, node.getMem());
+                        this.hasChanged = true;
+                    });
         }
 
         @Override
         public void visit(Mod node) {
             getDivOrModReplacement(node, node.getResmode())
-                    .ifPresent(newNode -> exchangeDivOrMod(node, newNode, node.getMem()));
+                    .ifPresent(newNode -> {
+                        Util.exchangeDivOrMod(node, newNode, node.getMem());
+                        this.hasChanged = true;
+                    });
         }
 
         @Override
@@ -135,22 +144,6 @@ public class ArithmeticReplacementOptimization implements Optimization {
             } else {
                 return Optional.empty();
             }
-        }
-
-        /**
-         * Exchange the two nodes and set the hasChanged flag.
-         */
-        private void exchange(Node oldNode, Node newNode) {
-            Graph.exchange(oldNode, newNode);
-            this.hasChanged = true;
-        }
-
-        /**
-         * Wraps around Util#exchangeDivOrMod and sets the hasChanged flag.
-         */
-        private void exchangeDivOrMod(Node node, Node newNode, Node newMem) {
-            Graph.turnIntoTuple(node, new Node[] { newMem, newNode });
-            this.hasChanged = true;
         }
     }
 

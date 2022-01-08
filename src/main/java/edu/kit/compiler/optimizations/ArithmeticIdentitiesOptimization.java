@@ -412,8 +412,11 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             this.changes = true;
         }
 
+        /**
+         * Wrapper for `Util#exchangeDirOrMod` to set the `changes` field.
+         */
         private void exchangeDivOrMod(Node node, Node newNode, Node newMem) {
-            Graph.turnIntoTuple(node, new Node[] { newMem, newNode });
+            Util.exchangeDivOrMod(node, newNode, newMem);
             this.changes = true;
         }
     }

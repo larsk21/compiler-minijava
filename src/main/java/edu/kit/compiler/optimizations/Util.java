@@ -4,6 +4,7 @@ import firm.Graph;
 import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Conv;
+import firm.nodes.Node;
 import firm.nodes.Proj;
 import firm.nodes.Tuple;
 import lombok.AccessLevel;
@@ -51,5 +52,17 @@ public final class Util {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Replace the given node (which is assumed to either be a Div or a Mod)
+     * with a tuple. The result and memory predecessors are set to the given
+     * nodes. Control flow predecessors are set to Bad.
+     */
+    public static void exchangeDivOrMod(Node node, Node newNode, Node newMem) {
+        assert node.getOpCode() == ir_opcode.iro_Div || node.getOpCode() == ir_opcode.iro_Mod;
+
+        var bad = node.getGraph().newBad(Mode.getX());
+        Graph.turnIntoTuple(node, new Node[] { newMem, newNode, bad, bad });
     }
 }
