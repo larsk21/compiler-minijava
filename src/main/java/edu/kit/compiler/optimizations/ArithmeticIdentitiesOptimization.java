@@ -6,7 +6,6 @@ import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
 import firm.BackEdges;
 import firm.Graph;
-import firm.Mode;
 import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
@@ -17,8 +16,8 @@ import lombok.RequiredArgsConstructor;
 /**
  * 
  * This optimization should be run after constants have been propagated. One may
- * also benefit from propagating constants again after running this optimization,
- * as new constants may be introduced.
+ * also benefit from propagating constants again after running this
+ * optimization, as new constants may be introduced.
  * 
  * 
  * Important Note: Some optimizations like `0 * x --> 0` or `-(x - y) = (y - x)`
@@ -46,12 +45,6 @@ import lombok.RequiredArgsConstructor;
  * --> e.g. 5 - (x + 10) --> -5 - x
  * --> e.g. 2 * (x * 21) --> x * 42
  * - Fold negation of addition, subtraction or multiplication with constant
- * 
- * Optimizations better done during instruction selection:
- * - Replace multiplication by constant power of two with shifts or lea
- * - Replace division by constant power of two with shifts or lea
- * -> These and similar optimizations are more dependant on the target
- * architecture
  */
 public final class ArithmeticIdentitiesOptimization implements Optimization {
     @Override
@@ -239,14 +232,14 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         public void visit(Div node) {
             if (isConstOne(node.getRight())) {
                 // x / 1 --> x
-                exchangeDivOrMod(node, node.getMem(), node.getLeft());
+                exchangeDivOrMod(node, node.getLeft(), node.getMem());
             } else if (isConstNegOne(node.getRight())) {
                 // x / -1 --> -x
                 var minus = graph.newMinus(node.getBlock(), node.getLeft());
-                exchangeDivOrMod(node, node.getMem(), enqueued(minus));
+                exchangeDivOrMod(node, enqueued(minus), node.getMem());
             } else if (isConstZero(node.getLeft())) {
                 // 0 / x --> 0
-                exchangeDivOrMod(node, node.getMem(), node.getLeft());
+                exchangeDivOrMod(node, node.getLeft(), node.getMem());
             }
         }
 
@@ -256,22 +249,18 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 // x % 1 --> 0
                 // x % -1 --> 0
                 var zero = node.getLeft().getMode().getNull();
-                exchangeDivOrMod(node, node.getMem(), graph.newConst(zero));
+                exchangeDivOrMod(node, graph.newConst(zero), node.getMem());
             }
         }
 
         @Override
         public void visit(Conv node) {
-            // ? make this more generic??
-            if (node.getOp().getOpCode() == ir_opcode.iro_Conv) {
-                // remove casts introduced by 64 bit division where possible
-                var op = (Conv) node.getOp();
-                if (node.getMode().equals(Mode.getIs())
-                        && op.getMode().equals(Mode.getLs())
-                        && op.getOp().getMode().equals(Mode.getIs())) {
-                    exchange(node, op.getOp());
-                }
-            }
+            changes |= Util.contractConv(node);
+        }
+
+        @Override
+        public void visit(Proj node) {
+            changes |= Util.skipTuple(node);
         }
 
         /**
@@ -320,26 +309,6 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 var newNode = graph.newMul(node.getBlock(), restNode, constNode);
 
                 exchange(node, enqueued(newNode));
-            }
-        }
-
-        /**
-         * Replace the given Div or Mode node. Result projections are replaced
-         * with `val`. Memory projections are replaced with `mem`.
-         */
-        private void exchangeDivOrMod(Node node, Node mem, Node val) {
-            assert node.getOpCode() == ir_opcode.iro_Div
-                    || node.getOpCode() == ir_opcode.iro_Mod;
-
-            for (var edge : BackEdges.getOuts(node)) {
-                if (edge.node.getMode().equals(Mode.getM())) {
-                    exchange(edge.node, mem);
-                } else if (edge.node.getMode().equals(val.getMode())) {
-                    exchange(edge.node, val);
-                } else {
-                    throw new UnsupportedOperationException(
-                            "Div control flow projections not supported");
-                }
             }
         }
 
@@ -440,6 +409,14 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
          */
         private void exchange(Node oldNode, Node newNode) {
             Graph.exchange(oldNode, newNode);
+            this.changes = true;
+        }
+
+        /**
+         * Wrapper for `Util#exchangeDirOrMod` to set the `changes` field.
+         */
+        private void exchangeDivOrMod(Node node, Node newNode, Node newMem) {
+            Util.exchangeDivOrMod(node, newNode, newMem);
             this.changes = true;
         }
     }
