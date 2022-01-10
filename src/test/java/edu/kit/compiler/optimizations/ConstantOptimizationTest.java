@@ -34,7 +34,6 @@ import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.transform.IRVisitor;
 import edu.kit.compiler.transform.JFirmSingleton;
-
 import firm.Graph;
 import firm.Mode;
 import firm.Program;
@@ -279,8 +278,8 @@ public class ConstantOptimizationTest {
         List<Node> nodes = getNodes(graph);
         nodes = nodes.stream().filter(node -> node instanceof Const).collect(Collectors.toList());
 
-        assertEquals(1, nodes.size());
-        assertEquals(Mode.getLs(), nodes.get(0).getMode());
+        assertEquals(2, nodes.size());
+        assertEquals(Mode.getIs(), nodes.get(0).getMode());
     }
 
     @Test
@@ -821,7 +820,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        while (optimization.optimize(graph));
 
         List<Node> nodes = getNodes(graph);
 

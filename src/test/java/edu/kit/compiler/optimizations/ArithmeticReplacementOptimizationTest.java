@@ -118,7 +118,6 @@ public class ArithmeticReplacementOptimizationTest {
         }
     }
 
-
     @Test
     public void testTrivialDiv() {
         createDiv(initGraph(), 1);
@@ -203,17 +202,15 @@ public class ArithmeticReplacementOptimizationTest {
     private static void createDiv(Graph graph, int value) {
         var con = new Construction(graph);
         var args = graph.getArgs();
-        var param = con.newProj(args, Mode.getIs(), 0);
-        var lhs = con.newConv(param, Mode.getLs());
-        var rhs = con.newConst(new TargetValue(value, Mode.getLs()));
+        var lhs = con.newProj(args, Mode.getIs(), 0);
+        var rhs = con.newConst(new TargetValue(value, Mode.getIs()));
 
         var div = con.newDiv(con.getCurrentMem(),
                 lhs, rhs, op_pin_state.op_pin_state_pinned);
-        var projRes = con.newProj(div, Mode.getLs(), Div.pnRes);
+        var projRes = con.newProj(div, Mode.getIs(), Div.pnRes);
         var projMem = con.newProj(div, Mode.getM(), Div.pnM);
         con.setCurrentMem(projMem);
-        var result = con.newConv(projRes, Mode.getIs());
-        var ret = con.newReturn(con.getCurrentMem(), new Node[] { result });
+        var ret = con.newReturn(con.getCurrentMem(), new Node[] { projRes });
         graph.getEndBlock().addPred(ret);
         con.finish();
     }

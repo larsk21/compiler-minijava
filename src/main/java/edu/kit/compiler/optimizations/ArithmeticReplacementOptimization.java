@@ -10,7 +10,6 @@ import firm.Mode;
 import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Const;
-import firm.nodes.Conv;
 import firm.nodes.Div;
 import firm.nodes.Mod;
 import firm.nodes.Mul;
@@ -102,11 +101,6 @@ public class ArithmeticReplacementOptimization implements Optimization {
         }
 
         @Override
-        public void visit(Conv node) {
-            hasChanged |= Util.contractConv(node);
-        }
-
-        @Override
         public void visit(Proj node) {
             hasChanged |= Util.skipTuple(node);
         }
@@ -127,15 +121,10 @@ public class ArithmeticReplacementOptimization implements Optimization {
         private Optional<Node> getDivOrModReplacement(Node node, Mode mode) {
             assert node.getOpCode() == ir_opcode.iro_Div || node.getOpCode() == ir_opcode.iro_Mod;
 
-            // this code is quite specific to our solution to division and modulo,
-            // i.e. the operation has mode Ls, but the operands always fit into Is.
-            if (mode.equals(Mode.getLs())
-                    && node.getPred(2).getOpCode() == ir_opcode.iro_Const
-                    && node.getPred(1).getOpCode() == ir_opcode.iro_Conv) {
-
+            if (mode.equals(Mode.getIs()) && node.getPred(2).getOpCode() == ir_opcode.iro_Const) {
                 return ReplaceableDivisor.of(node.getPred(2)).map(divisor -> {
                     var block = node.getBlock();
-                    var dividend = node.getPred(1).getPred(0);
+                    var dividend = node.getPred(1);
 
                     return node.getOpCode() == ir_opcode.iro_Div
                             ? divisor.getDivReplacement(block, dividend)
@@ -170,28 +159,18 @@ public class ArithmeticReplacementOptimization implements Optimization {
          * be found.
          */
         public static Optional<ReplaceableDivisor> of(Node node) {
-            if (node.getOpCode() == ir_opcode.iro_Const) {
-                var divisor = ((Const) node).getTarval();
+            assert node.getOpCode() == ir_opcode.iro_Const;
+            assert node.getMode().equals(Mode.getIs());
 
-                // don't replace x/0, x/1, and x/-1
-                // in Minijava the divisor should always fit in an integer
-                if (!divisor.isNull() && !divisor.abs().isOne()
-                        && divisor.asLong() <= Integer.MAX_VALUE
-                        && divisor.asLong() >= Integer.MIN_VALUE) {
-                    return Optional.of(of(divisor.convertTo(Mode.getIs())));
-                } else {
-                    return Optional.empty();
-                }
+            var divisor = ((Const) node).getTarval();
+
+            // don't replace x/0, x/1, and x/-1
+            if (!divisor.isNull() && !divisor.abs().isOne()) {
+                return PowerOfTwoDivisor.of(divisor)
+                        .or(() -> Optional.of(ConstantDivisor.of(divisor)));
             } else {
                 return Optional.empty();
             }
-        }
-
-        private static ReplaceableDivisor of(TargetValue divisor) {
-            assert divisor.getMode().equals(Mode.getIs());
-
-            return PowerOfTwoDivisor.of(divisor)
-                    .orElseGet(() -> ConstantDivisor.of(divisor));
         }
     }
 
@@ -227,8 +206,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
                 quotient = graph.newMinus(block, quotient);
             }
 
-            // convert the result to Ls, to keep correct modes
-            return graph.newConv(block, quotient, Mode.getLs());
+            return quotient;
         }
 
         @Override
@@ -241,10 +219,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
             var product = graph.newAnd(block, quotient, graph.newConst(mask));
 
             // subtract product from dividend to get remainder
-            var remainder = graph.newSub(block, dividend, product);
-
-            // convert the result to Ls, to keep correct modes
-            return graph.newConv(block, remainder, Mode.getLs());
+            return graph.newSub(block, dividend, product);
         }
 
         private Node getQuotientBase(Node block, Node dividend) {
@@ -290,12 +265,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
 
         @Override
         public Node getDivReplacement(Node block, Node dividend) {
-            var graph = block.getGraph();
-
-            var quotient = getQuotientBase(block, dividend);
-
-            // convert the result to Ls, to keep correct modes
-            return graph.newConv(block, quotient, Mode.getLs());
+            return getQuotientBase(block, dividend);
         }
 
         @Override
@@ -307,10 +277,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
             var product = graph.newMul(block, quotient, graph.newConst(divisor));
 
             // subtract the product from the dividend
-            var remainder = graph.newSub(block, dividend, product);
-
-            // convert the result to Ls, to keep correct modes
-            return graph.newConv(block, remainder, Mode.getLs());
+            return graph.newSub(block, dividend, product);
         }
 
         private Node getQuotientBase(Node block, Node dividend) {
@@ -345,7 +312,7 @@ public class ArithmeticReplacementOptimization implements Optimization {
                 quotient = graph.newShrs(block, quotient, magicShift);
             }
 
-            // extract the sign bit and it to the quotient
+            // extract the sign bit and add it to the quotient
             var signShift = shiftConst(graph, Mode.getIs().getSizeBits() - 1);
             var signBit = graph.newShr(block, quotient, signShift);
             return graph.newAdd(block, quotient, signBit);

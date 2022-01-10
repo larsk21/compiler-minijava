@@ -3,7 +3,6 @@ package edu.kit.compiler.optimizations;
 import firm.Graph;
 import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
-import firm.nodes.Conv;
 import firm.nodes.Node;
 import firm.nodes.Proj;
 import firm.nodes.Tuple;
@@ -12,27 +11,6 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Util {
-
-    /**
-     * Try to contracted nested Conv nodes. Currently only Is -> Ls -> Is is
-     * being removed, as we currently don't generate any other combinations
-     * that could be removed.
-     * 
-     * @return true if the Firm graph has changes, false otherwise
-     */
-    public static boolean contractConv(Conv node) {
-        if (node.getOp().getOpCode() == ir_opcode.iro_Conv) {
-            // remove casts introduced by 64 bit division where possible
-            var op = (Conv) node.getOp();
-            if (node.getMode().equals(Mode.getIs())
-                    && op.getMode().equals(Mode.getLs())
-                    && op.getOp().getMode().equals(Mode.getIs())) {
-                Graph.exchange(node, op.getOp());
-                return true;
-            }
-        }
-        return false;
-    }
 
     /**
      * If the predecessor of the given Proj node is a Tuple, exchange the node

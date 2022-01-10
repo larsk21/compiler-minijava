@@ -20,8 +20,8 @@ public class DumbAllocatorTest {
                 RegisterSize.DOUBLE,
                 RegisterSize.QUAD,
                 RegisterSize.DOUBLE,
-                RegisterSize.QUAD,
-                RegisterSize.QUAD,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
         };
@@ -32,8 +32,8 @@ public class DumbAllocatorTest {
                 Instruction.newOp("movl $0x7, @0", List.of(), Optional.empty(), 0),
                 Instruction.newOp("addl $77, @1", List.of(), Optional.of(0), 1),
                 Instruction.newInput("movl @1, (@2)", List.of(1, 2)),
-                Instruction.newOp("movslq (@2), @4", List.of(2), Optional.empty(), 4),
-                Instruction.newOp("movq $0x2, @5", List.of(), Optional.empty(), 5),
+                Instruction.newOp("movl (@2), @4", List.of(2), Optional.empty(), 4),
+                Instruction.newOp("movl $0x2, @5", List.of(), Optional.empty(), 5),
                 Instruction.newDiv(4, 5, 3),
                 Instruction.newCall(List.of(3), Optional.empty(), "print@PLT")
         ), 0, 0);
@@ -62,14 +62,14 @@ public class DumbAllocatorTest {
         expected.add("addl $77, %ebx");
         expected.add("movl %ebx, -16(%rbp) # spill for @1");
         expected.add("movl %ebx, (%rax)");
-        expected.add("movslq (%rax), %rbx");
-        expected.add("movq %rbx, -40(%rbp) # spill for @4");
-        expected.add("movq $0x2, %r12");
-        expected.add("movq %r12, -48(%rbp) # spill for @5");
-        expected.add("movq %rbx, %rax # get dividend");
-        expected.add("movq %r12, %r13 # get divisor");
-        expected.add("cqto # sign extension to octoword");
-        expected.add("idivq %r13");
+        expected.add("movl (%rax), %ebx");
+        expected.add("movl %ebx, -40(%rbp) # spill for @4");
+        expected.add("movl $0x2, %r12d");
+        expected.add("movl %r12d, -48(%rbp) # spill for @5");
+        expected.add("movl %ebx, %eax # get dividend");
+        expected.add("movl %r12d, %r13d # get divisor");
+        expected.add("cltd # sign extension to edx:eax");
+        expected.add("idivl %r13d");
         expected.add("movl %eax, -32(%rbp) # spill for @3");
         expected.add("mov %rax, %rdi # assign arg registers");
         expected.add("call print@PLT");

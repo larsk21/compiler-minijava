@@ -11,7 +11,7 @@ import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StandardLibraryMethodNode;
 import edu.kit.compiler.transform.TypeMapper.ClassEntry;
 import firm.*;
-import firm.bindings.binding_ircons;
+import firm.bindings.binding_ircons.op_pin_state;
 import firm.nodes.*;
 
 /**
@@ -21,7 +21,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     private static final DataType boolType = new DataType(DataType.DataTypeClass.Boolean);
     private final TransformContext context;
     private final IRPointerVisitor pointerVisitor;
-
 
     public IRExpressionVisitor(TransformContext context) {
         this.context = context;
@@ -64,7 +63,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         if (binaryExpressionNode.getResultType().equals(boolType)) {
             return IRBooleanExpressions.asValue(context, binaryExpressionNode);
         }
- 
+
         // Special case for assignment to prevent lhs from being created twice
         if (binaryExpressionNode.getOperator() == BinaryOperator.Assignment) {
             return handleAssignment(binaryExpressionNode.getLeftSide(), binaryExpressionNode.getRightSide());
@@ -72,7 +71,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         Node lhs = binaryExpressionNode.getLeftSide().accept(this);
         Node rhs = binaryExpressionNode.getRightSide().accept(this);
-        Mode mode = context.getTypeMapper().getMode(binaryExpressionNode.getLeftSide().getResultType());
 
         return switch (binaryExpressionNode.getOperator()) {
             case Assignment -> throw new IllegalStateException();
@@ -85,22 +83,78 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         };
     }
 
-    private Node createDivOrMod(Node lhs, Node rhs, boolean isDiv) {
-        Node mem = getConstruction().getCurrentMem();
-        Node lhs64 = getConstruction().newConv(lhs, Mode.getLs());
-        Node rhs64 = getConstruction().newConv(rhs, Mode.getLs());
-        Node op;
-        if (isDiv) {
-            op = getConstruction().newDiv(mem, lhs64, rhs64, binding_ircons.op_pin_state.op_pin_state_pinned);
+    private Node createDivOrMod(Node dividend, Node divisor, boolean isDiv) {
+        if (dividend.getMode().isSigned()) {
+            return createDivOrModChecked(dividend, divisor, isDiv);
         } else {
-            op = getConstruction().newMod(mem, lhs64, rhs64, binding_ircons.op_pin_state.op_pin_state_pinned);
+            return createDivOrModUnchecked(dividend, divisor, isDiv);
         }
-        Node projRes64 = getConstruction().newProj(op, Mode.getLs(), Div.pnRes);
-        Node projRes = getConstruction().newConv(projRes64, Mode.getIs());
-        Node projMem = getConstruction().newProj(op, Mode.getM(), Div.pnM);
+    }
 
-        getConstruction().setCurrentMem(projMem);
+    private Node createDivOrModChecked(Node dividend, Node divisor, boolean isDiv) {
+        var con = getConstruction();
+        var mode = dividend.getMode();
+
+        var divBlock = con.newBlock();
+        var cmpBlock = con.newBlock();
+        var postBlock = con.newBlock();
+
+        var minValue = con.newConst(mode.getMin());
+        var minusOne = con.newConst(mode.getOne().neg());
+
+        // check if the dividend equals INT_MIN
+        createCompare(dividend, minValue, Relation.Equal, cmpBlock, divBlock);
+
+        cmpBlock.mature();
+        con.setCurrentBlock(cmpBlock);
+
+        // if so, also check if the divisor equals -1
+        createCompare(divisor, minusOne, Relation.Equal, postBlock, divBlock);
+
+        divBlock.mature();
+        con.setCurrentBlock(divBlock);
+
+        var result = createDivOrModUnchecked(dividend, divisor, isDiv);
+
+        postBlock.addPred(con.newJmp());
+        postBlock.mature();
+        con.setCurrentBlock(postBlock);
+
+        // INT_MIN / -1 = INT_MIN; INT_MIN % -1 = 0
+        var exceptValue = isDiv
+                ? con.newConst(mode.getMin())
+                : con.newConst(mode.getNull());
+        return con.newPhi(new Node[] { exceptValue, result }, mode);
+    }
+
+    private Node createDivOrModUnchecked(Node dividend, Node divisor, boolean isDiv) {
+        var con = getConstruction();
+        var mem = con.getCurrentMem();
+        var opNode = isDiv
+                ? con.newDiv(mem, dividend, divisor, op_pin_state.op_pin_state_pinned)
+                : con.newMod(mem, dividend, divisor, op_pin_state.op_pin_state_pinned);
+
+        var pnRes = isDiv ? Div.pnRes : Mod.pnRes;
+        var pnMem = isDiv ? Div.pnM : Mod.pnM;
+
+        var projRes = con.newProj(opNode, dividend.getMode(), pnRes);
+        var projMem = con.newProj(opNode, Mode.getM(), pnMem);
+        con.setCurrentMem(projMem);
+
         return projRes;
+    }
+
+    private void createCompare(Node left, Node right, Relation relation,
+            Block trueBlock, Block falseBlock) {
+        var con = getConstruction();
+
+        var comparison = con.newCmp(left, right, relation);
+        var condition = con.newCond(comparison);
+        var projTrue = con.newProj(condition, Mode.getX(), Cond.pnTrue);
+        var projFalse = con.newProj(condition, Mode.getX(), Cond.pnFalse);
+
+        trueBlock.addPred(projTrue);
+        falseBlock.addPred(projFalse);
     }
 
     @Override
@@ -141,7 +195,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         TypedEntity<MethodType> methodEntry;
         if (method.isStandardLibraryMethod()) {
-            var stdMethod = (StandardLibraryMethodNode)method;
+            var stdMethod = (StandardLibraryMethodNode) method;
             methodEntry = StandardLibraryEntities.INSTANCE.getEntity(stdMethod.getMethod());
         } else {
             // lookup method in the according class
@@ -259,7 +313,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         MethodType methodType = entry.getType();
 
         Node sizeNode = getConstruction().newConst(size, Mode.getIs());
-        Node[] arguments = new Node[]{nmemb, sizeNode};
+        Node[] arguments = new Node[] { nmemb, sizeNode };
         Node call = getConstruction().newCall(getConstruction().getCurrentMem(), address, arguments, methodType);
 
         Node projMem = getConstruction().newProj(call, Mode.getM(), Call.pnM);

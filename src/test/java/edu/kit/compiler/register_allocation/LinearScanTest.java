@@ -20,8 +20,8 @@ public class LinearScanTest {
                 RegisterSize.DOUBLE,
                 RegisterSize.QUAD,
                 RegisterSize.DOUBLE,
-                RegisterSize.QUAD,
-                RegisterSize.QUAD,
+                RegisterSize.DOUBLE,
+                RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
         };
@@ -32,8 +32,8 @@ public class LinearScanTest {
                 Instruction.newOp("movl $0x7, @0", List.of(), Optional.empty(), 0),
                 Instruction.newOp("addl $77, @1", List.of(), Optional.of(0), 1),
                 Instruction.newInput("movl @1, (@2)", List.of(1, 2)),
-                Instruction.newOp("movslq (@2), @4", List.of(2), Optional.empty(), 4),
-                Instruction.newOp("movq $0x2, @5", List.of(), Optional.empty(), 5),
+                Instruction.newOp("movl (@2), @4", List.of(2), Optional.empty(), 4),
+                Instruction.newOp("movl $0x2, @5", List.of(), Optional.empty(), 5),
                 Instruction.newDiv(4, 5, 3),
                 Instruction.newCall(List.of(3), Optional.empty(), "print@PLT")
         ), 0, 0);
@@ -51,10 +51,10 @@ public class LinearScanTest {
         expected.add("movl $0x7, %edx");
         expected.add("addl $77, %edx");
         expected.add("movl %edx, (%rax)");
-        expected.add("movslq (%rax), %rax");
-        expected.add("movq $0x2, %rcx");
-        expected.add("cqto # sign extension to octoword");
-        expected.add("idivq %rcx");
+        expected.add("movl (%rax), %eax");
+        expected.add("movl $0x2, %ecx");
+        expected.add("cltd # sign extension to edx:eax");
+        expected.add("idivl %ecx");
         expected.add("movl %eax, %edi # move result to @3");
         expected.add("call print@PLT");
 
