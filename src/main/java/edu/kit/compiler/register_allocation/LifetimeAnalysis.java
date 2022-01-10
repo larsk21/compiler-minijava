@@ -192,8 +192,6 @@ public class LifetimeAnalysis {
                     if (definitionNestingDepth[target] < stack.size()) {
                         // insert vRegister to stack to be processed later when leaving the loop
                         stack.get(definitionNestingDepth[target]).getVRegisters().add(target);
-                    } else {
-                        assert definitionNestingDepth[target] == stack.size();
                     }
                 }
 

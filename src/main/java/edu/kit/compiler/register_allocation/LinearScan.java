@@ -86,6 +86,9 @@ public class LinearScan implements RegisterAllocator {
                         allocateTargetRegister(state, i, instr);
                     }
                     case CALL, RET -> {
+                        if (instr.getInputRegisters().size() > CCONV.numArgRegisters()) {
+                            state.assertCapacity(1, Optional.empty());
+                        }
                         state.leaveInstruction(i);
                         allocateTargetRegister(state, i, instr);
                     }
