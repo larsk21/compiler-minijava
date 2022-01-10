@@ -334,6 +334,7 @@ public class ApplyAssignment {
         int numArgsOnStack = 0;
         List<Integer> args = instr.getInputRegisters();
         Permuter permuter = new Permuter();
+        Optional<Register> tmp = Optional.empty();
         for (int i = 0; i < args.size(); i++) {
             int vRegister = args.get(i);
             RegisterSize size = sizes[vRegister];
@@ -349,10 +350,13 @@ public class ApplyAssignment {
             } else {
                 numArgsOnStack++;
                 if (isOnStack(tracker, vRegister)) {
+                    tmp = tmp.or(() -> Optional.of(tracker.getTmpRegisters(1, Set.of()).get(0)));
                     permuter.stackToStack("mov%c %d(%%rbp), %s # reload @%d ...",
-                            size.getSuffix(), getStackSlot(vRegister), cconv.getReturnRegister().asSize(size), vRegister);
+                            size.getSuffix(), getStackSlot(vRegister), tmp.get().asSize(size), vRegister);
                     permuter.stackToStack("pushq %s # ... and pass it as arg %d",
-                            cconv.getReturnRegister().getAsQuad(), i);
+                            tmp.get().getAsQuad(), i);
+                    tracker.getRegisters().clearTmp(tmp.get());
+                    tracker.getRegisters().setTmp(tmp.get(), vRegister);
                 } else {
                     permuter.registerToStack("pushq %s # pass @%d as arg %d",
                             getRegisterOrTmp(tracker, vRegister).getAsQuad(), vRegister, i);

@@ -285,8 +285,8 @@ public class ApplyAssignmentTest {
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add(".L0:");
-        expected.add("movl -16(%rbp), %eax # reload @3 ...");
-        expected.add("pushq %rax # ... and pass it as arg 3");
+        expected.add("movl -16(%rbp), %r12d # reload @3 ...");
+        expected.add("pushq %r12 # ... and pass it as arg 3");
         expected.add("pushq %r9 # pass @4 as arg 4");
         expected.add("pushq %rcx # pass @5 as arg 5");
         expected.add("mov %r8, %rcx # assign arg registers");
