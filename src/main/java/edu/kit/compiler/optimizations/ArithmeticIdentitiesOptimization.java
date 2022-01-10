@@ -254,11 +254,6 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         }
 
         @Override
-        public void visit(Conv node) {
-            changes |= Util.contractConv(node);
-        }
-
-        @Override
         public void visit(Proj node) {
             changes |= Util.skipTuple(node);
         }
