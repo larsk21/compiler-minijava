@@ -22,7 +22,6 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
     private final TransformContext context;
     private final IRPointerVisitor pointerVisitor;
 
-
     public IRExpressionVisitor(TransformContext context) {
         this.context = context;
         this.pointerVisitor = new IRPointerVisitor(context);
@@ -64,7 +63,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         if (binaryExpressionNode.getResultType().equals(boolType)) {
             return IRBooleanExpressions.asValue(context, binaryExpressionNode);
         }
- 
+
         // Special case for assignment to prevent lhs from being created twice
         if (binaryExpressionNode.getOperator() == BinaryOperator.Assignment) {
             return handleAssignment(binaryExpressionNode.getLeftSide(), binaryExpressionNode.getRightSide());
@@ -108,7 +107,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         cmpBlock.mature();
         con.setCurrentBlock(cmpBlock);
-        
+
         // if so, also check if the divisor equals -1
         createCompare(divisor, minusOne, Relation.Equal, postBlock, divBlock);
 
@@ -125,7 +124,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         var exceptValue = isDiv
                 ? con.newConst(mode.getMin())
                 : con.newConst(mode.getNull());
-        return con.newPhi(new Node[] { exceptValue, result}, mode);
+        return con.newPhi(new Node[] { exceptValue, result }, mode);
     }
 
     private Node createDivOrModUnchecked(Node dividend, Node divisor, boolean isDiv) {
@@ -137,11 +136,11 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         var pnRes = isDiv ? Div.pnRes : Mod.pnRes;
         var pnMem = isDiv ? Div.pnM : Mod.pnM;
-        
+
         var projRes = con.newProj(opNode, dividend.getMode(), pnRes);
         var projMem = con.newProj(opNode, Mode.getM(), pnMem);
         con.setCurrentMem(projMem);
- 
+
         return projRes;
     }
 
@@ -196,7 +195,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
 
         TypedEntity<MethodType> methodEntry;
         if (method.isStandardLibraryMethod()) {
-            var stdMethod = (StandardLibraryMethodNode)method;
+            var stdMethod = (StandardLibraryMethodNode) method;
             methodEntry = StandardLibraryEntities.INSTANCE.getEntity(stdMethod.getMethod());
         } else {
             // lookup method in the according class
@@ -314,7 +313,7 @@ public class IRExpressionVisitor implements AstVisitor<Node> {
         MethodType methodType = entry.getType();
 
         Node sizeNode = getConstruction().newConst(size, Mode.getIs());
-        Node[] arguments = new Node[]{nmemb, sizeNode};
+        Node[] arguments = new Node[] { nmemb, sizeNode };
         Node call = getConstruction().newCall(getConstruction().getCurrentMem(), address, arguments, methodType);
 
         Node projMem = getConstruction().newProj(call, Mode.getM(), Call.pnM);
