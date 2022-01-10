@@ -204,7 +204,7 @@ public class ApplyAssignment {
         int dividend = instr.inputRegister(0);
         int divisor = instr.inputRegister(1);
         int target = instr.getTargetRegister().get();
-        assert sizes[dividend] == RegisterSize.QUAD && sizes[divisor] == RegisterSize.QUAD;
+        assert sizes[dividend] == RegisterSize.DOUBLE && sizes[divisor] == RegisterSize.DOUBLE;
 
         tracker.enterInstruction(index);
         tracker.assertFree(Register.RDX);
@@ -212,8 +212,8 @@ public class ApplyAssignment {
         // handle the dividend
         if (assignment[dividend].isSpilled() || getRegister(dividend) != Register.RAX) {
             tracker.assertFree(Register.RAX);
-            String getDividend = getVRegisterValue(tracker, dividend, RegisterSize.QUAD);
-            output("movq %s, %%rax # get dividend", getDividend);
+            String getDividend = getVRegisterValue(tracker, dividend, RegisterSize.DOUBLE);
+            output("movl %s, %%eax # get dividend", getDividend);
         } else {
             assert lifetimes[dividend].isLastInstructionAndInput(index);
             tracker.assertMapping(dividend, Register.RAX);
@@ -224,16 +224,16 @@ public class ApplyAssignment {
         if (assignment[divisor].isSpilled()) {
             // move divisor to temporary register
             divisorRegister = tracker.getDivRegister();
-            String getDivisor = getVRegisterValue(tracker, divisor, RegisterSize.QUAD);
-            output("movq %s, %s # get divisor", getDivisor, divisorRegister.getAsQuad());
+            String getDivisor = getVRegisterValue(tracker, divisor, RegisterSize.DOUBLE);
+            output("movl %s, %s # get divisor", getDivisor, divisorRegister.getAsDouble());
         } else {
             tracker.assertMapping(divisor, getRegister(divisor));
             divisorRegister = getRegister(divisor);
         }
 
         // output the instruction itself
-        output("cqto # sign extension to octoword");
-        output("idivq %s", divisorRegister.getAsQuad());
+        output("cltd # sign extension to edx:eax");
+        output("idivl %s", divisorRegister.getAsDouble());
         tracker.registers.markUsed(Register.RAX);
         tracker.registers.markUsed(Register.RDX);
         tracker.getRegisters().clearTmp(Register.RDX);

@@ -128,59 +128,39 @@ public class ApplyAssignmentTest {
                 new RegisterAssignment(Register.R9),
                 new RegisterAssignment(-8),
                 new RegisterAssignment(-16),
-                new RegisterAssignment(Register.RAX),
-                new RegisterAssignment(Register.RBX),
-                new RegisterAssignment(Register.RAX),
-                new RegisterAssignment(Register.RBX),
         };
         RegisterSize[] sizes = new RegisterSize[] {
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
-                RegisterSize.QUAD,
-                RegisterSize.QUAD,
-                RegisterSize.QUAD,
-                RegisterSize.QUAD,
-                RegisterSize.QUAD,
+                RegisterSize.DOUBLE,
         };
         Lifetime[] lifetimes = new Lifetime[] {
                 new Lifetime(-1, 1, true),
-                new Lifetime(-1, 6),
-                new Lifetime(-1, 3),
-                new Lifetime(-1, 6),
-                new Lifetime(-1, 6),
-                new Lifetime(0, 3, true),
-                new Lifetime(1, 3, true),
-                new Lifetime(3, 6, true),
-                new Lifetime(4, 6, true),
+                new Lifetime(-1, 2),
+                new Lifetime(-1, 2),
+                new Lifetime(-1, 2),
+                new Lifetime(-1, 2),
         };
         Block block = new Block(List.of(
-                Instruction.newOp("movslq @0, @5", List.of(0), Optional.empty(), 5),
-                Instruction.newOp("movslq @1, @6", List.of(1), Optional.empty(), 6),
-                Instruction.newDiv(5, 6, 2),
-                Instruction.newMov(1, 7),
-                Instruction.newMov(3, 8),
-                Instruction.newDiv(7, 8, 4)
-                //Instruction.newMod(4, 2, 1),
-                //Instruction.newDiv(1, 3, 4),
+                Instruction.newDiv(0, 1, 2),
+                Instruction.newDiv(1, 3, 4)
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 6);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 2);
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add(".L0:");
 
-        expected.add("movslq %eax, %rax");
-        expected.add("movslq %r8d, %rbx");
-        expected.add("cqto # sign extension to octoword");
-        expected.add("idivq %rbx");
+        expected.add("cltd # sign extension to edx:eax");
+        expected.add("idivl %r8d");
         expected.add("movl %eax, %r9d # move result to @2");
 
-        expected.add("movslq %r8d, %rax");
-        expected.add("movslq -8(%rbp), %rbx");
-        expected.add("cqto # sign extension to octoword");
-        expected.add("idivq %rbx");
-        expected.add("movq %rax, -16(%rbp) # spill for @4");
+        expected.add("movl %r8d, %eax # get dividend");
+        expected.add("movl -8(%rbp), %ebx # get divisor");
+        expected.add("cltd # sign extension to edx:eax");
+        expected.add("idivl %ebx");
+        expected.add("movl %eax, -16(%rbp) # spill for @4");
 
         assertEquals(expected, result.getInstructions());
 
@@ -191,60 +171,40 @@ public class ApplyAssignmentTest {
     @Test
     public void testCompareToFirm() {
         RegisterAssignment[] assignment = new RegisterAssignment[] {
-                new RegisterAssignment(Register.RCX),
-                new RegisterAssignment(Register.RCX),
-                new RegisterAssignment(Register.RBX),
-                new RegisterAssignment(Register.RDI),
+                new RegisterAssignment(Register.RAX),
                 new RegisterAssignment(Register.RAX),
                 new RegisterAssignment(Register.RBX),
+                new RegisterAssignment(Register.RDI),
         };
         RegisterSize[] sizes = new RegisterSize[] {
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
                 RegisterSize.DOUBLE,
-                RegisterSize.QUAD,
-                RegisterSize.QUAD,
         };
         Lifetime[] lifetimes = new Lifetime[] {
                 new Lifetime(-1, 2, true),
-                new Lifetime(1, 6, true),
-                new Lifetime(2, 5, true),
-                new Lifetime(3, 6),
-                new Lifetime(3, 6, true),
-                new Lifetime(4, 6, true),
+                new Lifetime(1, 4, true),
+                new Lifetime(2, 4, true),
+                new Lifetime(3, 4),
         };
         Block block = new Block(List.of(
                 Instruction.newOp("movl $0x7, @0", List.of(), Optional.empty(), 0),
                 Instruction.newOp("addl $77, @1", List.of(), Optional.of(0), 1),
                 Instruction.newOp("movl $0x2, @2", List.of(), Optional.empty(), 2),
-                Instruction.newOp("movslq @1, @4", List.of(1), Optional.empty(), 4),
-                Instruction.newOp("movslq @2, @5", List.of(2), Optional.empty(), 5),
-                Instruction.newDiv(4, 5, 3)
+                Instruction.newDiv(1, 2, 3)
         ), 0, 0);
-        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 6);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 4);
         var result = ass.doApply();
         var expected = new ArrayList<>();
         expected.add(".L0:");
-        expected.add("movl $0x7, %ecx");
-        expected.add("addl $77, %ecx");
+        expected.add("movl $0x7, %eax");
+        expected.add("addl $77, %eax");
         expected.add("movl $0x2, %ebx");
-        expected.add("movslq %ecx, %rax");
-        expected.add("movslq %ebx, %rbx");
-        expected.add("cqto # sign extension to octoword");
-        expected.add("idivq %rbx");
+        expected.add("cltd # sign extension to edx:eax");
+        expected.add("idivl %ebx");
         expected.add("movl %eax, %edi # move result to @3");
         assertEquals(expected, result.getInstructions());
-
-        // Test is based on the following firm output for RegisterTest.mj:
-        // movl $0x7, %ecx
-        // addl $77, %ecx
-        // movl %ecx, (%rax)
-        // movslq (%rax), %rax
-        // cqto
-        // movl $0x2, %ecx
-        // idivq %rcx
-        // mov %rax, %rdi
     }
 
     @Test
