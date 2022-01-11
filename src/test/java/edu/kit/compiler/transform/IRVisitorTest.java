@@ -36,7 +36,7 @@ public class IRVisitorTest {
                 namespaceMapper, lexer.getStringTable(), errorHandler
         );
         ast.accept(visitor);
-        DetailedNameTypeAstVisitor dntv = new DetailedNameTypeAstVisitor(namespaceMapper, lexer.getStringTable());
+        DetailedNameTypeAstVisitor dntv = new DetailedNameTypeAstVisitor(namespaceMapper, lexer.getStringTable(), errorHandler);
         ast.accept(dntv);
 
         IRVisitor irv = new IRVisitor(namespaceMapper, lexer.getStringTable());

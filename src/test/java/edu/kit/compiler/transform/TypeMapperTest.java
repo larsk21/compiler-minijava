@@ -43,7 +43,7 @@ public class TypeMapperTest {
             namespaceMapper, lexer.getStringTable(), errorHandler
         );
         node.accept(visitor);
-        node.accept(new DetailedNameTypeAstVisitor(namespaceMapper, stringTable));
+        node.accept(new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler));
         typeMapper = new TypeMapper(namespaceMapper, lexer.getStringTable());
         Dump.dumpTypeGraph("type.vcg");
     }

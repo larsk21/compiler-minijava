@@ -39,7 +39,7 @@ public class IRExpressionVisitorTest {
                 namespaceMapper, lexer.getStringTable(), errorHandler
         );
         ast.accept(visitor);
-        DetailedNameTypeAstVisitor dntv = new DetailedNameTypeAstVisitor(namespaceMapper, lexer.getStringTable());
+        DetailedNameTypeAstVisitor dntv = new DetailedNameTypeAstVisitor(namespaceMapper, lexer.getStringTable(), errorHandler);
         ast.accept(dntv);
 
         this.typeMapper = new TypeMapper(namespaceMapper, lexer.getStringTable());
