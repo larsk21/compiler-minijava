@@ -6,6 +6,7 @@ import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
 import firm.BackEdges;
 import firm.Graph;
+import firm.Mode;
 import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
@@ -41,9 +42,10 @@ import lombok.RequiredArgsConstructor;
  * --> In Add with Const, the Const is always the right operand (i.e. x + c)
  * --> In Sub with Const, the Const is always the left operand (i.e. c - x)
  * --> In Mul with Const, the Const is always the right operand (i.e. x * c)
- * - Fold nested associative expressions with const operands
+ * - Fold nested associative (and distributive) expressions with const operands
  * --> e.g. 5 - (x + 10) --> -5 - x
  * --> e.g. 2 * (x * 21) --> x * 42
+ * --> e.g. (x + 4) * 4 -> x * 4 + 16
  * - Fold negation of addition, subtraction or multiplication with constant
  */
 public final class ArithmeticIdentitiesOptimization implements Optimization {
@@ -146,6 +148,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 // c - (d - x) --> x + (c - d)
                 foldAdditive(node, node.getRight(), node.getLeft(), (l, r) -> r.sub(l));
             }
+            // (x + c) * d = x * d + (c * d)
         }
 
         @Override
@@ -224,6 +227,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
 
             } else if (node.getRight().getOpCode() == ir_opcode.iro_Const) {
                 // (x * c) * d --> x * (c * d)
+                // (x + c) * d --> (x * d) + (c * d)
                 foldMultiplication(node);
             }
         }
@@ -250,6 +254,23 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                 // x % -1 --> 0
                 var zero = node.getLeft().getMode().getNull();
                 exchangeDivOrMod(node, graph.newConst(zero), node.getMem());
+            }
+        }
+
+        @Override
+        public void visit(Conv node) {
+            if (node.getMode().equals(Mode.getLs())
+                    && node.getOp().getOpCode() == ir_opcode.iro_Add
+                    && isConst(node.getOp().getPred(1))) {
+                // (x + c):Ls --> x:Ls + c:Ls
+                // this works in combination with distributive transformation of
+                // multiplications to better use x86 addressing modes
+                var block = node.getBlock();
+                var opNode = graph.newConv(block, node.getOp().getPred(0), Mode.getLs());
+                var offset = ((Const) node.getOp().getPred(1)).getTarval();
+                var offsetNode = graph.newConst(offset.convertTo(Mode.getLs()));
+                var addNode = graph.newAdd(block, opNode, offsetNode);
+                exchange(node, addNode);
             }
         }
 
@@ -287,9 +308,9 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         }
 
         /**
-         * If possible, simplify the given Mul node using the associative
-         * property of multiplication. The right predecessor of the node
-         * must be a Const.
+         * If possible, simplify the given multiplication using its associative
+         * property, or its distributive property with addition. The right
+         * predecessor of the node must be a Const.
          */
         private void foldMultiplication(Mul node) {
             assert node.getRight().getOpCode() == ir_opcode.iro_Const;
@@ -298,12 +319,30 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
             var leftConst = getConstOperand(node.getLeft());
             var rightConst = getConstValue(node.getRight());
 
-            if (restNode != null && leftConst != null
-                    && node.getLeft().getOpCode() == ir_opcode.iro_Mul) {
-                var constNode = graph.newConst(leftConst.mul(rightConst));
-                var newNode = graph.newMul(node.getBlock(), restNode, constNode);
+            if (restNode != null && leftConst != null) {
+                var block = node.getBlock();
 
-                exchange(node, enqueued(newNode));
+                switch (node.getLeft().getOpCode()) {
+                    case iro_Mul -> {
+                        // (x * c) * d --> x * (c * d)
+                        var constNode = graph.newConst(leftConst.mul(rightConst));
+                        var newNode = graph.newMul(block, restNode, constNode);
+
+                        exchange(node, enqueued(newNode));
+                    }
+                    case iro_Add -> {
+                        // (x + c) * d --> x * d + c * d
+                        var oldConst = graph.newConst(rightConst);
+                        var leftNode = graph.newMul(block, restNode, oldConst);
+                        var rightNode = graph.newConst(leftConst.mul(rightConst));
+                        var newNode = graph.newAdd(block, leftNode, rightNode);
+
+                        exchange(node, enqueued(newNode));
+                        enqueued(leftNode);
+                    }
+                    default -> {
+                    }
+                }
             }
         }
 
