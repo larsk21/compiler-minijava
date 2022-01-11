@@ -18,7 +18,6 @@ public class IRExpressionVisitorTest {
 
     private static final String main = "class Main {public static void main(String[] args) {}}";
     private TypeMapper typeMapper;
-    private TransformContext context;
 
     private static Reader getReader(String input) {
         return new StringReader(input);
@@ -43,7 +42,7 @@ public class IRExpressionVisitorTest {
         for (ClassNode classNode: ast.getClasses()) {
             for (MethodNode.DynamicMethodNode m: classNode.getDynamicMethods()) {
                 var mapping = LocalVariableCounter.apply(m);
-                this.context = new TransformContext(
+                new TransformContext(
                         typeMapper, classNode, m, mapping, false
                 );
                 for (StatementNode stmt: m.getStatementBlock().getStatements()) {
@@ -59,7 +58,7 @@ public class IRExpressionVisitorTest {
 
     @Test
     public void testArrayAccess() throws IOException {
-        ExpressionNode expr = getReturnExpressionFromProgram(
+        getReturnExpressionFromProgram(
                 "class c { public int a; public int m(int[] array) { return array[5]; } }" + main
         );
     }

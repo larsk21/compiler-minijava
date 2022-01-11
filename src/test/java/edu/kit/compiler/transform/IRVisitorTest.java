@@ -17,8 +17,6 @@ import java.io.StringReader;
 public class IRVisitorTest {
 
     private static final String main = "class Main {public static void main(String[] args) {}}";
-    private final ClassLoader classLoader = getClass().getClassLoader();
-    private static final Logger log = new Logger();
 
     private static Reader getReader(String input) {
         return new StringReader(input);

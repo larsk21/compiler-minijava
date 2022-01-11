@@ -45,7 +45,7 @@ public class TransformContextTest {
         this.stringTable = lexer.getStringTable();
         this.typeMapper = new TypeMapper(namespaceMapper, lexer.getStringTable());
         for (ClassNode classNode: node.getClasses()) {
-            ClassEntry entry = typeMapper.getClassEntry(classNode);
+            typeMapper.getClassEntry(classNode);
             for (DynamicMethodNode m: classNode.getDynamicMethods()) {
                 this.classNode = classNode;
                 return m;
