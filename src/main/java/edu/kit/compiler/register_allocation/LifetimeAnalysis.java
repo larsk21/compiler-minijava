@@ -112,7 +112,9 @@ public class LifetimeAnalysis {
 
     public static LifetimeAnalysis run(List<Block> ir, int numVRegisters, int nArgs) {
         Lifetime[] lifetimes = new Lifetime[numVRegisters];
+        @SuppressWarnings("unchecked")
         Optional<Instruction>[] firstInstruction = new Optional[numVRegisters];
+        @SuppressWarnings("unchecked")
         Optional<Instruction>[] lastInstruction = new Optional[numVRegisters];
         int[] loopNestingDepth = new int[numVRegisters];
         int[] definitionNestingDepth = new int[numVRegisters];
