@@ -19,11 +19,6 @@ import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
-import edu.kit.compiler.transform.TypeMapper.ClassEntry;
-import firm.Entity;
-import firm.Firm;
-import firm.Mode;
-import firm.PrimitiveType;
 
 public class TransformContextTest {
     static {

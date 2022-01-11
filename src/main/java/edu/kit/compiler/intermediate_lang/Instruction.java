@@ -4,7 +4,6 @@ import lombok.Getter;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Represents a command in semi-textual form. Virtual registers are prefixed with '@'.

@@ -8,9 +8,6 @@ import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
 import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
-import firm.Construction;
-import firm.Mode;
-import firm.nodes.Node;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;

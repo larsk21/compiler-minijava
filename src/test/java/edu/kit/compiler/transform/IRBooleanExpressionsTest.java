@@ -20,7 +20,6 @@ import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import firm.Construction;
-import firm.Dump;
 import firm.nodes.Node;
 
 public class IRBooleanExpressionsTest {

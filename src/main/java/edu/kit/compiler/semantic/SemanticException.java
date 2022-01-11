@@ -1,6 +1,5 @@
 package edu.kit.compiler.semantic;
 
-import edu.kit.compiler.JavaEasyCompiler;
 import edu.kit.compiler.Result;
 import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Positionable;
