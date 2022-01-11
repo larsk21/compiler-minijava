@@ -20,7 +20,7 @@ import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
 import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
-import firm.Dump;
+
 import firm.Mode;
 
 public class TypeMapperTest {
@@ -45,7 +45,6 @@ public class TypeMapperTest {
         node.accept(visitor);
         node.accept(new DetailedNameTypeAstVisitor(namespaceMapper, stringTable));
         typeMapper = new TypeMapper(namespaceMapper, lexer.getStringTable());
-        Dump.dumpTypeGraph("type.vcg");
     }
 
     @Test
