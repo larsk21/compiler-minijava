@@ -10,4 +10,9 @@ public interface Reference {
      */
     Definition getDefinition();
 
+    /**
+     * Set the definition of this reference.
+     */
+    void setDefinition(Definition definition);
+
 }

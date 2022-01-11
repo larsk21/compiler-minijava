@@ -24,34 +24,36 @@ import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
  * - builtin definitions (classes, fields, methods) are available
  * 
  * Postconditions:
- * - all used variables reference their declaration
+ * - all used variables reference their declaration *
  * - every field, method, statement and expression is correctly typed
  * - no variable is declared twice inside the same method
- * - every expression node contains a valid result type
+ * - every expression node contains a valid result type *
  * - static methods contain no reference to this
  * - void is not used as a field, parameter or local variable type, in a new
  * object or new array expression
- * - hasError is set in all nodes where an error occured
+ * - the error flag is set in all nodes where an error occured
  * - user defined data types of fields and methods (incl. parameters) are valid
  * - integer literal values are valid integer values (32-bit signed)
  * - calls to the standard library are identified
+ * 
+ * * unless the error flag is set for the node
  * 
  * Not checked:
  * - all code paths return a value
  * - left side of an assignment is an l-value
  */
-public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
+public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>> {
 
-    public static final DataType VoidType = new DataType(DataTypeClass.Void);
-
-    public DetailedNameTypeAstVisitor(NamespaceMapper namespaceMapper, StringTable stringTable) {
+    public DetailedNameTypeAstVisitor(NamespaceMapper namespaceMapper, StringTable stringTable, ErrorHandler errorHandler) {
         this.namespaceMapper = namespaceMapper;
         this.stringTable = stringTable;
         this.symboltable = new SymbolTable();
         this.standardLibrary = StandardLibrary.create(stringTable);
 
+        this.errorHandler = errorHandler;
+
         currentClassNamespace = Optional.empty();
-        expectedReturnType = null;
+        expectedReturnType = Optional.empty();
     }
 
     private NamespaceMapper namespaceMapper;
@@ -59,8 +61,10 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
     private SymbolTable symboltable;
     private StandardLibrary standardLibrary;
 
+    private ErrorHandler errorHandler;
+
     private Optional<ClassNamespace> currentClassNamespace;
-    private DataType expectedReturnType;
+    private Optional<DataType> expectedReturnType;
 
     private boolean isValidDataType(DataType type) {
         switch (type.getType()) {
@@ -79,41 +83,39 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         }
     }
 
-    private void semanticError(AstObject object, String message, Object... args) {
+    private <T> Optional<T> semanticError(AstObject object, String message, Object... args) {
         object.setHasError(true);
+        errorHandler.receive(new SemanticError(object, String.format(message, args)));
 
-        // TODO: collect semantic errors in list
-        throw new SemanticException(
-            String.format(message, args),
-            object
-        );
+        return Optional.empty();
     }
 
-    public DataType visit(ProgramNode programNode) {
+    public Optional<DataType> visit(ProgramNode programNode) {
         for (ClassNode _class : programNode.getClasses()) {
             _class.accept(this);
         }
 
-        return VoidType;
+        return Optional.empty();
     }
 
-    public DataType visit(ClassNode classNode) {
-        currentClassNamespace = Optional.empty();
+    public Optional<DataType> visit(ClassNode classNode) {
         symboltable.enterScope();
 
         for (ClassNodeField field : classNode.getFields()) {
-            if (!isValidDataType(field.getType())) {
+            if (isValidDataType(field.getType())) {
+                if (!field.isHasError()) {
+                    symboltable.insert(field);
+                }
+            } else {
                 if (field.getType().getType() == DataTypeClass.Void) {
                     semanticError(field, "void type is not allowed for a field");
                 } else {
                     semanticError(field, "unknown reference type %s", field.getType().getRepresentation(stringTable));
                 }
             }
-
-            if (!field.isHasError()) {
-                symboltable.insert(field);
-            }
         }
+
+        currentClassNamespace = Optional.empty();
 
         for (MethodNode methodNode : classNode.getStaticMethods()) {
             methodNode.accept(this);
@@ -125,49 +127,52 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             methodNode.accept(this);
         }
 
-        symboltable.leaveScope();
         currentClassNamespace = Optional.empty();
-        return VoidType;
+
+        symboltable.leaveScope();
+        return Optional.empty();
     }
 
-    private DataType visitMethodNode(MethodNode methodNode) {
+    private Optional<DataType> visitMethodNode(MethodNode methodNode) {
         symboltable.enterScope();
 
-        if (!isValidDataType(methodNode.getType()) && methodNode.getType().getType() != DataTypeClass.Void) {
+        if (isValidDataType(methodNode.getType()) || methodNode.getType().getType() == DataTypeClass.Void) {
+            expectedReturnType = Optional.of(methodNode.getType());
+        } else {
             semanticError(methodNode, "unknown reference type %s", methodNode.getType().getRepresentation(stringTable));
+            expectedReturnType = Optional.empty();
         }
 
         for (MethodNodeParameter parameter : methodNode.getParameters()) {
-            if (!isValidDataType(parameter.getType())) {
+            if (isValidDataType(parameter.getType())) {
+                if (!parameter.isHasError()) {
+                    symboltable.insert(parameter);
+                }
+            } else {
                 if (parameter.getType().getType() == DataTypeClass.Void) {
                     semanticError(parameter, "void type is not allowed for a method parameter");
                 } else {
                     semanticError(parameter, "unknown reference type %s", parameter.getType().getRepresentation(stringTable));
                 }
             }
-
-            if (!parameter.isHasError()) {
-                symboltable.insert(parameter);
-            }
         }
 
-        expectedReturnType = methodNode.getType();
         methodNode.getStatementBlock().accept(this);
-        expectedReturnType = null;
 
+        expectedReturnType = Optional.empty();
         symboltable.leaveScope();
-        return VoidType;
+        return Optional.empty();
     }
 
-    public DataType visit(StaticMethodNode staticMethodNode) {
+    public Optional<DataType> visit(StaticMethodNode staticMethodNode) {
         return visitMethodNode(staticMethodNode);
     }
 
-    public DataType visit(DynamicMethodNode dynamicMethodNode) {
+    public Optional<DataType> visit(DynamicMethodNode dynamicMethodNode) {
         return visitMethodNode(dynamicMethodNode);
     }
 
-    public DataType visit(BlockStatementNode blockStatementNode) {
+    public Optional<DataType> visit(BlockStatementNode blockStatementNode) {
         symboltable.enterScope();
 
         for (StatementNode statement : blockStatementNode.getStatements()) {
@@ -175,160 +180,199 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         }
 
         symboltable.leaveScope();
-        return VoidType;
+        return Optional.empty();
     }
 
-    public DataType visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode) {
-        DataType leftSideType = localVariableDeclarationStatementNode.getType();
-        if (!isValidDataType(leftSideType)) {
-            if (leftSideType.getType() == DataTypeClass.Void) {
-                semanticError(localVariableDeclarationStatementNode, "void type is not allowed in a local variable declaration");
+    public Optional<DataType> visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode) {
+        Optional<DataType> leftSideType_ = Optional.of(localVariableDeclarationStatementNode.getType());
+        leftSideType_ = leftSideType_.flatMap(leftSideType -> {
+            if (isValidDataType(leftSideType)) {
+                return Optional.of(leftSideType);
             } else {
-                semanticError(localVariableDeclarationStatementNode, "unknown reference type %s", leftSideType.getRepresentation(stringTable));
+                if (leftSideType.getType() == DataTypeClass.Void) {
+                    return semanticError(localVariableDeclarationStatementNode, "void type is not allowed in a local variable declaration");
+                } else {
+                    return semanticError(localVariableDeclarationStatementNode, "unknown reference type %s", leftSideType.getRepresentation(stringTable));
+                }
             }
-        }
+        });
 
         if (symboltable.isDefined(localVariableDeclarationStatementNode.getName())) {
             Definition definition = symboltable.lookup(localVariableDeclarationStatementNode.getName());
+
             if (definition.getKind() == DefinitionKind.Parameter || definition.getKind() == DefinitionKind.LocalVariable) {
                 semanticError(localVariableDeclarationStatementNode, "variable is already defined in current scope");
+            } else {
+                symboltable.insert(localVariableDeclarationStatementNode);
             }
+        } else {
+            symboltable.insert(localVariableDeclarationStatementNode);
         }
-
-        symboltable.insert(localVariableDeclarationStatementNode);
 
         if (localVariableDeclarationStatementNode.getExpression().isPresent()) {
-            DataType rightSideType = localVariableDeclarationStatementNode.getExpression().get().accept(this);
+            Optional<DataType> rightSideType_ = localVariableDeclarationStatementNode.getExpression().get().accept(this);
 
-            if (!leftSideType.isCompatibleTo(rightSideType)) {
-                semanticError(localVariableDeclarationStatementNode,
-                    "invalid assigment, variable type is %s while expression type is %s",
-                    leftSideType.getRepresentation(stringTable),
-                    rightSideType.getRepresentation(stringTable)
-                );
-            }
+            leftSideType_.ifPresent(leftSideType -> rightSideType_.ifPresent(rightSideType -> {
+                if (!leftSideType.isCompatibleTo(rightSideType)) {
+                    semanticError(localVariableDeclarationStatementNode,
+                        "invalid assigment, variable type is %s while expression type is %s",
+                        leftSideType.getRepresentation(stringTable),
+                        rightSideType.getRepresentation(stringTable)
+                    );
+                }
+            }));
         }
 
-        return VoidType;
+        return Optional.empty();
     }
 
-    public DataType visit(IfStatementNode ifStatementNode) {
-        DataType conditionType = ifStatementNode.getCondition().accept(this);
-        if (conditionType.getType() != DataTypeClass.Boolean) {
-            semanticError(ifStatementNode, "if statement condition must be boolean");
-        }
+    public Optional<DataType> visit(IfStatementNode ifStatementNode) {
+        Optional<DataType> conditionType_ = ifStatementNode.getCondition().accept(this);
+        conditionType_.ifPresent(conditionType -> {
+            if (conditionType.getType() != DataTypeClass.Boolean) {
+                semanticError(ifStatementNode, "if statement condition must be boolean");
+            }
+        });
 
         ifStatementNode.getThenStatement().accept(this);
         if (ifStatementNode.getElseStatement().isPresent()) {
             ifStatementNode.getElseStatement().get().accept(this);
         }
 
-        return VoidType;
+        return Optional.empty();
     }
 
-    public DataType visit(WhileStatementNode whileStatementNode) {
-        DataType conditionType = whileStatementNode.getCondition().accept(this);
-        if (conditionType.getType() != DataTypeClass.Boolean) {
-            semanticError(whileStatementNode, "while statement condition must be boolean");
-        }
+    public Optional<DataType> visit(WhileStatementNode whileStatementNode) {
+        Optional<DataType> conditionType_ = whileStatementNode.getCondition().accept(this);
+        conditionType_.ifPresent(conditionType -> {
+            if (conditionType.getType() != DataTypeClass.Boolean) {
+                semanticError(whileStatementNode, "while statement condition must be boolean");
+            }
+        });
 
         whileStatementNode.getStatement().accept(this);
 
-        return VoidType;
+        return Optional.empty();
     }
 
-    public DataType visit(ReturnStatementNode returnStatementNode) {
+    public Optional<DataType> visit(ReturnStatementNode returnStatementNode) {
         if (returnStatementNode.getResult().isPresent()) {
-            DataType resultType = returnStatementNode.getResult().get().accept(this);
-
-            if (!resultType.isCompatibleTo(expectedReturnType)) {
-                semanticError(returnStatementNode,
-                    "expression type %s does not match required return type %s",
-                    resultType.getRepresentation(stringTable),
-                    expectedReturnType.getRepresentation(stringTable)
-                );
-            }
-        } else if (expectedReturnType.getType() != DataTypeClass.Void) {
-            semanticError(returnStatementNode, "method requires a return value of type %s", expectedReturnType.getRepresentation(stringTable));
+            Optional<DataType> resultType_ = returnStatementNode.getResult().get().accept(this);
+            resultType_.ifPresent(resultType -> {
+                if (expectedReturnType.isPresent() && !resultType.isCompatibleTo(expectedReturnType.get())) {
+                    semanticError(returnStatementNode,
+                        "expression type %s does not match required return type %s",
+                        resultType.getRepresentation(stringTable),
+                        expectedReturnType.get().getRepresentation(stringTable)
+                    );
+                }
+            });
+        } else if (expectedReturnType.isPresent() && expectedReturnType.get().getType() != DataTypeClass.Void) {
+            semanticError(returnStatementNode, "method requires a return value of type %s", expectedReturnType.get().getRepresentation(stringTable));
         }
 
-        return VoidType;
+        return Optional.empty();
     }
 
-    public DataType visit(ExpressionStatementNode expressionStatementNode) {
+    public Optional<DataType> visit(ExpressionStatementNode expressionStatementNode) {
         expressionStatementNode.getExpression().accept(this);
 
-        return VoidType;
+        return Optional.empty();
     }
 
-    public DataType visit(BinaryExpressionNode binaryExpressionNode) {
-        DataType leftSideType = binaryExpressionNode.getLeftSide().accept(this);
-        DataType rightSideType = binaryExpressionNode.getRightSide().accept(this);
+    private Optional<DataType> applyResultType(ExpressionNode expressionNode, Optional<DataType> resultType_) {
+        resultType_.ifPresentOrElse(resultType -> {
+            expressionNode.setResultType(resultType);
+        }, () -> {
+            expressionNode.setHasError(true);
+        });
+        return resultType_;
+    }
+
+    private <ReferenceExpressionNode extends ExpressionNode & Reference> void applyDefinition(ReferenceExpressionNode referenceNode, Optional<? extends Definition> definition_) {
+        definition_.ifPresentOrElse(definition -> {
+            referenceNode.setDefinition(definition);
+        }, () -> {
+            referenceNode.setHasError(true);
+        });
+    }
+
+    public Optional<DataType> visit(BinaryExpressionNode binaryExpressionNode) {
+        Optional<DataType> leftSideType_ = binaryExpressionNode.getLeftSide().accept(this);
+        Optional<DataType> rightSideType_ = binaryExpressionNode.getRightSide().accept(this);
 
         BinaryOperator operator = binaryExpressionNode.getOperator();
 
-        DataType resultType;
+        Optional<DataType> resultType_;
         switch (operator) {
             case Assignment:
-                if (!leftSideType.isCompatibleTo(rightSideType)) {
-                    semanticError(binaryExpressionNode, "the two sides of an assignment must have compatible types");
-                }
+                leftSideType_.ifPresent(leftSideType -> rightSideType_.ifPresent(rightSideType -> {
+                    if (!leftSideType.isCompatibleTo(rightSideType)) {
+                        semanticError(binaryExpressionNode, "the two sides of an assignment must have compatible types");
+                    }
+                }));
 
-                resultType = leftSideType;
+                resultType_ = leftSideType_;
                 break;
             case Equal:
             case NotEqual:
-                if (!leftSideType.isCompatibleTo(rightSideType)) {
-                    semanticError(binaryExpressionNode, "the two arguments of %s must have compatible types", operator);
-                }
+                leftSideType_.ifPresent(leftSideType -> rightSideType_.ifPresent(rightSideType -> {
+                    if (!leftSideType.isCompatibleTo(rightSideType)) {
+                        semanticError(binaryExpressionNode, "the two arguments of %s must have compatible types", operator);
+                    }
+                }));
 
-                resultType = operator.getResultType();
+                resultType_ = Optional.of(operator.getResultType());
                 break;
             default:
                 DataType expectedArgumentType = operator.getExpectedArgumentType();
 
-                if (!leftSideType.isCompatibleTo(expectedArgumentType)) {
-                    semanticError(binaryExpressionNode,
-                        "wrong argument type %s, %s operator requires %s",
-                        leftSideType.getRepresentation(stringTable),
-                        operator,
-                        expectedArgumentType.getRepresentation(stringTable)
-                    );
-                }
-                if (!rightSideType.isCompatibleTo(expectedArgumentType)) {
-                    semanticError(binaryExpressionNode,
-                        "wrong argument type %s, %s operator requires %s",
-                        leftSideType.getRepresentation(stringTable),
-                        operator,
-                        expectedArgumentType.getRepresentation(stringTable)
-                    );
-                }
+                leftSideType_.ifPresent(leftSideType -> {
+                    if (!leftSideType.isCompatibleTo(expectedArgumentType)) {
+                        semanticError(binaryExpressionNode,
+                            "wrong argument type %s, %s operator requires %s",
+                            leftSideType.getRepresentation(stringTable),
+                            operator,
+                            expectedArgumentType.getRepresentation(stringTable)
+                        );
+                    }
+                });
+                rightSideType_.ifPresent(rightSideType -> {
+                    if (!rightSideType.isCompatibleTo(expectedArgumentType)) {
+                        semanticError(binaryExpressionNode,
+                            "wrong argument type %s, %s operator requires %s",
+                            rightSideType.getRepresentation(stringTable),
+                            operator,
+                            expectedArgumentType.getRepresentation(stringTable)
+                        );
+                    }
+                });
 
-                resultType = operator.getResultType();
+                resultType_ = Optional.of(operator.getResultType());
                 break;
         }
 
-        binaryExpressionNode.setResultType(resultType);
-        return resultType;
+        return applyResultType(binaryExpressionNode, resultType_);
     }
 
-    public DataType visit(UnaryExpressionNode unaryExpressionNode) {
+    public Optional<DataType> visit(UnaryExpressionNode unaryExpressionNode) {
         UnaryOperator operator = unaryExpressionNode.getOperator();
 
-        DataType argumentType = unaryExpressionNode.getExpression().accept(this);
+        Optional<DataType> argumentType_ = unaryExpressionNode.getExpression().accept(this);
         DataType expectedArgumentType = operator.getExpectedArgumentType();
 
-        if (!argumentType.isCompatibleTo(expectedArgumentType)) {
-            semanticError(unaryExpressionNode,
-                "wrong argument type %s, %s operator requires %s",
-                argumentType.getRepresentation(stringTable),
-                operator,
-                expectedArgumentType.getRepresentation(stringTable)
-            );
-        }
+        argumentType_.ifPresent(argumentType -> {
+            if (!argumentType.isCompatibleTo(expectedArgumentType)) {
+                semanticError(unaryExpressionNode,
+                    "wrong argument type %s, %s operator requires %s",
+                    argumentType.getRepresentation(stringTable),
+                    operator,
+                    expectedArgumentType.getRepresentation(stringTable)
+                );
+            }
+        });
 
-        unaryExpressionNode.setResultType(operator.getResultType());
-        return operator.getResultType();
+        return applyResultType(unaryExpressionNode, Optional.of(operator.getResultType()));
     }
 
     private Optional<MethodNode> visitStandardLibraryMethodInvocationExpressionNode(MethodInvocationExpressionNode methodInvocationExpressionNode) {
@@ -376,132 +420,164 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
         }
     }
 
-    public DataType visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
-        MethodNode definition;
-
+    public Optional<DataType> visit(MethodInvocationExpressionNode methodInvocationExpressionNode) {
         Optional<MethodNode> systemDefinition = visitStandardLibraryMethodInvocationExpressionNode(methodInvocationExpressionNode);
+
+        Optional<MethodNode> definition_;
         if (systemDefinition.isPresent()) {
             methodInvocationExpressionNode.removeObject();
 
-            definition = systemDefinition.get();
+            definition_ = systemDefinition;
         } else {
-            ClassNamespace namespace;
+            Optional<ClassNamespace> namespace_;
             if (methodInvocationExpressionNode.getObject().isPresent()) {
-                DataType objectType = methodInvocationExpressionNode.getObject().get().accept(this);
+                Optional<DataType> objectType_ = methodInvocationExpressionNode.getObject().get().accept(this);
 
-                if (objectType.getType() != DataTypeClass.UserDefined) {
-                    semanticError(methodInvocationExpressionNode, "method invocation is only allowed on reference type expressions");
-                }
-
-                namespace = namespaceMapper.getClassNamespace(objectType.getIdentifier().get());
+                namespace_ = objectType_.flatMap(objectType -> {
+                    if (objectType.getType() == DataTypeClass.UserDefined) {
+                        return Optional.of(namespaceMapper.getClassNamespace(objectType.getIdentifier().get()));
+                    } else {
+                        return semanticError(methodInvocationExpressionNode, "method invocation is only allowed on reference type expressions");
+                    }
+                });
             } else {
                 if (!currentClassNamespace.isPresent()) {
                     semanticError(methodInvocationExpressionNode, "method calls without object are not allowed in static methods");
                 }
 
-                namespace = currentClassNamespace.get();
+                namespace_ = currentClassNamespace;
             }
 
-            if (!namespace.getDynamicMethods().containsKey(methodInvocationExpressionNode.getName())) {
-                semanticError(methodInvocationExpressionNode, "unknown method");
+            definition_ = namespace_.flatMap(namespace -> {
+                if (namespace.getDynamicMethods().containsKey(methodInvocationExpressionNode.getName())) {
+                    return Optional.of(namespace.getDynamicMethods().get(methodInvocationExpressionNode.getName()));
+                } else {
+                    return semanticError(methodInvocationExpressionNode, "unknown method");
+                }
+            });
+        }
+
+        definition_.ifPresentOrElse(definition -> {
+            methodInvocationExpressionNode.setDefinition(definition);
+        }, () -> {
+            methodInvocationExpressionNode.setHasError(true);
+        });
+
+        definition_.ifPresent(definition -> {
+            if (methodInvocationExpressionNode.getArguments().size() != definition.getParameters().size()) {
+                semanticError(methodInvocationExpressionNode, "wrong number of arguments");
             }
+        });
 
-            definition = namespace.getDynamicMethods().get(methodInvocationExpressionNode.getName());
+        for (int i = 0; i < methodInvocationExpressionNode.getArguments().size(); i++) {
+            final int i_ = i;
+
+            Optional<DataType> actualArgumentType_ = methodInvocationExpressionNode.getArguments().get(i).accept(this);
+            Optional<DataType> expectedArgumentType_ = definition_.flatMap(definition -> {
+                if (i_ < definition.getParameters().size()) {
+                    return Optional.of(definition.getParameters().get(i_).getType());
+                } else {
+                    return Optional.empty();
+                }
+            });
+
+            actualArgumentType_.ifPresent(actualArgumentType -> expectedArgumentType_.ifPresent(expectedArgumentType -> {
+                if (!actualArgumentType.isCompatibleTo(expectedArgumentType)) {
+                    semanticError(methodInvocationExpressionNode,
+                        "argument %d of type %s does not match expected type %s",
+                        i_,
+                        actualArgumentType.getRepresentation(stringTable),
+                        expectedArgumentType.getRepresentation(stringTable)
+                    );
+                }
+            }));
         }
 
-        methodInvocationExpressionNode.setDefinition(definition);
+        Optional<DataType> resultType_ = definition_.map(definition -> definition.getType());
+        return applyResultType(methodInvocationExpressionNode, resultType_);
+    }
 
-        if (methodInvocationExpressionNode.getArguments().size() != definition.getParameters().size()) {
-            semanticError(methodInvocationExpressionNode, "wrong number of arguments");
-        }
+    public Optional<DataType> visit(FieldAccessExpressionNode fieldAccessExpressionNode) {
+        Optional<DataType> objectType_ = fieldAccessExpressionNode.getObject().accept(this);
 
-        for (int i = 0; i < definition.getParameters().size(); i++) {
-            DataType expectedArgumentType = definition.getParameters().get(i).getType();
-            DataType actualArgumentType = methodInvocationExpressionNode.getArguments().get(i).accept(this);
-
-            if (!actualArgumentType.isCompatibleTo(expectedArgumentType)) {
-                semanticError(methodInvocationExpressionNode,
-                    "argument %d of type %s does not match expected type %s",
-                    i,
-                    actualArgumentType.getRepresentation(stringTable),
-                    expectedArgumentType.getRepresentation(stringTable)
-                );
+        Optional<ClassNamespace> namespace_ = objectType_.flatMap(objectType -> {
+            if (objectType.getType() == DataTypeClass.UserDefined) {
+                return Optional.of(namespaceMapper.getClassNamespace(objectType.getIdentifier().get()));
+            } else {
+                return semanticError(fieldAccessExpressionNode, "field access is only allowed on reference type expressions");
             }
-        }
+        });
 
-        methodInvocationExpressionNode.setResultType(definition.getType());
-        return definition.getType();
+        Optional<ClassNodeField> definition_ = namespace_.flatMap(namespace -> {
+            if (namespace.getClassSymbols().containsKey(fieldAccessExpressionNode.getName())) {
+                return Optional.of(namespace.getClassSymbols().get(fieldAccessExpressionNode.getName()));
+            } else {
+                return semanticError(fieldAccessExpressionNode, "unknown class field");
+            }
+        });
+
+        applyDefinition(fieldAccessExpressionNode, definition_);
+
+        Optional<DataType> resultType_ = definition_.map(definition -> definition.getType());
+        return applyResultType(fieldAccessExpressionNode, resultType_);
     }
 
-    public DataType visit(FieldAccessExpressionNode fieldAccessExpressionNode) {
-        ClassNamespace namespace;
-        DataType objectType = fieldAccessExpressionNode.getObject().accept(this);
+    public Optional<DataType> visit(ArrayAccessExpressionNode arrayAccessExpressionNode) {
+        Optional<DataType> objectType_ = arrayAccessExpressionNode.getObject().accept(this);
+        objectType_ = objectType_.flatMap(objectType -> {
+            if (objectType.getType() == DataTypeClass.Array) {
+                return Optional.of(objectType);
+            } else {
+                return semanticError(arrayAccessExpressionNode, "%s is not an array type", objectType.getRepresentation(stringTable));
+            }
+        });
 
-        if (objectType.getType() != DataTypeClass.UserDefined) {
-            semanticError(fieldAccessExpressionNode, "field access is only allowed on reference type expressions");
-        }
+        Optional<DataType> expressionType_ = arrayAccessExpressionNode.getExpression().accept(this);
+        expressionType_.ifPresent(expressionType -> {
+            if (expressionType.getType() != DataTypeClass.Int) {
+                semanticError(arrayAccessExpressionNode, "array index must be of type int");
+            }
+        });
 
-        namespace = namespaceMapper.getClassNamespace(objectType.getIdentifier().get());
-
-        if (!namespace.getClassSymbols().containsKey(fieldAccessExpressionNode.getName())) {
-            semanticError(fieldAccessExpressionNode, "unknown class field");
-        }
-        ClassNodeField definition = namespace.getClassSymbols().get(fieldAccessExpressionNode.getName());
-
-        fieldAccessExpressionNode.setDefinition(definition);
-
-        fieldAccessExpressionNode.setResultType(definition.getType());
-        return definition.getType();
+        Optional<DataType> resultType_ = objectType_.map(objectType -> objectType.getInnerType().get());
+        return applyResultType(arrayAccessExpressionNode, resultType_);
     }
 
-    public DataType visit(ArrayAccessExpressionNode arrayAccessExpressionNode) {
-        DataType objectType = arrayAccessExpressionNode.getObject().accept(this);
-        if (objectType.getType() != DataTypeClass.Array) {
-            semanticError(arrayAccessExpressionNode, "%s is not an array type", objectType.getRepresentation(stringTable));
-        }
-
-        DataType expressionType = arrayAccessExpressionNode.getExpression().accept(this);
-        if (expressionType.getType() != DataTypeClass.Int) {
-            semanticError(arrayAccessExpressionNode, "array index must be of type int");
-        }
-
-        DataType resultType = objectType.getInnerType().get();
-
-        arrayAccessExpressionNode.setResultType(resultType);
-        return resultType;
-    }
-
-    public DataType visit(IdentifierExpressionNode identifierExpressionNode) {
-        if (!symboltable.isDefined(identifierExpressionNode.getIdentifier())) {
+    public Optional<DataType> visit(IdentifierExpressionNode identifierExpressionNode) {
+        Optional<Definition> definition_;
+        if (symboltable.isDefined(identifierExpressionNode.getIdentifier())) {
+            definition_ = Optional.of(symboltable.lookup(identifierExpressionNode.getIdentifier()));
+        } else {
             semanticError(identifierExpressionNode, "`%s` cannot be resolved", stringTable.retrieve(identifierExpressionNode.getIdentifier()));
-        }
-        Definition definition = symboltable.lookup(identifierExpressionNode.getIdentifier());
-
-        if (!currentClassNamespace.isPresent() && definition.getKind() == DefinitionKind.Field) {
-            semanticError(identifierExpressionNode, "field access is not allowed in static contexts");
+            definition_ = Optional.empty();
         }
 
-        identifierExpressionNode.setDefinition(definition);
+        applyDefinition(identifierExpressionNode, definition_);
 
-        identifierExpressionNode.setResultType(definition.getType());
-        return definition.getType();
+        Optional<DataType> resultType_ = definition_.flatMap(definition -> {
+            if (!currentClassNamespace.isPresent() && definition.getKind() == DefinitionKind.Field) {
+                return semanticError(identifierExpressionNode, "field access is not allowed in static contexts");
+            } else {
+                return Optional.of(definition.getType());
+            }
+        });
+        return applyResultType(identifierExpressionNode, resultType_);
     }
 
-    public DataType visit(ThisExpressionNode thisExpressionNode) {
-        if (!currentClassNamespace.isPresent()) {
-            semanticError(thisExpressionNode, "`this` is not allowed in static contexts");
+    public Optional<DataType> visit(ThisExpressionNode thisExpressionNode) {
+        if (currentClassNamespace.isPresent()) {
+            ClassNode classNode = currentClassNamespace.get().getClassNodeRef();
+            DataType resultType = new DataType(classNode.getName());
+
+            thisExpressionNode.setDefinition(classNode);
+
+            return applyResultType(thisExpressionNode, Optional.of(resultType));
+        } else {
+            return semanticError(thisExpressionNode, "`this` is not allowed in static contexts");
         }
-
-        ClassNode classNode = currentClassNamespace.get().getClassNodeRef();
-        DataType resultType = new DataType(classNode.getName());
-
-        thisExpressionNode.setDefinition(classNode);
-
-        thisExpressionNode.setResultType(resultType);
-        return resultType;
     }
 
-    public DataType visit(ValueExpressionNode valueExpressionNode) {
+    public Optional<DataType> visit(ValueExpressionNode valueExpressionNode) {
         DataType resultType;
         switch (valueExpressionNode.getValueType()) {
         case False:
@@ -524,42 +600,52 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<DataType> {
             throw new IllegalArgumentException("unsupported value expression type");
         }
 
-        valueExpressionNode.setResultType(resultType);
-        return resultType;
+        return applyResultType(valueExpressionNode, Optional.of(resultType));
     }
 
-    public DataType visit(NewObjectExpressionNode newObjectExpressionNode) {
-        DataType objectType = new DataType(newObjectExpressionNode.getTypeName());
-        if (!isValidDataType(objectType)) {
-            semanticError(newObjectExpressionNode, "unknown reference type %s", stringTable.retrieve(objectType.getIdentifier().get()));
-        }
-
-        newObjectExpressionNode.setResultType(objectType);
-        return objectType;
-    }
-
-    public DataType visit(NewArrayExpressionNode newArrayExpressionNode) {
-        DataType elementType = newArrayExpressionNode.getElementType();
-        if (!isValidDataType(elementType)) {
-            if (elementType.getType() == DataTypeClass.Void) {
-                semanticError(newArrayExpressionNode, "void type is not allowed in a new array expression");
+    public Optional<DataType> visit(NewObjectExpressionNode newObjectExpressionNode) {
+        Optional<DataType> objectType_ = Optional.of(new DataType(newObjectExpressionNode.getTypeName()));
+        Optional<DataType> resultType_ = objectType_.flatMap(objectType -> {
+            if (isValidDataType(objectType)) {
+                return Optional.of(objectType);
             } else {
-                semanticError(newArrayExpressionNode, "unknown reference type %s", stringTable.retrieve(elementType.getIdentifier().get()));
+                return semanticError(newObjectExpressionNode, "unknown reference type %s", stringTable.retrieve(objectType.getIdentifier().get()));
             }
-        }
+        });
 
-        DataType expressionType = newArrayExpressionNode.getLength().accept(this);
-        if (expressionType.getType() != DataTypeClass.Int) {
-            semanticError(newArrayExpressionNode, "array length must be of type int");
-        }
+        return applyResultType(newObjectExpressionNode, resultType_);
+    }
 
-        DataType arrayType = elementType;
-        for (int i = 0; i < newArrayExpressionNode.getDimensions(); i++) {
-            arrayType = new DataType(arrayType);
-        }
+    public Optional<DataType> visit(NewArrayExpressionNode newArrayExpressionNode) {
+        Optional<DataType> elementType_ = Optional.of(newArrayExpressionNode.getElementType());
+        elementType_ = elementType_.flatMap(elementType -> {
+            if (isValidDataType(elementType)) {
+                return Optional.of(elementType);
+            } else {
+                if (elementType.getType() == DataTypeClass.Void) {
+                    return semanticError(newArrayExpressionNode, "void type is not allowed in a new array expression");
+                } else {
+                    return semanticError(newArrayExpressionNode, "unknown reference type %s", stringTable.retrieve(elementType.getIdentifier().get()));
+                }
+            }
+        });
 
-        newArrayExpressionNode.setResultType(arrayType);
-        return arrayType;
+        Optional<DataType> expressionType_ = newArrayExpressionNode.getLength().accept(this);
+        expressionType_.ifPresent(expressionType -> {
+            if (expressionType.getType() != DataTypeClass.Int) {
+                semanticError(newArrayExpressionNode, "array length must be of type int");
+            }
+        });
+
+        Optional<DataType> resultType_ = elementType_.map(elementType -> {
+            DataType arrayType = elementType;
+            for (int i = 0; i < newArrayExpressionNode.getDimensions(); i++) {
+                arrayType = new DataType(arrayType);
+            }
+            return arrayType;
+        });
+
+        return applyResultType(newArrayExpressionNode, resultType_);
     }
 
 }

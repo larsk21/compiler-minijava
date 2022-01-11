@@ -311,7 +311,7 @@ public class JavaEasyCompiler {
         ast.accept(gatheringVisitor);
         // name and type analysis
         DetailedNameTypeAstVisitor nameTypeVisitor = new DetailedNameTypeAstVisitor(
-            namespaceMapper, stringTable
+            namespaceMapper, stringTable, errorHandler
         );
         ast.accept(nameTypeVisitor);
         // remaining semantic checks
