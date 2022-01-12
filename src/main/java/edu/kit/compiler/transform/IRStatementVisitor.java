@@ -42,16 +42,21 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
     @Override
     public Boolean visit(LocalVariableDeclarationStatementNode stmt) {
         Construction con = context.getConstruction();
-        Node assignedVal;
+
+        Mode mode = context.getTypeMapper().getMode(stmt.getType());
+        int variableIndex = context.getVariableIndex(stmt.getName());
+
+        // initialize variable first, necessary to avoid Unknown node if the
+        // init expression references the variable itself (e.g. Foo foo = foo;)
+        // Note: it would be cleaner to set the variable to Bad instead, however
+        // it would then need to be replaced later instead
+        con.setVariable(variableIndex, con.newConst(0, mode));
+
         if (stmt.getExpression().isPresent()) {
-            assignedVal = evalExpression(stmt.getExpression().get());
-        } else {
-            // zero-initialize the variable
-            // Note: for debugging, me might want to make no assignment
-            Mode mode = context.getTypeMapper().getMode(stmt.getType());
-            assignedVal = con.newConst(0, mode);
+            Node assignedValue = evalExpression(stmt.getExpression().get());
+            con.setVariable(variableIndex, assignedValue);
         }
-        con.setVariable(context.getVariableIndex(stmt.getName()), assignedVal);
+
         return false;
     }
 
