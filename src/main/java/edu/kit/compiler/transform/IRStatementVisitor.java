@@ -10,7 +10,6 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationSta
 import edu.kit.compiler.data.ast_nodes.StatementNode.ReturnStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.WhileStatementNode;
 import firm.Construction;
-import firm.Mode;
 import firm.nodes.Block;
 import firm.nodes.Node;
 
@@ -41,17 +40,14 @@ public class IRStatementVisitor implements AstVisitor<Boolean> {
 
     @Override
     public Boolean visit(LocalVariableDeclarationStatementNode stmt) {
-        Construction con = context.getConstruction();
-        Node assignedVal;
+        // using a variable before initialization will result in a Unknown node
         if (stmt.getExpression().isPresent()) {
-            assignedVal = evalExpression(stmt.getExpression().get());
-        } else {
-            // zero-initialize the variable
-            // Note: for debugging, me might want to make no assignment
-            Mode mode = context.getTypeMapper().getMode(stmt.getType());
-            assignedVal = con.newConst(0, mode);
+            Construction con = context.getConstruction();
+            int variableIndex = context.getVariableIndex(stmt.getName());
+            Node assignedValue = evalExpression(stmt.getExpression().get());
+            con.setVariable(variableIndex, assignedValue);
         }
-        con.setVariable(context.getVariableIndex(stmt.getName()), assignedVal);
+
         return false;
     }
 
