@@ -47,7 +47,7 @@ import lombok.RequiredArgsConstructor;
  * --> e.g. (x + 4) * 4 -> x * 4 + 16
  * - Fold negation of addition, subtraction or multiplication with constant
  */
-public final class ArithmeticIdentitiesOptimization implements Optimization {
+public final class ArithmeticIdentitiesOptimization implements Optimization.Local {
     @Override
     public boolean optimize(Graph graph) {
         var visitor = new Visitor(graph);

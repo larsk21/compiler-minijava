@@ -32,7 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class ArithmeticIdentitiesOptimizationTest {
 
     private Deque<Graph> graphs;
-    private Optimization optimization;
+    private ArithmeticIdentitiesOptimization optimization;
 
     @BeforeAll
     public static void setupAll() {

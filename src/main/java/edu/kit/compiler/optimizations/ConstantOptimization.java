@@ -30,7 +30,7 @@ import firm.nodes.Unknown;
  * operator or Cond node is removed. The resulting program behavior for the
  * operation is undefined.
  */
-public class ConstantOptimization implements Optimization {
+public class ConstantOptimization implements Optimization.Local {
 
     private Graph graph;
     private Map<Node, TargetValueLatticeElement> nodeValues;
