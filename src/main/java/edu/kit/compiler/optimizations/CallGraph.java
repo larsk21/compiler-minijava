@@ -11,7 +11,6 @@ import firm.Program;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Address;
 import firm.nodes.Call;
-import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -19,43 +18,74 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Represents the call graph of a Firm program.
+ * 
+ * Note: Whenever Entities are passed as parameters or returned from any method
+ * in this class, it is assumed that they represent a function. Entities are NOT
+ * required to have an associated graph, e.g. external function, like those of
+ * the standard library are part of the call graph.
+ * Beware that there are no guarantees that entities without associated graph
+ * will be represented in the call graph (see also `#create()`).
+ */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CallGraph {
 
     private final MutableNetwork<Entity, CallEdge> network;
 
+    /**
+     * Return a set containing every function that may call the given function.
+     */
     public Set<Entity> getCallers(Entity function) {
         return network.predecessors(function);
     }
 
+    /**
+     * Return a set containing every function that may be called by the given
+     * function.
+     */
     public Set<Entity> getCallees(Entity function) {
         return network.successors(function);
     }
 
+    /**
+     * Return a set containing every call to the given function.
+     */
     public Set<CallEdge> getCallsTo(Entity function) {
         return network.inEdges(function);
     }
 
+    /**
+     * Return a set containing every call in the given function.
+     */
     public Set<CallEdge> getCallsFrom(Entity function) {
         return network.outEdges(function);
     }
 
-    public int getNumCallsTo(Entity function) {
-        return network.inDegree(function);
-    }
-
-    public int getNumCallsFrom(Entity function) {
-        return network.outDegree(function);
-    }
-
+    /**
+     * Return true if `caller` may directly call `callee`.
+     */
     public boolean existsCall(Entity caller, Entity callee) {
         return network.hasEdgeConnecting(caller, callee);
     }
 
+    /**
+     * Create a CallGraph based on the current state of Firm. There is guaranteed
+     * to be a node for every function with an associated graph in Firm. Any
+     * function with no graph, may or may not be present in the call graph
+     * (depending on whether it is called or not).
+     */
     public static CallGraph create() {
         return Visitor.build();
     }
-    
+
+    /**
+     * Update the given function in the call graph. This will reevaluate all
+     * outgoing edges for the function.
+     * 
+     * Note: This operation is only valid for functions with associated graph,
+     * hence the parameter is a `Graph` instead of an `Entity`.
+     */
     public void update(Graph function) {
         Visitor.update(this, function);
     }
@@ -64,15 +94,18 @@ public final class CallGraph {
     public String toString() {
         return String.format("CallGraph(functions=%s, calls=%s)",
                 network.nodes(), network.edges());
-
     }
 
+    /**
+     * Represents an edge in the call graph.
+     * Read as: `caller` calls `callee` at node `callSite`.
+     */
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     @EqualsAndHashCode
     private static final class CallEdge {
 
         @Getter
-        private final Node callSite;
+        private final Call callSite;
         @Getter
         private final Entity caller;
         @Getter

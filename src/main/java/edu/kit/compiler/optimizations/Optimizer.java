@@ -26,6 +26,10 @@ public final class Optimizer {
         this.localOptimizations = List.copyOf(localOptimizations);
     }
 
+    /**
+     * Run all global and local optimizations in turns until a fix point is
+     * reached.
+     */
     public void optimize() {
         var changeSet = initialChangeSet();
         boolean hasChanged;
@@ -44,6 +48,11 @@ public final class Optimizer {
         } while (hasChanged);
     }
 
+    /**
+     * Run global optimizations on the program once. The given call graphs is
+     * passed to each optimization and updated as needed. Returns the a set
+     * containing all graphs that have changed.
+     */
     private Set<Graph> optimizeGlobal(CallGraph callGraph) {
         var allChanges = new HashSet<Graph>();
         for (var optimization : globalOptimizations) {
@@ -55,6 +64,10 @@ public final class Optimizer {
         return allChanges;
     }
 
+    /**
+     * Run local optimizations on the given set of graphs until a fix point is
+     * reached. Returns true if a change in any graph has occurred.
+     */
     private boolean optimizeLocal(Set<Graph> graphs) {
         var hasChanged = false;
         for (var graph : graphs) {
@@ -71,6 +84,9 @@ public final class Optimizer {
         return hasChanged;
     }
 
+    /**
+     * Returns a set of all graphs in the program.
+     */
     private HashSet<Graph> initialChangeSet() {
         return StreamSupport
                 .stream(Program.getGraphs().spliterator(), false)
