@@ -215,7 +215,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
             leftSideType_.ifPresent(leftSideType -> rightSideType_.ifPresent(rightSideType -> {
                 if (!leftSideType.isCompatibleTo(rightSideType)) {
                     semanticError(localVariableDeclarationStatementNode,
-                        "invalid assigment, variable declaration type is '%s' while expression type is '%s'",
+                        "invalid assignment, variable declaration type is '%s' while expression type is '%s'",
                         leftSideType.getRepresentation(stringTable),
                         rightSideType.getRepresentation(stringTable)
                     );
