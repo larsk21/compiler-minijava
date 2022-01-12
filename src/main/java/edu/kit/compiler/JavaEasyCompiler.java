@@ -377,8 +377,8 @@ public class JavaEasyCompiler {
         options.addOptionGroup(verbosityOptions);
 
         var optimizationOptions = new OptionGroup();
-        optimizationOptions.addOption(new Option("0", "optimize-0", false, "run no optimizations"));
-        optimizationOptions.addOption(new Option("1", "optimize-1", false, "run standard optimizations (default)"));
+        optimizationOptions.addOption(new Option("O0", "optimize0", false, "run (almost) no optimizations"));
+        optimizationOptions.addOption(new Option("O1", "optimize1", false, "run standard optimizations (default)"));
         options.addOptionGroup(optimizationOptions);
 
         // parse command line arguments
@@ -396,21 +396,39 @@ public class JavaEasyCompiler {
 
         var logger = parseLogger(cmd);
 
-        // execute requested function
+        // determine used optimizations
+        OptimizationLevel optimizationLevel;
+        if (cmd.hasOption("O0")) {
+            optimizationLevel = OptimizationLevel.Level0;
+        } else if (cmd.hasOption("O1")) {
+            optimizationLevel = OptimizationLevel.Level1;
+        } else {
+            optimizationLevel = OptimizationLevel.Level1; // default
+        }
+
         Iterable<Optimization> optimizations;
         RegisterAllocator allocator;
-        if (cmd.hasOption("0")) {
-            optimizations = Arrays.asList();
-            allocator = new DumbAllocator();
-        } else {
-            optimizations = Arrays.asList(
+        switch (optimizationLevel) {
+            case Level0:
+                optimizations = Arrays.asList(
+                    new ConstantOptimization(),
+                    new ArithmeticIdentitiesOptimization()
+                );
+                allocator = new DumbAllocator();
+                break;
+            case Level1:
+                optimizations = Arrays.asList(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization()
-            );
-            allocator = new LinearScan();
+                );
+                allocator = new LinearScan();
+                break;
+            default:
+                throw new UnsupportedOperationException("unsupported optimization level");
         }
 
+        // execute requested function
         Result result;
         if (cmd.hasOption("h")) {
             HelpFormatter help = new HelpFormatter();
