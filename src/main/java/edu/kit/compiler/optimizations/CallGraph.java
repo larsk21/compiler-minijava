@@ -3,17 +3,18 @@ package edu.kit.compiler.optimizations;
 import java.util.Set;
 
 import com.google.common.graph.MutableNetwork;
-import com.google.common.graph.Network;
 import com.google.common.graph.NetworkBuilder;
 
 import firm.Entity;
+import firm.Graph;
 import firm.Program;
 import firm.bindings.binding_irnode.ir_opcode;
+import firm.nodes.Address;
 import firm.nodes.Call;
 import firm.nodes.Node;
-import firm.nodes.Address;
 import firm.nodes.NodeVisitor;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +22,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CallGraph {
 
-    private final Network<Entity, CallEdge> network;
-
-    public static CallGraph create() {
-        return new BuilderVisitor().apply();
-    }
+    private final MutableNetwork<Entity, CallEdge> network;
 
     public Set<Entity> getCallers(Entity function) {
         return network.predecessors(function);
@@ -55,6 +52,14 @@ public final class CallGraph {
         return network.hasEdgeConnecting(caller, callee);
     }
 
+    public static CallGraph create() {
+        return Visitor.build();
+    }
+    
+    public void update(Graph function) {
+        Visitor.update(this, function);
+    }
+
     @Override
     public String toString() {
         return String.format("CallGraph(functions=%s, calls=%s)",
@@ -80,25 +85,38 @@ public final class CallGraph {
         }
     }
 
-    private static final class BuilderVisitor extends NodeVisitor.Default {
+    @RequiredArgsConstructor
+    @AllArgsConstructor
+    private static final class Visitor extends NodeVisitor.Default {
 
         private Entity caller;
         private final MutableNetwork<Entity, CallEdge> network;
 
-        public BuilderVisitor() {
-            this.network = NetworkBuilder.directed()
+        public static CallGraph build() {
+            var visitor = new Visitor(NetworkBuilder.directed()
                     .allowsParallelEdges(true)
                     .allowsSelfLoops(true)
-                    .build();
-        }
+                    .build());
 
-        public CallGraph apply() {
             for (var graph : Program.getGraphs()) {
-                this.caller = graph.getEntity();
-                graph.walk(this);
+                visitor.caller = graph.getEntity();
+                graph.walk(visitor);
             }
 
-            return new CallGraph(network);
+            return new CallGraph(visitor.network);
+        }
+
+        public static void update(CallGraph callGraph, Graph function) {
+            var entity = function.getEntity();
+            var inEdges = callGraph.network.inEdges(entity);
+            callGraph.network.removeNode(entity);
+
+            var visitor = new Visitor(entity, callGraph.network);
+            function.walk(visitor);
+
+            for (var edge : inEdges) {
+                callGraph.network.addEdge(edge.caller, edge.callee, edge);
+            }
         }
 
         @Override
