@@ -1,5 +1,6 @@
 package edu.kit.compiler.cli;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,18 +13,26 @@ import org.apache.commons.cli.Options;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 /**
  * Definition of the command line interface.
  */
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class Cli {
 
     /**
      * Groups with the options supported by the command line interface.
      */
     @Getter
+    @NonNull
     private List<CliOptionGroup> optionGroups;
+
+    @Getter
+    @Setter
+    private int helpDescriptionPadding = 28;
 
     /**
      * Parse the command line arguments with this definition of a command line
@@ -46,7 +55,41 @@ public class Cli {
      * Print a help text for this command line interface.
      */
     public void printHelp() {
-        throw new UnsupportedOperationException();
+        printHelp(System.out, Optional.empty(), Optional.empty());
+    }
+
+    /**
+     * Print a help text for this command line interface with the given header
+     * and footer.
+     */
+    public void printHelp(String header, String footer) {
+        printHelp(System.out, Optional.of(header), Optional.of(footer));
+    }
+
+    private void printHelp(PrintStream stream, Optional<String> header, Optional<String> footer) {
+        if (header.isPresent()) {
+            stream.println(header.get());
+            stream.println();
+        }
+
+        for (CliOptionGroup optionGroup : optionGroups) {
+            stream.printf("%s%n", optionGroup.getName());
+
+            for (CliOption option : optionGroup.getOptions()) {
+                String usage = String.format(" -%s --%s%s",
+                    option.getShortName(),
+                    option.getLongName(),
+                    option.getArgName().map(arg -> String.format(" <%s>", arg)).orElse("")
+                );
+                stream.printf("%-" + helpDescriptionPadding + "s%s%n", usage, option.getDescription());
+            }
+
+            stream.println();
+        }
+
+        if (footer.isPresent()) {
+            stream.println(footer.get());
+        }
     }
 
     /**

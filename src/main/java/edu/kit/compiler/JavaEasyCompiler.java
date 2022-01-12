@@ -395,7 +395,11 @@ public class JavaEasyCompiler {
         // execute requested function
         Result result;
         if (cliCall.hasOption(CliOptions.Help.getOption())) {
-            cli.printHelp();
+            cli.printHelp(
+                "Java Easy Compiler\n\n" +
+                "usage: compiler [<action>] [<optimization-level>] [<output-verbosity>]",
+                "for more information check out: https://github.com/larsk21/compiler-minijava"
+            );
             result = Result.Ok;
         } else if (cliCall.hasOption(CliOptions.Echo.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.Echo.getOption());
@@ -502,7 +506,7 @@ public class JavaEasyCompiler {
 
     @AllArgsConstructor
     public static enum CliOptionGroups {
-        Actions(new CliOptionGroup("Actions", true, Arrays.asList(
+        Action(new CliOptionGroup("Action", true, Arrays.asList(
             CliOptions.Echo.getOption(),
             CliOptions.LexTest.getOption(),
             CliOptions.ParseTest.getOption(),
@@ -511,11 +515,11 @@ public class JavaEasyCompiler {
             CliOptions.CompileFirm.getOption(),
             CliOptions.Compile.getOption()
         ))),
-        Optimizations(new CliOptionGroup("Optimizations", true, Arrays.asList(
+        OptimizationLevel(new CliOptionGroup("Optimization Level", true, Arrays.asList(
             CliOptions.Optimize0.getOption(),
             CliOptions.Optimize1.getOption()
         ))),
-        Output(new CliOptionGroup("Output", true, Arrays.asList(
+        OutputVerbosity(new CliOptionGroup("Output Verbosity", true, Arrays.asList(
             CliOptions.Verbose.getOption(),
             CliOptions.Debug.getOption()
         ))),
