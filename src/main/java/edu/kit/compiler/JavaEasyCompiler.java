@@ -37,7 +37,7 @@ import edu.kit.compiler.logger.Logger.Verbosity;
 import edu.kit.compiler.optimizations.ArithmeticIdentitiesOptimization;
 import edu.kit.compiler.optimizations.ArithmeticReplacementOptimization;
 import edu.kit.compiler.optimizations.ConstantOptimization;
-import edu.kit.compiler.optimizations.Optimization;
+import edu.kit.compiler.optimizations.Optimizer;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
@@ -181,10 +181,10 @@ public class JavaEasyCompiler {
      * @param logger the logger
      * @return Ok or an according error
      */
-    private static Result compileFirm(String filePath, Logger logger, Iterable<Optimization> optimizations,
-                                        DebugFlags debugFlags) {
+    private static Result compileFirm(String filePath, Logger logger, Optimizer optimizer,
+                                      DebugFlags debugFlags) {
         try {
-            createOptimizedIR(filePath, logger, optimizations, debugFlags);
+            createOptimizedIR(filePath, logger, optimizer, debugFlags);
 
             var sourceFile = new File(filePath).getName();
             var assemblyFile = sourceFile + ".s";
@@ -198,13 +198,13 @@ public class JavaEasyCompiler {
             }
 
             logger.info("compiling program: 'gcc \"%s\" \"%s\"'", assemblyFile, stdLibrary);
-            var process = Runtime.getRuntime().exec(new String[]{ "gcc", assemblyFile, stdLibrary });
+            var process = Runtime.getRuntime().exec(new String[] { "gcc", assemblyFile, stdLibrary });
 
             if (process.waitFor() != 0) {
                 logger.error("gcc failed with exit code %s", process.exitValue());
                 return Result.GccError;
             }
-            
+
             return Result.Ok;
         } catch (CompilerException e) {
             logger.withName(e.getCompilerStage().orElse(null)).exception(e);
@@ -228,10 +228,10 @@ public class JavaEasyCompiler {
      * @param logger the logger
      * @return Ok or an according error
      */
-    private static Result compile(String filePath, Logger logger, Iterable<Optimization> optimizations,
+    private static Result compile(String filePath, Logger logger, Optimizer optimizer,
                                   RegisterAllocator allocator, DebugFlags debugFlags) {
         try {
-            createOptimizedIR(filePath, logger, optimizations, debugFlags);
+            createOptimizedIR(filePath, logger, optimizer, debugFlags);
 
             PatternCollection coll = new PatternCollection();
             List<FunctionInstructions> functions = new ArrayList<>();
@@ -265,7 +265,7 @@ public class JavaEasyCompiler {
             }
 
             logger.info("compiling program: 'gcc \"%s\" \"%s\"'", assemblyFile, stdLibrary);
-            var process = Runtime.getRuntime().exec(new String[]{ "gcc", assemblyFile, stdLibrary });
+            var process = Runtime.getRuntime().exec(new String[] { "gcc", assemblyFile, stdLibrary });
 
             if (process.waitFor() != 0) {
                 logger.error("gcc failed with exit code %s", process.exitValue());
@@ -300,9 +300,8 @@ public class JavaEasyCompiler {
      * @throws CompilerException
      * @throws IOException
      */
-    private static ProgramNode createAttributedAst(
-            Reader reader, Logger logger, Lexer lexer, NamespaceMapper namespaceMapper
-        ) throws IOException {
+    private static ProgramNode createAttributedAst(Reader reader, Logger logger,
+            Lexer lexer, NamespaceMapper namespaceMapper) throws IOException {
         ErrorHandler errorHandler = new ErrorHandler(logger);
         StringTable stringTable = lexer.getStringTable();
         ProgramNode ast = (new Parser(lexer)).parse();
@@ -331,9 +330,8 @@ public class JavaEasyCompiler {
      * @param logger the logger
      * @return Ok or an according error
      */
-    private static void createOptimizedIR(String filePath, Logger logger,
-                                            Iterable<Optimization> optimizations,
-                                            DebugFlags debugFlags) throws IOException {
+    private static void createOptimizedIR(String filePath, Logger logger, Optimizer optimizer,
+                                          DebugFlags debugFlags) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)));
         Lexer lexer = new Lexer(reader);
         StringTable stringTable = lexer.getStringTable();
@@ -349,27 +347,7 @@ public class JavaEasyCompiler {
         ast.accept(irv);
         Lower.lower(irv.getTypeMapper());
 
-        if (debugFlags.isDumpGraphs()) {
-            for (Graph graph : Program.getGraphs()) {
-                Dump.dumpGraph(graph, "raw");
-            }
-        }
-
-        for (Graph graph : Program.getGraphs()) {
-            boolean changed;
-            do {
-                changed = false;
-                for (Optimization optimization : optimizations) {
-                    changed |= optimization.optimize(graph);
-                }
-            } while (changed);
-        }
-
-        if (debugFlags.isDumpGraphs()) {
-            for (Graph graph : Program.getGraphs()) {
-                Dump.dumpGraph(graph, "opt");
-            }
-        }
+        optimizer.optimize();
     }
 
     public static void main(String[] args) {
@@ -385,23 +363,22 @@ public class JavaEasyCompiler {
         OptimizationLevel optimizationLevel = parseOptimizationLevel(cliCall);
         DebugFlags debugFlags = parseDebugFlags(cliCall);
 
-        // determine used optimizations
-        Iterable<Optimization> optimizations;
+        Optimizer optimizer;
         RegisterAllocator allocator;
         switch (optimizationLevel) {
             case Level0:
-                optimizations = Arrays.asList(
+                optimizer = new Optimizer(List.of(), List.of(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization()
-                );
+                ));
                 allocator = new DumbAllocator();
                 break;
             case Level1:
-                optimizations = Arrays.asList(
+                optimizer = new Optimizer(List.of(), List.of(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization()
-                );
+                ));
                 allocator = new LinearScan();
                 break;
             default:
@@ -439,11 +416,11 @@ public class JavaEasyCompiler {
         } else if (cliCall.hasOption(CliOptions.CompileFirm.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.CompileFirm.getOption());
 
-            result = compileFirm(filePath, logger, optimizations, debugFlags);
+            result = compileFirm(filePath, logger, optimizer, debugFlags);
         } else if (cliCall.hasOption(CliOptions.Compile.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.Compile.getOption());
 
-            result = compile(filePath, logger, optimizations, allocator, debugFlags);
+            result = compile(filePath, logger, optimizer, allocator, debugFlags);
         }  else {
             if (cliCall.getFreeArgs().length == 0) {
                 System.err.println("Wrong command line arguments, see --help for supported commands.");
@@ -452,7 +429,7 @@ public class JavaEasyCompiler {
             } else {
                 String filePath = cliCall.getFreeArgs()[0];
 
-                result = compile(filePath, logger, optimizations, allocator, debugFlags);
+                result = compile(filePath, logger, optimizer, allocator, debugFlags);
             }
         }
 
