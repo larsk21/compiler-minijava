@@ -815,6 +815,33 @@ public class ConstantOptimizationTest {
     }
 
     @Test
+    public void testIfUnknownCondition() {
+        // if (y == 5) { f(); } else { } -> f() or <empty> with y unknown
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.empty(), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Equal,
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    makeStdLibMethodInvocation(stringTable, "in", "read", Arrays.asList()),
+                false),
+                Optional.empty(),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Cond);
+    }
+
+    @Test
     public void testMemoryDependencySkipTwo() {
         // y <- x / 2
         // z <- 18 / 2 (const)
