@@ -1,12 +1,12 @@
 package edu.kit.compiler.optimizations;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import firm.Dump;
 import firm.Graph;
 import firm.Program;
 
@@ -14,16 +14,13 @@ public final class Optimizer {
 
     private final List<Optimization.Global> globalOptimizations;
     private final List<Optimization.Local> localOptimizations;
-
-    public Optimizer() {
-        this.localOptimizations = Collections.emptyList();
-        this.globalOptimizations = Collections.emptyList();
-    }
+    private final boolean dumpGraphs;
 
     public Optimizer(List<Optimization.Global> globalOptimizations,
-            List<Optimization.Local> localOptimizations) {
+            List<Optimization.Local> localOptimizations, boolean dumpGraphs) {
         this.globalOptimizations = List.copyOf(globalOptimizations);
         this.localOptimizations = List.copyOf(localOptimizations);
+        this.dumpGraphs = dumpGraphs;
     }
 
     /**
@@ -31,11 +28,15 @@ public final class Optimizer {
      * reached.
      */
     public void optimize() {
-        var changeSet = initialChangeSet();
+        dumpGraphs("raw");
+
+        var changeSet = getAllGraphs();
         boolean hasChanged;
 
         do {
             var callGraph = CallGraph.create();
+
+            // ? maybe only run global opts once per iteration
             Set<Graph> newChanges;
             do {
                 newChanges = optimizeGlobal(callGraph);
@@ -46,6 +47,8 @@ public final class Optimizer {
             changeSet.clear();
 
         } while (hasChanged);
+
+        dumpGraphs("opt");
     }
 
     /**
@@ -69,27 +72,35 @@ public final class Optimizer {
      * reached. Returns true if a change in any graph has occurred.
      */
     private boolean optimizeLocal(Set<Graph> graphs) {
-        var hasChanged = false;
+        var programChanged = false;
         for (var graph : graphs) {
-            boolean newChanges;
+            boolean graphChanged;
             do {
-                newChanges = false;
+                graphChanged = false;
                 for (var optimization : localOptimizations) {
-                    newChanges |= optimization.optimize(graph);
+                    graphChanged |= optimization.optimize(graph);
                 }
-                hasChanged |= newChanges;
-            } while (newChanges);
+                programChanged |= graphChanged;
+            } while (graphChanged);
         }
 
-        return hasChanged;
+        return programChanged;
     }
 
     /**
      * Returns a set of all graphs in the program.
      */
-    private HashSet<Graph> initialChangeSet() {
+    private HashSet<Graph> getAllGraphs() {
         return StreamSupport
                 .stream(Program.getGraphs().spliterator(), false)
                 .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    private void dumpGraphs(String prefix) {
+        if (dumpGraphs) {
+            for (var graph : Program.getGraphs()) {
+                Dump.dumpGraph(graph, prefix);
+            }
+        }
     }
 }

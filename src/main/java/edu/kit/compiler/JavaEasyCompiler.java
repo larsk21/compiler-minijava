@@ -370,7 +370,7 @@ public class JavaEasyCompiler {
                 optimizer = new Optimizer(List.of(), List.of(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization()
-                ));
+                ), debugFlags.isDumpGraphs());
                 allocator = new DumbAllocator();
                 break;
             case Level1:
@@ -378,7 +378,7 @@ public class JavaEasyCompiler {
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization()
-                ));
+                ), debugFlags.isDumpGraphs());
                 allocator = new LinearScan();
                 break;
             default:
