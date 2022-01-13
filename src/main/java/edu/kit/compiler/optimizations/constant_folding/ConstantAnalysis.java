@@ -299,6 +299,11 @@ public class ConstantAnalysis {
             visitBinary(node, node.getLeft(), node.getRight(), (left, right) -> left.sub(right));
         }
 
+        @Override
+        public void visit(Unknown node) {
+            updateValue(node, unknown());
+        }
+
     }
 
 }

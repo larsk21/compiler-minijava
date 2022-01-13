@@ -18,6 +18,7 @@ import firm.nodes.Const;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
 import firm.nodes.Proj;
+import firm.nodes.Unknown;
 
 /**
  * Optimization that finds constant values for value nodes where possible and
@@ -82,9 +83,9 @@ public class ConstantOptimization implements Optimization {
             Graph.exchange(node, constantNode);
 
             return true;
-        } else if (node.getMode().isData() && value.isUnknown()) {
-            Node badNode = graph.newBad(node.getMode());
-            Graph.exchange(node, badNode);
+        } else if (node.getMode().isData() && value.isUnknown() && !(node instanceof Unknown)) {
+            Node unknownNode = graph.newUnknown(node.getMode());
+            Graph.exchange(node, unknownNode);
 
             return true;
         } else {
