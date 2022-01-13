@@ -360,9 +360,10 @@ public class JavaEasyCompiler {
 
     public static void main(String[] args) {
         Cli cli = new Cli(
-            Arrays.stream(CliOptionGroups.values())
-            .map(group -> group.getOptionGroup())
-            .collect(Collectors.toList())
+            Arrays
+                .stream(CliOptionGroups.values())
+                .map(group -> group.getOptionGroup())
+                .collect(Collectors.toList())
         );
         CliCall cliCall = parseCliCall(cli, args);
 
