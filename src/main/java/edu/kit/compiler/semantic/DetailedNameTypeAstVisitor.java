@@ -1,6 +1,7 @@
 package edu.kit.compiler.semantic;
 
 import java.util.Optional;
+import java.util.function.BiConsumer;
 
 import edu.kit.compiler.data.AstObject;
 import edu.kit.compiler.data.AstVisitor;
@@ -81,6 +82,10 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
         default:
             throw new IllegalArgumentException("unsupported data type");
         }
+    }
+
+    private <T, U> void ifBothPresent(Optional<T> a_, Optional<U> b_, BiConsumer<T, U> task) {
+        a_.ifPresent(a -> b_.ifPresent(b -> task.accept(a, b)));
     }
 
     private <T> Optional<T> semanticError(AstObject object, String message, Object... args) {
@@ -212,7 +217,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
         if (localVariableDeclarationStatementNode.getExpression().isPresent()) {
             Optional<DataType> rightSideType_ = localVariableDeclarationStatementNode.getExpression().get().accept(this);
 
-            leftSideType_.ifPresent(leftSideType -> rightSideType_.ifPresent(rightSideType -> {
+            ifBothPresent(leftSideType_, rightSideType_, (leftSideType, rightSideType) -> {
                 if (!leftSideType.isCompatibleTo(rightSideType)) {
                     semanticError(localVariableDeclarationStatementNode,
                         "invalid assigment, variable type is %s while expression type is %s",
@@ -220,7 +225,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
                         rightSideType.getRepresentation(stringTable)
                     );
                 }
-            }));
+            });
         }
 
         return Optional.empty();
@@ -306,21 +311,21 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
         Optional<DataType> resultType_;
         switch (operator) {
             case Assignment:
-                leftSideType_.ifPresent(leftSideType -> rightSideType_.ifPresent(rightSideType -> {
+                ifBothPresent(leftSideType_, rightSideType_, (leftSideType, rightSideType) -> {
                     if (!leftSideType.isCompatibleTo(rightSideType)) {
                         semanticError(binaryExpressionNode, "the two sides of an assignment must have compatible types");
                     }
-                }));
+                });
 
                 resultType_ = leftSideType_;
                 break;
             case Equal:
             case NotEqual:
-                leftSideType_.ifPresent(leftSideType -> rightSideType_.ifPresent(rightSideType -> {
+                ifBothPresent(leftSideType_, rightSideType_, (leftSideType, rightSideType) -> {
                     if (!leftSideType.isCompatibleTo(rightSideType)) {
                         semanticError(binaryExpressionNode, "the two arguments of %s must have compatible types", operator);
                     }
-                }));
+                });
 
                 resultType_ = Optional.of(operator.getResultType());
                 break;
@@ -481,7 +486,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
                 }
             });
 
-            actualArgumentType_.ifPresent(actualArgumentType -> expectedArgumentType_.ifPresent(expectedArgumentType -> {
+            ifBothPresent(actualArgumentType_, expectedArgumentType_, (actualArgumentType, expectedArgumentType) -> {
                 if (!actualArgumentType.isCompatibleTo(expectedArgumentType)) {
                     semanticError(methodInvocationExpressionNode,
                         "argument %d of type %s does not match expected type %s",
@@ -490,7 +495,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
                         expectedArgumentType.getRepresentation(stringTable)
                     );
                 }
-            }));
+            });
         }
 
         Optional<DataType> resultType_ = definition_.map(definition -> definition.getType());
