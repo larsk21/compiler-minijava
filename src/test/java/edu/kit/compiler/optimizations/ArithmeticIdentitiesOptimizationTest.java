@@ -1,7 +1,6 @@
 package edu.kit.compiler.optimizations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -72,7 +71,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         createConstBOp(initGraph(), 0, true, Construction::newSub);
         optimization.optimize(graph());
         assertEquals(0, count(ir_opcode.iro_Sub));
-        assertNotEquals(0, count(ir_opcode.iro_Minus));
+        assertEquals(1, count(ir_opcode.iro_Minus));
     }
 
     @Test
@@ -92,13 +91,13 @@ public class ArithmeticIdentitiesOptimizationTest {
         optimization.optimize(graph());
         assertEquals(0, count(ir_opcode.iro_Minus));
         assertEquals(0, count(ir_opcode.iro_Add));
-        assertNotEquals(0, count(ir_opcode.iro_Sub));
+        assertEquals(1, count(ir_opcode.iro_Sub));
 
         createBOp(initGraph(), (con, l, r) -> con.newAdd(con.newMinus(l), r));
         optimization.optimize(graph());
         assertEquals(0, count(ir_opcode.iro_Minus));
         assertEquals(0, count(ir_opcode.iro_Add));
-        assertNotEquals(0, count(ir_opcode.iro_Sub));
+        assertEquals(1, count(ir_opcode.iro_Sub));
     }
 
     @Test
@@ -107,7 +106,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         optimization.optimize(graph());
         assertEquals(0, count(ir_opcode.iro_Minus));
         assertEquals(0, count(ir_opcode.iro_Sub));
-        assertNotEquals(0, count(ir_opcode.iro_Add));
+        assertEquals(1, count(ir_opcode.iro_Add));
     }
 
     @Test
@@ -115,7 +114,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         createConstBOp(initGraph(), 42, false, Construction::newSub);
         optimization.optimize(graph());
         assertEquals(0, count(ir_opcode.iro_Sub));
-        assertNotEquals(0, count(ir_opcode.iro_Add));
+        assertEquals(1, count(ir_opcode.iro_Add));
     }
 
     @Test
@@ -275,6 +274,30 @@ public class ArithmeticIdentitiesOptimizationTest {
         assertEquals(1, count(ir_opcode.iro_Const));
     }
 
+    @Test
+    public void testConvAdd() {
+        createConstBOp(initGraph(Mode.getLs()), 42, false, (con, lhs, rhs) -> {
+            return con.newAdd(con.newConv(con.newAdd(lhs, rhs), Mode.getLs()), con.newConst(28, Mode.getLs()));
+        });
+        optimization.optimize(graph());
+        assertEquals(1, count(ir_opcode.iro_Conv));
+        assertEquals(1, count(ir_opcode.iro_Add));
+        assertEquals(1, count(ir_opcode.iro_Const));
+    }
+
+    @Test
+    public void testMulDist() {
+        createConstBOp(initGraph(), 42, false, (con, lhs, rhs) -> {
+            return con.newAdd(
+                    con.newMul(con.newAdd(lhs, rhs), con.newConst(28, Mode.getIs())),
+                    con.newConst(12, Mode.getIs()));
+        });
+        optimization.optimize(graph());
+        assertEquals(1, count(ir_opcode.iro_Add));
+        assertEquals(1, count(ir_opcode.iro_Mul));
+        assertEquals(2, count(ir_opcode.iro_Const));
+    }
+
     private Graph graph() {
         return graphs.peek();
     }
@@ -339,9 +362,14 @@ public class ArithmeticIdentitiesOptimizationTest {
     }
 
     private Graph initGraph() {
+        return initGraph(Mode.getIs());
+    }
+
+    private Graph initGraph(Mode result) {
         var uuid = UUID.randomUUID();
         var intType = new PrimitiveType(Mode.getIs());
-        var methodType = new MethodType(new Type[] { intType, intType }, new Type[] { intType });
+        var resultType = new PrimitiveType(result);
+        var methodType = new MethodType(new Type[] { intType, intType }, new Type[] { resultType });
         var entity = new Entity(Program.getGlobalType(), "test_" + uuid, methodType);
         var graph = new Graph(entity, 2);
         graphs.push(graph);

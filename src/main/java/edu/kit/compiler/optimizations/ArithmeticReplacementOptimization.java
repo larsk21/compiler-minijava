@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
-import firm.BackEdges;
 import firm.Graph;
 import firm.Mode;
 import firm.TargetValue;
@@ -42,15 +41,8 @@ public class ArithmeticReplacementOptimization implements Optimization {
 
     @Override
     public boolean optimize(Graph graph) {
-        boolean backEdgesEnabled = BackEdges.enabled(graph);
-        BackEdges.enable(graph);
-
         var visitor = new Visitor(graph);
         visitor.apply();
-
-        if (!backEdgesEnabled) {
-            BackEdges.disable(graph);
-        }
 
         return visitor.hasChanged;
     }
