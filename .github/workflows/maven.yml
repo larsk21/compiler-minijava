@@ -67,6 +67,11 @@ jobs:
           pwd
           ./run_mjtests.sh compile-firm
 
+      - name: Run Compile only Tests
+        run: |
+          pwd
+          ./run_mjtests.sh compile-only
+
       - name: Run Compile Tests
         run: |
           pwd
