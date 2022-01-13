@@ -1,5 +1,6 @@
 package edu.kit.compiler.optimizations;
 
+import java.util.Collections;
 import java.util.Set;
 
 import com.google.common.graph.MutableNetwork;
@@ -80,8 +81,10 @@ public final class CallGraph {
     }
 
     /**
-     * Update the given function in the call graph. This will reevaluate all
-     * outgoing edges for the function.
+     * Update the given function in the call graph. All calls to the function
+     * will remain in the call graph, all outgoing calls will be reevaluated.
+     * The function does not need to already exist in the call graph (may be
+     * the case if an optimization adds new functions to the program).
      * 
      * Note: This operation is only valid for functions with associated graph,
      * hence the parameter is a `Graph` instead of an `Entity`.
@@ -141,14 +144,21 @@ public final class CallGraph {
 
         public static void update(CallGraph callGraph, Graph function) {
             var entity = function.getEntity();
-            var inEdges = callGraph.network.inEdges(entity);
-            callGraph.network.removeNode(entity);
+            var network = callGraph.network;
+
+            // save existing calls to function
+            Set<CallEdge> inEdges = Collections.emptySet();
+            if (network.nodes().contains(entity)) {
+                inEdges = network.inEdges(entity);
+                network.removeNode(entity);
+            }
 
             var visitor = new Visitor(entity, callGraph.network);
             function.walk(visitor);
 
+            // restore saved calls to the function
             for (var edge : inEdges) {
-                callGraph.network.addEdge(edge.caller, edge.callee, edge);
+                network.addEdge(edge.caller, edge.callee, edge);
             }
         }
 
