@@ -5,10 +5,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import edu.kit.compiler.assembly.AssemblyWriter;
 import edu.kit.compiler.assembly.ElfAssemblyWriter;
 import edu.kit.compiler.assembly.FunctionInstructions;
+import edu.kit.compiler.cli.Cli;
+import edu.kit.compiler.cli.CliOption;
+import edu.kit.compiler.cli.CliOptionGroup;
+import edu.kit.compiler.cli.Cli.CliCall;
 import edu.kit.compiler.codegen.InstructionSelection;
 import edu.kit.compiler.codegen.PatternCollection;
 import edu.kit.compiler.codegen.PhiResolver;
@@ -19,13 +25,6 @@ import edu.kit.compiler.register_allocation.LinearScan;
 import edu.kit.compiler.register_allocation.RegisterAllocator;
 import edu.kit.compiler.transform.IRVisitor;
 import firm.*;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
-import org.apache.commons.cli.Options;
 
 import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Token;
@@ -48,6 +47,9 @@ import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
 import edu.kit.compiler.transform.JFirmSingleton;
 import edu.kit.compiler.transform.Lower;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 public class JavaEasyCompiler {
     /**
@@ -357,55 +359,18 @@ public class JavaEasyCompiler {
     }
 
     public static void main(String[] args) {
-        // specify supported command line options
-        Options options = new Options();
-        options.addOption("h", "help", false, "print command line syntax help");
+        Cli cli = new Cli(
+            Arrays
+                .stream(CliOptionGroups.values())
+                .map(group -> group.getOptionGroup())
+                .collect(Collectors.toList())
+        );
+        CliCall cliCall = parseCliCall(cli, args);
 
-        var runOptions = new OptionGroup();
-        runOptions.addOption(new Option("e", "echo", true, "output file contents"));
-        runOptions.addOption(new Option("l", "lextest", true, "output the tokens from the lexer"));
-        runOptions.addOption(new Option("p", "parsetest", true, "try to parse the file contents"));
-        runOptions.addOption(new Option("a", "print-ast", true, "try to parse the file contents and output the AST"));
-        runOptions.addOption(new Option("c", "check", true, "try to parse the file contents and perform semantic analysis"));
-        runOptions.addOption(new Option("f", "compile-firm", true, "transform the file to Firm IR and compile it using the Firm backend"));
-        runOptions.addOption(new Option("co", "compile", true, "compile the file"));
-        options.addOptionGroup(runOptions);
-
-        var verbosityOptions = new OptionGroup();
-        verbosityOptions.addOption(new Option("v", "verbose", false, "be more verbose"));
-        verbosityOptions.addOption(new Option("d", "debug", false, "print debug information"));
-        options.addOptionGroup(verbosityOptions);
-
-        var optimizationOptions = new OptionGroup();
-        optimizationOptions.addOption(new Option("O0", "optimize0", false, "run (almost) no optimizations"));
-        optimizationOptions.addOption(new Option("O1", "optimize1", false, "run standard optimizations (default)"));
-        options.addOptionGroup(optimizationOptions);
-
-        // parse command line arguments
-        CommandLine cmd;
-        try {
-            CommandLineParser parser = new DefaultParser(false);
-
-            cmd = parser.parse(options, args);
-        } catch (org.apache.commons.cli.ParseException e) {
-            System.err.println("Wrong command line arguments, see --help for supported commands.");
-
-            System.exit(Result.CliInputError.getCode());
-            return;
-        }
-
-        var logger = parseLogger(cmd);
+        Logger logger = parseLogger(cliCall);
+        OptimizationLevel optimizationLevel = parseOptimizationLevel(cliCall);
 
         // determine used optimizations
-        OptimizationLevel optimizationLevel;
-        if (cmd.hasOption("O0")) {
-            optimizationLevel = OptimizationLevel.Level0;
-        } else if (cmd.hasOption("O1")) {
-            optimizationLevel = OptimizationLevel.Level1;
-        } else {
-            optimizationLevel = OptimizationLevel.Level1; // default
-        }
-
         Iterable<Optimization> optimizations;
         RegisterAllocator allocator;
         switch (optimizationLevel) {
@@ -430,50 +395,47 @@ public class JavaEasyCompiler {
 
         // execute requested function
         Result result;
-        if (cmd.hasOption("h")) {
-            HelpFormatter help = new HelpFormatter();
-
-            String usage = "compiler [-h] [-e <file>] [-l <file>]";
-            String header = "\n";
-            String footer = "\nfor more information check out: https://github.com/larsk21/compiler-minijava";
-
-            help.printHelp(usage, header, options, footer);
-
+        if (cliCall.hasOption(CliOptions.Help.getOption())) {
+            cli.printHelp(
+                "Java Easy Compiler\n\n" +
+                "usage: compiler [<action>] [<optimization-level>] [<output-verbosity>]",
+                "for more information check out: https://github.com/larsk21/compiler-minijava"
+            );
             result = Result.Ok;
-        } else if (cmd.hasOption("e")) {
-            String filePath = cmd.getOptionValue("e");
+        } else if (cliCall.hasOption(CliOptions.Echo.getOption())) {
+            String filePath = cliCall.getOptionArg(CliOptions.Echo.getOption());
             result = echo(filePath, System.out, logger);
-        } else if (cmd.hasOption("l")) {
-            String filePath = cmd.getOptionValue("l");
+        } else if (cliCall.hasOption(CliOptions.LexTest.getOption())) {
+            String filePath = cliCall.getOptionArg(CliOptions.LexTest.getOption());
 
             result = lextest(filePath, logger);
-        } else if (cmd.hasOption("p")) {
-            String filePath = cmd.getOptionValue("p");
+        } else if (cliCall.hasOption(CliOptions.ParseTest.getOption())) {
+            String filePath = cliCall.getOptionArg(CliOptions.ParseTest.getOption());
 
             result = parseTest(filePath, logger);
-        } else if (cmd.hasOption("a")) {
-            String filePath = cmd.getOptionValue("a");
+        } else if (cliCall.hasOption(CliOptions.PrintAst.getOption())) {
+            String filePath = cliCall.getOptionArg(CliOptions.PrintAst.getOption());
 
             result = prettyPrint(filePath, logger);
-        } else if (cmd.hasOption("c")) {
-            String filePath = cmd.getOptionValue("c");
+        } else if (cliCall.hasOption(CliOptions.Check.getOption())) {
+            String filePath = cliCall.getOptionArg(CliOptions.Check.getOption());
 
             result = check(filePath, logger);
-        } else if (cmd.hasOption("f")) {
-            String filePath = cmd.getOptionValue("f");
+        } else if (cliCall.hasOption(CliOptions.CompileFirm.getOption())) {
+            String filePath = cliCall.getOptionArg(CliOptions.CompileFirm.getOption());
 
             result = compileFirm(filePath, logger, optimizations);
-        } else if (cmd.hasOption("co")) {
-            String filePath = cmd.getOptionValue("co");
+        } else if (cliCall.hasOption(CliOptions.Compile.getOption())) {
+            String filePath = cliCall.getOptionArg(CliOptions.Compile.getOption());
 
             result = compile(filePath, logger, optimizations, allocator);
         }  else {
-            if (cmd.getArgs().length == 0) {
+            if (cliCall.getFreeArgs().length == 0) {
                 System.err.println("Wrong command line arguments, see --help for supported commands.");
 
                 result = Result.CliInputError;
             } else {
-                String filePath = cmd.getArgs()[0];
+                String filePath = cliCall.getFreeArgs()[0];
 
                 result = compile(filePath, logger, optimizations, allocator);
             }
@@ -483,19 +445,92 @@ public class JavaEasyCompiler {
         System.exit(result.getCode());
     }
 
-    private static Logger parseLogger(CommandLine cmd) {
-        var printColor = System.getenv("COLOR") != null;
+    private static CliCall parseCliCall(Cli cli, String[] args) {
+        Optional<CliCall> cliCall_ = cli.parse(args);
+        if (cliCall_.isPresent()) {
+            return cliCall_.get();
+        } else {
+            System.err.println("Wrong command line arguments, see --help for supported commands.");
+
+            System.exit(Result.CliInputError.getCode());
+            return null; // never reached, necessary to please the Java compiler
+        }
+    }
+
+    private static Logger parseLogger(CliCall cliCall) {
+        boolean printColor = System.getenv("COLOR") != null;
 
         Verbosity verbosity;
-        if (cmd.hasOption("v")) {
+        if (cliCall.hasOption(CliOptions.Verbose.getOption())) {
             verbosity = Verbosity.VERBOSE;
-        } else if (cmd.hasOption("d")) {
+        } else if (cliCall.hasOption(CliOptions.Debug.getOption())) {
             verbosity = Verbosity.DEBUG;
         } else {
             verbosity = Verbosity.DEFAULT;
         }
-        
+
         return new Logger(verbosity, printColor);
+    }
+
+    private static OptimizationLevel parseOptimizationLevel(CliCall cliCall) {
+        if (cliCall.hasOption(CliOptions.Optimize0.getOption())) {
+            return OptimizationLevel.Level0;
+        } else if (cliCall.hasOption(CliOptions.Optimize1.getOption())) {
+            return OptimizationLevel.Level1;
+        } else {
+            return OptimizationLevel.Level1;
+        }
+    }
+
+    @AllArgsConstructor
+    public static enum CliOptions {
+        Echo(new CliOption("e", "echo", Optional.of("path"), "output file contents")),
+        LexTest(new CliOption("l", "lextest", Optional.of("path"), "output the tokens from the lexer")),
+        ParseTest(new CliOption("p", "parsetest", Optional.of("path"), "try to parse the file contents")),
+        PrintAst(new CliOption("a", "print-ast", Optional.of("path"), "try to parse the file contents and output the AST")),
+        Check(new CliOption("c", "check", Optional.of("path"), "try to parse the file contents and perform semantic analysis")),
+        CompileFirm(new CliOption("f", "compile-firm", Optional.of("path"), "transform the file to Firm IR and compile it using the Firm backend")),
+        Compile(new CliOption("co", "compile", Optional.of("path"), "compile the file")),
+
+        Optimize0(new CliOption("O0", "optimize0", Optional.empty(), "run (almost) no optimizations")),
+        Optimize1(new CliOption("O1", "optimize1", Optional.empty(), "run standard optimizations (default)")),
+
+        Verbose(new CliOption("v", "verbose", Optional.empty(), "be more verbose")),
+        Debug(new CliOption("d", "debug", Optional.empty(), "print debug information")),
+
+        Help(new CliOption("h", "help", Optional.empty(), "print command line syntax help"));
+
+        @Getter
+        private CliOption option;
+
+    }
+
+    @AllArgsConstructor
+    public static enum CliOptionGroups {
+        Action(new CliOptionGroup("Action", true, Arrays.asList(
+            CliOptions.Echo.getOption(),
+            CliOptions.LexTest.getOption(),
+            CliOptions.ParseTest.getOption(),
+            CliOptions.PrintAst.getOption(),
+            CliOptions.Check.getOption(),
+            CliOptions.CompileFirm.getOption(),
+            CliOptions.Compile.getOption()
+        ))),
+        OptimizationLevel(new CliOptionGroup("Optimization Level", true, Arrays.asList(
+            CliOptions.Optimize0.getOption(),
+            CliOptions.Optimize1.getOption()
+        ))),
+        OutputVerbosity(new CliOptionGroup("Output Verbosity", true, Arrays.asList(
+            CliOptions.Verbose.getOption(),
+            CliOptions.Debug.getOption()
+        ))),
+        Help(new CliOptionGroup("Help", false, Arrays.asList(
+            CliOptions.Help.getOption()
+        )));
+
+        @Getter
+        private CliOptionGroup optionGroup;
+
     }
 
 }
