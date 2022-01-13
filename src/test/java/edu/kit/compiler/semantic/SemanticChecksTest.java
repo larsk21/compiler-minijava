@@ -30,7 +30,7 @@ public class SemanticChecksTest {
         node.accept(visitor1);
         if (nameTypeCheck) {
             try {
-                DetailedNameTypeAstVisitor visitor2 = new DetailedNameTypeAstVisitor(namespaceMapper, lexer.getStringTable());
+                DetailedNameTypeAstVisitor visitor2 = new DetailedNameTypeAstVisitor(namespaceMapper, lexer.getStringTable(), errorHandler);
                 node.accept(visitor2);
             } catch (SemanticException e) {
                 assert(hasError);

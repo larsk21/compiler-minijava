@@ -40,7 +40,7 @@ public class IRBooleanExpressionsTest {
             namespaceMapper, lexer.getStringTable(), errorHandler
         );
         node.accept(visitor);
-        DetailedNameTypeAstVisitor dntv = new DetailedNameTypeAstVisitor(namespaceMapper, lexer.getStringTable());
+        DetailedNameTypeAstVisitor dntv = new DetailedNameTypeAstVisitor(namespaceMapper, lexer.getStringTable(), errorHandler);
         node.accept(dntv);
         this.typeMapper = new TypeMapper(namespaceMapper, lexer.getStringTable());
         for (ClassNode classNode: node.getClasses()) {
