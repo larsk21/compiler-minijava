@@ -275,9 +275,21 @@ public class ArithmeticIdentitiesOptimizationTest {
     }
 
     @Test
-    public void testConvAdd() {
+    public void testConvAddLs() {
         createConstBOp(initGraph(Mode.getLs()), 42, false, (con, lhs, rhs) -> {
             return con.newAdd(con.newConv(con.newAdd(lhs, rhs), Mode.getLs()), con.newConst(28, Mode.getLs()));
+        });
+        optimization.optimize(graph());
+        assertEquals(1, count(ir_opcode.iro_Conv));
+        assertEquals(1, count(ir_opcode.iro_Add));
+        assertEquals(1, count(ir_opcode.iro_Const));
+    }
+
+    @Test
+    public void testConvAddLu() {
+        createConstBOp(initGraph(Mode.getLs()), 42, false, (con, lhs, rhs) -> {
+            return con.newAdd(con.newConv(con.newConv(con.newAdd(lhs, rhs), Mode.getLu()), Mode.getLs()),
+                    con.newConst(28, Mode.getLs()));
         });
         optimization.optimize(graph());
         assertEquals(1, count(ir_opcode.iro_Conv));

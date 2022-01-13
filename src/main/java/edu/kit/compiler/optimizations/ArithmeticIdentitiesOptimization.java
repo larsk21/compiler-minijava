@@ -251,19 +251,24 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
 
         @Override
         public void visit(Conv node) {
+            // this works in combination with distributive transformation of
+            // multiplications to better use x86 addressing modes
             if (node.getMode().equals(Mode.getLs())
                     && node.getOp().getOpCode() == ir_opcode.iro_Add
                     && isConst(node.getOp().getPred(1))) {
                 // (x + c):Ls --> x:Ls + c:Ls
-                // this works in combination with distributive transformation of
-                // multiplications to better use x86 addressing modes
-                var block = node.getBlock();
-                var opNode = graph.newConv(block, node.getOp().getPred(0), Mode.getLs());
-                var offset = ((Const) node.getOp().getPred(1)).getTarval();
-                var offsetNode = graph.newConst(offset.convertTo(Mode.getLs()));
-                var addNode = graph.newAdd(block, opNode, offsetNode);
-                exchange(node, addNode);
+                exchangeConv(node, node.getOp().getPred(0), node.getOp().getPred(1));
+            } else if (node.getMode().equals(Mode.getLs())
+                    && node.getOp().getOpCode() == ir_opcode.iro_Conv) {
+                Conv luNode = (Conv) node.getOp();
+                if (luNode.getOp().getOpCode() == ir_opcode.iro_Add
+                        && isConst(luNode.getOp().getPred(1))) {
+                    // (x + c):Lu:Ls --> x:Ls + c:Ls
+                    exchangeConv(node, luNode.getOp().getPred(0), luNode.getOp().getPred(1));
+                }
             }
+            // Note: We can not apply the same optimization for Lu as for Ls,
+            // because this could change the program semantics
         }
 
         @Override
@@ -336,6 +341,18 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
                     }
                 }
             }
+        }
+
+        /**
+         * Exchanges a conv node which operand is an add with a constant as rhs.
+         */
+        private void exchangeConv(Node node, Node opNode, Node offsetNode) {
+            var block = node.getBlock();
+            var op = graph.newConv(block, opNode, Mode.getLs());
+            var offsetValue = ((Const) offsetNode).getTarval();
+            var offset = graph.newConst(offsetValue.convertTo(Mode.getLs()));
+            var addNode = graph.newAdd(block, op, offset);
+            exchange(node, addNode);
         }
 
         /**
