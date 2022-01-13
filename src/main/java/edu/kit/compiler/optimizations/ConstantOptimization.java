@@ -128,7 +128,7 @@ public class ConstantOptimization implements Optimization {
     private boolean transformControlFlowProj(Proj node) {
         Node pred = node.getPred();
         TargetValueLatticeElement predValue;
-        if (pred instanceof Cond && (predValue = nodeValues.get(pred)).isConstant()) {
+        if (pred instanceof Cond && nodeValues.containsKey(pred) && (predValue = nodeValues.get(pred)).isConstant()) {
             if (
                 (node.getNum() == pn_Cond.pn_Cond_false.val && predValue.getValue().equals(TargetValue.getBFalse())) ||
                 (node.getNum() == pn_Cond.pn_Cond_true.val && predValue.getValue().equals(TargetValue.getBTrue()))
