@@ -228,7 +228,7 @@ public class JavaEasyCompiler {
      * @return Ok or an according error
      */
     private static Result compile(String filePath, Logger logger, Iterable<Optimization> optimizations,
-                                  RegisterAllocator allocator) {
+                                  RegisterAllocator allocator, DebugFlags debugFlags) {
         try {
             createOptimizedIR(filePath, logger, optimizations);
 
@@ -236,6 +236,10 @@ public class JavaEasyCompiler {
             List<FunctionInstructions> functions = new ArrayList<>();
             int blockId = 0;
             for (Graph graph : Program.getGraphs()) {
+                if (debugFlags.isDumpGraphs()) {
+                    Dump.dumpGraph(graph, "debug");
+                }
+
                 InstructionSelection selection = InstructionSelection.apply(graph, coll, blockId);
                 Map<Integer, Block> blockMapping = PhiResolver.apply(selection);
                 List<Block> il = ReversePostfixOrder.apply(blockMapping, selection.getBlocks().getStartBlock().getLabel());
@@ -369,6 +373,7 @@ public class JavaEasyCompiler {
 
         Logger logger = parseLogger(cliCall);
         OptimizationLevel optimizationLevel = parseOptimizationLevel(cliCall);
+        DebugFlags debugFlags = parseDebugFlags(cliCall);
 
         // determine used optimizations
         Iterable<Optimization> optimizations;
@@ -428,7 +433,7 @@ public class JavaEasyCompiler {
         } else if (cliCall.hasOption(CliOptions.Compile.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.Compile.getOption());
 
-            result = compile(filePath, logger, optimizations, allocator);
+            result = compile(filePath, logger, optimizations, allocator, debugFlags);
         }  else {
             if (cliCall.getFreeArgs().length == 0) {
                 System.err.println("Wrong command line arguments, see --help for supported commands.");
@@ -437,7 +442,7 @@ public class JavaEasyCompiler {
             } else {
                 String filePath = cliCall.getFreeArgs()[0];
 
-                result = compile(filePath, logger, optimizations, allocator);
+                result = compile(filePath, logger, optimizations, allocator, debugFlags);
             }
         }
 
@@ -482,6 +487,16 @@ public class JavaEasyCompiler {
         }
     }
 
+    private static DebugFlags parseDebugFlags(CliCall cliCall) {
+        DebugFlags debugFlags = new DebugFlags();
+
+        if (cliCall.hasOption(CliOptions.DumpGraphs.getOption())) {
+            debugFlags.setDumpGraphs(true);
+        }
+
+        return debugFlags;
+    }
+
     @AllArgsConstructor
     public static enum CliOptions {
         Echo(new CliOption("e", "echo", Optional.of("path"), "output file contents")),
@@ -497,6 +512,8 @@ public class JavaEasyCompiler {
 
         Verbose(new CliOption("v", "verbose", Optional.empty(), "be more verbose")),
         Debug(new CliOption("d", "debug", Optional.empty(), "print debug information")),
+
+        DumpGraphs(new CliOption("dg", "dump-graphs", Optional.empty(), "dump the Firm graphs of all methods")),
 
         Help(new CliOption("h", "help", Optional.empty(), "print command line syntax help"));
 
@@ -523,6 +540,9 @@ public class JavaEasyCompiler {
         OutputVerbosity(new CliOptionGroup("Output Verbosity", true, Arrays.asList(
             CliOptions.Verbose.getOption(),
             CliOptions.Debug.getOption()
+        ))),
+        DebugOptions(new CliOptionGroup("Debug Options", false, Arrays.asList(
+            CliOptions.DumpGraphs.getOption()
         ))),
         Help(new CliOptionGroup("Help", false, Arrays.asList(
             CliOptions.Help.getOption()
