@@ -283,6 +283,33 @@ public class ConstantOptimizationTest {
     }
 
     @Test
+    public void testDivWithUnknown() {
+        // y / 0 -> ? / 0 with y unknown
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.empty(), false)
+        ),
+            new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Division,
+                new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(0), false),
+            false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        List<Node> callArgs = getNodes(graph);
+        callArgs = callArgs.stream()
+            .filter(node -> node instanceof Call)
+            .flatMap(node -> StreamSupport.stream(node.getPreds().spliterator(), false))
+            .collect(Collectors.toList());
+
+        assertContainsOpCode(getNodes(graph), ir_opcode.iro_Div);
+        assertContainsOpCode(callArgs, ir_opcode.iro_Unknown);
+    }
+
+    @Test
     public void testConv() {
         // (int)( ((long)x) / ((long)2) ) -> (int)( ((long)x) / 2L )
 

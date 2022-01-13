@@ -265,7 +265,12 @@ public class ConstantAnalysis {
         public void visit(Phi node) {
             TargetValueLatticeElement value = unknown();
             for (Node pred : node.getPreds()) {
-                value = value.join(getValue(pred));
+                TargetValueLatticeElement predValue = getValue(pred);
+
+                value = value.join(predValue);
+                if (!value.isEqualTo(predValue)) {
+                    value = conflicting();
+                }
             }
             updateValue(node, value);
         }
