@@ -43,7 +43,7 @@ public class ConstantOptimization implements Optimization {
 
         this.nodeValues = analysis.getNodeValues();
 
-        this.undefinedCondStrategy = new UndefinedCondStrategies.Naive();
+        this.undefinedCondStrategy = new UndefinedCondStrategies.SkipMostBlocksInPostorder(graph);
 
         // we transform the nodes in reverse postorder, i.e. we can access the
         // unchanged predecessors of a node when transforming it
