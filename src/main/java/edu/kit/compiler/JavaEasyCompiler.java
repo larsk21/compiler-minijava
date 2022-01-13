@@ -181,9 +181,10 @@ public class JavaEasyCompiler {
      * @param logger the logger
      * @return Ok or an according error
      */
-    private static Result compileFirm(String filePath, Logger logger, Iterable<Optimization> optimizations) {
+    private static Result compileFirm(String filePath, Logger logger, Iterable<Optimization> optimizations,
+                                        DebugFlags debugFlags) {
         try {
-            createOptimizedIR(filePath, logger, optimizations);
+            createOptimizedIR(filePath, logger, optimizations, debugFlags);
 
             var sourceFile = new File(filePath).getName();
             var assemblyFile = sourceFile + ".s";
@@ -230,16 +231,12 @@ public class JavaEasyCompiler {
     private static Result compile(String filePath, Logger logger, Iterable<Optimization> optimizations,
                                   RegisterAllocator allocator, DebugFlags debugFlags) {
         try {
-            createOptimizedIR(filePath, logger, optimizations);
+            createOptimizedIR(filePath, logger, optimizations, debugFlags);
 
             PatternCollection coll = new PatternCollection();
             List<FunctionInstructions> functions = new ArrayList<>();
             int blockId = 0;
             for (Graph graph : Program.getGraphs()) {
-                if (debugFlags.isDumpGraphs()) {
-                    Dump.dumpGraph(graph, "debug");
-                }
-
                 InstructionSelection selection = InstructionSelection.apply(graph, coll, blockId);
                 Map<Integer, Block> blockMapping = PhiResolver.apply(selection);
                 List<Block> il = ReversePostfixOrder.apply(blockMapping, selection.getBlocks().getStartBlock().getLabel());
@@ -335,7 +332,8 @@ public class JavaEasyCompiler {
      * @return Ok or an according error
      */
     private static void createOptimizedIR(String filePath, Logger logger,
-                                            Iterable<Optimization> optimizations) throws IOException {
+                                            Iterable<Optimization> optimizations,
+                                            DebugFlags debugFlags) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)));
         Lexer lexer = new Lexer(reader);
         StringTable stringTable = lexer.getStringTable();
@@ -351,6 +349,12 @@ public class JavaEasyCompiler {
         ast.accept(irv);
         Lower.lower(irv.getTypeMapper());
 
+        if (debugFlags.isDumpGraphs()) {
+            for (Graph graph : Program.getGraphs()) {
+                Dump.dumpGraph(graph, "raw");
+            }
+        }
+
         for (Graph graph : Program.getGraphs()) {
             boolean changed;
             do {
@@ -359,6 +363,12 @@ public class JavaEasyCompiler {
                     changed |= optimization.optimize(graph);
                 }
             } while (changed);
+        }
+
+        if (debugFlags.isDumpGraphs()) {
+            for (Graph graph : Program.getGraphs()) {
+                Dump.dumpGraph(graph, "opt");
+            }
         }
     }
 
@@ -429,7 +439,7 @@ public class JavaEasyCompiler {
         } else if (cliCall.hasOption(CliOptions.CompileFirm.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.CompileFirm.getOption());
 
-            result = compileFirm(filePath, logger, optimizations);
+            result = compileFirm(filePath, logger, optimizations, debugFlags);
         } else if (cliCall.hasOption(CliOptions.Compile.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.Compile.getOption());
 
