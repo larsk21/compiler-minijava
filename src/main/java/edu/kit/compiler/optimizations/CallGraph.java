@@ -1,13 +1,14 @@
 package edu.kit.compiler.optimizations;
 
-import java.util.Collections;
-import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import com.google.common.graph.MutableNetwork;
-import com.google.common.graph.NetworkBuilder;
+import org.jgrapht.Graph;
+import org.jgrapht.Graphs;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
 
 import firm.Entity;
-import firm.Graph;
 import firm.Program;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Address;
@@ -15,8 +16,6 @@ import firm.nodes.Call;
 import firm.nodes.NodeVisitor;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -32,42 +31,30 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CallGraph {
 
-    private final MutableNetwork<Entity, CallEdge> network;
+    private final Graph<Entity, DefaultEdge> graph;
 
     /**
-     * Return a set containing every function that may call the given function.
+     * Return a stream containing every function that may call the given function.
      */
-    public Set<Entity> getCallers(Entity function) {
-        return network.predecessors(function);
+    public Stream<Entity> getCallers(Entity function) {
+        return graph.incomingEdgesOf(function).stream()
+                .map(graph::getEdgeSource);
     }
 
     /**
-     * Return a set containing every function that may be called by the given
+     * Return a stream containing every function that may be called by the given
      * function.
      */
-    public Set<Entity> getCallees(Entity function) {
-        return network.successors(function);
-    }
-
-    /**
-     * Return a set containing every call to the given function.
-     */
-    public Set<CallEdge> getCallsTo(Entity function) {
-        return network.inEdges(function);
-    }
-
-    /**
-     * Return a set containing every call in the given function.
-     */
-    public Set<CallEdge> getCallsFrom(Entity function) {
-        return network.outEdges(function);
+    public Stream<Entity> getCallees(Entity function) {
+        return graph.outgoingEdgesOf(function).stream()
+                .map(graph::getEdgeTarget);
     }
 
     /**
      * Return true if `caller` may directly call `callee`.
      */
     public boolean existsCall(Entity caller, Entity callee) {
-        return network.hasEdgeConnecting(caller, callee);
+        return graph.containsEdge(caller, callee);
     }
 
     /**
@@ -83,42 +70,27 @@ public final class CallGraph {
     /**
      * Update the given function in the call graph. All calls to the function
      * will remain in the call graph, all outgoing calls will be reevaluated.
-     * The function does not need to already exist in the call graph (may be
+     * The function is not required to currently exist in the call graph (may be
      * the case if an optimization adds new functions to the program).
      * 
      * Note: This operation is only valid for functions with associated graph,
      * hence the parameter is a `Graph` instead of an `Entity`.
      */
-    public void update(Graph function) {
+    public void update(firm.Graph function) {
         Visitor.update(this, function);
     }
 
     @Override
     public String toString() {
-        return String.format("CallGraph(functions=%s, calls=%s)",
-                network.nodes(), network.edges());
+        return String.format("CallGraph(functions=%s, calls=%s", graph.vertexSet(),
+                graph.edgeSet().stream().map(this::formatEdge)
+                        .collect(Collectors.toSet()));
     }
 
-    /**
-     * Represents an edge in the call graph.
-     * Read as: `caller` calls `callee` at node `callSite`.
-     */
-    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    @EqualsAndHashCode
-    private static final class CallEdge {
-
-        @Getter
-        private final Call callSite;
-        @Getter
-        private final Entity caller;
-        @Getter
-        private final Entity callee;
-
-        @Override
-        public String toString() {
-            return String.format("(%s -> %s)[node=%s]",
-                    caller, callee, callSite.getNr());
-        }
+    private String formatEdge(DefaultEdge edge) {
+        return String.format("%s -> %s",
+                graph.getEdgeSource(edge),
+                graph.getEdgeTarget(edge));
     }
 
     @RequiredArgsConstructor
@@ -126,48 +98,36 @@ public final class CallGraph {
     private static final class Visitor extends NodeVisitor.Default {
 
         private Entity caller;
-        private final MutableNetwork<Entity, CallEdge> network;
+        private final Graph<Entity, DefaultEdge> graph;
 
         public static CallGraph build() {
-            var visitor = new Visitor(NetworkBuilder.directed()
-                    .allowsParallelEdges(true)
-                    .allowsSelfLoops(true)
-                    .build());
+            var visitor = new Visitor(new DefaultDirectedGraph<>(DefaultEdge.class));
 
             for (var graph : Program.getGraphs()) {
                 visitor.caller = graph.getEntity();
+                visitor.graph.addVertex(visitor.caller);
                 graph.walk(visitor);
             }
 
-            return new CallGraph(visitor.network);
+            return new CallGraph(visitor.graph);
         }
 
-        public static void update(CallGraph callGraph, Graph function) {
+        public static void update(CallGraph callGraph, firm.Graph function) {
             var entity = function.getEntity();
-            var network = callGraph.network;
+            var graph = callGraph.graph;
 
-            // save existing calls to function
-            Set<CallEdge> inEdges = Collections.emptySet();
-            if (network.nodes().contains(entity)) {
-                inEdges = network.inEdges(entity);
-                network.removeNode(entity);
-            }
+            // remove all outgoing calls from function
+            graph.outgoingEdgesOf(entity).stream()
+                    .forEach(graph::removeEdge);
 
-            var visitor = new Visitor(entity, callGraph.network);
-            function.walk(visitor);
-
-            // restore saved calls to the function
-            for (var edge : inEdges) {
-                network.addEdge(edge.caller, edge.callee, edge);
-            }
+            function.walk(new Visitor(entity, graph));
         }
 
         @Override
         public void visit(Call node) {
             if (node.getPtr().getOpCode() == ir_opcode.iro_Address) {
                 var callee = ((Address) node.getPtr()).getEntity();
-                var edge = new CallEdge(node, caller, callee);
-                network.addEdge(caller, callee, edge);
+                Graphs.addEdgeWithVertices(graph, caller, callee);
             } else {
                 throw new IllegalStateException("only constant function pointers allowed");
             }
