@@ -17,10 +17,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Preconditions:
- * - Cond nodes must not have an Unknown node as selector
- */
 public final class InstructionSelection {
 
     @Getter
@@ -30,7 +26,6 @@ public final class InstructionSelection {
     private final BasicBlocks blocks;
 
     private InstructionSelection(Graph graph, int blockId) {
-        // todo is this the idiomatic way of getting number of parameters
         var type = (MethodType) graph.getEntity().getType();
         blocks = new BasicBlocks(graph, blockId);
 
@@ -53,12 +48,15 @@ public final class InstructionSelection {
         return instance;
     }
 
+    /**
+     * Collects the found matches into an instance of BasicBlocks.
+     */
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private final class CollectingVisitor implements InstructionMatchVisitor {
 
         private final BasicBlocks blocks;
 
-        // todo ordering of phi and exit operands not ideal
+        // Possible improvement: separate list for Phi and condition operands
 
         @Override
         public void visit(InstructionMatch.Block match) {
@@ -108,12 +106,16 @@ public final class InstructionSelection {
                             .flatMap(Operand::getInstructions)
                             .forEach(entry::add);
                 }
-                default -> {
-                }
+                default -> throw new IllegalStateException(
+                        "only Jmp and Cond control flow supported");
             }
         }
     }
 
+    /**
+     * Tries to match every node in the graph using the given set of patterns.
+     * Will throw an IllegalStateException if no match is found for any node.
+     */
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private final class MatchingVisitor extends NodeVisitor.Default {
 
@@ -125,15 +127,14 @@ public final class InstructionSelection {
             if (match.matches()) {
                 matcher.setMatch(node, match);
             } else {
-                throw new IllegalStateException(String.format("%s: no match for node %s (%s)",
-                        node.getGraph().getEntity().getName(), node.getNr(), node.getOpCode().name()));
+                throw new IllegalStateException(String.format("%s: no match found for node %s",
+                        node.getGraph().getEntity().getName(), node));
             }
         }
 
         @Override
         public void visit(Proj node) {
-            // todo: is comparison of Nr correct here?
-            if (node.getPred().getNr() == node.getGraph().getArgs().getNr()) {
+            if (node.getPred().equals(node.getGraph().getArgs())) {
                 // node is a parameter projection of the function
                 matcher.setMatch(node, InstructionMatch.empty(node, node.getNum()));
 
@@ -155,9 +156,9 @@ public final class InstructionSelection {
                             .map(r -> InstructionMatch.empty(node, preds, r))
                             .orElseGet(() -> InstructionMatch.empty(node, preds)));
                 } else {
-                    // todo
-                    // defaultVisit(node);
-                    // throw new UnsupportedOperationException("" + node.getNr());
+                    throw new IllegalStateException(String.format(
+                            "%s: no match found for projection %s",
+                            node.getGraph().getEntity().getName(), node));
                 }
             } else {
                 matcher.setMatch(node, InstructionMatch.empty(node, node.getPred()));
