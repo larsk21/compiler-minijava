@@ -11,6 +11,7 @@ import edu.kit.compiler.data.ast_nodes.MethodNode.*;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.*;
 import edu.kit.compiler.lexer.StringTable;
+import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +42,7 @@ public class DetailedNameTypeAstVisitorSystemTest {
     public void testSystemCall_Correct() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         MethodInvocationExpressionNode methodInvocation;
@@ -64,9 +66,10 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertDoesNotThrow(() -> program.accept(visitor));
+        assertFalse(errorHandler.hasError());
         assertTrue(methodInvocation.getDefinition() instanceof StandardLibraryMethodNode);
     }
 
@@ -74,6 +77,7 @@ public class DetailedNameTypeAstVisitorSystemTest {
     public void testSystemCall_CorrectStaticMethod() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         MethodInvocationExpressionNode methodInvocation;
@@ -97,9 +101,10 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertDoesNotThrow(() -> program.accept(visitor));
+        assertFalse(errorHandler.hasError());
         assertTrue(methodInvocation.getDefinition() instanceof StandardLibraryMethodNode);
     }
 
@@ -107,6 +112,7 @@ public class DetailedNameTypeAstVisitorSystemTest {
     public void testSystemCall_WrongNumberOfArguments() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         MethodInvocationExpressionNode methodInvocation;
@@ -131,9 +137,10 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
         assertTrue(methodInvocation.isHasError());
     }
 
@@ -141,6 +148,7 @@ public class DetailedNameTypeAstVisitorSystemTest {
     public void testSystemCall_WrongArgumentType() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         MethodInvocationExpressionNode methodInvocation;
@@ -164,9 +172,10 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
         assertTrue(methodInvocation.isHasError());
     }
 
@@ -174,6 +183,7 @@ public class DetailedNameTypeAstVisitorSystemTest {
     public void testSystemCall_ArgumentTypeVoid() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         MethodInvocationExpressionNode methodInvocation;
@@ -197,9 +207,10 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
         assertTrue(methodInvocation.isHasError());
     }
 
@@ -207,6 +218,7 @@ public class DetailedNameTypeAstVisitorSystemTest {
     public void testSystemCall_ShadowedByType() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
@@ -229,15 +241,17 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
     }
 
     @Test
     public void testSystemCall_ShadowedByField() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
@@ -262,15 +276,17 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
     }
 
     @Test
     public void testSystemCall_ShadowedByFieldStaticMethod() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
@@ -295,15 +311,17 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
     }
 
     @Test
     public void testSystemCall_ShadowedByParameter() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
@@ -328,15 +346,17 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
     }
 
     @Test
     public void testSystemCall_ShadowedByLocalVariable() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
@@ -360,15 +380,17 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
     }
 
     @Test
     public void testSystemCall_ShadowedButCorrect() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         MethodInvocationExpressionNode methodInvocation;
@@ -400,9 +422,10 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertDoesNotThrow(() -> program.accept(visitor));
+        assertFalse(errorHandler.hasError());
         assertFalse(methodInvocation.getDefinition() instanceof StandardLibraryMethodNode);
     }
 
@@ -410,6 +433,7 @@ public class DetailedNameTypeAstVisitorSystemTest {
     public void testSystemIsNotAnObject() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
@@ -429,15 +453,17 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
     }
 
     @Test
     public void testSystemOutIsNotAnObject() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
 
         ClassNode _class;
         ProgramNode program = new ProgramNode(0, 0, Arrays.asList(
@@ -461,9 +487,10 @@ public class DetailedNameTypeAstVisitorSystemTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
+        program.accept(visitor);
 
-        assertThrows(SemanticException.class, () -> program.accept(visitor));
+        assertTrue(errorHandler.hasError());
     }
 
 }

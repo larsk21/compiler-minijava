@@ -16,6 +16,7 @@ import edu.kit.compiler.data.ast_nodes.StatementNode.BlockStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.ExpressionStatementNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.LocalVariableDeclarationStatementNode;
 import edu.kit.compiler.lexer.StringTable;
+import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.semantic.NamespaceMapper.ClassNamespace;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +47,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testAllUsedVariablesReferenceTheirDeclaration_Field() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ClassNodeField definition;
         IdentifierExpressionNode usage;
@@ -74,7 +76,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testAllUsedVariablesReferenceTheirDeclaration_MethodParameter() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         MethodNodeParameter definition;
         IdentifierExpressionNode usage;
@@ -102,7 +105,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testAllUsedVariablesReferenceTheirDeclaration_LocalVariableOuterScope() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         LocalVariableDeclarationStatementNode definition;
         IdentifierExpressionNode usage;
@@ -131,7 +135,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testAllUsedVariablesReferenceTheirDeclaration_LocalVariableCurrentScope() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         LocalVariableDeclarationStatementNode definition;
         IdentifierExpressionNode usage;
@@ -158,7 +163,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testAllUsedVariablesReferenceTheirDeclaration_FieldAndLocalVariable() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         LocalVariableDeclarationStatementNode definition;
         IdentifierExpressionNode usage;
@@ -187,7 +193,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testAllUsedVariablesReferenceTheirDeclaration_NoDefinition() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         IdentifierExpressionNode usage;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -202,7 +209,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertTrue(errorHandler.hasError());
         assertTrue(usage.isHasError());
     }
 
@@ -210,7 +219,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testAllUsedVariablesReferenceTheirDeclaration_LocalVariableInOwnExpression() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         LocalVariableDeclarationStatementNode definition;
         IdentifierExpressionNode usage;
@@ -236,7 +246,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testNoVariableIsDeclaredTwiceInsideTheSameScope_SameScope() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         LocalVariableDeclarationStatementNode localVariable;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -250,7 +261,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertTrue(errorHandler.hasError());
         assertTrue(localVariable.isHasError());
     }
 
@@ -258,7 +271,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testNoVariableIsDeclaredTwiceInsideTheSameScope_DifferentScopes() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         LocalVariableDeclarationStatementNode localVariable;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -274,7 +288,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertTrue(errorHandler.hasError());
         assertTrue(localVariable.isHasError());
     }
 
@@ -282,7 +298,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testNoVariableIsDeclaredTwiceInsideTheSameScope_Parameter() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         LocalVariableDeclarationStatementNode localVariable;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(), Arrays.asList(
@@ -297,7 +314,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertTrue(errorHandler.hasError());
         assertTrue(localVariable.isHasError());
     }
 
@@ -305,7 +324,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testStaticMethodContainsNoReferenceToThis() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ThisExpressionNode _this;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
@@ -320,7 +340,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertTrue(errorHandler.hasError());
         assertTrue(_this.isHasError());
     }
 
@@ -328,7 +350,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testStaticMethodCannotReferenceFields() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         IdentifierExpressionNode identifier;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(
@@ -345,7 +368,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertTrue(errorHandler.hasError());
         assertTrue(identifier.isHasError());
     }
 
@@ -353,7 +378,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testIntegerLiteralValueIsValid_SmallPositive() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode integerValue;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
@@ -368,7 +394,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertDoesNotThrow(() -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertFalse(errorHandler.hasError());
         assertFalse(integerValue.isHasError());
     }
 
@@ -376,7 +404,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testIntegerLiteralValueIsValid_SmallNegative() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode integerValue;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
@@ -391,7 +420,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertDoesNotThrow(() -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertFalse(errorHandler.hasError());
         assertFalse(integerValue.isHasError());
     }
 
@@ -399,7 +430,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testIntegerLiteralValueIsValid_LargePositiveValid() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode integerValue;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
@@ -414,7 +446,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertDoesNotThrow(() -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertFalse(errorHandler.hasError());
         assertFalse(integerValue.isHasError());
     }
 
@@ -422,7 +456,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testIntegerLiteralValueIsValid_LargeNegativeValid() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode integerValue;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
@@ -437,7 +472,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertDoesNotThrow(() -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertFalse(errorHandler.hasError());
         assertFalse(integerValue.isHasError());
     }
 
@@ -445,7 +482,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testIntegerLiteralValueIsValid_LargePositiveInvalid() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode integerValue;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
@@ -460,7 +498,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertTrue(errorHandler.hasError());
         assertTrue(integerValue.isHasError());
     }
 
@@ -468,7 +508,8 @@ public class DetailedNameTypeAstVisitorTest {
     public void testIntegerLiteralValueIsValid_LargeNegativeInvalid() {
         NamespaceMapper namespaceMapper = new NamespaceMapper();
         StringTable stringTable = new StringTable();
-        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable);
+        ErrorHandler errorHandler = new ErrorHandler(Logger.nullLogger());
+        DetailedNameTypeAstVisitor visitor = new DetailedNameTypeAstVisitor(namespaceMapper, stringTable, errorHandler);
 
         ValueExpressionNode integerValue;
         ClassNode _class = new ClassNode(0, 0, stringTable.insert("ClassA"), Arrays.asList(), Arrays.asList(
@@ -483,7 +524,9 @@ public class DetailedNameTypeAstVisitorTest {
 
         initializeNamespace(namespaceMapper, _class);
 
-        assertThrows(SemanticException.class, () -> _class.accept(visitor));
+        _class.accept(visitor);
+
+        assertTrue(errorHandler.hasError());
         assertTrue(integerValue.isHasError());
     }
 

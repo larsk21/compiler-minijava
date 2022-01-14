@@ -63,7 +63,7 @@ public class ConstantOptimizationTest {
         );
         program.accept(gatheringVisitor);
         DetailedNameTypeAstVisitor nameTypeVisitor = new DetailedNameTypeAstVisitor(
-            namespaceMapper, stringTable
+            namespaceMapper, stringTable, errorHandler
         );
         program.accept(nameTypeVisitor);
 

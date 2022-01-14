@@ -24,6 +24,7 @@ import edu.kit.compiler.codegen.pattern.Pattern;
 import edu.kit.compiler.codegen.pattern.PhiPattern;
 import edu.kit.compiler.codegen.pattern.ReturnPattern;
 import edu.kit.compiler.codegen.pattern.UnaryInstructionPattern;
+import edu.kit.compiler.codegen.pattern.UnknownPattern;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
@@ -91,7 +92,10 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 // nodes for which we never need to generate instructions
                 Map.entry(iro_Start, new EmptyPattern()),
                 Map.entry(iro_End, new InheritingPattern()),
-                Map.entry(iro_Cmp, new InheritingPattern()));
+                Map.entry(iro_Cmp, new InheritingPattern()),
+
+                // handle Unknown nodes
+                Map.entry(iro_Unknown, new UnknownPattern()));
     }
 
     /**
