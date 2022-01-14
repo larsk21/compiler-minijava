@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PermutationSolverTest {
     @Test
@@ -15,9 +16,7 @@ public class PermutationSolverTest {
         PermutationSolver solver = new PermutationSolver();
         solver.addMapping(0, 0);
         solver.addMapping(1, 1);
-        for (var ass: solver.solve(2)) {
-            assert false;
-        }
+        assertTrue(solver.solve(2).isEmpty());
     }
 
     @Test

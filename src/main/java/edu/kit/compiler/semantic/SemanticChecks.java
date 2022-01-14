@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import edu.kit.compiler.data.AstVisitor;
 import edu.kit.compiler.data.DataType;
-import edu.kit.compiler.data.DataType.DataTypeClass;
 import edu.kit.compiler.data.Operator.BinaryOperator;
 import edu.kit.compiler.data.ast_nodes.ClassNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode;

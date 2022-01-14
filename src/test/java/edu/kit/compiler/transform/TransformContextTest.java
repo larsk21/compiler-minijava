@@ -19,11 +19,6 @@ import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
-import edu.kit.compiler.transform.TypeMapper.ClassEntry;
-import firm.Entity;
-import firm.Firm;
-import firm.Mode;
-import firm.PrimitiveType;
 
 public class TransformContextTest {
     static {
@@ -50,7 +45,6 @@ public class TransformContextTest {
         this.stringTable = lexer.getStringTable();
         this.typeMapper = new TypeMapper(namespaceMapper, lexer.getStringTable());
         for (ClassNode classNode: node.getClasses()) {
-            ClassEntry entry = typeMapper.getClassEntry(classNode);
             for (DynamicMethodNode m: classNode.getDynamicMethods()) {
                 this.classNode = classNode;
                 return m;
