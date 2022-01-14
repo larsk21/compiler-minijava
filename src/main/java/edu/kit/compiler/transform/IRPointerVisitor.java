@@ -6,10 +6,7 @@ import edu.kit.compiler.data.ast_nodes.ExpressionNode.ArrayAccessExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.FieldAccessExpressionNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.IdentifierExpressionNode;
 import edu.kit.compiler.semantic.DefinitionKind;
-import firm.ArrayType;
-import firm.Construction;
-import firm.Entity;
-import firm.Type;
+import firm.*;
 import firm.nodes.Node;
 
 /**
@@ -44,7 +41,12 @@ public class IRPointerVisitor implements AstVisitor<Node> {
         Type elementType = context.getTypeMapper().getDataType(expr.getResultType());
         Node leftPtr = handleExpression(expr.getObject());
         Node index = handleExpression(expr.getExpression());
-        return con.newSel(leftPtr, index, new ArrayType(elementType, 0));
+
+        // Accessing an array with a negative index is undefined behavior in MiniJava.
+        // Thus, we can assume that the index is always positive.
+        // This avoids creating an unnecessary signed conversion for most cases.
+        Node indexPositive = con.newConv(index, Mode.getLu());
+        return con.newSel(leftPtr, indexPositive, new ArrayType(elementType, 0));
     }
 
     private Node handleFieldAccess(Node left, int className, int fieldName) {
