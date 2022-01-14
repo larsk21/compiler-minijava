@@ -98,6 +98,20 @@ public final class ConditionPattern {
     }
 
     @NoArgsConstructor
+    public static final class Unknown implements Pattern<InstructionMatch> {
+        @Override
+        public InstructionMatch match(Node node, MatcherState matcher) {
+            if (node.getOpCode() == ir_opcode.iro_Cond
+                    && node.getPred(0).getOpCode() == ir_opcode.iro_Unknown) {
+                return new ConditionMatch(node, ExitCondition.unknown(),
+                        Collections.emptyList(), Collections.emptyList());
+            } else {
+                return InstructionMatch.none();
+            }
+        }
+    }
+
+    @NoArgsConstructor
     public static final class Unconditional implements Pattern<InstructionMatch> {
         @Override
         public InstructionMatch match(Node node, MatcherState matcher) {

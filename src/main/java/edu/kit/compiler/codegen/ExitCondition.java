@@ -57,6 +57,15 @@ public abstract class ExitCondition {
     }
 
     /**
+     * Returns an ExitCondition that represents a conditional jump with an
+     * unknown selector. The program may unconditionally jump to the either of
+     * the control flow successors.
+     */
+    public static ExitCondition unknown() {
+        return new Unknown();
+    }
+
+    /**
      * Returns an ExitCondition that compares the operand to zero and jumps to
      * the true or false block accordingly (uses test instruction).
      */
@@ -67,6 +76,7 @@ public abstract class ExitCondition {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class UnconditionalJump extends ExitCondition {
+
         private int label = -1;
 
         @Override
@@ -250,5 +260,21 @@ public abstract class ExitCondition {
                 throw new IllegalStateException();
             }
         }
+    }
+
+    public static final class Unknown extends ConditionalJump {
+        public Unknown() {
+            super(Relation.False);
+        }
+
+        @Override
+        protected String getTrueJump() {
+            throw new UnsupportedOperationException();
+        };
+
+        @Override
+        protected Instruction getCmpInstruction() {
+            throw new UnsupportedOperationException();
+        };
     }
 }
