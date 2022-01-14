@@ -25,6 +25,10 @@ import firm.nodes.Unknown;
  * Optimization that finds constant values for value nodes where possible and
  * replaces these node with constant nodes in the given graph. In addition,
  * control flow with constant conditions is removed.
+ * 
+ * If Unknown nodes are found as an argument to an operator or Cond node, the
+ * operator or Cond node is removed. The resulting program behavior for the
+ * operation is undefined.
  */
 public class ConstantOptimization implements Optimization {
 

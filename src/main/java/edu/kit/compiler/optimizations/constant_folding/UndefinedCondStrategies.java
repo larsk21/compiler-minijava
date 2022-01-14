@@ -42,6 +42,8 @@ public class UndefinedCondStrategies {
      * Strategy that chooses the TargetValue in a way that, when used as the
      * selector for the Cond node, will lead to the most blocks being skipped
      * by the placed Jmp in a postorder of blocks.
+     * 
+     * This strategy requires back edges to be enabled.
      */
     public static class SkipMostBlocksInPostorder implements UndefinedCondStrategy {
 
