@@ -14,8 +14,8 @@ import firm.nodes.Node;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Pattern that matches Unknown nodes, except with Mode `b` (Firm-internal
- * boolean).
+ * Pattern that matches any Unknown nodes. A virtual register is allocated for
+ * any mode, except mode `b` (Firm internal booleans).
  */
 public final class UnknownPattern implements Pattern<InstructionMatch> {
 
