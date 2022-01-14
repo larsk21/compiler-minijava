@@ -1,17 +1,17 @@
 package edu.kit.compiler.optimizations;
 
 import firm.BackEdges;
-import firm.Dump;
 import firm.Graph;
 import firm.Mode;
 import firm.bindings.binding_irgopt;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 
+
+// TODO: dont inline endless loop?
 @RequiredArgsConstructor
 public class Inliner implements Optimization {
     private final Map<String, Graph> available_callees;
@@ -57,7 +57,7 @@ public class Inliner implements Optimization {
             Node jmp = graph.newJmp(entryBlock);
 
             var copyVisitor = new CopyNodes(call, graph, callee, jmp);
-            callee.walkTopological(copyVisitor);
+            callee.walkPostorder(copyVisitor);
             copyVisitor.replacePreds();
 
             Node[] phis = copyVisitor.createPhis();
@@ -117,14 +117,11 @@ public class Inliner implements Optimization {
         private final Graph graph;
         private final Graph callee;
         private final Node entryJmp;
-        @Getter
-        private Node endBlock;
 
         @Override
         public void defaultVisit(Node node) {
-            Node copied = copyNode(node);
-            int blockId = copied.getBlock().getNr();
-            copied.setBlock(mapping.get(blockId));
+            Node copied = graph.copyNode(node);
+            mapping.put(node.getNr(), copied);
         }
 
         @Override
@@ -150,10 +147,7 @@ public class Inliner implements Optimization {
             if (block.equals(callee.getStartBlock())) {
                 mapping.put(block.getNr(), graph.newBlock(new Node[] {entryJmp}));
             } else {
-                Node copied = copyNode(block);
-                if (block.equals(callee.getEndBlock())) {
-                    endBlock = copied;
-                }
+                defaultVisit(block);
             }
         }
 
@@ -168,6 +162,14 @@ public class Inliner implements Optimization {
             }
         }
 
+        public Node getEndBlock() {
+            int id = callee.getEndBlock().getNr();
+            if (!mapping.containsKey(id)) {
+                mapping.put(id, graph.newBlock(new Node[0]));
+            }
+            return mapping.get(id);
+        }
+
         public void replacePreds() {
             for (Node node: mapping.values()) {
                 for (int i = 0; i < node.getPredCount(); i++) {
@@ -175,6 +177,10 @@ public class Inliner implements Optimization {
                     if (newPred != null) {
                         node.setPred(i, newPred);
                     }
+                }
+                Node block = node.getBlock();
+                if (block != null && block.getGraph().equals(callee)) {
+                    node.setBlock(mapping.get(block.getNr()));
                 }
             }
         }
@@ -185,7 +191,7 @@ public class Inliner implements Optimization {
             // collect predecessors
             List<Node> memoryPreds = new ArrayList<>();
             List<Node> valuePreds = new ArrayList<>();
-            for (Node pred: endBlock.getPreds()) {
+            for (Node pred: getEndBlock().getPreds()) {
                 Return ret = (Return) pred;
                 memoryPreds.add(ret.getMem());
                 if (ret.getPredCount() > 1) {
@@ -200,23 +206,17 @@ public class Inliner implements Optimization {
                 memory = memoryPreds.get(0);
             } else {
                 assert memoryPreds.size() > 1;
-                memory = graph.newPhi(endBlock, memoryPreds.toArray(new Node[0]), Mode.getM());
+                memory = graph.newPhi(getEndBlock(), memoryPreds.toArray(new Node[0]), Mode.getM());
             }
             if (valuePreds.size() == 1) {
                 return new Node[] {memory, valuePreds.get(0)};
             } else if (valuePreds.size() > 1) {
                 Mode mode = valuePreds.get(0).getMode();
-                Node phi = graph.newPhi(endBlock, valuePreds.toArray(new Node[0]), mode);
+                Node phi = graph.newPhi(getEndBlock(), valuePreds.toArray(new Node[0]), mode);
                 return new Node[] {memory, phi};
             } else {
                 return new Node[] {memory};
             }
-        }
-
-        private Node copyNode(Node node) {
-            Node copied = graph.copyNode(node);
-            mapping.put(node.getNr(), copied);
-            return copied;
         }
     }
 }
