@@ -11,7 +11,6 @@ import firm.Graph;
 import firm.Mode;
 import firm.TargetValue;
 import firm.BackEdges.Edge;
-import firm.bindings.binding_irnode.pn_Cond;
 import firm.nodes.Block;
 import firm.nodes.Cond;
 import firm.nodes.Node;
@@ -78,9 +77,9 @@ public class UndefinedCondStrategies {
 
                     int position = findLargestPostorderPositionOfSuccessor(proj);
 
-                    if (proj.getNum() == pn_Cond.pn_Cond_false.val) {
+                    if (proj.getNum() == Cond.pnFalse) {
                         largestSkipFalse = Math.max(largestSkipFalse, position);
-                    } else if (proj.getNum() == pn_Cond.pn_Cond_true.val) {
+                    } else if (proj.getNum() == Cond.pnTrue) {
                         largestSkipTrue = Math.max(largestSkipTrue, position);
                     }
                 }

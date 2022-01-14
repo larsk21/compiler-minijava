@@ -14,7 +14,6 @@ import firm.Mode;
 import firm.TargetValue;
 import firm.BackEdges.Edge;
 import firm.bindings.binding_irgopt;
-import firm.bindings.binding_irnode.pn_Cond;
 import firm.nodes.Cond;
 import firm.nodes.Const;
 import firm.nodes.Node;
@@ -143,16 +142,16 @@ public class ConstantOptimization implements Optimization {
 
             if (predValue.isConstant()) {
                 if (
-                    (node.getNum() == pn_Cond.pn_Cond_false.val && predValue.getValue().equals(TargetValue.getBFalse())) ||
-                    (node.getNum() == pn_Cond.pn_Cond_true.val && predValue.getValue().equals(TargetValue.getBTrue()))
+                    (node.getNum() == Cond.pnFalse && predValue.getValue().equals(TargetValue.getBFalse())) ||
+                    (node.getNum() == Cond.pnTrue && predValue.getValue().equals(TargetValue.getBTrue()))
                 ) {
                     Node jmpNode = graph.newJmp(node.getBlock());
                     Graph.exchange(node, jmpNode);
 
                     return true;
                 } else if (
-                    (node.getNum() == pn_Cond.pn_Cond_false.val && predValue.getValue().equals(TargetValue.getBTrue())) ||
-                    (node.getNum() == pn_Cond.pn_Cond_true.val && predValue.getValue().equals(TargetValue.getBFalse()))
+                    (node.getNum() == Cond.pnFalse && predValue.getValue().equals(TargetValue.getBTrue())) ||
+                    (node.getNum() == Cond.pnTrue && predValue.getValue().equals(TargetValue.getBFalse()))
                 ) {
                     Node badNode = graph.newBad(Mode.getX());
                     Graph.exchange(node, badNode);
