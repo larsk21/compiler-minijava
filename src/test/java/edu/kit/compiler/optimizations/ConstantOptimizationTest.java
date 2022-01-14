@@ -243,6 +243,28 @@ public class ConstantOptimizationTest {
     }
 
     @Test
+    public void testBinaryWithUnknown() {
+        // y + 5 -> ? with y unknown
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.empty(), false)
+        ),
+            new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Addition,
+                new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+            false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        List<Node> nodes = getNodes(graph);
+        assertDoesNotContainOpCode(nodes, ir_opcode.iro_Add);
+        assertContainsOpCode(nodes, ir_opcode.iro_Unknown);
+    }
+
+    @Test
     public void testDiv() {
         // 10 / 2 -> 5
 
@@ -258,6 +280,33 @@ public class ConstantOptimizationTest {
         optimization.optimize(graph);
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Div);
+    }
+
+    @Test
+    public void testDivWithUnknown() {
+        // y / 0 -> ? / 0 with y unknown
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.empty(), false)
+        ),
+            new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Division,
+                new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(0), false),
+            false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        List<Node> callArgs = getNodes(graph);
+        callArgs = callArgs.stream()
+            .filter(node -> node instanceof Call)
+            .flatMap(node -> StreamSupport.stream(node.getPreds().spliterator(), false))
+            .collect(Collectors.toList());
+
+        assertContainsOpCode(getNodes(graph), ir_opcode.iro_Div);
+        assertContainsOpCode(callArgs, ir_opcode.iro_Unknown);
     }
 
     @Test
@@ -763,6 +812,33 @@ public class ConstantOptimizationTest {
         while (optimization.optimize(graph)) { }
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
+    }
+
+    @Test
+    public void testIfUnknownCondition() {
+        // if (y == 5) { f(); } else { } -> f() or <empty> with y unknown
+
+        StringTable stringTable = new StringTable();
+        Graph graph = build(stringTable, surroundWithIO(stringTable, Arrays.asList(
+            new StatementNode.LocalVariableDeclarationStatementNode(0, 0, new DataType(DataTypeClass.Int), stringTable.insert("y"), Optional.empty(), false),
+            new StatementNode.IfStatementNode(0, 0,
+                new ExpressionNode.BinaryExpressionNode(0, 0, BinaryOperator.Equal,
+                    new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false),
+                    new ExpressionNode.ValueExpressionNode(0, 0, ValueExpressionType.IntegerLiteral, Literal.ofValue(5), false),
+                false),
+                new StatementNode.ExpressionStatementNode(0, 0,
+                    makeStdLibMethodInvocation(stringTable, "in", "read", Arrays.asList()),
+                false),
+                Optional.empty(),
+            false)
+        ),
+            new ExpressionNode.IdentifierExpressionNode(0, 0, stringTable.insert("y"), false)
+        ));
+
+        ConstantOptimization optimization = new ConstantOptimization();
+        optimization.optimize(graph);
+
+        assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Cond);
     }
 
     @Test

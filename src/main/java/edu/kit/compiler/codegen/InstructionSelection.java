@@ -17,6 +17,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Preconditions:
+ * - Cond nodes must not have an Unknown node as selector
+ */
 public final class InstructionSelection {
 
     @Getter
