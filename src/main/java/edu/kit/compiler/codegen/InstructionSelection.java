@@ -132,8 +132,6 @@ public final class InstructionSelection {
 
         @Override
         public void visit(Proj node) {
-            // todo put this in patterns?
-
             // todo: is comparison of Nr correct here?
             if (node.getPred().getNr() == node.getGraph().getArgs().getNr()) {
                 // node is a parameter projection of the function

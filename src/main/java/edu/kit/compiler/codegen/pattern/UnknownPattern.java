@@ -8,7 +8,6 @@ import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.Util;
 import edu.kit.compiler.intermediate_lang.Instruction;
-
 import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
@@ -22,10 +21,15 @@ public final class UnknownPattern implements Pattern<InstructionMatch> {
 
     @Override
     public InstructionMatch match(Node node, MatcherState matcher) {
-        if (node.getOpCode() == ir_opcode.iro_Unknown && node.getMode() != Mode.getb()) {
-            var size = Util.getSize(node.getMode());
-            var targetRegister = matcher.getNewRegister(size);
-            return new UnknownMatch(node, targetRegister);
+        if (node.getOpCode() == ir_opcode.iro_Unknown) {
+            if (node.getMode().equals(Mode.getb())) {
+                // placeholder match for Firm internal booleans
+                return InstructionMatch.empty(node);
+            } else {
+                var size = Util.getSize(node.getMode());
+                var targetRegister = matcher.getNewRegister(size);
+                return new UnknownMatch(node, targetRegister);
+            }
         } else {
             return InstructionMatch.none();
         }

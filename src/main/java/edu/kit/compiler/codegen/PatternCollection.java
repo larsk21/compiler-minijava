@@ -83,7 +83,8 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Cond, new CompoundPattern(List.of(
                         new ConditionPattern.Test(true),
                         new ConditionPattern.Comparison<>(REG, IMM, true),
-                        new ConditionPattern.Comparison<>(REG, REG, false)))),
+                        new ConditionPattern.Comparison<>(REG, REG, false),
+                        new ConditionPattern.Unknown()))),
 
                 // nodes with constant values for which we never generate instructions
                 Map.entry(iro_Const, new EmptyPattern()),
