@@ -344,9 +344,11 @@ public final class ArithmeticIdentitiesOptimization implements Optimization {
         }
 
         /**
-         * Exchanges a conv node which operand is an add with a constant as rhs.
+         * Exchanges a conversion to Ls which operand is an add with a constant rhs.
          */
         private void exchangeConv(Node node, Node opNode, Node offsetNode) {
+            assert node.getMode().equals(Mode.getLs());
+
             var block = node.getBlock();
             var op = graph.newConv(block, opNode, Mode.getLs());
             var offsetValue = ((Const) offsetNode).getTarval();
