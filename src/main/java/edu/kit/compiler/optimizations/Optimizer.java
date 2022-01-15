@@ -28,7 +28,7 @@ public final class Optimizer {
      * reached.
      */
     public void optimize() {
-        dumpGraphs("raw");
+        dumpGraphsIfEnabled("raw");
 
         var changeSet = getAllGraphs();
         boolean hasChanged;
@@ -48,7 +48,7 @@ public final class Optimizer {
 
         } while (hasChanged);
 
-        dumpGraphs("opt");
+        dumpGraphsIfEnabled("opt");
     }
 
     /**
@@ -96,7 +96,7 @@ public final class Optimizer {
                 .collect(Collectors.toCollection(HashSet::new));
     }
 
-    private void dumpGraphs(String prefix) {
+    private void dumpGraphsIfEnabled(String prefix) {
         if (dumpGraphs) {
             for (var graph : Program.getGraphs()) {
                 Dump.dumpGraph(graph, prefix);
