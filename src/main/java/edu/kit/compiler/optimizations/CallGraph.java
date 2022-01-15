@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
-import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultEdge;
 
 import firm.Entity;
@@ -55,6 +55,14 @@ public final class CallGraph {
     public Stream<Entity> getCallees(Entity function) {
         return graph.outgoingEdgesOf(function).stream()
                 .map(graph::getEdgeTarget);
+    }
+
+    /**
+     * Return the number of distinct calls from caller to callee.
+     */
+    public double getCallFrequency(Entity caller, Entity callee) {
+        var edge = graph.getEdge(caller, callee);
+        return edge == null ? 0.0 : graph.getEdgeWeight(edge);
     }
 
     /**
@@ -189,7 +197,7 @@ public final class CallGraph {
         }
 
         public static CallGraph create(Iterable<firm.Graph> graphs) {
-            var visitor = new Visitor(new DefaultDirectedGraph<>(DefaultEdge.class));
+            var visitor = new Visitor(new DefaultDirectedWeightedGraph<>(DefaultEdge.class));
 
             for (var graph : graphs) {
                 visitor.caller = graph.getEntity();
@@ -212,7 +220,15 @@ public final class CallGraph {
 
         @Override
         public void visit(Call node) {
-            Graphs.addEdgeWithVertices(graph, caller, getCallee(node));
+            var callee = getCallee(node);
+            var edge = graph.getEdge(caller, callee);
+            
+            if (edge == null) {
+                Graphs.addEdgeWithVertices(graph, caller, callee, 1.0);
+            } else {
+                var weight = graph.getEdgeWeight(edge) + 1.0;
+                graph.setEdgeWeight(edge, weight);
+            }
         }
     }
 }

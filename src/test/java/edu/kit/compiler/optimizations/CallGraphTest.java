@@ -100,6 +100,23 @@ public class CallGraphTest {
     }
 
     @Test
+    public void testCallFrequency() {
+        var caller1 = initGraph();
+        var caller2 = initGraph();
+        var caller3 = initGraph();
+        var callee = initGraph();
+
+        createCalls(caller1, caller1, caller2);
+        createCalls(caller2, callee);
+        createCalls(caller3, callee, callee, callee, callee, callee);
+
+        var cg = createCallGraph();
+        assertEquals(0, cg.getCallFrequency(caller1, callee));
+        assertEquals(1, cg.getCallFrequency(caller2, callee));
+        assertEquals(5, cg.getCallFrequency(caller3, callee));
+    }
+
+    @Test
     public void testCallSelf() {
         var function = initGraph();
 
