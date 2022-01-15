@@ -85,11 +85,11 @@ public class Inliner implements Optimization {
         callPreds.add(entryJmp.getNr());
         markPreds(callPreds, call, call.getBlock());
 
+        // move the nodes to the new block
         for (var edge: BackEdges.getOuts(call.getBlock())) {
             Node node = edge.node;
-            if (!callPreds.contains(node.getNr())
-                    && node.getOpCode() != ir_opcode.iro_Phi
-                    && node.getOpCode() != ir_opcode.iro_Const) {
+            if (node.getBlock().equals(call.getBlock()) && !callPreds.contains(node.getNr())
+                    && node.getOpCode() != ir_opcode.iro_Phi && node.getOpCode() != ir_opcode.iro_Const) {
                 node.setBlock(endBlock);
             }
         }
@@ -164,9 +164,6 @@ public class Inliner implements Optimization {
 
         public Node getEndBlock() {
             int id = callee.getEndBlock().getNr();
-            if (!mapping.containsKey(id)) {
-                mapping.put(id, graph.newBlock(new Node[0]));
-            }
             return mapping.get(id);
         }
 
