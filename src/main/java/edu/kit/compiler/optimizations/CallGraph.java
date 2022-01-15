@@ -1,10 +1,15 @@
 package edu.kit.compiler.optimizations;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
+import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 
@@ -33,6 +38,8 @@ public final class CallGraph {
 
     private final Graph<Entity, DefaultEdge> graph;
 
+    private Components components;
+
     /**
      * Return a stream containing every function that may call the given function.
      */
@@ -58,6 +65,24 @@ public final class CallGraph {
     }
 
     /**
+     * Returns true if there may exist a recursion if caller calls callee,
+     * i.e. there exists some path through the call graph such that caller
+     * (in-)directly calls itself.
+     */
+    public boolean existsRecursion(Entity caller, Entity callee) {
+        assert graph.containsEdge(caller, callee);
+        return getOrInitComponents().isSameComponent(caller, callee);
+    }
+
+    /**
+     * Calls #existsRecursion(Entity, Entity) with the caller and callee of the
+     * given Call node.
+     */
+    public boolean existsRecursion(Call call) {
+        return existsRecursion(getCaller(call), getCallee(call));
+    }
+
+    /**
      * Create a CallGraph based on the current state of Firm. There is guaranteed
      * to be a node for every function with an associated graph in Firm. Any
      * function with no graph, may or may not be present in the call graph
@@ -77,7 +102,16 @@ public final class CallGraph {
      * hence the parameter is a `Graph` instead of an `Entity`.
      */
     public void update(firm.Graph function) {
+        this.components = null;
         Visitor.update(this, function);
+    }
+
+    private Components getOrInitComponents() {
+        if (components == null) {
+            return components;
+        } else {
+            return (components = new Components(graph));
+        }
     }
 
     @Override
@@ -91,6 +125,46 @@ public final class CallGraph {
         return String.format("%s -> %s",
                 graph.getEdgeSource(edge),
                 graph.getEdgeTarget(edge));
+    }
+
+    private static Entity getCaller(Call call) {
+        return call.getGraph().getEntity();
+    }
+
+    private static Entity getCallee(Call call) {
+        if (call.getPtr().getOpCode() == ir_opcode.iro_Address) {
+            return ((Address) call.getPtr()).getEntity();
+        } else {
+            throw new IllegalStateException("only constant function pointers allowed");
+        }
+    }
+
+    private static final class Components {
+
+        private final List<Set<Entity>> components;
+        private final Map<Entity, Set<Entity>> functionMap;
+
+        public Components(Graph<Entity, DefaultEdge> graph) {
+            var sccInspector = new KosarajuStrongConnectivityInspector<>(graph);
+            var connectedSets = sccInspector.stronglyConnectedSets();
+
+            this.components = connectedSets;
+            this.functionMap = new HashMap<>();
+
+            for (var component : components) {
+                for (var node : component) {
+                    functionMap.put(node, component);
+                }
+            }
+        }
+
+        public boolean isSameComponent(Entity func1, Entity func2) {
+            var comp1 = functionMap.get(func1);
+            var comp2 = functionMap.get(func2);
+
+            // compare components using equality operator
+            return comp1 != null && comp1 == comp2;
+        }
     }
 
     @RequiredArgsConstructor
@@ -125,12 +199,7 @@ public final class CallGraph {
 
         @Override
         public void visit(Call node) {
-            if (node.getPtr().getOpCode() == ir_opcode.iro_Address) {
-                var callee = ((Address) node.getPtr()).getEntity();
-                Graphs.addEdgeWithVertices(graph, caller, callee);
-            } else {
-                throw new IllegalStateException("only constant function pointers allowed");
-            }
+            Graphs.addEdgeWithVertices(graph, caller, getCallee(node));
         }
     }
 }
