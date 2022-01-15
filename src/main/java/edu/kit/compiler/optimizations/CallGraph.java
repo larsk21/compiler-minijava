@@ -70,8 +70,10 @@ public final class CallGraph {
      * (in-)directly calls itself.
      */
     public boolean existsRecursion(Entity caller, Entity callee) {
-        assert graph.containsEdge(caller, callee);
-        return getOrInitComponents().isSameComponent(caller, callee);
+        // ? what should this fn do if caller does not call callee
+        // ? currently returns false, maybe throw exception instead
+        return graph.containsEdge(caller, callee)
+                && getOrInitComponents().isSameComponent(caller, callee);
     }
 
     /**
@@ -89,7 +91,15 @@ public final class CallGraph {
      * (depending on whether it is called or not).
      */
     public static CallGraph create() {
-        return Visitor.build();
+        return Visitor.create();
+    }
+
+    /**
+     * Create a CallGraph based on the given graphs. Mainly used
+     * for testing purposes.
+     */
+    public static CallGraph create(Iterable<firm.Graph> graphs) {
+        return Visitor.create(graphs);
     }
 
     /**
@@ -107,7 +117,7 @@ public final class CallGraph {
     }
 
     private Components getOrInitComponents() {
-        if (components == null) {
+        if (components != null) {
             return components;
         } else {
             return (components = new Components(graph));
@@ -174,12 +184,15 @@ public final class CallGraph {
         private Entity caller;
         private final Graph<Entity, DefaultEdge> graph;
 
-        public static CallGraph build() {
+        public static CallGraph create() {
+            return create(Program.getGraphs());
+        }
+
+        public static CallGraph create(Iterable<firm.Graph> graphs) {
             var visitor = new Visitor(new DefaultDirectedGraph<>(DefaultEdge.class));
 
-            for (var graph : Program.getGraphs()) {
+            for (var graph : graphs) {
                 visitor.caller = graph.getEntity();
-                visitor.graph.addVertex(visitor.caller);
                 graph.walk(visitor);
             }
 
