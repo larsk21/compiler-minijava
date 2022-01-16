@@ -1,82 +1,43 @@
-package edu.kit.compiler.optimizations;
+package edu.kit.compiler.optimizations.inlining;
 
 import firm.BackEdges;
 import firm.Graph;
 import firm.Mode;
-import firm.bindings.binding_irgopt;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 
 
 // TODO: dont inline endless loop?
-@RequiredArgsConstructor
-public class Inliner implements Optimization {
-    private final Map<String, Graph> available_callees;
-    private Graph graph;
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class Inliner {
+    public static void inline(Graph graph, Call call, Graph callee) {BackEdges.enable(callee);
 
-    @Override
-    public boolean optimize(Graph graph) {
-        this.graph = graph;
+        Block entryBlock = (Block) call.getBlock();
+        Node jmp = graph.newJmp(entryBlock);
 
-        // we transform the nodes in reverse postorder, i.e. we can access the
-        // unchanged predecessors of a node when transforming it
-        List<Call> calls = new ArrayList<>();
-        graph.walk(new NodeVisitor.Default() {
-            @Override
-            public void visit(Call node) {
-                calls.add(node);
-            }
-        });
+        var copyVisitor = new CopyNodes(call, graph, callee, jmp);
+        callee.walkPostorder(copyVisitor);
+        copyVisitor.replacePreds();
 
-        BackEdges.enable(graph);
-
-        boolean changes = false;
-        for (Call call: calls) {
-            changes |= inline(call);
-        }
-
-        BackEdges.disable(graph);
-
-        binding_irgopt.remove_bads(graph.ptr);
-        binding_irgopt.remove_unreachable_code(graph.ptr);
-        binding_irgopt.remove_bads(graph.ptr);
-
-        return changes;
-    }
-
-    private boolean inline(Call call) {
-        String name = getName(call);
-        if (available_callees.containsKey(name)) {
-            Graph callee = available_callees.get(name);
-            BackEdges.enable(callee);
-
-            Block entryBlock = (Block) call.getBlock();
-            Node jmp = graph.newJmp(entryBlock);
-
-            var copyVisitor = new CopyNodes(call, graph, callee, jmp);
-            callee.walkPostorder(copyVisitor);
-            copyVisitor.replacePreds();
-
-            Node[] phis = copyVisitor.createPhis();
-            for (var edge: BackEdges.getOuts(call)) {
-                Proj proj = (Proj) edge.node;
-                if (proj.getMode().equals(Mode.getM())) {
-                    Graph.exchange(proj, phis[0]);
-                } else if (proj.getMode().equals(Mode.getT())) {
-                    for (var retEdge: BackEdges.getOuts(proj)) {
-                        Graph.exchange(retEdge.node, phis[1]);
-                    }
+        Node[] phis = copyVisitor.createPhis();
+        for (var edge: BackEdges.getOuts(call)) {
+            Proj proj = (Proj) edge.node;
+            if (proj.getMode().equals(Mode.getM())) {
+                Graph.exchange(proj, phis[0]);
+            } else if (proj.getMode().equals(Mode.getT())) {
+                for (var retEdge: BackEdges.getOuts(proj)) {
+                    Graph.exchange(retEdge.node, phis[1]);
                 }
             }
-
-            splitBlock(call, copyVisitor.getEndBlock(), jmp);
-            BackEdges.disable(callee);
-            return true;
         }
-        return false;
+
+        splitBlock(call, copyVisitor.getEndBlock(), jmp);
+        BackEdges.disable(callee);
     }
 
     private static void splitBlock(Call call, Node endBlock, Node entryJmp) {
