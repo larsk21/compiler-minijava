@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,7 +30,7 @@ import firm.nodes.Node;
 public class CallGraphTest {
 
     private List<Graph> graphs;
-    
+
     @BeforeAll
     public static void setupAll() {
         JFirmSingleton.initializeFirmLinux();
@@ -252,9 +253,81 @@ public class CallGraphTest {
         assertEquals(2.0, cg.getCallFrequency(caller, callee));
     }
 
+    @Test
+    public void testWalkSingle() {
+        var function = initGraph();
+        createCalls(function);
+
+        var cg = createCallGraph();
+        assertEquals(List.of(function), walkCallGraph(cg));
+    }
+
+    @Test
+    public void testWalkChain() {
+        var fun1 = initGraph("1");
+        var fun2 = initGraph("2");
+        var fun3 = initGraph("3");
+        var fun4 = initGraph("4");
+        createCalls(fun1, fun2);
+        createCalls(fun2, fun3);
+        createCalls(fun3, fun4);
+
+        var cg = createCallGraph();
+        assertEquals(List.of(fun4, fun3, fun2, fun1), walkCallGraph(cg));
+    }
+
+    @Test
+    public void testWalkComplex() {
+        var fun1 = initGraph("1");
+        var fun2 = initGraph("2");
+        var fun3 = initGraph("3");
+        var fun4 = initGraph("4");
+        createCalls(fun1, fun2, fun3);
+        createCalls(fun2, fun3);
+        createCalls(fun3, fun4);
+
+        var cg = createCallGraph();
+        assertEquals(List.of(fun4, fun3, fun2, fun1), walkCallGraph(cg));
+    }
+
+    @Test
+    public void testWalkRecursive() {
+        var fun1 = initGraph("1");
+        var fun2 = initGraph("2");
+        var fun3 = initGraph("3");
+        var fun4 = initGraph("4");
+        createCalls(fun1, fun1, fun2);
+        createCalls(fun2, fun3);
+        createCalls(fun3, fun2, fun4);
+
+        var list = walkCallGraph(createCallGraph());
+        assertEquals(fun4, list.get(0));
+        assertEquals(Set.of(fun3, fun2), Set.of(list.get(1), list.get(2)));
+        assertEquals(fun1, list.get(3));
+    }
+
+    @Test
+    public void testWalkUnconnected() {
+        var fun1 = initGraph("1");
+        var fun2 = initGraph("2");
+        var fun3 = initGraph("2");
+        createCalls(fun1, fun2);
+        createCalls(fun2);
+        createCalls(fun3);
+
+        var list = walkCallGraph(createCallGraph());
+        assertTrue(list.indexOf(fun1) > list.indexOf(fun2));
+        assertTrue(list.contains(fun3));
+    }
 
     private CallGraph createCallGraph() {
         return CallGraph.create(graphs);
+    }
+
+    private List<Entity> walkCallGraph(CallGraph cg) {
+        var list = new ArrayList<Entity>();
+        cg.walkBottomUp(list::add);
+        return list;
     }
 
     private void createCalls(Entity caller, Entity... callees) {
@@ -270,7 +343,6 @@ public class CallGraphTest {
             con.setCurrentMem(projMem);
         }
 
-
         var ret = con.newReturn(con.getCurrentMem(), new Node[0]);
         con.getGraph().getEndBlock().addPred(ret);
         con.finish();
@@ -283,9 +355,14 @@ public class CallGraphTest {
     }
 
     private Entity initGraph() {
+        return initGraph(null);
+    }
+
+    private Entity initGraph(String label) {
         var uuid = UUID.randomUUID();
         var methodType = new MethodType(new Type[0], new Type[0]);
-        var entity = new Entity(Program.getGlobalType(), "test_" + uuid, methodType);
+        var name = "test_" + (label == null ? "" : label + "_") + uuid;
+        var entity = new Entity(Program.getGlobalType(), name, methodType);
         var graph = new Graph(entity, 0);
         graphs.add(graph);
         return graph.getEntity();

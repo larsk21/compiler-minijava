@@ -34,5 +34,4 @@ public final class Optimization {
          */
         Set<Graph> optimize(CallGraph callGraph);
     }
-
 }

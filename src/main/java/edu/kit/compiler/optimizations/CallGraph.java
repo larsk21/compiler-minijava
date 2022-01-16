@@ -1,9 +1,9 @@
 package edu.kit.compiler.optimizations;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -12,6 +12,8 @@ import org.jgrapht.Graphs;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.EdgeReversedGraph;
+import org.jgrapht.traverse.TopologicalOrderIterator;
 
 import firm.Entity;
 import firm.Program;
@@ -91,6 +93,30 @@ public final class CallGraph {
     }
 
     /**
+     * Visit all functions in the call graph in bottom up order, i.e. if
+     * A calls B and there exists no path from B to A, B will be visited
+     * before A.
+     */
+    public void walkBottomUp(Consumer<Entity> visitor) {
+        getOrInitComponents().walkBottomUp(component -> {
+            component.vertexSet().forEach(visitor);
+        });
+    }
+
+    /**
+     * Like `walkBottomUp(Entity)` except only functions with associated graph
+     * are visited (the signature of the visitor is adjusted accordingly).
+     */
+    public void walkGraphsBottomUp(Consumer<firm.Graph> visitor) {
+        walkBottomUp(entity -> {
+            var graph = entity.getGraph();
+            if (graph != null) {
+                visitor.accept(graph);
+            }
+        });
+    }
+
+    /**
      * Create a CallGraph based on the current state of Firm. There is guaranteed
      * to be a node for every function with an associated graph in Firm. Any
      * function with no graph, may or may not be present in the call graph
@@ -155,19 +181,23 @@ public final class CallGraph {
         }
     }
 
+    /**
+     * A helper class that holds the strongly connected components of the call
+     * graph. Used to detect recursion and to walk the call graph in bottom-up
+     * order.
+     */
     private static final class Components {
 
-        private final List<Set<Entity>> components;
+        private final Graph<Graph<Entity, DefaultEdge>, DefaultEdge> condensation;
         private final Map<Entity, Set<Entity>> functionMap;
 
         public Components(Graph<Entity, DefaultEdge> graph) {
             var sccInspector = new KosarajuStrongConnectivityInspector<>(graph);
             var connectedSets = sccInspector.stronglyConnectedSets();
-
-            this.components = connectedSets;
+            this.condensation = sccInspector.getCondensation();
             this.functionMap = new HashMap<>();
 
-            for (var component : components) {
+            for (var component : connectedSets) {
                 for (var node : component) {
                     functionMap.put(node, component);
                 }
@@ -180,6 +210,11 @@ public final class CallGraph {
 
             // compare components using equality operator
             return comp1 != null && comp1 == comp2;
+        }
+
+        public void walkBottomUp(Consumer<Graph<Entity, DefaultEdge>> walker) {
+            new TopologicalOrderIterator<>(new EdgeReversedGraph<>(condensation))
+                    .forEachRemaining(walker);
         }
     }
 
@@ -195,6 +230,7 @@ public final class CallGraph {
 
             for (var graph : graphs) {
                 visitor.caller = graph.getEntity();
+                visitor.graph.addVertex(visitor.caller);
                 graph.walk(visitor);
             }
 
@@ -206,7 +242,7 @@ public final class CallGraph {
             var graph = callGraph.graph;
 
             // remove all outgoing calls from function
-            if (graph.containsVertex(entity)) {
+            if (!graph.addVertex(entity)) {
                 Graphs.successorListOf(graph, entity)
                         .forEach(succ -> graph.removeEdge(entity, succ));
             }
@@ -218,7 +254,7 @@ public final class CallGraph {
         public void visit(Call node) {
             var callee = getCallee(node);
             var edge = graph.getEdge(caller, callee);
-            
+
             if (edge == null) {
                 Graphs.addEdgeWithVertices(graph, caller, callee, 1.0);
             } else {
