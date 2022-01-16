@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import edu.kit.compiler.DebugFlags;
 import firm.Dump;
 import firm.Graph;
 import firm.Program;
@@ -14,13 +15,13 @@ public final class Optimizer {
 
     private final List<Optimization.Global> globalOptimizations;
     private final List<Optimization.Local> localOptimizations;
-    private final boolean dumpGraphs;
+    private final DebugFlags debugFlags;
 
     public Optimizer(List<Optimization.Global> globalOptimizations,
-            List<Optimization.Local> localOptimizations, boolean dumpGraphs) {
+            List<Optimization.Local> localOptimizations, DebugFlags debugFlags) {
         this.globalOptimizations = List.copyOf(globalOptimizations);
         this.localOptimizations = List.copyOf(localOptimizations);
-        this.dumpGraphs = dumpGraphs;
+        this.debugFlags = debugFlags;
     }
 
     /**
@@ -34,6 +35,9 @@ public final class Optimizer {
         boolean hasChanged;
 
         do {
+            hasChanged = optimizeLocal(changeSet);
+            changeSet.clear();
+
             var callGraph = CallGraph.create();
 
             // ? maybe only run global opts once per iteration
@@ -43,10 +47,7 @@ public final class Optimizer {
                 changeSet.addAll(newChanges);
             } while (!newChanges.isEmpty());
 
-            hasChanged = optimizeLocal(changeSet);
-            changeSet.clear();
-
-        } while (hasChanged);
+        } while (hasChanged && !changeSet.isEmpty());
 
         dumpGraphsIfEnabled("opt");
     }
@@ -97,7 +98,7 @@ public final class Optimizer {
     }
 
     private void dumpGraphsIfEnabled(String prefix) {
-        if (dumpGraphs) {
+        if (debugFlags.isDumpGraphs()) {
             for (var graph : Program.getGraphs()) {
                 Dump.dumpGraph(graph, prefix);
             }

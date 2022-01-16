@@ -181,10 +181,9 @@ public class JavaEasyCompiler {
      * @param logger the logger
      * @return Ok or an according error
      */
-    private static Result compileFirm(String filePath, Logger logger, Optimizer optimizer,
-                                      DebugFlags debugFlags) {
+    private static Result compileFirm(String filePath, Logger logger, Optimizer optimizer) {
         try {
-            createOptimizedIR(filePath, logger, optimizer, debugFlags);
+            createOptimizedIR(filePath, logger, optimizer);
 
             var sourceFile = new File(filePath).getName();
             var assemblyFile = sourceFile + ".s";
@@ -229,9 +228,9 @@ public class JavaEasyCompiler {
      * @return Ok or an according error
      */
     private static Result compile(String filePath, Logger logger, Optimizer optimizer,
-                                  RegisterAllocator allocator, DebugFlags debugFlags) {
+                                  RegisterAllocator allocator) {
         try {
-            createOptimizedIR(filePath, logger, optimizer, debugFlags);
+            createOptimizedIR(filePath, logger, optimizer);
 
             PatternCollection coll = new PatternCollection();
             List<FunctionInstructions> functions = new ArrayList<>();
@@ -330,8 +329,8 @@ public class JavaEasyCompiler {
      * @param logger the logger
      * @return Ok or an according error
      */
-    private static void createOptimizedIR(String filePath, Logger logger, Optimizer optimizer,
-                                          DebugFlags debugFlags) throws IOException {
+    private static void createOptimizedIR(String filePath, Logger logger,
+                                          Optimizer optimizer) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)));
         Lexer lexer = new Lexer(reader);
         StringTable stringTable = lexer.getStringTable();
@@ -370,7 +369,7 @@ public class JavaEasyCompiler {
                 optimizer = new Optimizer(List.of(), List.of(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization()
-                ), debugFlags.isDumpGraphs());
+                ), debugFlags);
                 allocator = new DumbAllocator();
                 break;
             case Level1:
@@ -378,7 +377,7 @@ public class JavaEasyCompiler {
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization()
-                ), debugFlags.isDumpGraphs());
+                ), debugFlags);
                 allocator = new LinearScan();
                 break;
             default:
@@ -416,11 +415,11 @@ public class JavaEasyCompiler {
         } else if (cliCall.hasOption(CliOptions.CompileFirm.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.CompileFirm.getOption());
 
-            result = compileFirm(filePath, logger, optimizer, debugFlags);
+            result = compileFirm(filePath, logger, optimizer);
         } else if (cliCall.hasOption(CliOptions.Compile.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.Compile.getOption());
 
-            result = compile(filePath, logger, optimizer, allocator, debugFlags);
+            result = compile(filePath, logger, optimizer, allocator);
         }  else {
             if (cliCall.getFreeArgs().length == 0) {
                 System.err.println("Wrong command line arguments, see --help for supported commands.");
@@ -429,7 +428,7 @@ public class JavaEasyCompiler {
             } else {
                 String filePath = cliCall.getFreeArgs()[0];
 
-                result = compile(filePath, logger, optimizer, allocator, debugFlags);
+                result = compile(filePath, logger, optimizer, allocator);
             }
         }
 

@@ -75,11 +75,9 @@ public final class CallGraph {
     /**
      * Returns true if there may exist a recursion if caller calls callee,
      * i.e. there exists some path through the call graph such that caller
-     * (in-)directly calls itself.
+     * (in-)directly calls itself. Returns false if caller never calls callee.
      */
     public boolean existsRecursion(Entity caller, Entity callee) {
-        // ? what should this fn do if caller does not call callee
-        // ? currently returns false, maybe throw exception instead
         return graph.containsEdge(caller, callee)
                 && getOrInitComponents().isSameComponent(caller, callee);
     }
@@ -99,7 +97,7 @@ public final class CallGraph {
      * (depending on whether it is called or not).
      */
     public static CallGraph create() {
-        return Visitor.create();
+        return Visitor.create(Program.getGraphs());
     }
 
     /**
@@ -191,10 +189,6 @@ public final class CallGraph {
 
         private Entity caller;
         private final Graph<Entity, DefaultEdge> graph;
-
-        public static CallGraph create() {
-            return create(Program.getGraphs());
-        }
 
         public static CallGraph create(Iterable<firm.Graph> graphs) {
             var visitor = new Visitor(new DefaultDirectedWeightedGraph<>(DefaultEdge.class));
