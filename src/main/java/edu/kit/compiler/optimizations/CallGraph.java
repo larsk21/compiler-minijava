@@ -206,8 +206,10 @@ public final class CallGraph {
             var graph = callGraph.graph;
 
             // remove all outgoing calls from function
-            graph.outgoingEdgesOf(entity).stream()
-                    .forEach(graph::removeEdge);
+            if (graph.containsVertex(entity)) {
+                Graphs.successorListOf(graph, entity)
+                        .forEach(succ -> graph.removeEdge(entity, succ));
+            }
 
             function.walk(new Visitor(entity, graph));
         }

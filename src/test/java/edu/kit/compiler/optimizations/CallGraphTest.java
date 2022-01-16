@@ -52,6 +52,7 @@ public class CallGraphTest {
         var callee = initGraph();
 
         createCalls(caller, callee);
+        createCalls(callee);
 
         var cg = createCallGraph();
         assertTrue(cg.existsCall(caller, callee));
@@ -72,6 +73,8 @@ public class CallGraphTest {
         var callee2 = initGraph();
 
         createCalls(caller, callee1, callee2);
+        createCalls(callee1);
+        createCalls(callee2);
 
         var cg = createCallGraph();
         assertTrue(cg.existsCall(caller, callee1));
@@ -91,6 +94,7 @@ public class CallGraphTest {
 
         createCalls(caller1, callee);
         createCalls(caller2, callee);
+        createCalls(callee);
 
         var cg = createCallGraph();
         assertTrue(cg.existsCall(caller1, callee));
@@ -109,11 +113,12 @@ public class CallGraphTest {
         createCalls(caller1, caller1, caller2);
         createCalls(caller2, callee);
         createCalls(caller3, callee, callee, callee, callee, callee);
+        createCalls(callee);
 
         var cg = createCallGraph();
-        assertEquals(0, cg.getCallFrequency(caller1, callee));
-        assertEquals(1, cg.getCallFrequency(caller2, callee));
-        assertEquals(5, cg.getCallFrequency(caller3, callee));
+        assertEquals(0.0, cg.getCallFrequency(caller1, callee));
+        assertEquals(1.0, cg.getCallFrequency(caller2, callee));
+        assertEquals(5.0, cg.getCallFrequency(caller3, callee));
     }
 
     @Test
@@ -135,6 +140,7 @@ public class CallGraphTest {
         var callee = initGraph();
 
         createCalls(caller, callee);
+        createCalls(callee);
 
         var cg = createCallGraph();
         assertFalse(cg.existsRecursion(caller, callee));
@@ -159,12 +165,91 @@ public class CallGraphTest {
 
         createCalls(fun1, fun2, fun3);
         createCalls(fun2, fun1, fun3);
+        createCalls(fun3);
 
         var cg = createCallGraph();
         assertTrue(cg.existsRecursion(fun1, fun2));
         assertTrue(cg.existsRecursion(fun2, fun1));
         assertFalse(cg.existsRecursion(fun1, fun3));
         assertFalse(cg.existsRecursion(fun2, fun3));
+    }
+
+    @Test
+    public void testUpdateAddCall() {
+        var caller = initGraph();
+        var callee = initGraph();
+
+        var cg = createCallGraph();
+        assertFalse(cg.existsCall(caller, callee));
+
+        createCalls(caller, callee);
+        cg.update(caller.getGraph());
+        assertTrue(cg.existsCall(caller, callee));
+    }
+
+    @Test
+    public void testUpdateRemoveCall() {
+        var caller = initGraph();
+        var callee = initGraph();
+
+        createCalls(caller, callee);
+        createCalls(callee);
+        var cg = createCallGraph();
+        assertTrue(cg.existsCall(caller, callee));
+
+        reinitGraph(caller);
+        cg.update(caller.getGraph());
+        assertFalse(cg.existsCall(caller, callee));
+    }
+
+    @Test
+    public void testUpdateCreateRecursion() {
+        var function = initGraph();
+
+        createCalls(function);
+        var cg = createCallGraph();
+        assertFalse(cg.existsCall(function, function));
+
+        reinitGraph(function);
+        createCalls(function, function);
+        cg.update(function.getGraph());
+        assertTrue(cg.existsCall(function, function));
+        assertTrue(cg.existsRecursion(function, function));
+    }
+
+    @Test
+    public void testUpdateCreateIndirectRecursion() {
+        var fun1 = initGraph();
+        var fun2 = initGraph();
+
+        createCalls(fun1, fun2);
+        createCalls(fun2);
+        var cg = createCallGraph();
+        assertTrue(cg.existsCall(fun1, fun2));
+        assertFalse(cg.existsCall(fun2, fun1));
+
+        reinitGraph(fun2);
+        createCalls(fun2, fun1);
+        cg.update(fun2.getGraph());
+        assertTrue(cg.existsCall(fun1, fun2));
+        assertTrue(cg.existsCall(fun2, fun1));
+        assertTrue(cg.existsRecursion(fun1, fun2));
+        assertTrue(cg.existsRecursion(fun2, fun1));
+    }
+
+    @Test
+    public void testUpdateCallFrequency() {
+        var caller = initGraph();
+        var callee = initGraph();
+
+        createCalls(caller, callee, callee, callee, callee, callee, callee);
+        var cg = createCallGraph();
+        assertEquals(6.0, cg.getCallFrequency(caller, callee));
+
+        reinitGraph(caller);
+        createCalls(caller, callee, callee);
+        cg.update(caller.getGraph());
+        assertEquals(2.0, cg.getCallFrequency(caller, callee));
     }
 
 
@@ -204,5 +289,13 @@ public class CallGraphTest {
         var graph = new Graph(entity, 0);
         graphs.add(graph);
         return graph.getEntity();
+    }
+
+    private void reinitGraph(Entity function) {
+        var oldGraph = function.getGraph();
+        graphs.remove(oldGraph);
+        oldGraph.free();
+        var newGraph = new Graph(function, 0);
+        graphs.add(newGraph);
     }
 }
