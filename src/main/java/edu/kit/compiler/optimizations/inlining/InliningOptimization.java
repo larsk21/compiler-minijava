@@ -33,17 +33,21 @@ public class InliningOptimization implements Optimization.Global {
     }
 
     private boolean inliningPass(Graph graph) {
+        var callerEntry = stateTracker.getCallerEntry(graph.getEntity());
+        callerEntry.addPass();
+        if (callerEntry.shouldStop()) {
+            return false;
+        }
+
         // we transform the nodes in reverse postorder, i.e. we can access the
         // unchanged predecessors of a node when transforming it
         List<Call> alwaysInlineCalls = new ArrayList<>();
         List<PrioritizedCall> maybeInlineCalls = new ArrayList<>();
         collectCalls(graph, alwaysInlineCalls, maybeInlineCalls);
 
+        BackEdges.enable(graph);
         // approximates the current size of the function
         int currentNumNodes = CalleeAnalysis.run(graph).getNumNodes();
-        var callerEntry = stateTracker.getCallerEntry(graph.getEntity());
-
-        BackEdges.enable(graph);
         boolean changes = false;
         for (Call call: alwaysInlineCalls) {
             Inliner.inline(graph, call, getEntity(call).getGraph());

@@ -1,8 +1,6 @@
 package edu.kit.compiler.optimizations.inlining;
 
-import firm.BackEdges;
-import firm.Graph;
-import firm.Mode;
+import firm.*;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 import lombok.AccessLevel;
@@ -16,8 +14,9 @@ import java.util.*;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Inliner {
     public static void inline(Graph graph, Call call, Graph callee) {
-        BackEdges.enable(callee);
-
+        if (!isSelfRecursive(call)) {
+            BackEdges.enable(callee);
+        }
         Block entryBlock = (Block) call.getBlock();
         Node jmp = graph.newJmp(entryBlock);
 
@@ -36,9 +35,11 @@ public class Inliner {
                 }
             }
         }
-
         splitBlock(call, copyVisitor.getEndBlock(), jmp);
-        BackEdges.disable(callee);
+
+        if (!isSelfRecursive(call)) {
+            BackEdges.disable(callee);
+        }
     }
 
     private static void splitBlock(Call call, Node endBlock, Node entryJmp) {
@@ -67,9 +68,10 @@ public class Inliner {
         }
     }
 
-    private static String getName(Call call) {
+    private static boolean isSelfRecursive(Call call) {
         var addr = (Address) call.getPtr();
-        return addr.getEntity().getLdName();
+        Entity callee = addr.getEntity();
+        return callee.equals(call.getGraph().getEntity());
     }
 
     @RequiredArgsConstructor

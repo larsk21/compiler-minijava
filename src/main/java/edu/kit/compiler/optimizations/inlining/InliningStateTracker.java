@@ -21,6 +21,11 @@ public class InliningStateTracker {
     public static final int UNPROBLEMATIC_SIZE_INCREASE = 60;
     public static final double ACCEPTABLE_INCREASE_FACTOR = 2;
 
+    /**
+     * We want to ensure that inlining always terminates.
+     */
+    public static final int UPPER_LIMIT_NUM_PASSES = 20;
+
     private final HashMap<Entity, CalleeEntry> calleeMap = new HashMap<>();
     private final HashMap<Entity, CallerEntry> callerMap = new HashMap<>();
 
@@ -102,6 +107,8 @@ public class InliningStateTracker {
         private final int initialNumNodes;
         @Getter
         private int addedNodesFromCompleteInlining = 0;
+        @Getter
+        private int totalInliningPasses = 0;
 
         public void addCompletelyInlinedNodes(int num) {
             addedNodesFromCompleteInlining += num;
@@ -110,6 +117,14 @@ public class InliningStateTracker {
         public int acceptableSize() {
             return (int) Math.round(ACCEPTABLE_INCREASE_FACTOR * initialNumNodes
                     + addedNodesFromCompleteInlining + UNPROBLEMATIC_SIZE_INCREASE);
+        }
+
+        public void addPass() {
+            totalInliningPasses += 1;
+        }
+
+        public boolean shouldStop() {
+            return totalInliningPasses >= UPPER_LIMIT_NUM_PASSES;
         }
     }
 }
