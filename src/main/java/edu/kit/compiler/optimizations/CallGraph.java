@@ -43,6 +43,13 @@ public final class CallGraph {
     private Components components;
 
     /**
+     * Returns the number of functions present in the call graph.
+     */
+    public int getNumFunctions() {
+        return graph.vertexSet().size();
+    }
+
+    /**
      * Return a stream containing every function that may call the given function.
      */
     public Stream<Entity> getCallers(Entity function) {
@@ -96,6 +103,9 @@ public final class CallGraph {
      * Visit all functions in the call graph in bottom up order, i.e. if
      * A calls B and there exists no path from B to A, B will be visited
      * before A.
+     * 
+     * Note: the visitor MUST NOT modify the call graph, doing so results in
+     * undefined behavior.
      */
     public void walkBottomUp(Consumer<Entity> visitor) {
         getOrInitComponents().walkBottomUp(component -> {
@@ -208,7 +218,7 @@ public final class CallGraph {
             var comp1 = functionMap.get(func1);
             var comp2 = functionMap.get(func2);
 
-            // compare components using equality operator
+            // simple equality is sufficient here (see constructor)
             return comp1 != null && comp1 == comp2;
         }
 

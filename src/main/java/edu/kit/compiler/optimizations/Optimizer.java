@@ -1,6 +1,7 @@
 package edu.kit.compiler.optimizations;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,10 +36,9 @@ public final class Optimizer {
         boolean hasChanged;
 
         do {
-            hasChanged = optimizeLocal(changeSet);
-            changeSet.clear();
-
             var callGraph = CallGraph.create();
+            hasChanged = optimizeLocal(callGraph, changeSet);
+            changeSet.clear();
 
             // ? maybe only run global opts once per iteration
             Set<Graph> newChanges;
@@ -70,11 +70,18 @@ public final class Optimizer {
 
     /**
      * Run local optimizations on the given set of graphs until a fix point is
-     * reached. Returns true if a change in any graph has occurred.
+     * reached. Graphs are iterated in bottom up order as defined by the given
+     * call graph. The call graph is updated if a graph has been changed.
+     * Returns true if a change in any graph has occurred.
      */
-    private boolean optimizeLocal(Set<Graph> graphs) {
+    private boolean optimizeLocal(CallGraph callGraph, Set<Graph> graphs) {
+        // sort the given set of graphs in bottom-up order
+        var orderedGraphs = new LinkedHashSet<Graph>(callGraph.getNumFunctions());
+        callGraph.walkGraphsBottomUp(orderedGraphs::add);
+        orderedGraphs.retainAll(graphs);
+
         var programChanged = false;
-        for (var graph : graphs) {
+        for (var graph : orderedGraphs) {
             boolean graphChanged;
             do {
                 graphChanged = false;
@@ -83,6 +90,10 @@ public final class Optimizer {
                 }
                 programChanged |= graphChanged;
             } while (graphChanged);
+
+            if (graphChanged) {
+                callGraph.update(graph);
+            }
         }
 
         return programChanged;
