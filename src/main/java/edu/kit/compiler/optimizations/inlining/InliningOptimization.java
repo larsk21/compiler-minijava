@@ -97,20 +97,42 @@ public class InliningOptimization implements Optimization.Global {
      * Returns -1 if the call shouldn't be inlined at all.
      */
     private static double calculatePriority(Call call, InliningStateTracker.CalleeEntry entry) {
-        boolean hasUnusedArg = call.getPredCount() > entry.getNumUsedArgs() + 2;
         int numConstArgs = 0;
         for (int i = 2; i < call.getPredCount(); i++) {
             if (call.getPred(i).getOpCode() == binding_irnode.ir_opcode.iro_Const) {
                 numConstArgs++;
             }
         }
-        int logWeight = (hasUnusedArg ? 1 : 0) + (numConstArgs == 0 ? 0 : numConstArgs + 2);
-        boolean doInline = Math.pow(2, logWeight) * InliningStateTracker.UNPROBLEMATIC_SIZE_INCREASE / 2 >= entry.getNumNodes();
+        int logWeight = argWeighting(call.getPredCount() - 2, entry.getNumUsedArgs(), numConstArgs);
+        if (entry.isRecursive()) {
+            // inlining of recursive functions is usually a bad idea
+            logWeight -= 3;
+        }
+        boolean doInline = (logWeight >= 3) || (
+                (Math.pow(2, logWeight) * InliningStateTracker.UNPROBLEMATIC_SIZE_INCREASE / 2) >= entry.getNumNodes()
+                        && logWeight >= 0
+        );
         if (doInline) {
             double basePrio = Math.pow(2, logWeight) / entry.getNumNodes();
             return basePrio;
         }
         return -1;
+    }
+
+    private static int argWeighting(int nArgs, int nUsedArgs, int nConstArgs) {
+        int weight = nUsedArgs < nArgs ? 1 : 0;
+        if (nConstArgs > 0) {
+            weight += 2;
+            weight += nConstArgs;
+            weight = Math.max(0, weight - nArgs / 5);
+            if (nConstArgs >= nUsedArgs - 1) {
+                weight += 1;
+            }
+            if (nConstArgs == nUsedArgs) {
+                weight += 1;
+            }
+        }
+        return weight;
     }
 
     private static Entity getEntity(Call call) {

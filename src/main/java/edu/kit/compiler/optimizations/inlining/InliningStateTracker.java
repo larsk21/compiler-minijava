@@ -56,6 +56,8 @@ public class InliningStateTracker {
         private final int totalCallSites;
         @Getter
         private final boolean alwaysInline;
+        @Getter
+        private final boolean recursive;
 
         public int getNumNodes() {
             return ca.getNumNodes();
@@ -74,8 +76,9 @@ public class InliningStateTracker {
                     (ACCEPTABLE_INCREASE_FACTOR - 1) * ca.getNumNodes() + UNPROBLEMATIC_SIZE_INCREASE
             ));
             int sizeIfFullyInlined = totalCallSites * (ca.getNumNodes() - CALL_OVERHEAD);
-            boolean alwaysInline = sizeIfFullyInlined <= acceptableNewSize && !callGraph.existsRecursion(self);
-            return new CalleeEntry(ca, totalCallSites, alwaysInline);
+            boolean recursive = callGraph.existsRecursion(self);
+            boolean alwaysInline = sizeIfFullyInlined <= acceptableNewSize && !recursive;
+            return new CalleeEntry(ca, totalCallSites, alwaysInline, recursive);
         }
 
         /**
