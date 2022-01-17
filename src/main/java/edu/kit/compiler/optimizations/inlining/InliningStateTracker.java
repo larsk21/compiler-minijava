@@ -3,7 +3,6 @@ package edu.kit.compiler.optimizations.inlining;
 import edu.kit.compiler.optimizations.CallGraph;
 import firm.Entity;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 import java.util.HashMap;
@@ -40,7 +39,6 @@ public class InliningStateTracker {
     public void updateEntity(CallGraph callGraph, Entity updated) {
         CalleeAnalysis ca = CalleeAnalysis.run(updated.getGraph());
         calleeMap.put(updated, CalleeEntry.fromCalleeAnalysis(callGraph, ca, updated));
-        System.out.println(String.format("Updated %s: %s", updated.getLdName(), calleeMap.get(updated)));
         // TODO: do we even need the transitive update?
         callGraph.getCallees(updated).forEach(
                 callee -> {

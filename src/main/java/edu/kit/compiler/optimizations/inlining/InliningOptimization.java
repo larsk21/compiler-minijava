@@ -37,29 +37,13 @@ public class InliningOptimization implements Optimization.Global {
         // unchanged predecessors of a node when transforming it
         List<Call> alwaysInlineCalls = new ArrayList<>();
         List<PrioritizedCall> maybeInlineCalls = new ArrayList<>();
-        graph.walk(new NodeVisitor.Default() {
-            @Override
-            public void visit(Call call) {
-                var entry  = getCalleeEntry(call);
-                if (entry.isPresent()) {
-                    if (entry.get().isAlwaysInline()) {
-                        alwaysInlineCalls.add(call);
-                    } else {
-                        maybeInlineCalls.add(new PrioritizedCall(
-                                call, calculatePriority(call, entry.get())
-                        ));
-                    }
-                }
-            }
-        });
-        maybeInlineCalls.sort(Comparator.reverseOrder());
-
-        BackEdges.enable(graph);
+        collectCalls(graph, alwaysInlineCalls, maybeInlineCalls);
 
         // approximates the current size of the function
         int currentNumNodes = CalleeAnalysis.run(graph).getNumNodes();
         var callerEntry = stateTracker.getCallerEntry(graph.getEntity());
 
+        BackEdges.enable(graph);
         boolean changes = false;
         for (Call call: alwaysInlineCalls) {
             Inliner.inline(graph, call, getEntity(call).getGraph());
@@ -67,21 +51,17 @@ public class InliningOptimization implements Optimization.Global {
             callerEntry.addCompletelyInlinedNodes(numNodes);
             currentNumNodes += numNodes;
             changes = true;
-            System.out.println(String.format("Inlining %s into %s",
-                getEntity(call).getLdName(), graph.getEntity().getLdName()));
         }
 
         for (var pc: maybeInlineCalls) {
             Call call = pc.getCall();
             int numNodes = getCalleeEntry(call).get().getNumNodes();
-            System.out.println(String.format("Inlining canditate: %s into %s",
-                    getEntity(call).getLdName(), graph.getEntity().getLdName()));
             if (currentNumNodes + numNodes <= callerEntry.acceptableSize()) {
                 Inliner.inline(graph, call, getEntity(call).getGraph());
+                currentNumNodes += numNodes;
                 changes = true;
-                System.out.println("--> Inlining");
             } else {
-                System.out.println("--> Not Inlining");
+                break;
             }
         }
 
@@ -93,8 +73,28 @@ public class InliningOptimization implements Optimization.Global {
         return changes;
     }
 
+    private void collectCalls(Graph graph, List<Call> alwaysInlineCalls, List<PrioritizedCall> maybeInlineCalls) {
+        graph.walk(new NodeVisitor.Default() {
+            @Override
+            public void visit(Call call) {
+                var entry  = getCalleeEntry(call);
+                if (entry.isPresent()) {
+                    double prio = calculatePriority(call, entry.get());
+                    if (entry.get().isAlwaysInline()) {
+                        alwaysInlineCalls.add(call);
+                    } else if (prio >= 0) {
+                        maybeInlineCalls.add(new PrioritizedCall(call, prio));
+                    }
+                }
+            }
+        });
+        maybeInlineCalls.sort(Comparator.reverseOrder());
+    }
+
     /**
      * High priority is considered first.
+     *
+     * Returns -1 if the call shouldn't be inlined at all.
      */
     private static double calculatePriority(Call call, InliningStateTracker.CalleeEntry entry) {
         boolean hasUnusedArg = call.getPredCount() > entry.getNumUsedArgs() + 2;
@@ -105,7 +105,12 @@ public class InliningOptimization implements Optimization.Global {
             }
         }
         int logWeight = (hasUnusedArg ? 1 : 0) + (numConstArgs == 0 ? 0 : numConstArgs + 2);
-        return Math.pow(2, logWeight) / entry.getNumNodes();
+        boolean doInline = Math.pow(2, logWeight) * InliningStateTracker.UNPROBLEMATIC_SIZE_INCREASE / 2 >= entry.getNumNodes();
+        if (doInline) {
+            double basePrio = Math.pow(2, logWeight) / entry.getNumNodes();
+            return basePrio;
+        }
+        return -1;
     }
 
     private static Entity getEntity(Call call) {
@@ -114,7 +119,7 @@ public class InliningOptimization implements Optimization.Global {
     }
 
     private Optional<InliningStateTracker.CalleeEntry> getCalleeEntry(Call call) {
-        return stateTracker.getCalleeEntry(call.getGraph().getEntity());
+        return stateTracker.getCalleeEntry(getEntity(call));
     }
 
     @RequiredArgsConstructor

@@ -15,7 +15,8 @@ import java.util.*;
 // TODO: dont inline endless loop?
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Inliner {
-    public static void inline(Graph graph, Call call, Graph callee) {BackEdges.enable(callee);
+    public static void inline(Graph graph, Call call, Graph callee) {
+        BackEdges.enable(callee);
 
         Block entryBlock = (Block) call.getBlock();
         Node jmp = graph.newJmp(entryBlock);
