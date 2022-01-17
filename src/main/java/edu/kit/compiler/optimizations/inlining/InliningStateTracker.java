@@ -3,9 +3,11 @@ package edu.kit.compiler.optimizations.inlining;
 import edu.kit.compiler.optimizations.CallGraph;
 import firm.Entity;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 import java.util.HashMap;
+import java.util.Optional;
 
 public class InliningStateTracker {
     /**
@@ -21,13 +23,31 @@ public class InliningStateTracker {
     public static final double ACCEPTABLE_INCREASE_FACTOR = 2;
 
     private final HashMap<Entity, CalleeEntry> calleeMap = new HashMap<>();
-    private final HashMap<Entity, CalleeEntry> callerMap = new HashMap<>();
+    private final HashMap<Entity, CallerEntry> callerMap = new HashMap<>();
 
-    public void updateForEntity(CallGraph callGraph, Entity updated) {
+    public CallerEntry getCallerEntry(Entity caller) {
+        return callerMap.computeIfAbsent(caller, fun -> {
+            // get number of nodes
+            CalleeAnalysis ca = CalleeAnalysis.run(fun.getGraph());
+            return new CallerEntry(ca.getNumNodes());
+        });
+    }
+
+    public Optional<CalleeEntry> getCalleeEntry(Entity callee) {
+        return Optional.ofNullable(calleeMap.get(callee));
+    }
+
+    public void updateEntity(CallGraph callGraph, Entity updated) {
         CalleeAnalysis ca = CalleeAnalysis.run(updated.getGraph());
         calleeMap.put(updated, CalleeEntry.fromCalleeAnalysis(callGraph, ca, updated));
+        System.out.println(String.format("Updated %s: %s", updated.getLdName(), calleeMap.get(updated)));
+        // TODO: do we even need the transitive update?
         callGraph.getCallees(updated).forEach(
-                callee -> calleeMap.put(callee, calleeMap.get(callee).update(callGraph, callee))
+                callee -> {
+                    if (calleeMap.containsKey(callee)) {
+                        calleeMap.put(callee, calleeMap.get(callee).update(callGraph, callee));
+                    }
+                }
         );
     }
 
@@ -66,6 +86,12 @@ public class InliningStateTracker {
          */
         public CalleeEntry update(CallGraph callGraph, Entity self) {
             return fromCalleeAnalysis(callGraph, ca, self);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("[nNodes=%d, nArgs=%d, callSites=%d, alwaysInline=%s]",
+                    getNumNodes(), getNumUsedArgs(), totalCallSites, alwaysInline);
         }
     }
 
