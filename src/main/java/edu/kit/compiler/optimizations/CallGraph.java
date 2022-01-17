@@ -94,6 +94,14 @@ public final class CallGraph {
     }
 
     /**
+     * Returns if the function is recursive, i.e. if it is contained in a
+     * circle in the call graph.
+     */
+    public boolean existsRecursion(Entity function) {
+        return getCallees(function).anyMatch(callee -> existsRecursion(function, callee));
+    }
+
+    /**
      * Calls #existsRecursion(Entity, Entity) with the caller and callee of the
      * given Call node.
      */
