@@ -413,7 +413,7 @@ public class JavaEasyCompiler {
         if (cliCall.hasOption(CliOptions.Help.getOption())) {
             cli.printHelp(
                 "Java Easy Compiler\n\n" +
-                "usage: compiler [<action>] [<optimization-level>] [<output-verbosity>]",
+                "usage: compiler [<action>] [<optimization-level>] [<output-verbosity>] [<debug options>]",
                 "for more information check out: https://github.com/larsk21/compiler-minijava"
             );
             result = Result.Ok;
