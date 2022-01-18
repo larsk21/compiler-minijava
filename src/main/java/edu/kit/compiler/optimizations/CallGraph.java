@@ -16,8 +16,6 @@ import org.jgrapht.traverse.TopologicalOrderIterator;
 
 import firm.Entity;
 import firm.Program;
-import firm.bindings.binding_irnode.ir_opcode;
-import firm.nodes.Address;
 import firm.nodes.Call;
 import firm.nodes.NodeVisitor;
 import lombok.AccessLevel;
@@ -103,7 +101,8 @@ public final class CallGraph {
      * given Call node.
      */
     public boolean existsRecursion(Call call) {
-        return existsRecursion(getCaller(call), getCallee(call));
+        var caller = call.getGraph().getEntity();
+        return existsRecursion(caller, Util.getCallee(call));
     }
 
     /**
@@ -226,18 +225,6 @@ public final class CallGraph {
                 graph.getEdgeTarget(edge));
     }
 
-    private static Entity getCaller(Call call) {
-        return call.getGraph().getEntity();
-    }
-
-    private static Entity getCallee(Call call) {
-        if (call.getPtr().getOpCode() == ir_opcode.iro_Address) {
-            return ((Address) call.getPtr()).getEntity();
-        } else {
-            throw new IllegalStateException("only constant function pointers allowed");
-        }
-    }
-
     /**
      * A helper class that holds the strongly connected components of the call
      * graph. Used to detect recursion and to walk the call graph in bottom-up
@@ -309,7 +296,7 @@ public final class CallGraph {
 
         @Override
         public void visit(Call node) {
-            var callee = getCallee(node);
+            var callee = Util.getCallee(node);
             var edge = graph.getEdge(caller, callee);
 
             if (edge == null) {
