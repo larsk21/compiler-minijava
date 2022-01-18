@@ -42,7 +42,7 @@ public class ArithmeticReplacementOptimizationTest {
 
     private static Random random;
     private Deque<Graph> graphs;
-    private Optimization optimization;
+    private ArithmeticReplacementOptimization optimization;
 
     @BeforeAll
     public static void setupAll() {

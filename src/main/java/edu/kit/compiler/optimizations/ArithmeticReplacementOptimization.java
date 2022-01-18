@@ -37,7 +37,7 @@ import lombok.RequiredArgsConstructor;
  * replaced with a division. Subsequently the remainder is calculated using
  * the relationship (a % b) = a - (a / b) * b
  */
-public class ArithmeticReplacementOptimization implements Optimization {
+public class ArithmeticReplacementOptimization implements Optimization.Local {
 
     @Override
     public boolean optimize(Graph graph) {
