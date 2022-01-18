@@ -1,6 +1,7 @@
 package edu.kit.compiler.optimizations;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -13,6 +14,7 @@ import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.EdgeReversedGraph;
+import org.jgrapht.traverse.DepthFirstIterator;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 
 import firm.Entity;
@@ -98,6 +100,16 @@ public final class CallGraph {
     public boolean existsRecursion(Call call) {
         return existsRecursion(getCaller(call), getCallee(call));
     }
+
+    /**
+     * Return an iterator over the given iterable of functions, as well as any
+     * function that may (in-)directly call any of them.
+     */
+    public Iterator<Entity> getTransitiveCallers(Iterable<Entity> functions) {
+        var reversedGraph = new EdgeReversedGraph<>(graph);
+        return new DepthFirstIterator<>(reversedGraph, functions);
+    }
+
 
     /**
      * Visit all functions in the call graph in bottom up order, i.e. if

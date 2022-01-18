@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -320,6 +322,60 @@ public class CallGraphTest {
         assertTrue(list.contains(fun3));
     }
 
+    @Test
+    public void testTransitiveCallersSimple() {
+        var fun1 = initGraph("1");
+        var fun2 = initGraph("2");
+        var fun3 = initGraph("3");
+        var fun4 = initGraph("4");
+        createCalls(fun1, fun2);
+        createCalls(fun2, fun3);
+        createCalls(fun3, fun4);
+        
+        var cg = createCallGraph();
+        assertEquals(Set.of(fun1), getTransitiveCallers(cg, fun1));
+        assertEquals(Set.of(fun1, fun2), getTransitiveCallers(cg, fun2));
+        assertEquals(Set.of(fun1, fun2, fun3), getTransitiveCallers(cg, fun3));
+        assertEquals(Set.of(fun1, fun2, fun3, fun4), getTransitiveCallers(cg, fun4));
+        assertEquals(Set.of(fun1, fun2, fun3), getTransitiveCallers(cg, fun1, fun3));
+    }
+
+    @Test
+    public void testTransitiveCallersFork() {
+        var fun1 = initGraph("1");
+        var fun2 = initGraph("2");
+        var fun3 = initGraph("3");
+        var fun4 = initGraph("4");
+        createCalls(fun1, fun2);
+        createCalls(fun2, fun3, fun4);
+        
+        var cg = createCallGraph();
+        assertEquals(Set.of(fun1), getTransitiveCallers(cg, fun1));
+        assertEquals(Set.of(fun1, fun2), getTransitiveCallers(cg, fun2));
+        assertEquals(Set.of(fun1, fun2, fun3), getTransitiveCallers(cg, fun3));
+        assertEquals(Set.of(fun1, fun2, fun4), getTransitiveCallers(cg, fun4));
+        assertEquals(Set.of(fun1, fun2, fun3, fun4), getTransitiveCallers(cg, fun3, fun4));
+    }
+
+    @Test
+    public void testTransitiveCallersRecursion() {
+        var fun1 = initGraph("1");
+        var fun2 = initGraph("2");
+        var fun3 = initGraph("3");
+        var fun4 = initGraph("4");
+        createCalls(fun1, fun2);
+        createCalls(fun2, fun3);
+        createCalls(fun3, fun4);
+        createCalls(fun4, fun1);
+        
+        var cg = createCallGraph();
+        assertEquals(Set.of(fun1, fun2, fun3, fun4), getTransitiveCallers(cg, fun1));
+        assertEquals(Set.of(fun1, fun2, fun3, fun4), getTransitiveCallers(cg, fun2));
+        assertEquals(Set.of(fun1, fun2, fun3, fun4), getTransitiveCallers(cg, fun3));
+        assertEquals(Set.of(fun1, fun2, fun3, fun4), getTransitiveCallers(cg, fun4));
+        assertEquals(Set.of(fun1, fun2, fun3, fun4), getTransitiveCallers(cg, fun2, fun3));
+    }
+
     private CallGraph createCallGraph() {
         return CallGraph.create(graphs);
     }
@@ -328,6 +384,12 @@ public class CallGraphTest {
         var list = new ArrayList<Entity>();
         cg.walkBottomUp(list::add);
         return list;
+    }
+
+    private Set<Entity> getTransitiveCallers(CallGraph cg, Entity... fs) {
+        var hull = new HashSet<Entity>();
+        cg.getTransitiveCallers(Arrays.asList(fs)).forEachRemaining(hull::add);
+        return hull;
     }
 
     private void createCalls(Entity caller, Entity... callees) {

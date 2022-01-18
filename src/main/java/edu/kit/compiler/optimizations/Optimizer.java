@@ -1,5 +1,7 @@
 package edu.kit.compiler.optimizations;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -75,10 +77,7 @@ public final class Optimizer {
      * Returns true if a change in any graph has occurred.
      */
     private boolean optimizeLocal(CallGraph callGraph, Set<Graph> graphs) {
-        // sort the given set of graphs in bottom-up order
-        var orderedGraphs = new LinkedHashSet<Graph>(callGraph.getNumFunctions());
-        callGraph.walkGraphsBottomUp(orderedGraphs::add);
-        orderedGraphs.retainAll(graphs);
+        var orderedGraphs = getChangeSet(callGraph, graphs);
 
         var programChanged = false;
         for (var graph : orderedGraphs) {
@@ -97,6 +96,27 @@ public final class Optimizer {
         }
 
         return programChanged;
+    }
+
+    /**
+     * Expands the given set of function to include all (in-)direct callers,
+     * sorts all functions in bottom-up order and returns the result.
+     */
+    private Collection<Graph> getChangeSet(CallGraph cg, Collection<Graph> graphs) {
+        var callers = new ArrayList<Graph>();
+        cg.getTransitiveCallers(() -> graphs.stream().map(Graph::getEntity).iterator())
+                .forEachRemaining(caller -> {
+                    var graph = caller.getGraph();
+                    if (graph != null) {
+                        callers.add(graph);
+                    }
+                });
+
+        var orderedGraphs = new LinkedHashSet<Graph>(cg.getNumFunctions());
+        cg.walkGraphsBottomUp(orderedGraphs::add);
+        orderedGraphs.retainAll(callers);
+
+        return orderedGraphs;
     }
 
     /**
