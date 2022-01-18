@@ -163,7 +163,9 @@ public class Inliner {
 
             // handle the different cases
             Node memory;
-            if (memoryPreds.size() == 1) {
+            if (memoryPreds.size() == 0) {
+                memory = call.getMem();
+            } else if (memoryPreds.size() == 1) {
                 memory = memoryPreds.get(0);
             } else {
                 assert memoryPreds.size() > 1;
