@@ -12,13 +12,13 @@ public class InliningStateTracker {
     /**
      * Heuristic value for constant overhead of calls (number of firm nodes).
      */
-    public static final int CALL_OVERHEAD = 15;
+    public static final int CALL_OVERHEAD = 20;
 
     /**
      * Some heuristic values for per-function size increase limits (number of firm nodes).
      */
     public static final int ACCEPTABLE_SIZE_INCREASE = 300;
-    public static final int UNPROBLEMATIC_SIZE_INCREASE = 60;
+    public static final int UNPROBLEMATIC_SIZE_INCREASE = 80;
     public static final double ACCEPTABLE_INCREASE_FACTOR = 2;
 
     /**
@@ -115,8 +115,9 @@ public class InliningStateTracker {
         }
 
         public int acceptableSize() {
-            return (int) Math.round(ACCEPTABLE_INCREASE_FACTOR * initialNumNodes
-                    + addedNodesFromCompleteInlining + UNPROBLEMATIC_SIZE_INCREASE);
+            return (int) Math.round(
+                    ACCEPTABLE_INCREASE_FACTOR * (initialNumNodes + addedNodesFromCompleteInlining)
+                    + UNPROBLEMATIC_SIZE_INCREASE);
         }
 
         public void addPass() {
