@@ -392,7 +392,9 @@ public class ApplyAssignment {
                 output("mov%c %s, %d(%%rbp) # spill return value for @%s",
                         size.getSuffix(), cconv.getReturnRegister().asSize(size), getStackSlot(target), target);
                 tracker.getRegisters().clearTmp(target);
-                tracker.getRegisters().setTmp(cconv.getReturnRegister(), target);
+                if (tracker.getRegisters().isFree(cconv.getReturnRegister())) {
+                    tracker.getRegisters().setTmp(cconv.getReturnRegister(), target);
+                }
             } else {
                 tracker.assertMapping(target, getRegister(target));
                 if (cconv.getReturnRegister() != getRegister(target)) {
