@@ -36,6 +36,7 @@ import edu.kit.compiler.optimizations.ArithmeticReplacementOptimization;
 import edu.kit.compiler.optimizations.ConstantOptimization;
 import edu.kit.compiler.optimizations.LinearBlocksOptimization;
 import edu.kit.compiler.optimizations.Optimizer;
+import edu.kit.compiler.optimizations.PureFunctionOptimization;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
@@ -371,7 +372,9 @@ public class JavaEasyCompiler {
                 allocator = new DumbAllocator();
                 break;
             case Level1:
-                optimizer = new Optimizer(List.of(), List.of(
+                optimizer = new Optimizer(List.of(
+                    new PureFunctionOptimization()
+                ), List.of(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization(),
