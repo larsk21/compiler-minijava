@@ -17,6 +17,7 @@ public final class PureFunctionOptimization implements Optimization.Global {
 
     // todo this needs to be part of an optimization context
     // todo we can turn this into a local optimization then
+
     private final AttributeAnalysis analysis = new AttributeAnalysis();
     private final Visitor visitor = new Visitor();
 
