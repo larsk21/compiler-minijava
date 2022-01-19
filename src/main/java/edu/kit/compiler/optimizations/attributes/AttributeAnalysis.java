@@ -1,10 +1,12 @@
-package edu.kit.compiler.optimizations;
+package edu.kit.compiler.optimizations.attributes;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
+import edu.kit.compiler.optimizations.Util;
+import edu.kit.compiler.optimizations.attributes.Attributes.Purity;
 import edu.kit.compiler.transform.StandardLibraryEntities;
 import firm.Entity;
 import firm.Graph;
@@ -13,28 +15,35 @@ import firm.Program;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 /**
  * Implements an analysis to check if functions are pure or const.
  */
 @RequiredArgsConstructor
-public final class FunctionAttributeAnalysis {
+public final class AttributeAnalysis {
 
     private final Map<Entity, Attributes> functions = new HashMap<>();
     private final Entity calloc = StandardLibraryEntities.INSTANCE.getCalloc().getEntity();
 
+    /**
+     * Return the attributes computed for the given function.
+     */
     public Attributes get(Entity entity) {
         return functions.getOrDefault(entity, Attributes.MINIMUM);
     }
 
+    /**
+     * Apply the analysis to the entire program. This will analyse all graphs
+     * known to Firm.
+     */
     public void apply() {
         apply(Program.getGraphs());
     }
 
+    /**
+     * Apply the analysis to the given set of graphs (intended for testing).
+     */
     public void apply(Iterable<Graph> graphs) {
         functions.clear();
 
@@ -43,6 +52,10 @@ public final class FunctionAttributeAnalysis {
         }
     }
 
+    /**
+     * Compute and return attributes for the given function if no cached values
+     * are available.
+     */
     private Attributes computeAttributes(Entity entity) {
         var cachedAttributes = functions.get(entity);
         if (cachedAttributes == null) {
@@ -52,9 +65,11 @@ public final class FunctionAttributeAnalysis {
                 var dummyAttrs = new Attributes(Purity.CONST, false, false);
                 functions.put(entity, dummyAttrs);
 
-                // 
+                // First analyze the memory chains to determine purity
                 var attributes = new Attributes(Purity.CONST, true, false);
                 new MemoryVisitor(graph, attributes).apply();
+
+                // Second analyze termination behavior of the function
                 checkTermination(graph, attributes);
 
                 functions.put(entity, attributes);
@@ -74,22 +89,21 @@ public final class FunctionAttributeAnalysis {
     }
 
     private static void checkTermination(Graph graph, Attributes attributes) {
-        // immediately give up if there is a control flow keep-alive edge
-        // todo there is room for improvement here
-        for (var keepAlive : graph.getEnd().getPreds()) {
-            if (keepAlive.getMode().equals(Mode.getBB())) {
-                attributes.setTerminates(false);
-            }
-        }
-
         graph.incBlockVisited();
         checkTermination(graph.getEndBlock(), attributes);
+
+        for (var keepAlive : graph.getEnd().getPreds()) {
+            if (keepAlive.getMode().equals(Mode.getBB())
+                    && keepAlive.getOpCode() != ir_opcode.iro_Bad) {
+                checkTermination((Block) keepAlive, attributes);
+            }
+        }
     }
 
     private static final void checkTermination(Block initialBlock, Attributes attributes) {
         var worklist = new StackWorklist<Block>(true);
         worklist.enqueueInOrder(initialBlock);
-        
+
         while (attributes.isTerminates() && !worklist.isEmpty()) {
             var block = worklist.dequeue();
 
@@ -98,84 +112,11 @@ public final class FunctionAttributeAnalysis {
             } else {
                 block.markBlockVisited();
                 block.getPreds().forEach(pred -> {
-                    worklist.enqueueInOrder((Block) pred.getBlock());
+                    if (pred.getOpCode() != ir_opcode.iro_Bad) {
+                        worklist.enqueueInOrder((Block) pred.getBlock());
+                    }
                 });
             }
-        }
-    }
-
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Data
-    public static final class Attributes {
-
-        public static final Attributes MINIMUM = new Attributes();
-
-        private Purity purity = Purity.IMPURE;
-
-        /**
-         * A functions that is guaranteed to return, i.e. not end in an endless
-         * loop.
-         */
-        private boolean terminates = false;
-
-        /**
-         * Function returns newly allocated memory. This is currently just set
-         * to false.
-         */
-        private boolean malloc = false;
-
-        public boolean isPure() {
-            return purity.isPure();
-        }
-
-        public boolean isConst() {
-            return purity.isConst();
-        }
-
-        private void ceil(Purity other) {
-            purity = purity.min(other);
-        }
-    }
-
-    /**
-     * Represents the purity of a function. Each entry of this enum imposes
-     * more restrictions on a function.
-     */
-    public static enum Purity {
-
-        /**
-         * Any function is impure by default.
-         */
-        IMPURE,
-
-        /**
-         * A function is pure if it does not affect the observable state of the
-         * program. For our purposes, this means no stores or calls to non-pure
-         * functions.
-         * 
-         * Calls to pure functions can be removed without changing the semantics of
-         * the program.
-         */
-        PURE,
-
-        /**
-         * A function is const if it's pure and its return value is not affected
-         * by the state of the program. A const function's return value
-         * therefore depend solely on its arguments.
-         */
-        CONST;
-
-        public boolean isPure() {
-            return PURE.compareTo(this) <= 0;
-        }
-
-        public boolean isConst() {
-            return CONST == this;
-        }
-
-        public Purity min(Purity other) {
-            return this.compareTo(other) <= 0 ? this : other;
         }
     }
 
@@ -257,7 +198,7 @@ public final class FunctionAttributeAnalysis {
 
         @Override
         public void visit(Load node) {
-            attributes.ceil(Purity.PURE);
+            limitPurity(Purity.PURE);
             worklist.enqueue(node.getMem());
         }
 
@@ -291,17 +232,25 @@ public final class FunctionAttributeAnalysis {
         public void visit(Call node) {
             // purity of caller is limited by purity of callee
             var calleeAttributes = computeAttributes(Util.getCallee(node));
-            attributes.ceil(calleeAttributes.getPurity());
+            limitPurity(calleeAttributes.getPurity());
 
-            // not guaranteed to terminate if the callee is not, this also
-            // deals with recursion
-            attributes.terminates &= calleeAttributes.terminates;
+            // not guaranteed to terminate if the callee is not,
+            // this check also deals with recursion
+            limitTerminates(calleeAttributes.isTerminates());
             worklist.enqueue(node.getMem());
         }
 
         @Override
         public void visit(Return node) {
             worklist.enqueue(node.getMem());
+        }
+
+        private void limitPurity(Purity limit) {
+            attributes.setPurity(attributes.getPurity().min(limit));
+        }
+
+        private void limitTerminates(boolean limit) {
+            attributes.setTerminates(limit && attributes.isTerminates());
         }
     }
 }

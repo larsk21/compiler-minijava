@@ -20,8 +20,9 @@ import org.junit.jupiter.api.Test;
 
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.logger.Logger;
-import edu.kit.compiler.optimizations.FunctionAttributeAnalysis.Attributes;
-import edu.kit.compiler.optimizations.FunctionAttributeAnalysis.Purity;
+import edu.kit.compiler.optimizations.attributes.AttributeAnalysis;
+import edu.kit.compiler.optimizations.attributes.Attributes;
+import edu.kit.compiler.optimizations.attributes.Attributes.Purity;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
 import edu.kit.compiler.semantic.ErrorHandler;
@@ -34,11 +35,11 @@ import edu.kit.compiler.transform.Lower;
 import firm.Graph;
 import firm.Program;
 
-public class FunctionAttributeAnalysisTest {
+public class AttributeAnalysisTest {
 
     private static final String TEMPLATE = "class Main_%s { public static void main(String[] args) { } %s }";
 
-    private FunctionAttributeAnalysis analysis = new FunctionAttributeAnalysis();
+    private AttributeAnalysis analysis = new AttributeAnalysis();
     private Set<Graph> oldGraphs = new HashSet<>();
     private Collection<String> members = new LinkedList<>();
 
