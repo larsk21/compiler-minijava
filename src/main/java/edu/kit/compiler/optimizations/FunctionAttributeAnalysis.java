@@ -32,9 +32,13 @@ public final class FunctionAttributeAnalysis {
     }
 
     public void apply() {
+        apply(Program.getGraphs());
+    }
+
+    public void apply(Iterable<Graph> graphs) {
         functions.clear();
 
-        for (var graph : Program.getGraphs()) {
+        for (var graph : graphs) {
             computeAttributes(graph.getEntity());
         }
     }
@@ -100,9 +104,9 @@ public final class FunctionAttributeAnalysis {
         }
     }
 
-    @Data
     @AllArgsConstructor
     @NoArgsConstructor
+    @Data
     public static final class Attributes {
 
         public static final Attributes MINIMUM = new Attributes();
@@ -121,8 +125,16 @@ public final class FunctionAttributeAnalysis {
          */
         private boolean malloc = false;
 
-        public void ceilPurity(Purity ceil) {
-            purity = purity.min(ceil);
+        public boolean isPure() {
+            return purity.isPure();
+        }
+
+        public boolean isConst() {
+            return purity.isConst();
+        }
+
+        private void ceil(Purity other) {
+            purity = purity.min(other);
         }
     }
 
@@ -245,7 +257,7 @@ public final class FunctionAttributeAnalysis {
 
         @Override
         public void visit(Load node) {
-            attributes.ceilPurity(Purity.PURE);
+            attributes.ceil(Purity.PURE);
             worklist.enqueue(node.getMem());
         }
 
@@ -279,7 +291,7 @@ public final class FunctionAttributeAnalysis {
         public void visit(Call node) {
             // purity of caller is limited by purity of callee
             var calleeAttributes = computeAttributes(Util.getCallee(node));
-            attributes.ceilPurity(calleeAttributes.getPurity());
+            attributes.ceil(calleeAttributes.getPurity());
 
             // not guaranteed to terminate if the callee is not, this also
             // deals with recursion
