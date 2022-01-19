@@ -40,20 +40,21 @@ public final class FunctionAttributeAnalysis {
     }
 
     private Attributes computeAttributes(Entity entity) {
-        var attributes = functions.get(entity);
-        if (attributes != null) {
-            return attributes;
-        } else {
+        var cachedAttributes = functions.get(entity);
+        if (cachedAttributes == null) {
             var graph = entity.getGraph();
             if (graph != null) {
-                // set function to to minimal attributes to deal with recursion
-                functions.put(entity, Attributes.MINIMUM);
+                // insert a set of dummy attributes for the function
+                var dummyAttrs = new Attributes(Purity.CONST, false, false);
+                functions.put(entity, dummyAttrs);
 
-                var visitor = new MemoryVisitor(graph);
-                visitor.apply();
+                // 
+                var attributes = new Attributes(Purity.CONST, true, false);
+                new MemoryVisitor(graph, attributes).apply();
+                checkTermination(graph, attributes);
 
-                functions.put(entity, visitor.attributes);
-                return visitor.attributes;
+                functions.put(entity, attributes);
+                return attributes;
             } else if (entity.equals(calloc)) {
                 // todo special case for calloc
                 functions.put(entity, Attributes.MINIMUM);
@@ -63,6 +64,39 @@ public final class FunctionAttributeAnalysis {
                 functions.put(entity, Attributes.MINIMUM);
                 return Attributes.MINIMUM;
             }
+        } else {
+            return cachedAttributes;
+        }
+    }
+
+    private static void checkTermination(Graph graph, Attributes attributes) {
+        // immediately give up if there is a control flow keep-alive edge
+        // todo there is room for improvement here
+        for (var keepAlive : graph.getEnd().getPreds()) {
+            if (keepAlive.getMode().equals(Mode.getBB())) {
+                attributes.setTerminates(false);
+            }
+        }
+
+        graph.incBlockVisited();
+        checkTermination(graph.getEndBlock(), attributes);
+    }
+
+    private static final void checkTermination(Block initialBlock, Attributes attributes) {
+        var worklist = new StackWorklist<Block>(true);
+        worklist.enqueueInOrder(initialBlock);
+        
+        while (attributes.isTerminates() && !worklist.isEmpty()) {
+            var block = worklist.dequeue();
+
+            if (block.blockVisited()) {
+                attributes.setTerminates(false);
+            } else {
+                block.markBlockVisited();
+                block.getPreds().forEach(pred -> {
+                    worklist.enqueueInOrder((Block) pred.getBlock());
+                });
+            }
         }
     }
 
@@ -70,19 +104,20 @@ public final class FunctionAttributeAnalysis {
     @AllArgsConstructor
     @NoArgsConstructor
     public static final class Attributes {
-        
+
         public static final Attributes MINIMUM = new Attributes();
 
         private Purity purity = Purity.IMPURE;
 
         /**
-         * A functions that is guaranteed not to result in an endless loop or
-         * abort the program, which for our purposes means no Div or Mod.
+         * A functions that is guaranteed to return, i.e. not end in an endless
+         * loop.
          */
         private boolean terminates = false;
 
         /**
-         * Function returns newly allocated memory.
+         * Function returns newly allocated memory. This is currently just set
+         * to false.
          */
         private boolean malloc = false;
 
@@ -96,6 +131,7 @@ public final class FunctionAttributeAnalysis {
      * more restrictions on a function.
      */
     public static enum Purity {
+
         /**
          * Any function is impure by default.
          */
@@ -134,14 +170,15 @@ public final class FunctionAttributeAnalysis {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private final class MemoryVisitor extends NodeVisitor.Default {
 
-        private final Worklist<Node> worklist = new StackWorklist<>(true);
-        private final Attributes attributes = new Attributes(Purity.CONST, true, false);
+        private final Worklist<Node> worklist = new StackWorklist<>(false);
 
         private final Graph graph;
+        private final Attributes attributes;
 
-        private void apply() {
+        public void apply() {
             graph.incVisited();
 
+            // walk the memory chain starting at each Return node
             for (var pred : graph.getEndBlock().getPreds()) {
                 switch (pred.getOpCode()) {
                     case iro_Return -> followMemoryChain(pred);
@@ -153,6 +190,7 @@ public final class FunctionAttributeAnalysis {
                 }
             }
 
+            // walk the chains starting at any memory keep-alive edges
             for (var keepAlive : graph.getEnd().getPreds()) {
                 if (keepAlive.getMode().equals(Mode.getM())) {
                     followMemoryChain(keepAlive);
@@ -161,8 +199,6 @@ public final class FunctionAttributeAnalysis {
         }
 
         private void followMemoryChain(Node mem) {
-            assert worklist.isEmpty();
-
             worklist.enqueue(mem);
             while (attributes.getPurity().isPure() && !worklist.isEmpty()) {
                 var node = worklist.dequeue();
@@ -189,7 +225,7 @@ public final class FunctionAttributeAnalysis {
                 pred = tuple.getPred(node.getNum());
             }
 
-            worklist.enqueueInOrder(pred);
+            worklist.enqueue(pred);
         }
 
         @Override
@@ -210,24 +246,33 @@ public final class FunctionAttributeAnalysis {
         @Override
         public void visit(Load node) {
             attributes.ceilPurity(Purity.PURE);
-            worklist.enqueueInOrder(node.getMem());
+            worklist.enqueue(node.getMem());
         }
 
         @Override
         public void visit(Div node) {
-            // todo handle this in terminates analysis
-            worklist.enqueueInOrder(node.getMem());
+            // ? could this be dealt with better
+            attributes.setPurity(Purity.IMPURE);
+            attributes.setTerminates(false);
+            worklist.enqueue(node.getMem());
         }
 
         @Override
         public void visit(Mod node) {
-            // todo handle this in terminates analysis
-            worklist.enqueueInOrder(node.getMem());
+            // ? could this be dealt with better
+            attributes.setPurity(Purity.IMPURE);
+            attributes.setTerminates(false);
+            worklist.enqueue(node.getMem());
         }
 
         @Override
         public void visit(Sync node) {
-            node.getPreds().forEach(worklist::enqueueInOrder);
+            node.getPreds().forEach(worklist::enqueue);
+        }
+
+        @Override
+        public void visit(Phi node) {
+            node.getPreds().forEach(worklist::enqueue);
         }
 
         @Override
@@ -235,19 +280,16 @@ public final class FunctionAttributeAnalysis {
             // purity of caller is limited by purity of callee
             var calleeAttributes = computeAttributes(Util.getCallee(node));
             attributes.ceilPurity(calleeAttributes.getPurity());
-            attributes.terminates &= calleeAttributes.terminates;
-            worklist.enqueueInOrder(node.getMem());
-        }
 
-        @Override
-        public void visit(Phi node) {
-            // todo deal with loops in terminates analysis
-            node.getPreds().forEach(worklist::enqueueInOrder);
+            // not guaranteed to terminate if the callee is not, this also
+            // deals with recursion
+            attributes.terminates &= calleeAttributes.terminates;
+            worklist.enqueue(node.getMem());
         }
 
         @Override
         public void visit(Return node) {
-            worklist.enqueueInOrder(node.getMem());
+            worklist.enqueue(node.getMem());
         }
     }
 }
