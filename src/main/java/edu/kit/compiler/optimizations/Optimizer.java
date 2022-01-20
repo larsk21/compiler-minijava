@@ -34,12 +34,13 @@ public final class Optimizer {
     public void optimize() {
         dumpGraphsIfEnabled("raw");
 
+        var optimizationState = new OptimizationState();
         var changeSet = getAllGraphs();
         boolean hasChanged;
 
         do {
             var callGraph = CallGraph.create();
-            hasChanged = optimizeLocal(callGraph, changeSet);
+            hasChanged = optimizeLocal(callGraph, optimizationState, changeSet);
             changeSet.clear();
 
             // ? maybe only run global opts once per iteration
@@ -76,7 +77,7 @@ public final class Optimizer {
      * call graph. The call graph is updated if a graph has been changed.
      * Returns true if a change in any graph has occurred.
      */
-    private boolean optimizeLocal(CallGraph callGraph, Set<Graph> graphs) {
+    private boolean optimizeLocal(CallGraph callGraph, OptimizationState optimizationState, Set<Graph> graphs) {
         var orderedGraphs = getChangeSet(callGraph, graphs);
 
         var programChanged = false;
@@ -85,13 +86,14 @@ public final class Optimizer {
             do {
                 graphChanged = false;
                 for (var optimization : localOptimizations) {
-                    graphChanged |= optimization.optimize(graph);
+                    graphChanged |= optimization.optimize(graph, optimizationState);
                 }
                 programChanged |= graphChanged;
             } while (graphChanged);
 
             if (graphChanged) {
                 callGraph.update(graph);
+                optimizationState.update(callGraph, graph);
             }
         }
 

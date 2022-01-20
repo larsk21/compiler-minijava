@@ -54,22 +54,22 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testAddZero() {
         createConstBOp(initGraph(), 0, false, Construction::newAdd);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Add));
 
         createConstBOp(initGraph(), 0, true, Construction::newAdd);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Add));
     }
 
     @Test
     public void testSubZero() {
         createConstBOp(initGraph(), 0, false, Construction::newSub);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Sub));
 
         createConstBOp(initGraph(), 0, true, Construction::newSub);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Sub));
         assertEquals(1, count(ir_opcode.iro_Minus));
     }
@@ -77,24 +77,24 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testDoubleMinus() {
         createUOp(initGraph(), (con, op) -> con.newMinus(con.newMinus(op)));
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Minus));
 
         createUOp(initGraph(), (con, op) -> con.newMinus(con.newMinus(con.newMinus(op))));
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Minus));
     }
 
     @Test
     public void testAddMinus() {
         createBOp(initGraph(), (con, l, r) -> con.newAdd(l, con.newMinus(r)));
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Minus));
         assertEquals(0, count(ir_opcode.iro_Add));
         assertEquals(1, count(ir_opcode.iro_Sub));
 
         createBOp(initGraph(), (con, l, r) -> con.newAdd(con.newMinus(l), r));
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Minus));
         assertEquals(0, count(ir_opcode.iro_Add));
         assertEquals(1, count(ir_opcode.iro_Sub));
@@ -103,7 +103,7 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testSubMinus() {
         createBOp(initGraph(), (con, l, r) -> con.newSub(l, con.newMinus(r)));
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Minus));
         assertEquals(0, count(ir_opcode.iro_Sub));
         assertEquals(1, count(ir_opcode.iro_Add));
@@ -112,7 +112,7 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testSubConst() {
         createConstBOp(initGraph(), 42, false, Construction::newSub);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Sub));
         assertEquals(1, count(ir_opcode.iro_Add));
     }
@@ -120,12 +120,12 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testMulOne() {
         createConstBOp(initGraph(), 1, false, Construction::newMul);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Mul));
         assertEquals(0, count(ir_opcode.iro_Const));
 
         createConstBOp(initGraph(), 1, true, Construction::newMul);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Mul));
         assertEquals(0, count(ir_opcode.iro_Const));
     }
@@ -133,12 +133,12 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testMulZero() {
         createConstBOp(initGraph(), 0, false, Construction::newMul);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Mul));
         assertEquals(1, count(ir_opcode.iro_Const));
 
         createConstBOp(initGraph(), 0, true, Construction::newMul);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Mul));
         assertEquals(1, count(ir_opcode.iro_Const));
     }
@@ -146,12 +146,12 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testMulNegOne() {
         createConstBOp(initGraph(), -1, false, Construction::newMul);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Mul));
         assertEquals(1, count(ir_opcode.iro_Minus));
 
         createConstBOp(initGraph(), -1, true, Construction::newMul);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Mul));
         assertEquals(1, count(ir_opcode.iro_Minus));
     }
@@ -159,7 +159,7 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testDivOne() {
         createConstDiv(initGraph(), 1, false, Construction::newDiv);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Div));
         assertEquals(0, count(ir_opcode.iro_Const));
     }
@@ -167,7 +167,7 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testZeroDiv() {
         createConstDiv(initGraph(), 0, true, Construction::newDiv);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Div));
         assertEquals(1, count(ir_opcode.iro_Const));
     }
@@ -175,7 +175,7 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testDivNegOne() {
         createConstDiv(initGraph(), -1, false, Construction::newDiv);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Div));
         assertEquals(0, count(ir_opcode.iro_Const));
         assertEquals(1, count(ir_opcode.iro_Minus));
@@ -184,7 +184,7 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testModOne() {
         createConstDiv(initGraph(), 1, false, Construction::newMod);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Mod));
         assertEquals(1, count(ir_opcode.iro_Const));
     }
@@ -192,7 +192,7 @@ public class ArithmeticIdentitiesOptimizationTest {
     @Test
     public void testModNegOne() {
         createConstDiv(initGraph(), -1, false, Construction::newMod);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Mod));
         assertEquals(1, count(ir_opcode.iro_Const));
     }
@@ -202,7 +202,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         createConstBOp(initGraph(), 28, false, (con, lhs, rhs) -> {
             return con.newAdd(con.newAdd(lhs, con.newConst(42, Mode.getIs())), rhs);
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Add));
         assertEquals(1, count(ir_opcode.iro_Const));
     }
@@ -212,7 +212,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         createConstBOp(initGraph(), 28, false, (con, lhs, rhs) -> {
             return con.newAdd(con.newSub(con.newConst(42, Mode.getIs()), lhs), rhs);
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Sub));
         assertEquals(0, count(ir_opcode.iro_Add));
         assertEquals(1, count(ir_opcode.iro_Const));
@@ -225,7 +225,7 @@ public class ArithmeticIdentitiesOptimizationTest {
                     con.newSub(con.newSub(lhs, con.newConst(2, Mode.getIs())), con.newConst(8, Mode.getIs())),
                     con.newConst(4, Mode.getIs())));
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Sub));
         assertEquals(1, count(ir_opcode.iro_Add));
         assertEquals(1, count(ir_opcode.iro_Const));
@@ -236,7 +236,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         createConstBOp(initGraph(), 28, false, (con, lhs, rhs) -> {
             return con.newMul(con.newMul(con.newConst(42, Mode.getIs()), lhs), rhs);
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Mul));
         assertEquals(1, count(ir_opcode.iro_Const));
     }
@@ -246,7 +246,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         createConstBOp(initGraph(), 28, false, (con, lhs, rhs) -> {
             return con.newMinus(con.newAdd(lhs, rhs));
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Add));
         assertEquals(1, count(ir_opcode.iro_Sub));
         assertEquals(0, count(ir_opcode.iro_Minus));
@@ -258,7 +258,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         createBOp(initGraph(), (con, lhs, rhs) -> {
             return con.newMinus(con.newSub(lhs, rhs));
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Sub));
         assertEquals(0, count(ir_opcode.iro_Minus));
     }
@@ -268,7 +268,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         createConstBOp(initGraph(), 42, false, (con, lhs, rhs) -> {
             return con.newMinus(con.newMul(lhs, rhs));
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Mul));
         assertEquals(0, count(ir_opcode.iro_Minus));
         assertEquals(1, count(ir_opcode.iro_Const));
@@ -279,7 +279,7 @@ public class ArithmeticIdentitiesOptimizationTest {
         createConstBOp(initGraph(Mode.getLs()), 42, false, (con, lhs, rhs) -> {
             return con.newAdd(con.newConv(con.newAdd(lhs, rhs), Mode.getLs()), con.newConst(28, Mode.getLs()));
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Conv));
         assertEquals(1, count(ir_opcode.iro_Add));
         assertEquals(1, count(ir_opcode.iro_Const));
@@ -291,7 +291,7 @@ public class ArithmeticIdentitiesOptimizationTest {
             return con.newAdd(con.newConv(con.newConv(con.newAdd(lhs, rhs), Mode.getLu()), Mode.getLs()),
                     con.newConst(28, Mode.getLs()));
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Conv));
         assertEquals(1, count(ir_opcode.iro_Add));
         assertEquals(1, count(ir_opcode.iro_Const));
@@ -304,7 +304,7 @@ public class ArithmeticIdentitiesOptimizationTest {
                     con.newMul(con.newAdd(lhs, rhs), con.newConst(28, Mode.getIs())),
                     con.newConst(12, Mode.getIs()));
         });
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Add));
         assertEquals(1, count(ir_opcode.iro_Mul));
         assertEquals(2, count(ir_opcode.iro_Const));

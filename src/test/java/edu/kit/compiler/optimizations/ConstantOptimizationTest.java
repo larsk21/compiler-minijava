@@ -140,7 +140,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         assertContainsOpCode(getNodes(graph), ir_opcode.iro_Add);
     }
@@ -155,7 +155,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         assertContainsOpCode(getNodes(graph), ir_opcode.iro_Const);
     }
@@ -172,7 +172,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Minus);
     }
@@ -190,7 +190,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
     }
@@ -212,7 +212,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
     }
@@ -237,7 +237,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
     }
@@ -257,7 +257,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         List<Node> nodes = getNodes(graph);
         assertDoesNotContainOpCode(nodes, ir_opcode.iro_Add);
@@ -277,7 +277,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Div);
     }
@@ -297,7 +297,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         List<Node> callArgs = getNodes(graph);
         callArgs = callArgs.stream()
@@ -322,7 +322,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         List<Node> nodes = getNodes(graph);
         nodes = nodes.stream().filter(node -> node instanceof Const).collect(Collectors.toList());
@@ -361,7 +361,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Phi);
     }
@@ -392,7 +392,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         boolean containsPhi = getNodes(graph).stream().anyMatch(node ->
             node instanceof Phi &&
@@ -431,7 +431,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
             .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(3, Mode.getIs())))
@@ -467,7 +467,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
             .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(2, Mode.getIs())))
@@ -503,7 +503,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
             .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(3, Mode.getIs())))
@@ -539,7 +539,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
             .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(2, Mode.getIs())))
@@ -575,7 +575,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
             .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(2, Mode.getIs())))
@@ -611,7 +611,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
             .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(3, Mode.getIs())))
@@ -647,7 +647,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         boolean containsConstFromDiscardedBranch = getNodes(graph).stream()
             .filter(node -> node instanceof Const && ((Const)node).getTarval().equals(new TargetValue(2, Mode.getIs())))
@@ -686,7 +686,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         List<Node> nodes = getNodes(graph);
         assertDoesNotContainOpCode(nodes, ir_opcode.iro_Cond);
@@ -722,7 +722,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         List<Node> nodes = getNodes(graph);
         assertDoesNotContainOpCode(nodes, ir_opcode.iro_Cond);
@@ -764,7 +764,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         List<Node> nodes = getNodes(graph);
         assertDoesNotContainOpCode(nodes, ir_opcode.iro_Cond);
@@ -809,7 +809,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        while (optimization.optimize(graph)) { }
+        while (optimization.optimize(graph, null)) { }
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Add);
     }
@@ -836,7 +836,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         assertDoesNotContainOpCode(getNodes(graph), ir_opcode.iro_Cond);
     }
@@ -896,7 +896,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        while (optimization.optimize(graph));
+        while (optimization.optimize(graph, null));
 
         List<Node> nodes = getNodes(graph);
 
@@ -941,7 +941,7 @@ public class ConstantOptimizationTest {
         ));
 
         ConstantOptimization optimization = new ConstantOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         List<Node> nodes = getNodes(graph);
 

@@ -27,7 +27,7 @@ public class InliningOptimization implements Optimization.Global {
             if (changed) {
                 changes.add(graph);
             }
-            stateTracker.updateEntity(callGraph, graph.getEntity());
+            stateTracker.updateFunction(callGraph, graph.getEntity());
         });
         return changes;
     }

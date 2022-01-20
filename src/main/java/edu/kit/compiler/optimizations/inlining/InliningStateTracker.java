@@ -41,16 +41,11 @@ public class InliningStateTracker {
         return Optional.ofNullable(calleeMap.get(callee));
     }
 
-    public void updateEntity(CallGraph callGraph, Entity updated) {
+    public void updateFunction(CallGraph callGraph, Entity updated) {
         CalleeAnalysis ca = CalleeAnalysis.run(updated.getGraph());
         calleeMap.put(updated, CalleeEntry.fromCalleeAnalysis(callGraph, ca, updated));
-        // TODO: do we even need the transitive update?
-        callGraph.getCallees(updated).forEach(
-                callee -> {
-                    if (calleeMap.containsKey(callee)) {
-                        calleeMap.put(callee, calleeMap.get(callee).update(callGraph, callee));
-                    }
-                }
+        callGraph.getCallees(updated).filter(calleeMap::containsKey).forEach(
+                callee -> calleeMap.put(callee, calleeMap.get(callee).update(callGraph, callee))
         );
     }
 
