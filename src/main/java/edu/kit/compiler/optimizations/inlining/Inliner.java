@@ -52,8 +52,14 @@ public class Inliner {
         for (var edge: BackEdges.getOuts(call.getBlock())) {
             Node node = edge.node;
             if (node.getBlock().equals(call.getBlock()) && !callPreds.contains(node.getNr())
-                    && node.getOpCode() != ir_opcode.iro_Phi && node.getOpCode() != ir_opcode.iro_Const) {
-                node.setBlock(endBlock);
+                    && node.getOpCode() != ir_opcode.iro_Phi
+                    && !mustBeInStartBlock(node)) {
+                if (node.getOpCode() != ir_opcode.iro_Proj) {
+                    node.setBlock(endBlock);
+                } else if (!callPreds.contains(getNonProjPred(node).getNr())) {
+                    // projections must be in same block as predecessor
+                    node.setBlock(endBlock);
+                }
             }
         }
     }
@@ -74,6 +80,26 @@ public class Inliner {
         return callee.equals(call.getGraph().getEntity());
     }
 
+    /**
+     * Find the first predecessor of the projection that is not
+     * itself a projection.
+     */
+    private static Node getNonProjPred(Node node) {
+        assert node.getOpCode() == ir_opcode.iro_Proj;
+        Node pred = ((Proj) node).getPred();
+        if (pred.getOpCode() == ir_opcode.iro_Proj) {
+            return getNonProjPred(pred);
+        } else {
+            return pred;
+        }
+    }
+
+    private static boolean mustBeInStartBlock(Node node) {
+        return node.getOpCode() == ir_opcode.iro_Const
+                || node.getOpCode() == ir_opcode.iro_Address
+                || node.getOpCode() == ir_opcode.iro_NoMem;
+    }
+
     @RequiredArgsConstructor
     private static class CopyNodes extends NodeVisitor.Default {
         private final Map<Integer, Node> mapping = new HashMap<>();
@@ -86,6 +112,9 @@ public class Inliner {
         public void defaultVisit(Node node) {
             Node copied = graph.copyNode(node);
             mapping.put(node.getNr(), copied);
+            if (mustBeInStartBlock(node)) {
+                copied.setBlock(graph.getStartBlock());
+            }
         }
 
         @Override
@@ -96,9 +125,8 @@ public class Inliner {
                     // replace with the initial memory
                     mapping.put(proj.getNr(), call.getMem());
                 }
-            } else if (pred.getMode().equals(Mode.getT()) && pred.getPredCount() > 0
-                    && pred.getPred(0).equals(callee.getStart())) {
-                // TODO: not sure whether this is the best way for detecting an argument projection
+            } else if (pred.getMode().equals(Mode.getT())
+                    && getNonProjPred(proj).equals(callee.getStart())) {
                 // replace with the correct argument
                 mapping.put(proj.getNr(), call.getPred(proj.getNum() + 2));
             } else {
@@ -168,7 +196,6 @@ public class Inliner {
             } else if (memoryPreds.size() == 1) {
                 memory = memoryPreds.get(0);
             } else {
-                assert memoryPreds.size() > 1;
                 memory = graph.newPhi(getEndBlock(), memoryPreds.toArray(new Node[0]), Mode.getM());
             }
             if (valuePreds.size() == 1) {
