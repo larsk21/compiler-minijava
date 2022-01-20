@@ -102,10 +102,11 @@ public class InliningOptimization implements Optimization.Local {
             // inlining of recursive functions is usually a bad idea
             logWeight -= 3;
         }
-        boolean doInline = (logWeight >= 3) || (
+        boolean isDirectlyRecursive = call.getGraph().equals(getEntity(call).getGraph());
+        boolean doInline = !isDirectlyRecursive && (logWeight >= 3 || (
                 (Math.pow(2, logWeight) * InliningStateTracker.UNPROBLEMATIC_SIZE_INCREASE / 2) >= entry.getNumNodes()
                         && logWeight >= 0
-        );
+        ));
         if (doInline) {
             double basePrio = Math.pow(2, logWeight) / entry.getNumNodes();
             return basePrio;

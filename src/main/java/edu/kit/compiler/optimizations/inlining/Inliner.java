@@ -14,6 +14,7 @@ import java.util.*;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Inliner {
     public static void inline(Graph graph, Call call, Graph callee) {
+        assert !graph.equals(callee);
         if (!isSelfRecursive(call)) {
             BackEdges.enable(callee);
         }
