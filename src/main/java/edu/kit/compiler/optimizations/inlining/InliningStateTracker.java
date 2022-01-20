@@ -111,7 +111,8 @@ public class InliningStateTracker {
 
         public int acceptableSize() {
             return (int) Math.round(
-                    ACCEPTABLE_INCREASE_FACTOR * (initialNumNodes + addedNodesFromCompleteInlining)
+                    ACCEPTABLE_INCREASE_FACTOR * (initialNumNodes
+                            + Math.min(addedNodesFromCompleteInlining, ACCEPTABLE_SIZE_INCREASE))
                     + UNPROBLEMATIC_SIZE_INCREASE);
         }
 
