@@ -1,16 +1,12 @@
 package edu.kit.compiler.optimizations;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.DebugFlags;
 import firm.Dump;
+import firm.Entity;
 import firm.Graph;
 import firm.Program;
 
@@ -30,16 +26,19 @@ public final class Optimizer {
     /**
      * Run all global and local optimizations in turns until a fix point is
      * reached.
+     *
+     * Returns the set of all living functions.
      */
-    public void optimize() {
+    public Set<Graph> optimize(Entity main) {
         dumpGraphsIfEnabled("raw");
 
         var optimizationState = new OptimizationState();
         var changeSet = getAllGraphs();
+        CallGraph callGraph;
         boolean hasChanged;
 
         do {
-            var callGraph = CallGraph.create();
+            callGraph = CallGraph.create();
             hasChanged = optimizeLocal(callGraph, optimizationState, changeSet);
             changeSet.clear();
 
@@ -50,9 +49,14 @@ public final class Optimizer {
                 changeSet.addAll(newChanges);
             } while (!newChanges.isEmpty());
 
+            callGraph.prune(main);
+
         } while (hasChanged && !changeSet.isEmpty());
 
         dumpGraphsIfEnabled("opt");
+
+        return callGraph.vertexSet().stream().map(Entity::getGraph).filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     /**

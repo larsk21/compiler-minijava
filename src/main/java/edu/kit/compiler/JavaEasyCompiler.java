@@ -1,11 +1,7 @@
 package edu.kit.compiler;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import edu.kit.compiler.assembly.AssemblyWriter;
@@ -162,7 +158,7 @@ public class JavaEasyCompiler {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
             Lexer lexer = new Lexer(reader);
             NamespaceMapper namespaceMapper = new NamespaceMapper();
-            createAttributedAst(reader, logger, lexer, namespaceMapper);
+            createAttributedAst(logger, lexer, namespaceMapper);
 
             return Result.Ok;
         } catch (CompilerException e) {
@@ -232,12 +228,12 @@ public class JavaEasyCompiler {
     private static Result compile(String filePath, Logger logger, Optimizer optimizer,
                                   RegisterAllocator allocator) {
         try {
-            createOptimizedIR(filePath, logger, optimizer);
+            var graphs = createOptimizedIR(filePath, logger, optimizer);
 
             PatternCollection coll = new PatternCollection();
             List<FunctionInstructions> functions = new ArrayList<>();
             int blockId = 0;
-            for (Graph graph : Program.getGraphs()) {
+            for (Graph graph : graphs) {
                 InstructionSelection selection = InstructionSelection.apply(graph, coll, blockId);
                 Map<Integer, Block> blockMapping = PhiResolver.apply(selection);
                 List<Block> il = ReversePostfixOrder.apply(blockMapping, selection.getBlocks().getStartBlock().getLabel());
@@ -293,7 +289,6 @@ public class JavaEasyCompiler {
      * Parses the file into an AST and performs semantic analysis,
      * filling the provided namespace mapper.
      *
-     * @param filePath Path of the file (absolute or relative)
      * @param logger the logger
      * @param namespaceMapper empty namespace mapper
      * @return the AST
@@ -301,7 +296,7 @@ public class JavaEasyCompiler {
      * @throws CompilerException
      * @throws IOException
      */
-    private static ProgramNode createAttributedAst(Reader reader, Logger logger,
+    private static ProgramNode createAttributedAst(Logger logger,
             Lexer lexer, NamespaceMapper namespaceMapper) throws IOException {
         ErrorHandler errorHandler = new ErrorHandler(logger);
         StringTable stringTable = lexer.getStringTable();
@@ -329,15 +324,16 @@ public class JavaEasyCompiler {
      *
      * @param filePath Path of the file (absolute or relative)
      * @param logger the logger
-     * @return Ok or an according error
+     * @param optimizer the optimizer
+     * @return the set of living functions
      */
-    private static void createOptimizedIR(String filePath, Logger logger,
-                                          Optimizer optimizer) throws IOException {
+    private static Set<Graph> createOptimizedIR(String filePath, Logger logger,
+                                                Optimizer optimizer) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)));
         Lexer lexer = new Lexer(reader);
         StringTable stringTable = lexer.getStringTable();
         NamespaceMapper namespaceMapper = new NamespaceMapper();
-        ProgramNode ast = createAttributedAst(reader, logger, lexer, namespaceMapper);
+        ProgramNode ast = createAttributedAst(logger, lexer, namespaceMapper);
 
         JFirmSingleton.initializeFirmLinux();
         logger.info("Initialized libFirm Version: %s.%s",
@@ -346,9 +342,9 @@ public class JavaEasyCompiler {
 
         IRVisitor irv = new IRVisitor(namespaceMapper, stringTable);
         ast.accept(irv);
-        Lower.lower(irv.getTypeMapper());
+        Entity main = Lower.lower(irv.getTypeMapper());
 
-        optimizer.optimize();
+        return optimizer.optimize(main);
     }
 
     public static void main(String[] args) {

@@ -14,10 +14,14 @@ public class Lower {
         return str;
     }
 
-    public static void lower(TypeMapper typeMapper) {
+    /**
+     * Returns the entity of the main function.
+     */
+    public static Entity lower(TypeMapper typeMapper) {
         lowerMethods(typeMapper);
-        setMainMethod(typeMapper);
+        Entity main = setMainMethod(typeMapper);
         Util.lowerSels();
+        return main;
     }
 
     /**
@@ -45,7 +49,7 @@ public class Lower {
      * The generated method always returns zero to ensure that compiled programs
      * exit with status 0.
      */
-    private static void setMainMethod(TypeMapper typeMapper) {
+    private static Entity setMainMethod(TypeMapper typeMapper) {
         var global = Program.getGlobalType();
         var mainType = new MethodType(new Type[] {}, new Type[] { new PrimitiveType(Mode.getIs())} );
         var mainEntity = new Entity(global, Ident.mangleGlobal("main"), mainType);
@@ -71,5 +75,6 @@ public class Lower {
         cons.finish();
 
         Program.setMainGraph(graph);
+        return mainEntity;
     }
 }

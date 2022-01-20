@@ -1,15 +1,13 @@
 package edu.kit.compiler.optimizations;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
+import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultEdge;
@@ -176,6 +174,28 @@ public final class CallGraph {
     public void update(firm.Graph function) {
         this.components = null;
         Visitor.update(this, function);
+    }
+
+    /**
+     * Removes all dead functions from the call graph,
+     * i.e. functions that are not reachable from `main`.
+     */
+    public void prune(Entity main) {
+        Set<Entity> retained = new HashSet<>();
+        var iterator = new DepthFirstIterator<>(graph, main);
+        while (iterator.hasNext()) {
+            retained.add(iterator.next());
+        }
+
+        var vertices = new HashSet<>(graph.vertexSet());
+        vertices.removeAll(retained);
+        for (var vertex: vertices) {
+            graph.removeVertex(vertex);
+        }
+    }
+
+    public Set<Entity> vertexSet() {
+        return graph.vertexSet();
     }
 
     private Components getOrInitComponents() {
