@@ -14,6 +14,7 @@ import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Memory;
 import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
+import firm.Mode;
 import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Add;
@@ -178,21 +179,22 @@ public final class OperandPattern {
             // - Constants should always be right side of multiplication (x * c)
             // - Subtractions of constants should not be used (x - c == x + (-c))
 
+            var mode = node.getMode();
             var nodes = AddressNodes.of(node);
 
-            var indexRight = matchMul(nodes.offset, nodes.firstRegister,
+            var indexRight = matchMul(mode, nodes.offset, nodes.firstRegister,
                     nodes.secondRegister, matcher);
             if (indexRight.matches()) {
                 return indexRight;
             }
 
-            var indexLeft = matchMul(nodes.offset, nodes.secondRegister,
+            var indexLeft = matchMul(mode, nodes.offset, nodes.secondRegister,
                     nodes.firstRegister, matcher);
             if (indexLeft.matches()) {
                 return indexLeft;
             }
 
-            return getMatch(nodes.offset, nodes.firstRegister,
+            return getMatch(mode, nodes.offset, nodes.firstRegister,
                     nodes.secondRegister, matcher);
         }
 
@@ -200,12 +202,14 @@ public final class OperandPattern {
          * Try to match a memory addressing mode where `index` is a
          * multiplication with one of the scaling factors 1, 2, 4, or 8.
          */
-        private OperandMatch<Memory> matchMul(Node offset, Node base, Node index, MatcherState matcher) {
+        private OperandMatch<Memory> matchMul(Mode mode, Node offset, Node base,
+                Node index, MatcherState matcher) {
             if (index != null && index.getOpCode() == ir_opcode.iro_Mul) {
                 var mul = (Mul) index;
                 var scaleMatch = SCALE.match(mul.getRight(), matcher);
                 if (scaleMatch.matches()) {
-                    return getMatch(Optional.ofNullable(offset),
+                    return getMatch(mode,
+                            Optional.ofNullable(offset),
                             Optional.ofNullable(base), Optional.of(mul.getLeft()),
                             Optional.of(scaleMatch.getOperand()), matcher);
                 } else {
@@ -220,8 +224,8 @@ public final class OperandPattern {
          * Wraps the given nodes (any of which may be null) with Optionals and
          * passes them to the other overload of `getMatch`.
          */
-        private OperandMatch<Memory> getMatch(Node offset, Node base, Node index, MatcherState matcher) {
-            return getMatch(Optional.ofNullable(offset), Optional.ofNullable(base),
+        private OperandMatch<Memory> getMatch(Mode mode, Node offset, Node base, Node index, MatcherState matcher) {
+            return getMatch(mode, Optional.ofNullable(offset), Optional.ofNullable(base),
                     Optional.ofNullable(index), Optional.empty(), matcher);
         }
 
@@ -231,14 +235,14 @@ public final class OperandPattern {
          * values are a valid combination to avoid exceptions. An example for
          * an invalid combination might be if only base and scale are present.
          */
-        private OperandMatch<Memory> getMatch(Optional<Node> offset, Optional<Node> base,
+        private OperandMatch<Memory> getMatch(Mode mode, Optional<Node> offset, Optional<Node> base,
                 Optional<Node> index, Optional<Immediate> scale, MatcherState matcher) {
             var offsetMatch = offset.map(node -> OFFSET.match(node, matcher));
             var baseMatch = base.map(node -> REGISTER.match(node, matcher));
             var indexMatch = index.map(node -> REGISTER.match(node, matcher));
 
             if (matches(offsetMatch) && matches(baseMatch) && matches(indexMatch)) {
-                var memory = Operand.memory(
+                var memory = Operand.memory(mode,
                         offsetMatch.map(m -> m.getOperand().get().asInt()),
                         baseMatch.map(m -> m.getOperand()),
                         indexMatch.map(m -> m.getOperand()),
