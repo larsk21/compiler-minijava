@@ -192,21 +192,8 @@ public final class OperandPattern {
                 return indexLeft;
             }
 
-            // ! possible improvement: (2,4,8) + 1 * %rax = (%rax,%rax,8)
-            var match = getMatch(nodes.offset, nodes.firstRegister,
+            return getMatch(nodes.offset, nodes.firstRegister,
                     nodes.secondRegister, matcher);
-            if (!match.matches()) {
-                // fallback if something goes awry
-                var register = REGISTER.match(node, matcher);
-                var operand = Operand.memory(Optional.empty(),
-                        Optional.of(register.getOperand()),
-                        Optional.empty(), Optional.empty());
-                var predecessors = register.getPredecessors()
-                        .collect(Collectors.toList());
-                return OperandMatch.some(operand, predecessors);
-            } else {
-                return match;
-            }
         }
 
         /**
