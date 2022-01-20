@@ -79,22 +79,27 @@ public final class Optimizer {
      */
     private boolean optimizeLocal(CallGraph callGraph, OptimizationState optimizationState, Set<Graph> graphs) {
         var orderedGraphs = getChangeSet(callGraph, graphs);
+        for(Graph graph: orderedGraphs) {
+            optimizationState.update(callGraph, graph);
+        }
 
         var programChanged = false;
         for (var graph : orderedGraphs) {
-            boolean graphChanged;
+            boolean graphChanged = false;
+            boolean changes;
             do {
-                graphChanged = false;
+                changes = false;
                 for (var optimization : localOptimizations) {
-                    graphChanged |= optimization.optimize(graph, optimizationState);
+                    changes |= optimization.optimize(graph, optimizationState);
                 }
-                programChanged |= graphChanged;
-            } while (graphChanged);
+                graphChanged |= changes;
+            } while (changes);
 
             if (graphChanged) {
                 callGraph.update(graph);
                 optimizationState.update(callGraph, graph);
             }
+            programChanged |= graphChanged;
         }
 
         return programChanged;
