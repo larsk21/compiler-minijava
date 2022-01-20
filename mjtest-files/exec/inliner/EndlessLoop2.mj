@@ -1,0 +1,20 @@
+class EndlessLoop {
+    public int zero;
+
+    public static void main(String[] args) {
+        EndlessLoop obj = new EndlessLoop();
+        if (obj.hiddenZero() > 0) {
+            System.out.println(obj.doLoop());
+        }
+        System.out.println(0);
+    }
+
+    public int doLoop() {
+        while (true) { }
+        return 0;
+    }
+
+    public int hiddenZero() {
+        return zero;
+    }
+}

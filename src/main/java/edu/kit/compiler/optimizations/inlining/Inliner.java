@@ -32,7 +32,10 @@ public class Inliner {
                 Graph.exchange(proj, phis[0]);
             } else if (proj.getMode().equals(Mode.getT())) {
                 for (var retEdge: BackEdges.getOuts(proj)) {
-                    Graph.exchange(retEdge.node, phis[1]);
+                    // handle weird endless loop edge case
+                    Node newNode = phis.length > 1 ? phis[1]
+                            : graph.newConst(0, retEdge.node.getMode());
+                    Graph.exchange(retEdge.node, newNode);
                 }
             }
         }
