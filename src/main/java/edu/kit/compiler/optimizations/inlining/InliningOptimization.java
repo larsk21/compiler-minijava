@@ -2,6 +2,7 @@ package edu.kit.compiler.optimizations.inlining;
 
 import edu.kit.compiler.optimizations.CallGraph;
 import edu.kit.compiler.optimizations.Optimization;
+import edu.kit.compiler.optimizations.OptimizationState;
 import firm.BackEdges;
 import firm.Entity;
 import firm.Graph;
@@ -13,26 +14,15 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 
-
-// TODO: dont inline endless loop?
-@RequiredArgsConstructor
-public class InliningOptimization implements Optimization.Global {
-    private final InliningStateTracker stateTracker = new InliningStateTracker();
+public class InliningOptimization implements Optimization.Local {
+    private Graph graph;
+    private InliningStateTracker stateTracker;
 
     @Override
-    public Set<Graph> optimize(CallGraph callGraph) {
-        Set<Graph> changes = new HashSet<>();
-        callGraph.walkGraphsBottomUp(graph -> {
-            boolean changed = inliningPass(graph);
-            if (changed) {
-                changes.add(graph);
-            }
-            stateTracker.updateFunction(callGraph, graph.getEntity());
-        });
-        return changes;
-    }
+    public boolean optimize(Graph graph, OptimizationState state) {
+        this.graph = graph;
+        this.stateTracker = state.getInlineStateTracker();
 
-    private boolean inliningPass(Graph graph) {
         var callerEntry = stateTracker.getCallerEntry(graph.getEntity());
         callerEntry.addPass();
         if (callerEntry.shouldStop()) {
@@ -43,7 +33,7 @@ public class InliningOptimization implements Optimization.Global {
         // unchanged predecessors of a node when transforming it
         List<Call> alwaysInlineCalls = new ArrayList<>();
         List<PrioritizedCall> maybeInlineCalls = new ArrayList<>();
-        collectCalls(graph, alwaysInlineCalls, maybeInlineCalls);
+        collectCalls(alwaysInlineCalls, maybeInlineCalls);
 
         BackEdges.enable(graph);
         // approximates the current size of the function
@@ -77,7 +67,7 @@ public class InliningOptimization implements Optimization.Global {
         return changes;
     }
 
-    private void collectCalls(Graph graph, List<Call> alwaysInlineCalls, List<PrioritizedCall> maybeInlineCalls) {
+    private void collectCalls(List<Call> alwaysInlineCalls, List<PrioritizedCall> maybeInlineCalls) {
         graph.walk(new NodeVisitor.Default() {
             @Override
             public void visit(Call call) {
