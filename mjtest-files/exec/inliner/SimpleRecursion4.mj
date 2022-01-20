@@ -1,0 +1,20 @@
+class SimpleRecursion {
+    public static void main(String[] args) {
+        SimpleRecursion obj = new SimpleRecursion();
+        int i = 0;
+        while (i < 10) {
+            System.out.println(obj.add(i, 5));
+            i = i + 1;
+        }
+    }
+
+    public int add(int a, int b) {
+        if (b == 0) {
+            return a;
+        } else if (a == 0) {
+            return add(0, 0);
+        } else {
+            return add(a + 1, b - 1);
+        }
+    }
+}

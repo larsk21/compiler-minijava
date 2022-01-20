@@ -1,0 +1,23 @@
+class SimpleRecursion {
+    public int zero;
+
+    public static void main(String[] args) {
+        SimpleRecursion obj = new SimpleRecursion();
+        if (obj.hiddenZero() > 0) {
+            System.out.println(obj.add(1, 2));
+        }
+    }
+
+    public int add(int a, int b) {
+        if (b == 0) {
+            return a;
+        } else {
+            /* Whoops ... */
+            return add(a - 1, b + 1);
+        }
+    }
+
+    public int hiddenZero() {
+        return zero;
+    }
+}
