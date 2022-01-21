@@ -36,7 +36,7 @@ public abstract class ExitCondition {
     /**
      * Replaces a destination block with a new block.
      */
-    public abstract void replaceBlock(int oldId, int newId);
+    public abstract void replaceBlock(boolean trueBlock, int newId);
 
     public abstract boolean isUnconditional();
 
@@ -97,8 +97,8 @@ public abstract class ExitCondition {
         }
 
         @Override
-        public void replaceBlock(int oldId, int newId) {
-            assert label == oldId;
+        public void replaceBlock(boolean trueBlock, int newId) {
+            assert trueBlock;
             label = newId;
         }
 
@@ -127,11 +127,10 @@ public abstract class ExitCondition {
         }
 
         @Override
-        public void replaceBlock(int oldId, int newId) {
-            if (trueLabel == oldId) {
+        public void replaceBlock(boolean trueBlock, int newId) {
+            if (trueBlock) {
                 trueLabel = newId;
             } else {
-                assert falseLabel == oldId;
                 falseLabel = newId;
             }
         }
