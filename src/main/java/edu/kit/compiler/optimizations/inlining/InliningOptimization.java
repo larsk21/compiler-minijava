@@ -1,6 +1,5 @@
 package edu.kit.compiler.optimizations.inlining;
 
-import edu.kit.compiler.optimizations.CallGraph;
 import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.optimizations.OptimizationState;
 import firm.BackEdges;
@@ -14,6 +13,22 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 
+/**
+ * Implements inlining as a local optimization.
+ * The inliner basically works by collecting all call nodes of the firm graph,
+ * then deciding for each call whether it can be inlined at all (directly recursive
+ * calls and functions without return node can't be inlined, as well as standard library
+ * functions), then deciding whether the inlining is worth it based on some heuristic.
+ * For all remaining calls, a priority is calculated and the calls are inlined in order
+ * of the priority. However, if the size of the function would grow too much by the inlining,
+ * no more calls are inlined.
+ *
+ * Furthermore, the inliner uses some global information via the `OptimizationState` to:
+ *  - find functions that are `always inline`, i.e. that are small enough that it makes
+ *    sense to inline them at all call sizes without increasing the overall code size by much
+ *  - track the size of a function over all inlining rounds, thus ensuring that the total
+ *    code size only grows by a constant factor
+ */
 public class InliningOptimization implements Optimization.Local {
     private Graph graph;
     private InliningStateTracker stateTracker;

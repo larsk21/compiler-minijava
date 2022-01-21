@@ -9,8 +9,11 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 
-
-// TODO: dont inline endless loop?
+/**
+ * Performs the mechanical aspect of inlining one function into another,
+ * i.e. copying the firm graph, splitting the target block and handling
+ * nodes related to input or output.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Inliner {
     public static boolean canBeInlined(Graph graph, Graph callee) {
@@ -24,10 +27,10 @@ public class Inliner {
     }
 
     public static void inline(Graph graph, Call call, Graph callee) {
+        assert graph.equals(call.getGraph());
         assert canBeInlined(graph, callee);
-        if (!isSelfRecursive(call)) {
-            BackEdges.enable(callee);
-        }
+        BackEdges.enable(callee);
+
         Block entryBlock = (Block) call.getBlock();
         Node jmp = graph.newJmp(entryBlock);
 
@@ -49,11 +52,9 @@ public class Inliner {
                 }
             }
         }
-        splitBlock(call, copyVisitor.getEndBlock(), jmp);
 
-        if (!isSelfRecursive(call)) {
-            BackEdges.disable(callee);
-        }
+        splitBlock(call, copyVisitor.getEndBlock(), jmp);
+        BackEdges.disable(callee);
     }
 
     private static void splitBlock(Call call, Node endBlock, Node entryJmp) {
@@ -86,12 +87,6 @@ public class Inliner {
                 markPreds(marked, pred, block);
             }
         }
-    }
-
-    private static boolean isSelfRecursive(Call call) {
-        var addr = (Address) call.getPtr();
-        Entity callee = addr.getEntity();
-        return callee.equals(call.getGraph().getEntity());
     }
 
     /**
