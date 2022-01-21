@@ -13,8 +13,18 @@ import java.util.*;
 // TODO: dont inline endless loop?
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Inliner {
+    public static boolean canBeInlined(Graph graph, Graph callee) {
+        if (graph.equals(callee)) {
+            return false;
+        }
+        // Needed to work around some problem in the firm backend that appears when
+        // the callee has no return value (i.e. is an endless loop).
+        // It is sensible to don't inline that, anyway.
+        return callee.getEndBlock().getPredCount() > 0;
+    }
+
     public static void inline(Graph graph, Call call, Graph callee) {
-        assert !graph.equals(callee);
+        assert canBeInlined(graph, callee);
         if (!isSelfRecursive(call)) {
             BackEdges.enable(callee);
         }
@@ -195,9 +205,8 @@ public class Inliner {
 
             // handle the different cases
             Node memory;
-            if (memoryPreds.size() == 0) {
-                memory = call.getMem();
-            } else if (memoryPreds.size() == 1) {
+            assert memoryPreds.size() > 0;
+            if (memoryPreds.size() == 1) {
                 memory = memoryPreds.get(0);
             } else {
                 memory = graph.newPhi(getEndBlock(), memoryPreds.toArray(new Node[0]), Mode.getM());
