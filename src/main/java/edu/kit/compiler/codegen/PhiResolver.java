@@ -3,6 +3,10 @@ package edu.kit.compiler.codegen;
 import edu.kit.compiler.intermediate_lang.Block;
 import edu.kit.compiler.intermediate_lang.Instruction;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
+import firm.bindings.binding_irnode;
+import firm.nodes.Cond;
+import firm.nodes.Node;
+import firm.nodes.Proj;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -45,12 +49,14 @@ public class PhiResolver {
 
         // for each predecessor block, collect the required phi assignments
         for (var phiInstruction : block.getPhiInstructions()) {
-            for (var entry : phiInstruction.getEntries()) {
-                BasicBlocks.BlockEntry predBlock = selection.getBlocks().getEntry(entry.getPredBlock());
+            var entries = phiInstruction.getEntries();
+            for (int i = 0; i < entries.size(); i++) {
+                var predBlock = selection.getBlocks().getEntry(entries.get(i).getPredBlock());
                 var assignments = predMapping.computeIfAbsent(
-                        predBlock.getLabel(), k -> new PhiAssignments(predBlock)
+                        i, j -> new PhiAssignments(predBlock, block.getFirmBlock().getPred(j))
                 );
-                assignments.add(entry.getRegister(), phiInstruction.getTargetRegister());
+                assert assignments.getPred().equals(predBlock);
+                assignments.add(entries.get(i).getRegister(), phiInstruction.getTargetRegister());
             }
         }
 
@@ -82,7 +88,7 @@ public class PhiResolver {
 
                 assert !mapping.containsKey(newBlockId);
                 mapping.put(newBlockId, newBlock);
-                condition.replaceBlock(block.getLabel(), newBlockId);
+                condition.replaceBlock(assignments.isTrueExit(), newBlockId);
             }
         }
     }
@@ -93,10 +99,17 @@ public class PhiResolver {
     @Data
     private static class PhiAssignments {
         private final BasicBlocks.BlockEntry pred;
+        private final Node controlFlowPredecessor;
         private final  List<PermutationSolver.Assignment> assignments = new ArrayList<>();
 
         public void add(int source, int target) {
             assignments.add(new PermutationSolver.Assignment(source, target));
+        }
+
+        public boolean isTrueExit() {
+            assert controlFlowPredecessor.getOpCode() == binding_irnode.ir_opcode.iro_Proj;
+            Proj condProj = (Proj) controlFlowPredecessor;
+            return condProj.getNum() == Cond.pnTrue;
         }
     }
 }

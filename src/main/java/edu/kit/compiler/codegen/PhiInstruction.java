@@ -42,6 +42,9 @@ public final class PhiInstruction {
      * be interpreted as follows: If the control flow left the given block
      * before entering the block of the Phi node, load the given register into
      * the target register of the Phi instruction.
+     *
+     * Important: In order for the phi resolver to work correctly, the entries must
+     * be added in order of the firm predecessors.
      */
     public void addEntry(Block block, Operand.Register register) {
         entries.add(new Entry(block, register));
