@@ -183,8 +183,8 @@ public class PureFunctionOptimizationTest {
         Lower.lower(irVisitor.getTypeMapper());
 
         var graphs = getNewGraphs();
-        var callGraph = CallGraph.create(graphs);
-        optimization.optimize(callGraph, graphs);
+        var state = new OptimizationState();
+        graphs.forEach(graph -> optimization.optimize(graph, state));
 
         graphs.forEach(graph -> {
             graph.walkPostorder(new NodeVisitor.Default() {
@@ -208,11 +208,11 @@ public class PureFunctionOptimizationTest {
             return visitor.buffer.size();
         }
 
-        public static List<Node> collect(Graph graph, ir_opcode opcode)  {
-            var visitor = new Counter(opcode);
-            graph.walk(visitor);
-            return visitor.buffer;
-        }
+        // public static List<Node> collect(Graph graph, ir_opcode opcode)  {
+        //     var visitor = new Counter(opcode);
+        //     graph.walk(visitor);
+        //     return visitor.buffer;
+        // }
 
         public static Node getOnly(Graph graph, ir_opcode opcode)  {
             var visitor = new Counter(opcode);

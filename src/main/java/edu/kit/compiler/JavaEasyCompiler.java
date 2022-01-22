@@ -372,14 +372,13 @@ public class JavaEasyCompiler {
                 allocator = new DumbAllocator();
                 break;
             case Level1:
-                optimizer = new Optimizer(List.of(
-                    new PureFunctionOptimization()
-                ), List.of(
+                optimizer = new Optimizer(List.of(), List.of(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization(),
                     new LinearBlocksOptimization(),
-                    new InliningOptimization()
+                    new InliningOptimization(),
+                    new PureFunctionOptimization()
                 ), debugFlags);
                 allocator = new LinearScan();
                 break;
