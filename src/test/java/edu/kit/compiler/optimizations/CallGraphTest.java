@@ -376,6 +376,96 @@ public class CallGraphTest {
         assertEquals(Set.of(fun1, fun2, fun3, fun4), getTransitiveCallers(cg, fun2, fun3));
     }
 
+    @Test
+    public void testPruneSimple() {
+        var caller1 = initGraph();
+        var callee1 = initGraph();
+        var callee2 = initGraph();
+
+        createCalls(caller1, callee1);
+        createCalls(callee1);
+        createCalls(callee2);
+
+        var cg = createCallGraph();
+        cg.prune(caller1);
+
+        assertEquals(Set.of(caller1, callee1), cg.vertexSet());
+    }
+
+    @Test
+    public void testPruneNothing() {
+        var caller1 = initGraph();
+        var callee1 = initGraph();
+        var callee2 = initGraph();
+
+        createCalls(caller1, callee1, callee2);
+        createCalls(callee1);
+        createCalls(callee2);
+
+        var cg = createCallGraph();
+        cg.prune(caller1);
+
+        assertEquals(Set.of(caller1, callee1, callee2), cg.vertexSet());
+    }
+
+    @Test
+    public void testPruneLarge() {
+        var caller1 = initGraph();
+        var caller2 = initGraph();
+        var caller3 = initGraph();
+        var caller4 = initGraph();
+        var callee1 = initGraph();
+        var callee2 = initGraph();
+
+        createCalls(caller1, callee1, callee2);
+        createCalls(caller2, caller3);
+        createCalls(caller3, caller4);
+        createCalls(caller4, caller2);
+        createCalls(callee1);
+        createCalls(callee2);
+
+        var cg = createCallGraph();
+        cg.prune(caller1);
+
+        assertEquals(Set.of(caller1, callee1, callee2), cg.vertexSet());
+    }
+
+    @Test
+    public void testPruneBackwardsEdge() {
+        var caller1 = initGraph();
+        var caller2 = initGraph();
+        var callee1 = initGraph();
+
+
+        createCalls(caller1, callee1);
+        createCalls(caller2, callee1);
+        createCalls(callee1);
+
+        var cg = createCallGraph();
+        cg.prune(caller1);
+
+        assertEquals(Set.of(caller1, callee1), cg.vertexSet());
+    }
+
+    @Test
+    public void testUpdateAndPrune() {
+        var caller1 = initGraph();
+        var caller2 = initGraph();
+        var callee1 = initGraph();
+
+        createCalls(caller1, caller2);
+        createCalls(caller2, callee1);
+        createCalls(callee1);
+
+        var cg = createCallGraph();
+        reinitGraph(caller2);
+        createCalls(caller2);
+        cg.update(caller2.getGraph());
+        cg.prune(caller1);
+
+        assertEquals(Set.of(caller1, caller2), cg.vertexSet());
+    }
+
     private CallGraph createCallGraph() {
         return CallGraph.create(graphs);
     }
