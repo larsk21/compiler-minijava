@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class EchoLineEndingTest {
 
-    private ClassLoader classLoader = getClass().getClassLoader();
+    private final ClassLoader classLoader = getClass().getClassLoader();
 
     private static final String FILE = "edu/kit/compiler/cmd/file_with_line_endings.txt";
     private static final String LARGE_FILE = "edu/kit/compiler/cmd/large_file";
@@ -23,7 +23,7 @@ public class EchoLineEndingTest {
             "lkjasdfkjalsdf";
 
     @Test
-    public void testLineEndings() throws IOException {
+    public void testLineEndings() {
         var path = classLoader.getResource(FILE).getPath();
         var os = new ByteArrayOutputStream();
         assertEquals(JavaEasyCompiler.echo(path, os, Logger.nullLogger()), Result.Ok);
@@ -31,7 +31,7 @@ public class EchoLineEndingTest {
     }
 
     @Test
-    public void testLargeFile() throws IOException {
+    public void testLargeFile() {
         var path = classLoader.getResource(LARGE_FILE).getPath();
         var os = new ByteArrayOutputStream();
         assertEquals(JavaEasyCompiler.echo(path, os, Logger.nullLogger()), Result.Ok);
