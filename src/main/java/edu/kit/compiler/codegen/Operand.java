@@ -45,13 +45,6 @@ public interface Operand {
     }
 
     /**
-     * If the operand is an immediate, return its TargetValue.
-     */
-    default Optional<TargetValue> getConstValue() {
-        return Optional.empty();
-    }
-
-    /**
      * Return an Operand equivalent to an immediate of the given TargetValue.
      * The size of the value is used to determine the size of the operand.
      */
@@ -97,9 +90,9 @@ public interface Operand {
      * Illegal combinations of present (or rather absent) values will result
      * in exceptions being thrown.
      */
-    public static Memory memory(Optional<Integer> offset, Optional<Register> base,
+    public static Memory memory(Mode mode, Optional<Integer> offset, Optional<Register> base,
             Optional<Register> index, Optional<Integer> scale) {
-        return new Memory(offset, base, index, scale);
+        return new Memory(mode, offset, base, index, scale);
     }
 
     /**
@@ -151,11 +144,6 @@ public interface Operand {
         @Override
         public List<Integer> getSourceRegisters() {
             return List.of();
-        }
-
-        @Override
-        public Optional<TargetValue> getConstValue() {
-            return Optional.of(value);
         }
 
         /**
@@ -219,8 +207,6 @@ public interface Operand {
     @ToString(callSuper = true)
     public static final class ImmediateRegister extends Register {
 
-        // ? would is make sense for getConstValue return the Tarval ?
-
         private final Immediate value;
 
         public ImmediateRegister(Immediate value, int register) {
@@ -250,18 +236,20 @@ public interface Operand {
     @ToString
     public static final class Memory implements Target {
 
+        private final Mode mode;
         private final Optional<Integer> offset;
         private final Optional<Register> baseRegister;
         private final Optional<Register> indexRegister;
         private final Optional<Integer> scale;
 
-        public Memory(Optional<Integer> offset, Optional<Register> baseRegister,
+        public Memory(Mode mode, Optional<Integer> offset, Optional<Register> baseRegister,
                 Optional<Register> indexRegister, Optional<Integer> scale) {
             if (baseRegister.isEmpty() && indexRegister.isEmpty()) {
                 throw new IllegalArgumentException("either base or index register must be present");
             } else if (scale.isPresent() && indexRegister.isEmpty()) {
                 throw new IllegalArgumentException("scale required index register to be present");
             } else {
+                this.mode = mode;
                 this.offset = offset;
                 this.baseRegister = baseRegister;
                 this.indexRegister = indexRegister;
@@ -293,12 +281,12 @@ public interface Operand {
 
         @Override
         public RegisterSize getSize() {
-            return Util.getSize(Mode.getP());
+            return Util.getSize(mode);
         }
 
         @Override
         public Mode getMode() {
-            return Mode.getP();
+            return mode;
         }
 
         @Override
