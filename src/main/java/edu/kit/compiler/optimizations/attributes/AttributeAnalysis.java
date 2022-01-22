@@ -53,6 +53,17 @@ public final class AttributeAnalysis {
     }
 
     /**
+     * Update the attributes for the given function, the updates is only done
+     * locally, i.e. attributes of called functions are not updated, neither are
+     * those of callees of the updated function. It is assumed that attributes
+     * will never get "worse" during optimization.
+     */
+    public void update(Graph graph) {
+        functions.remove(graph.getEntity());
+        computeAttributes(graph.getEntity());
+    }
+
+    /**
      * Compute and return attributes for the given function if no cached values
      * are available.
      */
