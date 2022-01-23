@@ -162,6 +162,16 @@ public final class CallGraph {
     }
 
     /**
+     * Create a CallGraph based on the current state of Firm. The call graph
+     * will only function nodes that are reachable from `main`.
+     */
+    public static CallGraph createPruned(Entity main) {
+        var graph = Visitor.create(Program.getGraphs());
+        graph.prune(main);
+        return graph;
+    }
+
+    /**
      * Update the given function in the call graph. All calls to the function
      * will remain in the call graph, all outgoing calls will be reevaluated.
      * The function is not required to currently exist in the call graph (may be
@@ -186,10 +196,11 @@ public final class CallGraph {
             retained.add(iterator.next());
         }
 
-        var vertices = new HashSet<>(graph.vertexSet());
-        vertices.removeAll(retained);
-        for (var vertex: vertices) {
-            graph.removeVertex(vertex);
+        var currentVertices = new ArrayList<>(graph.vertexSet());
+        for (var vertex: currentVertices) {
+            if (!retained.contains(vertex)) {
+                graph.removeVertex(vertex);
+            }
         }
     }
 

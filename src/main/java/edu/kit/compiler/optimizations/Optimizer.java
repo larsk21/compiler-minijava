@@ -34,11 +34,11 @@ public final class Optimizer {
 
         var optimizationState = new OptimizationState();
         var changeSet = getAllGraphs();
-        CallGraph callGraph;
         boolean hasChanged;
 
         do {
-            callGraph = CallGraph.create();
+            var callGraph = CallGraph.createPruned(main);
+            changeSet.removeIf(fun -> !callGraph.functionSet().contains(fun.getEntity()));
             hasChanged = optimizeLocal(callGraph, optimizationState, changeSet);
             changeSet.clear();
 
@@ -49,14 +49,12 @@ public final class Optimizer {
                 changeSet.addAll(newChanges);
             } while (!newChanges.isEmpty());
 
-            callGraph.prune(main);
-
         } while (hasChanged && !changeSet.isEmpty());
 
         dumpGraphsIfEnabled("opt");
 
-        return callGraph.functionSet().stream().map(Entity::getGraph).filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        return CallGraph.createPruned(main).functionSet().stream().map(Entity::getGraph)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
     /**
