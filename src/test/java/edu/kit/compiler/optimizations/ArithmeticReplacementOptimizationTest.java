@@ -65,15 +65,15 @@ public class ArithmeticReplacementOptimizationTest {
     @Test
     public void testTrivialMul() {
         createMul(initGraph(), 1);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Mul));
 
         createMul(initGraph(), 0);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Mul));
 
         createMul(initGraph(), -1);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Mul));
     }
 
@@ -81,13 +81,13 @@ public class ArithmeticReplacementOptimizationTest {
     public void testMulPowerOfTwo() {
         for (int i = 0; i < 2; ++i) {
             createMul(initGraph(), randomPower(3));
-            optimization.optimize(graph());
+            optimization.optimize(graph(), null);
             assertEquals(0, count(ir_opcode.iro_Mul));
         }
 
         for (int i = 0; i < 2; ++i) {
             createMul(initGraph(), -randomPower(3));
-            optimization.optimize(graph());
+            optimization.optimize(graph(), null);
             assertEquals(0, count(ir_opcode.iro_Mul));
         }
     }
@@ -95,11 +95,11 @@ public class ArithmeticReplacementOptimizationTest {
     @Test
     public void testMulIntBounds() {
         createMul(initGraph(), Integer.MAX_VALUE);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertNotEquals(0, count(ir_opcode.iro_Mul));
 
         createMul(initGraph(), Integer.MIN_VALUE);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Mul));
     }
 
@@ -107,13 +107,13 @@ public class ArithmeticReplacementOptimizationTest {
     public void testMulRandom() {
         for (int i = 0; i < 2; ++i) {
             createMul(initGraph(), randomDivisor());
-            optimization.optimize(graph());
+            optimization.optimize(graph(), null);
             assertNotEquals(0, count(ir_opcode.iro_Mul));
         }
 
         for (int i = 0; i < 2; ++i) {
             createMul(initGraph(), -randomDivisor());
-            optimization.optimize(graph());
+            optimization.optimize(graph(), null);
             assertNotEquals(0, count(ir_opcode.iro_Mul));
         }
     }
@@ -121,15 +121,15 @@ public class ArithmeticReplacementOptimizationTest {
     @Test
     public void testTrivialDiv() {
         createDiv(initGraph(), 1);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Div));
 
         createDiv(initGraph(), 0);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Div));
 
         createDiv(initGraph(), -1);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(1, count(ir_opcode.iro_Div));
     }
 
@@ -137,14 +137,14 @@ public class ArithmeticReplacementOptimizationTest {
     public void testDivPowerOfTwo() {
         for (int i = 0; i < 2; ++i) {
             createDiv(initGraph(), randomPower());
-            optimization.optimize(graph());
+            optimization.optimize(graph(), null);
             assertEquals(0, count(ir_opcode.iro_Div));
             assertEquals(0, count(ir_opcode.iro_Mul));
         }
 
         for (int i = 0; i < 2; ++i) {
             createDiv(initGraph(), -randomPower());
-            optimization.optimize(graph());
+            optimization.optimize(graph(), null);
             assertEquals(0, count(ir_opcode.iro_Div));
             assertEquals(0, count(ir_opcode.iro_Mul));
         }
@@ -153,11 +153,11 @@ public class ArithmeticReplacementOptimizationTest {
     @Test
     public void testDivIntBounds() {
         createDiv(initGraph(), Integer.MAX_VALUE);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Div));
 
         createDiv(initGraph(), Integer.MIN_VALUE);
-        optimization.optimize(graph());
+        optimization.optimize(graph(), null);
         assertEquals(0, count(ir_opcode.iro_Div));
         assertEquals(0, count(ir_opcode.iro_Mul));
     }
@@ -166,13 +166,13 @@ public class ArithmeticReplacementOptimizationTest {
     public void testDivRandom() {
         for (int i = 0; i < 4; ++i) {
             createDiv(initGraph(), randomDivisor());
-            optimization.optimize(graph());
+            optimization.optimize(graph(), null);
             assertEquals(0, count(ir_opcode.iro_Div));
         }
 
         for (int i = 0; i < 4; ++i) {
             createDiv(initGraph(), -randomDivisor());
-            optimization.optimize(graph());
+            optimization.optimize(graph(), null);
             assertEquals(0, count(ir_opcode.iro_Div));
         }
     }

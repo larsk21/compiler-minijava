@@ -38,7 +38,7 @@ public class ConstantOptimization implements Optimization.Local {
     private UndefinedCondStrategy undefinedCondStrategy;
 
     @Override
-    public boolean optimize(Graph graph) {
+    public boolean optimize(Graph graph, OptimizationState state) {
         this.graph = graph;
 
         ConstantAnalysis analysis = new ConstantAnalysis(graph);

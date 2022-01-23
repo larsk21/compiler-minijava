@@ -112,7 +112,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -156,7 +156,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -213,7 +213,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -287,7 +287,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -365,7 +365,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -428,7 +428,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -484,7 +484,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -551,7 +551,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -642,7 +642,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -728,7 +728,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);
@@ -814,7 +814,7 @@ public class LinearBlocksOptimizationTest {
 
         // run optimization
         LinearBlocksOptimization optimization = new LinearBlocksOptimization();
-        optimization.optimize(graph);
+        optimization.optimize(graph, null);
 
         // make assertions
         List<Block> blocks = getBlocks(graph);

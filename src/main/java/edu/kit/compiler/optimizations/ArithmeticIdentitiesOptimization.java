@@ -49,7 +49,7 @@ import lombok.RequiredArgsConstructor;
  */
 public final class ArithmeticIdentitiesOptimization implements Optimization.Local {
     @Override
-    public boolean optimize(Graph graph) {
+    public boolean optimize(Graph graph, OptimizationState state) {
         var visitor = new Visitor(graph);
         visitor.apply();
 

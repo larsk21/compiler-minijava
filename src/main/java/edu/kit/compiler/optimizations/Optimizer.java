@@ -1,16 +1,12 @@
 package edu.kit.compiler.optimizations;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.DebugFlags;
 import firm.Dump;
+import firm.Entity;
 import firm.Graph;
 import firm.Program;
 
@@ -30,16 +26,20 @@ public final class Optimizer {
     /**
      * Run all global and local optimizations in turns until a fix point is
      * reached.
+     *
+     * Returns the set of all living functions.
      */
-    public void optimize() {
+    public Set<Graph> optimize(Entity main) {
         dumpGraphsIfEnabled("raw");
 
+        var optimizationState = new OptimizationState();
         var changeSet = getAllGraphs();
         boolean hasChanged;
 
         do {
-            var callGraph = CallGraph.create();
-            hasChanged = optimizeLocal(callGraph, changeSet);
+            var callGraph = CallGraph.createPruned(main);
+            changeSet.removeIf(fun -> !callGraph.functionSet().contains(fun.getEntity()));
+            hasChanged = optimizeLocal(callGraph, optimizationState, changeSet);
             changeSet.clear();
 
             // ? maybe only run global opts once per iteration
@@ -52,6 +52,9 @@ public final class Optimizer {
         } while (hasChanged && !changeSet.isEmpty());
 
         dumpGraphsIfEnabled("opt");
+
+        return CallGraph.createPruned(main).functionSet().stream().map(Entity::getGraph)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
     /**
@@ -76,23 +79,29 @@ public final class Optimizer {
      * call graph. The call graph is updated if a graph has been changed.
      * Returns true if a change in any graph has occurred.
      */
-    private boolean optimizeLocal(CallGraph callGraph, Set<Graph> graphs) {
+    private boolean optimizeLocal(CallGraph callGraph, OptimizationState optimizationState, Set<Graph> graphs) {
         var orderedGraphs = getChangeSet(callGraph, graphs);
+        for(Graph graph: orderedGraphs) {
+            optimizationState.update(callGraph, graph);
+        }
 
         var programChanged = false;
         for (var graph : orderedGraphs) {
-            boolean graphChanged;
+            boolean graphChanged = false;
+            boolean changes;
             do {
-                graphChanged = false;
+                changes = false;
                 for (var optimization : localOptimizations) {
-                    graphChanged |= optimization.optimize(graph);
+                    changes |= optimization.optimize(graph, optimizationState);
                 }
-                programChanged |= graphChanged;
-            } while (graphChanged);
+                graphChanged |= changes;
+            } while (changes);
 
             if (graphChanged) {
                 callGraph.update(graph);
+                optimizationState.update(callGraph, graph);
             }
+            programChanged |= graphChanged;
         }
 
         return programChanged;

@@ -1,0 +1,18 @@
+class EndlessRecursion {
+    public int zero;
+
+    public static void main(String[] args) {
+        EndlessRecursion obj = new EndlessRecursion();
+        if (obj.hiddenZero() > 0) {
+            System.out.println(obj.recurse());
+        }
+    }
+
+    public int recurse() {
+        return recurse();
+    }
+
+    public int hiddenZero() {
+        return zero;
+    }
+}

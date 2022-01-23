@@ -1,9 +1,6 @@
 package edu.kit.compiler.optimizations;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -94,6 +91,14 @@ public final class CallGraph {
     }
 
     /**
+     * Returns if the function is recursive, i.e. if it is contained in a
+     * circle in the call graph.
+     */
+    public boolean existsRecursion(Entity function) {
+        return getCallees(function).anyMatch(callee -> existsRecursion(function, callee));
+    }
+
+    /**
      * Calls #existsRecursion(Entity, Entity) with the caller and callee of the
      * given Call node.
      */
@@ -157,6 +162,16 @@ public final class CallGraph {
     }
 
     /**
+     * Create a CallGraph based on the current state of Firm. The call graph
+     * will only function nodes that are reachable from `main`.
+     */
+    public static CallGraph createPruned(Entity main) {
+        var graph = Visitor.create(Program.getGraphs());
+        graph.prune(main);
+        return graph;
+    }
+
+    /**
      * Update the given function in the call graph. All calls to the function
      * will remain in the call graph, all outgoing calls will be reevaluated.
      * The function is not required to currently exist in the call graph (may be
@@ -168,6 +183,26 @@ public final class CallGraph {
     public void update(firm.Graph function) {
         this.components = null;
         Visitor.update(this, function);
+    }
+
+    /**
+     * Removes all dead functions from the call graph,
+     * i.e. functions that are not reachable from `main`.
+     */
+    public void prune(Entity main) {
+        Set<Entity> unreachable = new HashSet<>(graph.vertexSet());
+        var iterator = new DepthFirstIterator<>(graph, main);
+        while (iterator.hasNext()) {
+            unreachable.remove(iterator.next());
+        }
+
+        for (var vertex: unreachable) {
+            graph.removeVertex(vertex);
+        }
+    }
+
+    public Set<Entity> functionSet() {
+        return graph.vertexSet();
     }
 
     private Components getOrInitComponents() {

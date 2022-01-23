@@ -1,0 +1,40 @@
+class Math {
+    public static void main(String[] args) {
+        Math math = new Math();
+        math.run();
+    }
+
+    public void run() {
+        System.out.println(pow(5, 0));
+        System.out.println(pow(2, 1));
+        System.out.println(pow(2, 2));
+        System.out.println(pow(2, 3));
+    }
+
+    public int pow(int base, int exp) {
+        if (exp < 0) {
+            return 0;
+        }
+        if (exp == 0) {
+            return 1;
+        }
+        if (exp == 1) {
+            return base;
+        }
+        if (exp % 2 == 0) {
+            return mul(
+                pow(base, exp / 2),
+                pow(base, exp / 2)
+            );
+        }
+        int lower = exp / 2;
+        return mul(
+           pow(base, lower + 1),
+           pow(base, lower)
+       );
+    }
+
+    public int mul(int a, int b) {
+        return a * b;
+    }
+}

@@ -56,7 +56,7 @@ public class LinearBlocksOptimization implements Optimization.Local {
     }
 
     @Override
-    public boolean optimize(Graph graph) {
+    public boolean optimize(Graph graph, OptimizationState state) {
         this.graph = graph;
 
         collectBlockNodes();
