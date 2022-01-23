@@ -20,6 +20,7 @@ public class InliningStateTracker {
     public static final int ACCEPTABLE_SIZE_INCREASE = 300;
     public static final int UNPROBLEMATIC_SIZE_INCREASE = 80;
     public static final double ACCEPTABLE_INCREASE_FACTOR = 2;
+    public static final int LARGE_FN = 500;
 
     /**
      * We want to ensure that inlining always terminates.
@@ -96,7 +97,6 @@ public class InliningStateTracker {
         }
     }
 
-    @RequiredArgsConstructor
     public static class CallerEntry {
         @Getter
         private final int initialNumNodes;
@@ -104,6 +104,16 @@ public class InliningStateTracker {
         private int addedNodesFromCompleteInlining = 0;
         @Getter
         private int totalInliningPasses = 0;
+        private final int acceptableNumPasses;
+
+        public CallerEntry(int initialNumNodes) {
+            this.initialNumNodes = initialNumNodes;
+            if (initialNumNodes > LARGE_FN) {
+                acceptableNumPasses = Math.max(1, LARGE_FN * UPPER_LIMIT_NUM_PASSES / initialNumNodes);
+            } else {
+                acceptableNumPasses = UPPER_LIMIT_NUM_PASSES;
+            }
+        }
 
         public void addCompletelyInlinedNodes(int num) {
             addedNodesFromCompleteInlining += num;
@@ -121,7 +131,7 @@ public class InliningStateTracker {
         }
 
         public boolean shouldStop() {
-            return totalInliningPasses >= UPPER_LIMIT_NUM_PASSES;
+            return totalInliningPasses >= acceptableNumPasses;
         }
     }
 }

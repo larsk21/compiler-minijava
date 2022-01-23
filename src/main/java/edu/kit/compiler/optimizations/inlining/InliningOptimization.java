@@ -39,10 +39,10 @@ public class InliningOptimization implements Optimization.Local {
         this.stateTracker = state.getInlineStateTracker();
 
         var callerEntry = stateTracker.getCallerEntry(graph.getEntity());
-        callerEntry.addPass();
         if (callerEntry.shouldStop()) {
             return false;
         }
+        callerEntry.addPass();
 
         // we transform the nodes in reverse postorder, i.e. we can access the
         // unchanged predecessors of a node when transforming it
@@ -55,13 +55,21 @@ public class InliningOptimization implements Optimization.Local {
         int currentNumNodes = CalleeAnalysis.run(graph).getNumNodes();
         boolean changes = false;
         for (Call call: alwaysInlineCalls) {
-            Inliner.inline(graph, call, getEntity(call).getGraph());
             int numNodes = getCalleeEntry(call).get().getNumNodes();
-            callerEntry.addCompletelyInlinedNodes(numNodes);
-            currentNumNodes += numNodes;
-            changes = true;
+            if (numNodes > InliningStateTracker.LARGE_FN
+                    && currentNumNodes > InliningStateTracker.LARGE_FN) {
+                // edge case: large function with exactly one call site
+                double prio = calculatePriority(call, getCalleeEntry(call).get());
+                maybeInlineCalls.add(new PrioritizedCall(call, prio));
+            } else {
+                Inliner.inline(graph, call, getEntity(call).getGraph());
+                callerEntry.addCompletelyInlinedNodes(numNodes);
+                currentNumNodes += numNodes;
+                changes = true;
+            }
         }
 
+        maybeInlineCalls.sort(Comparator.reverseOrder());
         for (var pc: maybeInlineCalls) {
             Call call = pc.getCall();
             int numNodes = getCalleeEntry(call).get().getNumNodes();
@@ -98,7 +106,6 @@ public class InliningOptimization implements Optimization.Local {
                 }
             }
         });
-        maybeInlineCalls.sort(Comparator.reverseOrder());
     }
 
     /**
@@ -117,6 +124,10 @@ public class InliningOptimization implements Optimization.Local {
         if (entry.isRecursive()) {
             // inlining of recursive functions is usually a bad idea
             logWeight -= 3;
+        }
+        if (entry.isAlwaysInline()) {
+            // edge case: large function with exactly one call site
+            logWeight += 3;
         }
         boolean doInline = logWeight >= 3 || (
                 (Math.pow(2, logWeight) * InliningStateTracker.UNPROBLEMATIC_SIZE_INCREASE / 2) >= entry.getNumNodes()
