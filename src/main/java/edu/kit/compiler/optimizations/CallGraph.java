@@ -190,17 +190,14 @@ public final class CallGraph {
      * i.e. functions that are not reachable from `main`.
      */
     public void prune(Entity main) {
-        Set<Entity> retained = new HashSet<>();
+        Set<Entity> unreachable = new HashSet<>(graph.vertexSet());
         var iterator = new DepthFirstIterator<>(graph, main);
         while (iterator.hasNext()) {
-            retained.add(iterator.next());
+            unreachable.remove(iterator.next());
         }
 
-        var currentVertices = new ArrayList<>(graph.vertexSet());
-        for (var vertex: currentVertices) {
-            if (!retained.contains(vertex)) {
-                graph.removeVertex(vertex);
-            }
+        for (var vertex: unreachable) {
+            graph.removeVertex(vertex);
         }
     }
 
