@@ -27,6 +27,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class AttributeAnalysis {
 
+    private static final int ALLOC_LOOP_DEPTH = 2;
+
     private final Map<Entity, Attributes> functions = new HashMap<>();
     private final Entity calloc = StandardLibraryEntities.INSTANCE.getCalloc().getEntity();
 
@@ -88,7 +90,7 @@ public final class AttributeAnalysis {
                 checkTermination(graph, attributes);
 
                 // Third analyze whether the function is malloc-like
-                attributes.setMalloc(checkMalloc(graph));
+                attributes.setMalloc(isMallocLike(graph));
 
                 functions.put(entity, attributes);
                 return attributes;
@@ -107,6 +109,10 @@ public final class AttributeAnalysis {
         }
     }
 
+    /**
+     * Check the given graph for control flow loops and unset `terminates` in
+     * the given attributes if a loop is found.
+     */
     private static void checkTermination(Graph graph, Attributes attributes) {
         graph.incBlockVisited();
         checkTermination(graph.getEndBlock(), attributes);
@@ -139,13 +145,20 @@ public final class AttributeAnalysis {
         }
     }
 
-    private boolean checkMalloc(Graph graph) {
+    /**
+     * Returns true if the given graph is malloc-like.
+     */
+    private boolean isMallocLike(Graph graph) {
         var calls = new LinkedList<Call>();
-        var isMalloc = StreamSupport.stream(graph.getEndBlock().getPreds().spliterator(), false)
-                .allMatch(returnNode -> isMalloc(returnNode, calls));
+        var returnsMalloc = StreamSupport.stream(graph.getEndBlock().getPreds().spliterator(), false)
+                .allMatch(returnNode -> isNewAlloc(returnNode, calls));
 
-        return isMalloc && graph.getEndBlock().getPredCount() > 0
+        BackEdges.enable(graph);
+        var isMalloc = returnsMalloc && graph.getEndBlock().getPredCount() > 0
                 && !calls.stream().anyMatch(this::isStored);
+        BackEdges.disable(graph);
+
+        return isMalloc;
     }
 
     /**
@@ -162,11 +175,7 @@ public final class AttributeAnalysis {
                 case iro_Load, iro_Return -> false;
 
                 // the value may be stored to, but not stored itself
-                case iro_Store -> {
-                    // todo is this usage of Edge#pos correct?
-                    assert edge.pos == 1 || edge.pos == 2;
-                    yield edge.pos == 2;
-                }
+                case iro_Store -> edge.pos == 2; 
 
                 // the value may safely be passed to pure functions
                 case iro_Call -> {
@@ -189,24 +198,37 @@ public final class AttributeAnalysis {
 
     /**
      * Returns true if the given node is always the result of a malloc-like
-     * function. Every discovered calls is added to `calls`.
+     * function. Every discovered call is added to `calls`.
      */
-    private boolean isMalloc(Node node, List<Call> calls) {
+    private boolean isNewAlloc(Node node, List<Call> calls) {
+        return isNewAlloc(node, calls, ALLOC_LOOP_DEPTH);
+    }
+
+    /**
+     * The `phis` parameter is hack to deal with loops. We can't use the visited
+     * counter of nodes, because this function is called from the MemoryVisitor.
+     */
+    private boolean isNewAlloc(Node node, List<Call> calls, int phis) {
         return switch (node.getOpCode()) {
             case iro_Return -> {
                 if (node.getPredCount() != 2) {
                     yield false;
                 } else {
-                    yield isMalloc(node.getPred(1), calls);
+                    yield isNewAlloc(node.getPred(1), calls);
                 }
             }
-            case iro_Proj -> isMalloc(node.getPred(0), calls);
+            case iro_Proj -> isNewAlloc(node.getPred(0), calls);
             case iro_Phi -> {
-                var isMalloc = true;
-                for (var pred : node.getPreds()) {
-                    isMalloc &= isMalloc(pred, calls);
+                // ? the split at Phi is probably a bit overkill
+                if (phis != 0) {
+                    var isMalloc = true;
+                    for (var pred : node.getPreds()) {
+                        isMalloc &= isNewAlloc(pred, calls, phis - 1);
+                    }
+                    yield isMalloc;
+                } else {
+                    yield false;
                 }
-                yield isMalloc;
             }
             case iro_Call -> {
                 var callee = Util.getCallee((Call) node);
@@ -266,8 +288,8 @@ public final class AttributeAnalysis {
 
         @Override
         public void defaultVisit(Node node) {
-            // todo be less restrictive here
-            throw new IllegalStateException("unexpected node" + node.toString());
+            assert false;
+            attributes.setPurity(Purity.IMPURE);
         }
 
         @Override
@@ -296,7 +318,13 @@ public final class AttributeAnalysis {
 
         @Override
         public void visit(Store node) {
-            attributes.setPurity(Purity.IMPURE);
+            if (isNewAlloc(node.getPtr(), new LinkedList<>())) {
+                // stores to newly allocated memory are fine
+                limitPurity(Purity.PURE);
+                worklist.enqueue(node.getMem());
+            } else {
+                attributes.setPurity(Purity.IMPURE);
+            }
         }
 
         @Override
