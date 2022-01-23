@@ -389,7 +389,7 @@ public class CallGraphTest {
         var cg = createCallGraph();
         cg.prune(caller1);
 
-        assertEquals(Set.of(caller1, callee1), cg.vertexSet());
+        assertEquals(Set.of(caller1, callee1), cg.functionSet());
     }
 
     @Test
@@ -405,7 +405,7 @@ public class CallGraphTest {
         var cg = createCallGraph();
         cg.prune(caller1);
 
-        assertEquals(Set.of(caller1, callee1, callee2), cg.vertexSet());
+        assertEquals(Set.of(caller1, callee1, callee2), cg.functionSet());
     }
 
     @Test
@@ -427,7 +427,7 @@ public class CallGraphTest {
         var cg = createCallGraph();
         cg.prune(caller1);
 
-        assertEquals(Set.of(caller1, callee1, callee2), cg.vertexSet());
+        assertEquals(Set.of(caller1, callee1, callee2), cg.functionSet());
     }
 
     @Test
@@ -444,7 +444,7 @@ public class CallGraphTest {
         var cg = createCallGraph();
         cg.prune(caller1);
 
-        assertEquals(Set.of(caller1, callee1), cg.vertexSet());
+        assertEquals(Set.of(caller1, callee1), cg.functionSet());
     }
 
     @Test
@@ -463,7 +463,7 @@ public class CallGraphTest {
         cg.update(caller2.getGraph());
         cg.prune(caller1);
 
-        assertEquals(Set.of(caller1, caller2), cg.vertexSet());
+        assertEquals(Set.of(caller1, caller2), cg.functionSet());
     }
 
     private CallGraph createCallGraph() {

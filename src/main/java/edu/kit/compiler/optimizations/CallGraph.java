@@ -7,7 +7,6 @@ import java.util.stream.Stream;
 
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultEdge;
@@ -194,7 +193,7 @@ public final class CallGraph {
         }
     }
 
-    public Set<Entity> vertexSet() {
+    public Set<Entity> functionSet() {
         return graph.vertexSet();
     }
 

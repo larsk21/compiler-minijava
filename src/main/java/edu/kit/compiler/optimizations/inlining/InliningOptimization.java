@@ -167,14 +167,15 @@ public class InliningOptimization implements Optimization.Local {
 
     @RequiredArgsConstructor
     private static class PrioritizedCall implements Comparable<PrioritizedCall> {
+        private static final Comparator<PrioritizedCall> comparator = Comparator.<PrioritizedCall>comparingDouble(pc -> pc.priority);
+
         @Getter
         private final Call call;
         private final double priority;
 
-
         @Override
         public int compareTo(PrioritizedCall o) {
-            return Comparator.<PrioritizedCall>comparingDouble(pc -> pc.priority).compare(this, o);
+            return comparator.compare(this, o);
         }
     }
 }

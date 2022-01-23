@@ -55,7 +55,7 @@ public final class Optimizer {
 
         dumpGraphsIfEnabled("opt");
 
-        return callGraph.vertexSet().stream().map(Entity::getGraph).filter(Objects::nonNull)
+        return callGraph.functionSet().stream().map(Entity::getGraph).filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }
 

@@ -153,6 +153,9 @@ public class Inliner {
         }
 
         @Override
+        public void visit(NoMem noMem) {}
+
+        @Override
         public void visit(Start start) {}
 
         @Override
