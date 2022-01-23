@@ -1,7 +1,6 @@
 package edu.kit.compiler.optimizations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.StringReader;
@@ -75,7 +74,6 @@ public class PureFunctionOptimizationTest {
         addIntToInt("bar", 1, "return foo(x0);");
         buildOptIR();
 
-
         var bar = getFunction("bar");
         assertEquals(1, Counter.count(bar, ir_opcode.iro_Call));
 
@@ -93,7 +91,6 @@ public class PureFunctionOptimizationTest {
         addIntToInt("bar", 1, "int x = foo(x0); return 0;");
         buildOptIR();
 
-
         var bar = getFunction("bar");
         assertEquals(0, Counter.count(bar, ir_opcode.iro_Call));
 
@@ -106,7 +103,6 @@ public class PureFunctionOptimizationTest {
         addIntToInt("foo", 1, "return x0 + 1;");
         addIntToInt("bar", 1, "while (x0 < 0) x0 = foo(x0); return x0;");
         buildOptIR();
-
 
         var bar = getFunction("bar");
         assertEquals(1, Counter.count(bar, ir_opcode.iro_Call));
@@ -128,7 +124,26 @@ public class PureFunctionOptimizationTest {
 
         var call = (Call) Counter.getOnly(bar, ir_opcode.iro_Call);
         assertEquals(bar.getInitialMem(), call.getMem());
-        assertNotEquals(0, binding_irnode.get_irn_pinned(call.ptr));
+        assertEquals(0, binding_irnode.get_irn_pinned(call.ptr));
+    }
+
+    @Test
+    public void testUnusedAlloc() {
+        addIntToInt("func", 1, "int[] arr = new int[4]; return x0;");
+        buildOptIR();
+
+        var func = getFunction("func");
+        assertEquals(0, Counter.count(func, ir_opcode.iro_Call));
+    }
+
+    @Test
+    public void testUnusedAllocLike() {
+        addIntToArr("foo", 2, "int[] a = new int[2]; a[0] = x0; a[1] = x1; return a;");
+        addIntToInt("bar", 3, "int[] a = foo(x0, x1); return x2;");
+        buildOptIR();
+
+        var func = getFunction("bar");
+        assertEquals(0, Counter.count(func, ir_opcode.iro_Call));
     }
 
     private void addIntField(String name) {
@@ -138,6 +153,11 @@ public class PureFunctionOptimizationTest {
     private void addIntToInt(String name, int numParams, String body) {
         var params = IntStream.range(0, numParams).mapToObj(n -> "int x" + n).collect(Collectors.joining(", "));
         members.add(String.format("public int %s(%s) { %s }", name, params, body));
+    }
+
+    private void addIntToArr(String name, int numParams, String body) {
+        var params = IntStream.range(0, numParams).mapToObj(n -> "int x" + n).collect(Collectors.joining(", "));
+        members.add(String.format("public int[] %s(%s) { %s }", name, params, body));
     }
 
     private Graph getFunction(String name) {
@@ -208,16 +228,10 @@ public class PureFunctionOptimizationTest {
             return visitor.buffer.size();
         }
 
-        // public static List<Node> collect(Graph graph, ir_opcode opcode)  {
-        //     var visitor = new Counter(opcode);
-        //     graph.walk(visitor);
-        //     return visitor.buffer;
-        // }
-
-        public static Node getOnly(Graph graph, ir_opcode opcode)  {
+        public static Node getOnly(Graph graph, ir_opcode opcode) {
             var visitor = new Counter(opcode);
             graph.walk(visitor);
-        
+
             assertTrue(visitor.buffer.size() == 1);
             return visitor.buffer.get(0);
         }
@@ -230,4 +244,3 @@ public class PureFunctionOptimizationTest {
         }
     }
 }
-

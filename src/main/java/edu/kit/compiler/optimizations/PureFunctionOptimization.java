@@ -24,16 +24,21 @@ public final class PureFunctionOptimization implements Optimization.Local {
 
         var hasChanged = false;
         for (var call : collector.constCalls) {
+            hasChanged |= unpinCall(call);
             hasChanged |= handleConstCall(call);
         }
 
         for (var call : collector.pureCalls) {
+            hasChanged |= unpinCall(call);
             hasChanged |= handlePureCall(call, collector.usedCalls);
         }
 
         return hasChanged;
     }
 
+    /**
+     * Remove call to a const function from the memory chain.
+     */
     private static boolean handleConstCall(Call node) {
         var graph = node.getGraph();
 
@@ -42,7 +47,6 @@ public final class PureFunctionOptimization implements Optimization.Local {
             // chain, instead we insert a tuple in front of the call
             var constCall = (Call) graph.copyNode(node);
             constCall.setMem(graph.getNoMem());
-            Util.setPinned(constCall, false);
 
             exchangeCall(node, constCall, node.getMem());
             return true;
@@ -51,12 +55,26 @@ public final class PureFunctionOptimization implements Optimization.Local {
         }
     }
 
+    /**
+     * Remove call to a pure function if the result is not used.
+     */
     private static boolean handlePureCall(Call node, Set<Call> usedCalls) {
-        // todo unpin pure calls as well
         if (!usedCalls.contains(node)) {
             // pure calls can be removed if their result is not used
             var bad = node.getGraph().newBad(Mode.getT());
             exchangeCall(node, bad, node.getMem());
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Unpin the given call if it is currently pinned.
+     */
+    private static boolean unpinCall(Call node) {
+        if (Util.isPinned(node)) {
+            Util.setPinned(node, false);
             return true;
         } else {
             return false;

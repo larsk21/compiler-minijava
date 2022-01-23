@@ -32,7 +32,6 @@ import edu.kit.compiler.semantic.SemanticChecks;
 import edu.kit.compiler.transform.IRVisitor;
 import edu.kit.compiler.transform.JFirmSingleton;
 import edu.kit.compiler.transform.Lower;
-import firm.Dump;
 import firm.Graph;
 import firm.Program;
 
@@ -417,12 +416,10 @@ public class AttributeAnalysisTest {
     public void testMallocWithInit() {
         addIntField("field1");
         addIntField("field2");
-        // addIntToArr("foo", 1, "int[] x = new int[4]; x[0] = 42; x[1] = 0; x[2] = field1; x[3] = field2; return x;");
-        addIntToArr("foo", 1, "int[] x = new int[4]; x[0] = 42; /* x[1] = 0; x[2] = field1; x[3] = field2; */ return x;");
+        addIntToArr("foo", 1, "int[] x = new int[4]; x[0] = 42; x[1] = 0; x[2] = field1; x[3] = field2; return x;");
         buildIR();
 
         var foo = getAttributes("foo");
-        Dump.dumpGraph(getFunction("foo"), "ffo");
         assertFalse(foo.isConst());
         assertTrue(foo.isPure());
         assertTrue(foo.isTerminates());
