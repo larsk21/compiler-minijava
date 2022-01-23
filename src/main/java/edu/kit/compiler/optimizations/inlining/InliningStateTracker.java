@@ -21,6 +21,7 @@ public class InliningStateTracker {
     public static final int UNPROBLEMATIC_SIZE_INCREASE = 80;
     public static final double ACCEPTABLE_INCREASE_FACTOR = 2;
     public static final int LARGE_FN = 500;
+    public static final int UPPER_LIMIT_FN_SIZE = 6000;
 
     /**
      * We want to ensure that inlining always terminates.
@@ -120,10 +121,11 @@ public class InliningStateTracker {
         }
 
         public int acceptableSize() {
-            return (int) Math.round(
+            return Math.min((int) Math.round(
                     ACCEPTABLE_INCREASE_FACTOR * (initialNumNodes
                             + Math.min(addedNodesFromCompleteInlining, ACCEPTABLE_SIZE_INCREASE))
-                    + UNPROBLEMATIC_SIZE_INCREASE);
+                    + UNPROBLEMATIC_SIZE_INCREASE),
+                    UPPER_LIMIT_FN_SIZE);
         }
 
         public void addPass() {
