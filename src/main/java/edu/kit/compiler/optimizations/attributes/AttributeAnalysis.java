@@ -94,7 +94,7 @@ public final class AttributeAnalysis {
                 return attributes;
             } else if (entity.equals(calloc)) {
                 // special case for calls to calloc
-                var attributes = new Attributes(Purity.IMPURE, true, true);
+                var attributes = new Attributes(Purity.PURE, true, true);
                 functions.put(entity, attributes);
                 return attributes;
             } else {

@@ -23,8 +23,9 @@ public final class Attributes {
     private boolean terminates = false;
 
     /**
-     * Function returns newly allocated memory. This is currently just set
-     * to false.
+     * Function is malloc-like, i.e. returns a reference to newly allocated
+     * memory. It is also guaranteed that the reference is not stored anywhere.
+     * 
      */
     private boolean malloc = false;
 
@@ -43,6 +44,14 @@ public final class Attributes {
     }
 
     /**
+     * Returns true if multiple equivalent calls to this function (i.e. same
+     * memory, and same parameters) can be merged into a single call.
+     */
+    public boolean canDeduplicate() {
+        return isPure() && !isMalloc();
+    }
+
+    /**
      * Represents the purity of a function. Each entry of this enum imposes
      * more restrictions on a function.
      */
@@ -55,16 +64,19 @@ public final class Attributes {
 
         /**
          * A function is pure if it does not affect the observable state of the
-         * program. For our purposes, this means no stores or calls to impure
-         * functions.
+         * program. For our purposes, this means no stores to memory locations
+         * known to the program, and no calls to impure functions.
          * 
-         * Calls to pure functions can be removed without changing the semantics of
-         * the program.
+         * Calls to pure functions can be removed without changing the semantics
+         * of the program.
+         * Multiple equivalent calls to a pure function may POTENTIALLY be
+         * unified to a single call. Care must be taken though, as the function
+         * must not be malloc-like.
          */
         PURE,
 
         /**
-         * A function is const if it's pure and its return value is not affected
+         * A function is const if it is pure and its return value is not affected
          * by the state of the program. A const function's return value
          * therefore depends solely on its arguments.
          */
