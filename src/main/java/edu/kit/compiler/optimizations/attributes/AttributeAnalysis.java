@@ -146,7 +146,8 @@ public final class AttributeAnalysis {
     }
 
     /**
-     * Returns true if the given graph is malloc-like.
+     * Returns true if the given graph is malloc-like, i.e. it is guaranteed to
+     * always return newly allocated memory which is also alias free.
      */
     private boolean isMallocLike(Graph graph) {
         var calls = new LinkedList<Call>();
@@ -166,29 +167,45 @@ public final class AttributeAnalysis {
      * to a non-pure call.
      */
     private boolean isStored(Node node) {
+        return isStored(node, ALLOC_LOOP_DEPTH);
+    }
+
+    private boolean isStored(Node node, int maxPhis) {
         var isStored = false;
 
         for (var edge : BackEdges.getOuts(node)) {
             var succ = edge.node;
             isStored |= switch (succ.getOpCode()) {
-                case iro_Proj -> isStored(succ);
                 case iro_Load, iro_Return -> false;
 
                 // the value may be stored to, but not stored itself
-                case iro_Store -> edge.pos == 2; 
+                case iro_Store -> edge.pos == 2;
 
                 // the value may safely be passed to pure functions
                 case iro_Call -> {
                     var callee = Util.getCallee((Call) succ);
                     var attributes = computeAttributes(callee);
-                    yield !attributes.isPure();
+                    yield (!attributes.isPure());
                 }
 
-                // MiniJava is type safe, so allow store to offset
-                case iro_Add -> isStored(succ);
+                case iro_Proj -> {
+                    if (!succ.getMode().equals(Mode.getM())) {
+                        yield isStored(succ, maxPhis);
+                    } else {
+                        yield false;
+                    }
+                }
 
-                // allow null pointer checks
-                case iro_Cmp -> false;
+                case iro_Phi -> {
+                    if (maxPhis != 0) {
+                        yield isStored(succ, maxPhis - 1);
+                    } else {
+                        yield true;
+                    }
+                }
+
+                // MiniJava is type safe, so allow store with offset
+                case iro_Add -> isStored(succ, maxPhis);
 
                 default -> true;
             };
@@ -214,10 +231,10 @@ public final class AttributeAnalysis {
                 if (node.getPredCount() != 2) {
                     yield false;
                 } else {
-                    yield isNewAlloc(node.getPred(1), calls);
+                    yield isNewAlloc(node.getPred(1), calls, phis);
                 }
             }
-            case iro_Proj -> isNewAlloc(node.getPred(0), calls);
+            case iro_Proj -> isNewAlloc(node.getPred(0), calls, phis);
             case iro_Phi -> {
                 // ? the split at Phi is probably a bit overkill
                 if (phis != 0) {
@@ -240,6 +257,9 @@ public final class AttributeAnalysis {
                     yield false;
                 }
             }
+            // assumes ptr is always left of Add (this is a bit of a fudge)
+            case iro_Add -> isNewAlloc(node.getPred(0), calls, phis);
+
             default -> false;
         };
     }

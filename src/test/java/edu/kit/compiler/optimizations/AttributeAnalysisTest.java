@@ -32,16 +32,18 @@ import edu.kit.compiler.semantic.SemanticChecks;
 import edu.kit.compiler.transform.IRVisitor;
 import edu.kit.compiler.transform.JFirmSingleton;
 import edu.kit.compiler.transform.Lower;
+import firm.Dump;
 import firm.Graph;
 import firm.Program;
 
 public class AttributeAnalysisTest {
 
-    private static final String TEMPLATE = "class Main_%s { public static void main(String[] args) { } %s }";
+    private static final String TEMPLATE = "class %s { public static void main(String[] args) { } %s }";
 
     private AttributeAnalysis analysis = new AttributeAnalysis();
     private Set<Graph> oldGraphs = new HashSet<>();
     private Collection<String> members = new LinkedList<>();
+    private String className;
 
     @BeforeAll
     public static void setupAll() {
@@ -51,6 +53,8 @@ public class AttributeAnalysisTest {
     @BeforeEach
     public void setup() {
         collectGraphs(oldGraphs);
+
+        className = "Main_" + UUID.randomUUID().toString().replace("-", "_");
     }
 
     @AfterEach
@@ -72,6 +76,7 @@ public class AttributeAnalysisTest {
         assertTrue(func.isPure());
         assertTrue(func.isTerminates());
         assertSame(Purity.CONST, func.getPurity());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -84,6 +89,7 @@ public class AttributeAnalysisTest {
         assertTrue(func.isPure());
         assertTrue(func.isTerminates());
         assertSame(Purity.CONST, func.getPurity());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -97,6 +103,7 @@ public class AttributeAnalysisTest {
         assertTrue(func.isPure());
         assertTrue(func.isTerminates());
         assertSame(Purity.PURE, func.getPurity());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -110,6 +117,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isPure());
         assertTrue(func.isTerminates());
         assertSame(Purity.IMPURE, func.getPurity());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -124,6 +132,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isPure());
         assertTrue(func.isTerminates());
         assertSame(Purity.IMPURE, func.getPurity());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -135,6 +144,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isConst());
         assertFalse(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -146,6 +156,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isConst());
         assertFalse(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -157,6 +168,7 @@ public class AttributeAnalysisTest {
         assertTrue(func.isConst());
         assertTrue(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -168,6 +180,7 @@ public class AttributeAnalysisTest {
         assertTrue(func.isConst());
         assertTrue(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -179,6 +192,7 @@ public class AttributeAnalysisTest {
         assertTrue(func.isConst());
         assertTrue(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -191,6 +205,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isConst());
         assertTrue(func.isPure());
         assertTrue(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -203,6 +218,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isConst());
         assertFalse(func.isPure());
         assertTrue(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -215,6 +231,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isConst());
         assertTrue(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -227,6 +244,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isConst());
         assertFalse(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -238,6 +256,7 @@ public class AttributeAnalysisTest {
         assertTrue(func.isConst());
         assertTrue(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -250,6 +269,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isConst());
         assertTrue(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -262,6 +282,7 @@ public class AttributeAnalysisTest {
         assertFalse(func.isConst());
         assertFalse(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -274,6 +295,7 @@ public class AttributeAnalysisTest {
         assertTrue(func.isConst());
         assertTrue(func.isPure());
         assertFalse(func.isTerminates());
+        assertFalse(func.isMalloc());
     }
 
     @Test
@@ -286,11 +308,13 @@ public class AttributeAnalysisTest {
         assertTrue(foo.isConst());
         assertTrue(foo.isPure());
         assertTrue(foo.isTerminates());
+        assertFalse(foo.isMalloc());
 
         var bar = getAttributes("bar");
         assertTrue(bar.isConst());
         assertTrue(bar.isPure());
         assertTrue(bar.isTerminates());
+        assertFalse(bar.isMalloc());
     }
 
     @Test
@@ -304,11 +328,13 @@ public class AttributeAnalysisTest {
         assertFalse(foo.isConst());
         assertTrue(foo.isPure());
         assertTrue(foo.isTerminates());
+        assertFalse(foo.isMalloc());
 
         var bar = getAttributes("bar");
         assertFalse(bar.isConst());
         assertTrue(bar.isPure());
         assertTrue(bar.isTerminates());
+        assertFalse(bar.isMalloc());
     }
 
     @Test
@@ -322,11 +348,13 @@ public class AttributeAnalysisTest {
         assertFalse(foo.isConst());
         assertFalse(foo.isPure());
         assertTrue(foo.isTerminates());
+        assertFalse(foo.isMalloc());
 
         var bar = getAttributes("bar");
         assertFalse(bar.isConst());
         assertFalse(bar.isPure());
         assertTrue(bar.isTerminates());
+        assertFalse(bar.isMalloc());
     }
 
     @Test
@@ -340,11 +368,78 @@ public class AttributeAnalysisTest {
         assertTrue(foo.isConst());
         assertTrue(foo.isPure());
         assertFalse(foo.isTerminates());
+        assertFalse(foo.isMalloc());
 
         var bar = getAttributes("bar");
         assertTrue(bar.isConst());
         assertTrue(bar.isPure());
         assertFalse(bar.isTerminates());
+        assertFalse(bar.isMalloc());
+    }
+
+    @Test
+    public void testMallocSimple() {
+        addIntToArr("foo", 0, "return new int[4];");
+        buildIR();
+
+        var foo = getAttributes("foo");
+        assertFalse(foo.isConst());
+        assertTrue(foo.isPure());
+        assertTrue(foo.isTerminates());
+        assertTrue(foo.isMalloc());
+    }
+
+    @Test
+    public void testMallocBranch() {
+        addIntToArr("foo", 1, "if (x0 < 0) return new int[8]; else return new int[4];");
+        buildIR();
+
+        var foo = getAttributes("foo");
+        assertFalse(foo.isConst());
+        assertTrue(foo.isPure());
+        assertTrue(foo.isTerminates());
+        assertTrue(foo.isMalloc());
+    }
+
+    @Test
+    public void testMallocPhi() {
+        addIntToArr("foo", 1, "int[] x; if (x0 < 0) x = new int[1]; else x = new int[2]; return x;");
+        buildIR();
+
+        var foo = getAttributes("foo");
+        assertFalse(foo.isConst());
+        assertTrue(foo.isPure());
+        assertTrue(foo.isTerminates());
+        assertTrue(foo.isMalloc());
+    }
+
+    @Test
+    public void testMallocWithInit() {
+        addIntField("field1");
+        addIntField("field2");
+        // addIntToArr("foo", 1, "int[] x = new int[4]; x[0] = 42; x[1] = 0; x[2] = field1; x[3] = field2; return x;");
+        addIntToArr("foo", 1, "int[] x = new int[4]; x[0] = 42; /* x[1] = 0; x[2] = field1; x[3] = field2; */ return x;");
+        buildIR();
+
+        var foo = getAttributes("foo");
+        Dump.dumpGraph(getFunction("foo"), "ffo");
+        assertFalse(foo.isConst());
+        assertTrue(foo.isPure());
+        assertTrue(foo.isTerminates());
+        assertTrue(foo.isMalloc());
+    }
+
+    @Test
+    public void testMallocStore() {
+        addArrField("field");
+        addIntToArr("foo", 1, "int[] x = new int[4]; this.field = x; return x;");
+        buildIR();
+
+        var foo = getAttributes("foo");
+        assertFalse(foo.isConst());
+        assertFalse(foo.isPure());
+        assertTrue(foo.isTerminates());
+        assertFalse(foo.isMalloc());
     }
 
     private void addIntToInt(String name, int numParams, String body) {
@@ -357,8 +452,17 @@ public class AttributeAnalysisTest {
         members.add(String.format("public void %s(%s) { %s }", name, params, body));
     }
 
+    private void addIntToArr(String name, int numParams, String body) {
+        var params = IntStream.range(0, numParams).mapToObj(n -> "int x" + n).collect(Collectors.joining(", "));
+        members.add(String.format("public int[] %s(%s) { %s }", name, params, body));
+    }
+
     private void addIntField(String name) {
         members.add(String.format("public int %s;", name));
+    }
+
+    private void addArrField(String name) {
+        members.add(String.format("public int[] %s;", name));
     }
 
     private Attributes getAttributes(String name) {
@@ -389,9 +493,8 @@ public class AttributeAnalysisTest {
         var logger = Logger.nullLogger();
         var errorHandler = new ErrorHandler(logger);
 
-        var uuid = UUID.randomUUID().toString().replace("-", "_");
-        var functions = this.members.stream().collect(Collectors.joining(" "));
-        var lexer = new Lexer(new StringReader(String.format(TEMPLATE, uuid, functions)));
+        var members = this.members.stream().collect(Collectors.joining(" "));
+        var lexer = new Lexer(new StringReader(String.format(TEMPLATE, className, members)));
 
         var stringTable = lexer.getStringTable();
         var parser = new Parser(lexer);
