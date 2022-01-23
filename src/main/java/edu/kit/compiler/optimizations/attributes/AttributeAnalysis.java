@@ -1,13 +1,17 @@
 package edu.kit.compiler.optimizations.attributes;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
 import edu.kit.compiler.optimizations.Util;
 import edu.kit.compiler.optimizations.attributes.Attributes.Purity;
 import edu.kit.compiler.transform.StandardLibraryEntities;
+import firm.BackEdges;
 import firm.Entity;
 import firm.Graph;
 import firm.Mode;
@@ -83,12 +87,16 @@ public final class AttributeAnalysis {
                 // Second analyze termination behavior of the function
                 checkTermination(graph, attributes);
 
+                // Third analyze whether the function is malloc-like
+                attributes.setMalloc(checkMalloc(graph));
+
                 functions.put(entity, attributes);
                 return attributes;
             } else if (entity.equals(calloc)) {
-                // todo special case for calloc
-                functions.put(entity, Attributes.MINIMUM);
-                return Attributes.MINIMUM;
+                // special case for calls to calloc
+                var attributes = new Attributes(Purity.IMPURE, true, true);
+                functions.put(entity, attributes);
+                return attributes;
             } else {
                 // no implementation known, e.g std library function
                 functions.put(entity, Attributes.MINIMUM);
@@ -111,7 +119,7 @@ public final class AttributeAnalysis {
         }
     }
 
-    private static final void checkTermination(Block initialBlock, Attributes attributes) {
+    private static void checkTermination(Block initialBlock, Attributes attributes) {
         var worklist = new StackWorklist<Block>(true);
         worklist.enqueueInOrder(initialBlock);
 
@@ -129,6 +137,89 @@ public final class AttributeAnalysis {
                 });
             }
         }
+    }
+
+    private boolean checkMalloc(Graph graph) {
+        var calls = new LinkedList<Call>();
+        var isMalloc = StreamSupport.stream(graph.getEndBlock().getPreds().spliterator(), false)
+                .allMatch(returnNode -> isMalloc(returnNode, calls));
+
+        return isMalloc && graph.getEndBlock().getPredCount() > 0
+                && !calls.stream().anyMatch(this::isStored);
+    }
+
+    /**
+     * Returns true if the given node is either stored to memory or passed
+     * to a non-pure call.
+     */
+    private boolean isStored(Node node) {
+        var isStored = false;
+
+        for (var edge : BackEdges.getOuts(node)) {
+            var succ = edge.node;
+            isStored |= switch (succ.getOpCode()) {
+                case iro_Proj -> isStored(succ);
+                case iro_Load, iro_Return -> false;
+
+                // the value may be stored to, but not stored itself
+                case iro_Store -> {
+                    // todo is this usage of Edge#pos correct?
+                    assert edge.pos == 1 || edge.pos == 2;
+                    yield edge.pos == 2;
+                }
+
+                // the value may safely be passed to pure functions
+                case iro_Call -> {
+                    var callee = Util.getCallee((Call) succ);
+                    var attributes = computeAttributes(callee);
+                    yield !attributes.isPure();
+                }
+
+                // MiniJava is type safe, so allow store to offset
+                case iro_Add -> isStored(succ);
+
+                // allow null pointer checks
+                case iro_Cmp -> false;
+
+                default -> true;
+            };
+        }
+        return isStored;
+    }
+
+    /**
+     * Returns true if the given node is always the result of a malloc-like
+     * function. Every discovered calls is added to `calls`.
+     */
+    private boolean isMalloc(Node node, List<Call> calls) {
+        return switch (node.getOpCode()) {
+            case iro_Return -> {
+                if (node.getPredCount() != 2) {
+                    yield false;
+                } else {
+                    yield isMalloc(node.getPred(1), calls);
+                }
+            }
+            case iro_Proj -> isMalloc(node.getPred(0), calls);
+            case iro_Phi -> {
+                var isMalloc = true;
+                for (var pred : node.getPreds()) {
+                    isMalloc &= isMalloc(pred, calls);
+                }
+                yield isMalloc;
+            }
+            case iro_Call -> {
+                var callee = Util.getCallee((Call) node);
+                var attributes = computeAttributes(callee);
+                if (attributes.isMalloc()) {
+                    calls.add((Call) node);
+                    yield true;
+                } else {
+                    yield false;
+                }
+            }
+            default -> false;
+        };
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -175,7 +266,8 @@ public final class AttributeAnalysis {
 
         @Override
         public void defaultVisit(Node node) {
-            throw new IllegalStateException(node.toString());
+            // todo be less restrictive here
+            throw new IllegalStateException("unexpected node" + node.toString());
         }
 
         @Override
