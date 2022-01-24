@@ -144,7 +144,10 @@ public class ReversePostfixOrder {
         private void depthFirstSearch(Block block, int previousId) {
             int blockId = block.getBlockId();
             if (active.contains(blockId)) {
-                block.addBackRef();
+                // we don't want to add a backref of the same block two times
+                if (!loopsPerBlock.get(blockId).contains(blockId)) {
+                    block.addBackRef();
+                }
 
                 // backtrack and add the loop to all found blocks
                 Deque<Integer> queue = new ArrayDeque<>();

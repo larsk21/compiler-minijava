@@ -38,6 +38,8 @@ public class ReversePostfixOrderTest {
                 result.stream().map(Block::getBlockId).collect(Collectors.toList()));
         assertEquals(List.of(0, 0, 0, 0),
                 result.stream().map(Block::getNumBackReferences).collect(Collectors.toList()));
+        assertEquals(List.of(0, 0, 0, 0),
+                result.stream().map(Block::getBlockLoopDepth).collect(Collectors.toList()));
     }
 
     @Test
@@ -65,6 +67,8 @@ public class ReversePostfixOrderTest {
                 result.stream().map(Block::getBlockId).collect(Collectors.toList()));
         assertEquals(List.of(0, 1, 0, 0),
                 result.stream().map(Block::getNumBackReferences).collect(Collectors.toList()));
+        assertEquals(List.of(0, 1, 1, 0),
+                result.stream().map(Block::getBlockLoopDepth).collect(Collectors.toList()));
     }
 
     @Test
@@ -106,8 +110,10 @@ public class ReversePostfixOrderTest {
         var result = ReversePostfixOrder.apply(map, 0);
         assertEquals(List.of(0, 1, 3, 2, 4, 5, 7, 6, 8),
                 result.stream().map(Block::getBlockId).collect(Collectors.toList()));
-        assertEquals(List.of(0, 2, 0, 0, 0, 0, 0, 0, 0),
+        assertEquals(List.of(0, 1, 0, 0, 0, 0, 0, 0, 0),
                 result.stream().map(Block::getNumBackReferences).collect(Collectors.toList()));
+        assertEquals(List.of(0, 1, 1, 1, 1, 1, 1, 1, 0),
+                result.stream().map(Block::getBlockLoopDepth).collect(Collectors.toList()));
     }
 
     @Test
@@ -160,5 +166,7 @@ public class ReversePostfixOrderTest {
                 result.stream().map(Block::getBlockId).collect(Collectors.toList()));
         assertEquals(List.of(0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0),
                 result.stream().map(Block::getNumBackReferences).collect(Collectors.toList()));
+        assertEquals(List.of(0, 1, 1, 1, 1, 2, 2, 2, 1, 1, 0),
+                result.stream().map(Block::getBlockLoopDepth).collect(Collectors.toList()));
     }
 }
