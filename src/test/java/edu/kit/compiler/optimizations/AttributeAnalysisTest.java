@@ -450,6 +450,19 @@ public class AttributeAnalysisTest {
         assertTrue(foo.isMalloc());
     }
 
+    @Test
+    public void testNestedMalloc() {
+        addIntToArr("foo", 3,
+                "int[] x; if (x0 < 0) { if (x1 < 0) { if (x2 < 0) { x = new int[1]; } else { x = new int[2]; } } else { x = new int[3]; } } else { x = new int[4]; } return x;");
+        buildIR();
+
+        var foo = getAttributes("foo");
+        assertFalse(foo.isConst());
+        assertTrue(foo.isPure());
+        assertTrue(foo.isTerminates());
+        assertTrue(foo.isMalloc());
+    }
+
     private void addIntToInt(String name, int numParams, String body) {
         var params = IntStream.range(0, numParams).mapToObj(n -> "int x" + n).collect(Collectors.joining(", "));
         members.add(String.format("public int %s(%s) { %s }", name, params, body));

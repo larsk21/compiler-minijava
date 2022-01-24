@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
+import com.sun.jna.NativeLong;
+
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
 import edu.kit.compiler.optimizations.Util;
@@ -14,6 +16,7 @@ import edu.kit.compiler.transform.StandardLibraryEntities;
 import firm.Entity;
 import firm.Graph;
 import firm.Mode;
+import firm.bindings.binding_irnode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 import lombok.AccessLevel;
@@ -47,7 +50,9 @@ public final class AttributeAnalysis {
                 new MemoryVisitor(graph, attributes).apply();
 
                 // Second analyze termination behavior of the function
-                checkTermination(graph, attributes);
+                if (hasLoop(graph)) {
+                    attributes.setTerminates(false);
+                }
 
                 // Third analyze whether the function is malloc-like
                 attributes.setMalloc(isMallocLike(graph));
@@ -80,41 +85,52 @@ public final class AttributeAnalysis {
     }
 
     /**
-     * Check the given graph for control flow loops and unset `terminates` in
-     * the given attributes if a loop is found.
+     * Returns true if the given graph has a control flow loop;
      */
-    private static void checkTermination(Graph graph, Attributes attributes) {
+    private static boolean hasLoop(Graph graph) {
         graph.incBlockVisited();
-        checkTermination(graph.getEndBlock(), attributes);
+        graph.incVisited();
+        if (hasLoop(graph.getEndBlock())) {
+            return true;
+        }
 
         for (var keepAlive : graph.getEnd().getPreds()) {
             if (keepAlive.getMode().equals(Mode.getBB())
                     && keepAlive.getOpCode() != ir_opcode.iro_Bad) {
-                checkTermination((Block) keepAlive, attributes);
+                graph.incBlockVisited();
+                graph.incVisited();
+                if (hasLoop((Block) keepAlive)) {
+                    return true;
+                }
             }
         }
+
+        return false;
     }
 
-    private static void checkTermination(Block initialBlock, Attributes attributes) {
-        // ! this is not currently correct
+    private static boolean hasLoop(Block block) {
+        // normal visited flag
+        block.markVisited();
+        // visited flag to mark current path
+        block.markBlockVisited();
 
-        var worklist = new StackWorklist<Block>(true);
-        worklist.enqueueInOrder(initialBlock);
-
-        while (attributes.isTerminates() && !worklist.isEmpty()) {
-            var block = worklist.dequeue();
-
-            if (block.blockVisited()) {
-                attributes.setTerminates(false);
-            } else {
-                block.markBlockVisited();
-                block.getPreds().forEach(pred -> {
-                    if (pred.getOpCode() != ir_opcode.iro_Bad) {
-                        worklist.enqueueInOrder((Block) pred.getBlock());
+        for (var pred : block.getPreds()) {
+            if (pred.getOpCode() != ir_opcode.iro_Bad) {
+                var predBlock = (Block) pred.getBlock();
+                if (!predBlock.visited()) {
+                    if (hasLoop(predBlock)) {
+                        return true;
                     }
-                });
+                } else if (predBlock.blockVisited()) {
+                    return true;
+                }
             }
         }
+
+        // remove block from current path
+        var currentVisit = block.getGraph().getBlockVisited();
+        binding_irnode.set_Block_block_visited(block.ptr, new NativeLong(currentVisit - 1));
+        return false;
     }
 
     /**
@@ -128,7 +144,7 @@ public final class AttributeAnalysis {
 
     /**
      * Returns true if the given node may be the result of a call to a
-     * malloc-like function. 
+     * malloc-like function.
      */
     private boolean maybeNewAlloc(Node node) {
         return switch (node.getOpCode()) {
@@ -146,7 +162,9 @@ public final class AttributeAnalysis {
                 } else {
                     node.markVisited();
                     for (var pred : node.getPreds()) {
-                        if (maybeNewAlloc(pred)) yield true;
+                        if (maybeNewAlloc(pred)) {
+                            yield true;
+                        }
                     }
                     yield false;
                 }
@@ -160,7 +178,9 @@ public final class AttributeAnalysis {
             default -> {
                 var offset = Util.hasFlag(node, irop_flag_uses_memory) ? 1 : 0;
                 for (var i = offset; i < node.getPredCount(); ++i) {
-                    if (maybeNewAlloc(node.getPred(i))) yield true;
+                    if (maybeNewAlloc(node.getPred(i))) {
+                        yield true;
+                    }
                 }
                 yield false;
             }
