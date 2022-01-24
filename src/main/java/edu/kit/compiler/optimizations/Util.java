@@ -1,8 +1,12 @@
 package edu.kit.compiler.optimizations;
 
+import firm.Entity;
 import firm.Graph;
 import firm.Mode;
+import firm.bindings.binding_irnode;
 import firm.bindings.binding_irnode.ir_opcode;
+import firm.nodes.Address;
+import firm.nodes.Call;
 import firm.nodes.Node;
 import firm.nodes.Proj;
 import firm.nodes.Tuple;
@@ -42,5 +46,35 @@ public final class Util {
 
         var bad = node.getGraph().newBad(Mode.getX());
         Graph.turnIntoTuple(node, new Node[] { newMem, newNode, bad, bad });
+    }
+
+    /**
+     * Returns the function called by the given Call node. Only constant
+     * function pointer (i.e. Address nodes) are allowed.
+     */
+    public static Entity getCallee(Call call) {
+        if (call.getPtr().getOpCode() == ir_opcode.iro_Address) {
+            return ((Address) call.getPtr()).getEntity();
+        } else {
+            throw new IllegalStateException("only constant function pointers allowed");
+        }
+    }
+
+    /**
+     * Checks if the given node is pinned in its current block.
+     * 
+     * Note: Necessary, because jFirm does not seem to provide any API for this.
+     */
+    public static boolean isPinned(Node node) {
+        return binding_irnode.get_irn_pinned(node.ptr) != 0;
+    }
+
+    /**
+     * Sets the pin-state for the given node.
+     * 
+     * Note: Necessary, because jFirm does not seem to provide any API for this.
+     */
+    public static void setPinned(Node node, boolean pinned) {
+        binding_irnode.set_irn_pinned(node.ptr, pinned ? 1 : 0);
     }
 }

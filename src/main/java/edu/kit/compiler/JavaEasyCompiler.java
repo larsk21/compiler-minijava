@@ -36,6 +36,7 @@ import edu.kit.compiler.optimizations.ArithmeticReplacementOptimization;
 import edu.kit.compiler.optimizations.ConstantOptimization;
 import edu.kit.compiler.optimizations.LinearBlocksOptimization;
 import edu.kit.compiler.optimizations.Optimizer;
+import edu.kit.compiler.optimizations.PureFunctionOptimization;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
@@ -376,7 +377,8 @@ public class JavaEasyCompiler {
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization(),
                     new LinearBlocksOptimization(),
-                    new InliningOptimization()
+                    new InliningOptimization(),
+                    new PureFunctionOptimization()
                 ), debugFlags);
                 allocator = new LinearScan();
                 break;
