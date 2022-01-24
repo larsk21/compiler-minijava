@@ -43,8 +43,7 @@ public final class PureFunctionOptimization implements Optimization.Local {
         var graph = node.getGraph();
 
         if (!node.getMem().equals(graph.getNoMem())) {
-            // we can't just set mem to NoMem as this would break the memory
-            // chain, instead we insert a tuple in front of the call
+            // setting mem to NoMem on the original call would break the memory chain
             var constCall = (Call) graph.copyNode(node);
             constCall.setMem(graph.getNoMem());
 
@@ -60,7 +59,6 @@ public final class PureFunctionOptimization implements Optimization.Local {
      */
     private static boolean handlePureCall(Call node, Set<Call> usedCalls) {
         if (!usedCalls.contains(node)) {
-            // pure calls can be removed if their result is not used
             var bad = node.getGraph().newBad(Mode.getT());
             exchangeCall(node, bad, node.getMem());
             return true;

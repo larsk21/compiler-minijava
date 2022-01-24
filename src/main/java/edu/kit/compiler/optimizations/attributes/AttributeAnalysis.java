@@ -78,9 +78,9 @@ public final class AttributeAnalysis {
         if (cachedAttributes == null) {
             var graph = entity.getGraph();
             if (graph != null) {
-                // insert a set of dummy attributes for the function
-                var dummyAttrs = new Attributes(Purity.CONST, false, false);
-                functions.put(entity, dummyAttrs);
+                // insert dummy attributes to deal with recursion, if a function
+                // may call itself, termination can not be guaranteed
+                functions.put(entity, new Attributes(Purity.CONST, false, false));
 
                 // First analyze the memory chains to determine purity
                 var attributes = new Attributes(Purity.CONST, true, false);
@@ -126,6 +126,8 @@ public final class AttributeAnalysis {
     }
 
     private static void checkTermination(Block initialBlock, Attributes attributes) {
+        // ! this is not currently correct
+
         var worklist = new StackWorklist<Block>(true);
         worklist.enqueueInOrder(initialBlock);
 
