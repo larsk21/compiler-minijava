@@ -2,6 +2,7 @@ package edu.kit.compiler.intermediate_lang;
 
 import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,11 +24,15 @@ public class Block {
      */
     @Getter
     private int numBackReferences;
+    @Getter
+    @Setter
+    private int blockLoopDepth;
 
     public Block(List<Instruction> instructions, int blockId, int numBackReferences) {
         this.instructions = new ArrayList<>(instructions);
         this.blockId = blockId;
         this.numBackReferences = numBackReferences;
+        this.blockLoopDepth = 0;
     }
 
     public Block(int blockId) {

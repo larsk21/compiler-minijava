@@ -134,7 +134,9 @@ public class ReversePostfixOrder {
 
             Map<Integer, Integer> loopDepths = new HashMap<>();
             for (var entry: loopsPerBlock.entrySet()) {
-                loopDepths.put(entry.getKey(), entry.getValue().size());
+                int depth = entry.getValue().size();
+                loopDepths.put(entry.getKey(), depth);
+                blocks.get(entry.getKey()).setBlockLoopDepth(depth);
             }
             return loopDepths;
         }
