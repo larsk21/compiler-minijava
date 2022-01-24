@@ -413,10 +413,8 @@ public class AttributeAnalysisTest {
     }
 
     @Test
-    public void testMallocWithInit() {
-        addIntField("field1");
-        addIntField("field2");
-        addIntToArr("foo", 1, "int[] x = new int[4]; x[0] = 42; x[1] = 0; x[2] = field1; x[3] = field2; return x;");
+    public void testMallocLoop() {
+        addIntToArr("foo", 1, "int[] x; while (x0 < 0) x = new int[1]; x0 = x0 + 1; return x;");
         buildIR();
 
         var foo = getAttributes("foo");

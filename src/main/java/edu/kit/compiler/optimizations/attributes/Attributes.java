@@ -23,9 +23,8 @@ public final class Attributes {
     private boolean terminates = false;
 
     /**
-     * Function is malloc-like, i.e. returns a reference to newly allocated
-     * memory. It is also guaranteed that the reference is not stored anywhere.
-     * 
+     * A function is malloc-like if it may return a reference to newly allocated
+     * memory. Multiple calls to such functions may never be unified.
      */
     private boolean malloc = false;
 

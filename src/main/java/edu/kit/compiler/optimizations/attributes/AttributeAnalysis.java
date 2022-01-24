@@ -1,8 +1,6 @@
 package edu.kit.compiler.optimizations.attributes;
 
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
@@ -11,7 +9,6 @@ import edu.kit.compiler.io.Worklist;
 import edu.kit.compiler.optimizations.Util;
 import edu.kit.compiler.optimizations.attributes.Attributes.Purity;
 import edu.kit.compiler.transform.StandardLibraryEntities;
-import firm.BackEdges;
 import firm.Entity;
 import firm.Graph;
 import firm.Mode;
@@ -26,8 +23,6 @@ import lombok.RequiredArgsConstructor;
  */
 @RequiredArgsConstructor
 public final class AttributeAnalysis {
-
-    private static final int ALLOC_LOOP_DEPTH = 2;
 
     private final Map<Entity, Attributes> functions = new HashMap<>();
     private final Entity calloc = StandardLibraryEntities.INSTANCE.getCalloc().getEntity();
@@ -148,121 +143,47 @@ public final class AttributeAnalysis {
     }
 
     /**
-     * Returns true if the given graph is malloc-like, i.e. it is guaranteed to
-     * always return newly allocated memory which is also alias free.
+     * Returns true if the given graph is malloc-like, i.e. it may return newly
+     * allocated memory.
      */
     private boolean isMallocLike(Graph graph) {
-        var calls = new LinkedList<Call>();
-        var returnsMalloc = StreamSupport.stream(graph.getEndBlock().getPreds().spliterator(), false)
-                .allMatch(returnNode -> isNewAlloc(returnNode, calls));
-
-        BackEdges.enable(graph);
-        var isMalloc = returnsMalloc && graph.getEndBlock().getPredCount() > 0
-                && !calls.stream().anyMatch(this::isStored);
-        BackEdges.disable(graph);
-
-        return isMalloc;
+        return StreamSupport.stream(graph.getEndBlock().getPreds().spliterator(), false)
+                .anyMatch(this::isNewAlloc);
     }
 
     /**
-     * Returns true if the given node is either stored to memory or passed
-     * to a non-pure call.
+     * Returns true if the given node may be the result of a call to a
+     * malloc-like function. 
      */
-    private boolean isStored(Node node) {
-        return isStored(node, ALLOC_LOOP_DEPTH);
-    }
-
-    private boolean isStored(Node node, int maxPhis) {
-        var isStored = false;
-
-        for (var edge : BackEdges.getOuts(node)) {
-            var succ = edge.node;
-            isStored |= switch (succ.getOpCode()) {
-                case iro_Load, iro_Return -> false;
-
-                // the value may be stored to, but not stored itself
-                case iro_Store -> edge.pos == 2;
-
-                // the value may safely be passed to pure functions
-                case iro_Call -> {
-                    var callee = Util.getCallee((Call) succ);
-                    var attributes = computeAttributes(callee);
-                    yield (!attributes.isPure());
-                }
-
-                case iro_Proj -> {
-                    if (!succ.getMode().equals(Mode.getM())) {
-                        yield isStored(succ, maxPhis);
-                    } else {
-                        yield false;
-                    }
-                }
-
-                case iro_Phi -> {
-                    if (maxPhis != 0) {
-                        yield isStored(succ, maxPhis - 1);
-                    } else {
-                        yield true;
-                    }
-                }
-
-                // MiniJava is type safe, so allow store with offset
-                case iro_Add -> isStored(succ, maxPhis);
-
-                default -> true;
-            };
-        }
-        return isStored;
-    }
-
-    /**
-     * Returns true if the given node is always the result of a malloc-like
-     * function. Every discovered call is added to `calls`.
-     */
-    private boolean isNewAlloc(Node node, List<Call> calls) {
-        return isNewAlloc(node, calls, ALLOC_LOOP_DEPTH);
-    }
-
-    /**
-     * The `phis` parameter is hack to deal with loops. We can't use the visited
-     * counter of nodes, because this function is called from the MemoryVisitor.
-     */
-    private boolean isNewAlloc(Node node, List<Call> calls, int phis) {
+    private boolean isNewAlloc(Node node) {
         return switch (node.getOpCode()) {
             case iro_Return -> {
                 if (node.getPredCount() != 2) {
                     yield false;
                 } else {
-                    yield isNewAlloc(node.getPred(1), calls, phis);
+                    yield isNewAlloc(node.getPred(1));
                 }
             }
-            case iro_Proj -> isNewAlloc(node.getPred(0), calls, phis);
+            case iro_Proj -> isNewAlloc(node.getPred(0));
             case iro_Phi -> {
-                // ? the split at Phi is probably a bit overkill
-                if (phis != 0) {
-                    var isMalloc = true;
+                if (node.visited()) {
+                    yield false;
+                } else {
+                    node.markVisited();
+                    var isMalloc = false;
                     for (var pred : node.getPreds()) {
-                        isMalloc &= isNewAlloc(pred, calls, phis - 1);
+                        isMalloc |= isNewAlloc(pred);
                     }
                     yield isMalloc;
-                } else {
-                    yield false;
                 }
             }
             case iro_Call -> {
                 var callee = Util.getCallee((Call) node);
                 var attributes = computeAttributes(callee);
-                if (attributes.isMalloc()) {
-                    calls.add((Call) node);
-                    yield true;
-                } else {
-                    yield false;
-                }
+                yield attributes.isMalloc() ? true : false;
             }
-            // assumes ptr is always left of Add (this is a bit of a fudge)
-            case iro_Add -> isNewAlloc(node.getPred(0), calls, phis);
 
-            default -> false;
+            default -> true;
         };
     }
 
@@ -340,13 +261,7 @@ public final class AttributeAnalysis {
 
         @Override
         public void visit(Store node) {
-            if (isNewAlloc(node.getPtr(), new LinkedList<>())) {
-                // stores to newly allocated memory are fine
-                limitPurity(Purity.PURE);
-                worklist.enqueue(node.getMem());
-            } else {
-                attributes.setPurity(Purity.IMPURE);
-            }
+            attributes.setPurity(Purity.IMPURE);
         }
 
         @Override
