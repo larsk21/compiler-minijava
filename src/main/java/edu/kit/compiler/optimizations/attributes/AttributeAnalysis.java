@@ -1,7 +1,5 @@
 package edu.kit.compiler.optimizations.attributes;
 
-import static firm.bindings.binding_irop.irop_flags.irop_flag_uses_memory;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.StreamSupport;
@@ -147,6 +145,10 @@ public final class AttributeAnalysis {
      * malloc-like function.
      */
     private boolean maybeNewAlloc(Node node) {
+        if (node.getMode().equals(Mode.getM())) {
+            return false;
+        }
+
         return switch (node.getOpCode()) {
             case iro_Return -> {
                 if (node.getPredCount() != 2) {
@@ -155,6 +157,7 @@ public final class AttributeAnalysis {
                     yield maybeNewAlloc(node.getPred(1));
                 }
             }
+            case iro_Confirm -> maybeNewAlloc(node.getPred(0));
             case iro_Proj -> maybeNewAlloc(node.getPred(0));
             case iro_Phi -> {
                 if (node.visited()) {
@@ -175,9 +178,10 @@ public final class AttributeAnalysis {
                 yield (attributes.isMalloc() ? true : false);
             }
 
+            case iro_Bad -> true;
+            case iro_Unknown, iro_Load -> false;
             default -> {
-                var offset = Util.hasFlag(node, irop_flag_uses_memory) ? 1 : 0;
-                for (var i = offset; i < node.getPredCount(); ++i) {
+                for (var i = 0; i < node.getPredCount(); ++i) {
                     if (maybeNewAlloc(node.getPred(i))) {
                         yield true;
                     }
