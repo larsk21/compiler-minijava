@@ -14,7 +14,6 @@ import edu.kit.compiler.transform.StandardLibraryEntities;
 import firm.Entity;
 import firm.Graph;
 import firm.Mode;
-import firm.Program;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 import lombok.AccessLevel;
@@ -30,47 +29,11 @@ public final class AttributeAnalysis {
     private final Entity calloc = StandardLibraryEntities.INSTANCE.getCalloc().getEntity();
 
     /**
-     * Return the attributes computed for the given function.
+     * Return attributes of the given function. Attributes are computed as they
+     * are needed, and will subsequently be cached.
      */
-    public Attributes get(Entity entity) {
-        return functions.getOrDefault(entity, Attributes.MINIMUM);
-    }
-
-    /**
-     * Apply the analysis to the entire program. This will analyse all graphs
-     * known to Firm.
-     */
-    public void apply() {
-        apply(Program.getGraphs());
-    }
-
-    /**
-     * Apply the analysis to the given set of graphs (intended for testing).
-     */
-    public void apply(Iterable<Graph> graphs) {
-        functions.clear();
-
-        for (var graph : graphs) {
-            computeAttributes(graph.getEntity());
-        }
-    }
-
-    /**
-     * Update the attributes for the given function, the updates is only done
-     * locally, i.e. attributes of called functions are not updated, neither are
-     * those of callees of the updated function. It is assumed that attributes
-     * will never get "worse" during optimization.
-     */
-    public void update(Graph graph) {
-        functions.remove(graph.getEntity());
-        computeAttributes(graph.getEntity());
-    }
-
-    /**
-     * Compute and return attributes for the given function if no cached values
-     * are available.
-     */
-    private Attributes computeAttributes(Entity entity) {
+    public Attributes getAttributes(Entity entity) {
+        // return functions.getOrDefault(entity, Attributes.MINIMUM);
         var cachedAttributes = functions.get(entity);
         if (cachedAttributes == null) {
             var graph = entity.getGraph();
@@ -104,6 +67,16 @@ public final class AttributeAnalysis {
         } else {
             return cachedAttributes;
         }
+    }
+
+    /**
+     * Invalidate previously computed attributes for the given function. The
+     * operation is done locally, i.e. attributes of called functions are not
+     * invalidated, neither are those of callees of the function. It is assumed
+     * that attributes will never get "worse" during optimization.
+     */
+    public void invalidate(Graph graph) {
+        functions.remove(graph.getEntity());
     }
 
     /**
@@ -180,7 +153,7 @@ public final class AttributeAnalysis {
             }
             case iro_Call -> {
                 var callee = Util.getCallee((Call) node);
-                var attributes = computeAttributes(callee);
+                var attributes = getAttributes(callee);
                 yield (attributes.isMalloc() ? true : false);
             }
 
@@ -306,7 +279,7 @@ public final class AttributeAnalysis {
         @Override
         public void visit(Call node) {
             // purity of caller is limited by purity of callee
-            var calleeAttributes = computeAttributes(Util.getCallee(node));
+            var calleeAttributes = getAttributes(Util.getCallee(node));
             limitPurity(calleeAttributes.getPurity());
 
             // not guaranteed to terminate if the callee is not,

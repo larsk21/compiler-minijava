@@ -20,16 +20,12 @@ public class OptimizationState {
     @Getter
     private final AttributeAnalysis attributeAnalysis = new AttributeAnalysis();
 
-    public OptimizationState() {
-        attributeAnalysis.apply();
-    }
-
     /**
      * Should be called each time a round of local optimizations for a specific
      * function has finished. Updates the state accordingly.
      */
     public void update(CallGraph callGraph, Graph updated) {
         inlineStateTracker.updateFunction(callGraph, updated.getEntity());
-        attributeAnalysis.update(updated);
+        attributeAnalysis.invalidate(updated);
     }
 }

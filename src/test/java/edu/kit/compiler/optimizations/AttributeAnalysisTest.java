@@ -39,9 +39,9 @@ public class AttributeAnalysisTest {
 
     private static final String TEMPLATE = "class %s { public static void main(String[] args) { } %s }";
 
-    private AttributeAnalysis analysis = new AttributeAnalysis();
     private Set<Graph> oldGraphs = new HashSet<>();
     private Collection<String> members = new LinkedList<>();
+    private AttributeAnalysis analysis;
     private String className;
 
     @BeforeAll
@@ -53,6 +53,7 @@ public class AttributeAnalysisTest {
     public void setup() {
         collectGraphs(oldGraphs);
 
+        analysis = new AttributeAnalysis();
         className = "Main_" + UUID.randomUUID().toString().replace("-", "_");
     }
 
@@ -473,7 +474,7 @@ public class AttributeAnalysisTest {
     }
 
     private Attributes getAttributes(String name) {
-        return analysis.get(getFunction(name).getEntity());
+        return analysis.getAttributes(getFunction(name).getEntity());
     }
 
     private Graph getFunction(String name) {
@@ -516,7 +517,5 @@ public class AttributeAnalysisTest {
         var irVisitor = new IRVisitor(namespaceMapper, stringTable);
         ast.accept(irVisitor);
         Lower.lower(irVisitor.getTypeMapper());
-
-        analysis.apply(getNewGraphs());
     }
 }

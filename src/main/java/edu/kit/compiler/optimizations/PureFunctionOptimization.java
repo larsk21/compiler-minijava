@@ -112,7 +112,7 @@ public final class PureFunctionOptimization implements Optimization.Local {
 
         @Override
         public void visit(Call node) {
-            var attributes = analysis.get(Util.getCallee(node));
+            var attributes = analysis.getAttributes(Util.getCallee(node));
 
             if (attributes.isTerminates()) {
                 switch (attributes.getPurity()) {
