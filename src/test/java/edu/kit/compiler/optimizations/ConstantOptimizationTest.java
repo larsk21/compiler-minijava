@@ -28,6 +28,7 @@ import edu.kit.compiler.data.ast_nodes.StatementNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionType;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.logger.Logger;
+import edu.kit.compiler.optimizations.Util.NodeListFiller;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
 import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
@@ -106,15 +107,7 @@ public class ConstantOptimizationTest {
 
     private List<Node> getNodes(Graph graph) {
         List<Node> nodes = new ArrayList<>();
-        NodeVisitor nodeVisitor = new NodeVisitor.Default() {
-
-            @Override
-            public void defaultVisit(Node node) {
-                nodes.add(node);
-            }
-
-        };
-        graph.walkPostorder(nodeVisitor);
+        graph.walkPostorder(new NodeListFiller(nodes));
 
         return nodes;
     }

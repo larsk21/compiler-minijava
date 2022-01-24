@@ -4,6 +4,8 @@ import java.util.Optional;
 
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
+import edu.kit.compiler.optimizations.Util.NodeWorklistFiller;
+
 import firm.Graph;
 import firm.Mode;
 import firm.TargetValue;
@@ -56,7 +58,7 @@ public class ArithmeticReplacementOptimization implements Optimization.Local {
         private boolean hasChanged = false;
 
         private void apply() {
-            graph.walkTopological(new WorklistFiller(worklist));
+            graph.walkTopological(new NodeWorklistFiller(worklist));
 
             while (!worklist.isEmpty()) {
                 worklist.dequeue().accept(this);
