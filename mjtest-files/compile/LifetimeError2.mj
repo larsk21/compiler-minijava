@@ -1,0 +1,19 @@
+class A {
+    public boolean x;
+
+    public static void main(String[] args) {
+        A a = new A();
+        a.x = false;
+        while(a.x) {
+            while(!a.x) {
+                if (a.x) {
+                    return;
+                }
+                while(a.x) System.out.println(0);
+            }
+            if (!a.x) {
+                return;
+            }
+        }
+    }
+}
