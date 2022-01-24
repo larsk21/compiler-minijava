@@ -15,8 +15,6 @@ import firm.Entity;
 import firm.Graph;
 import firm.Mode;
 import firm.Program;
-import firm.bindings.binding_irnode;
-import firm.bindings.binding_irop;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 import lombok.AccessLevel;
@@ -240,8 +238,8 @@ public final class AttributeAnalysis {
 
         @Override
         public void defaultVisit(Node node) {
-            assert false;
             attributes.setPurity(Purity.IMPURE);
+            attributes.setTerminates(false);
         }
 
         @Override

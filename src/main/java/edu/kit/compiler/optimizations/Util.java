@@ -6,7 +6,6 @@ import firm.Mode;
 import firm.bindings.binding_irnode;
 import firm.bindings.binding_irop;
 import firm.bindings.binding_irnode.ir_opcode;
-import firm.bindings.binding_irop.irop_flags;
 import firm.nodes.Address;
 import firm.nodes.Call;
 import firm.nodes.Node;
