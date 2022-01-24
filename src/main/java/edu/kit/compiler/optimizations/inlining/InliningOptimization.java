@@ -6,6 +6,7 @@ import firm.BackEdges;
 import firm.Entity;
 import firm.Graph;
 import firm.bindings.binding_irgopt;
+import firm.bindings.binding_irgraph;
 import firm.bindings.binding_irnode;
 import firm.nodes.*;
 import lombok.Getter;
@@ -84,6 +85,7 @@ public class InliningOptimization implements Optimization.Local {
 
         BackEdges.disable(graph);
 
+        graph.confirmProperties(binding_irgraph.ir_graph_properties_t.IR_GRAPH_PROPERTIES_NONE);
         binding_irgopt.remove_unreachable_code(graph.ptr);
         binding_irgopt.remove_bads(graph.ptr);
 
