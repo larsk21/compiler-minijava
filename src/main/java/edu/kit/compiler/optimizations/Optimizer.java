@@ -30,7 +30,7 @@ public final class Optimizer {
      * Returns the set of all living functions.
      */
     public Set<Graph> optimize(Entity main) {
-        dumpGraphsIfEnabled("raw");
+        dumpGraphsIfEnabled("raw", Program.getGraphs());
 
         var optimizationState = new OptimizationState();
         var changeSet = getAllGraphs();
@@ -51,10 +51,15 @@ public final class Optimizer {
 
         } while (hasChanged && !changeSet.isEmpty());
 
-        dumpGraphsIfEnabled("opt");
+        Set<Graph> prunedGraphs = CallGraph
+            .createPruned(main).functionSet().stream()
+            .map(Entity::getGraph)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
 
-        return CallGraph.createPruned(main).functionSet().stream().map(Entity::getGraph)
-                .filter(Objects::nonNull).collect(Collectors.toSet());
+        dumpGraphsIfEnabled("opt", prunedGraphs);
+
+        return prunedGraphs;
     }
 
     /**
@@ -137,9 +142,9 @@ public final class Optimizer {
                 .collect(Collectors.toCollection(HashSet::new));
     }
 
-    private void dumpGraphsIfEnabled(String prefix) {
+    private void dumpGraphsIfEnabled(String prefix, Iterable<Graph> graphs) {
         if (debugFlags.isDumpGraphs()) {
-            for (var graph : Program.getGraphs()) {
+            for (var graph : graphs) {
                 Dump.dumpGraph(graph, prefix);
             }
         }
