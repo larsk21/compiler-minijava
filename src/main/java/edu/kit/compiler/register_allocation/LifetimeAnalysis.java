@@ -9,6 +9,10 @@ import java.util.*;
 
 /**
  * Analyses the lifetimes and related information for all vRegisters.
+ *
+ * Precondition: The blocks need to be in reverse postfix order with
+ * loops in contiguous blocks and the correct number of backrefs and
+ * the correct loop depth needs to be set (see also ReversePostfixOrder).
  */
 public class LifetimeAnalysis {
     @Getter
