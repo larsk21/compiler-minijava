@@ -420,6 +420,18 @@ public class AttributeAnalysisTest {
         var foo = getAttributes("foo");
         assertFalse(foo.isConst());
         assertTrue(foo.isPure());
+        assertFalse(foo.isTerminates());
+        assertTrue(foo.isMalloc());
+    }
+
+    @Test
+    public void testMallocMaybe() {
+        addIntToArr("foo", 1, "if (x0 < 0) return new int[4]; else return null;");
+        buildIR();
+
+        var foo = getAttributes("foo");
+        assertFalse(foo.isConst());
+        assertTrue(foo.isPure());
         assertTrue(foo.isTerminates());
         assertTrue(foo.isMalloc());
     }
@@ -434,7 +446,7 @@ public class AttributeAnalysisTest {
         assertFalse(foo.isConst());
         assertFalse(foo.isPure());
         assertTrue(foo.isTerminates());
-        assertFalse(foo.isMalloc());
+        assertTrue(foo.isMalloc());
     }
 
     private void addIntToInt(String name, int numParams, String body) {

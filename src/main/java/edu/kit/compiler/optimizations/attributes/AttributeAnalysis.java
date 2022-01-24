@@ -148,23 +148,23 @@ public final class AttributeAnalysis {
      */
     private boolean isMallocLike(Graph graph) {
         return StreamSupport.stream(graph.getEndBlock().getPreds().spliterator(), false)
-                .anyMatch(this::isNewAlloc);
+                .anyMatch(this::maybeNewAlloc);
     }
 
     /**
      * Returns true if the given node may be the result of a call to a
      * malloc-like function. 
      */
-    private boolean isNewAlloc(Node node) {
+    private boolean maybeNewAlloc(Node node) {
         return switch (node.getOpCode()) {
             case iro_Return -> {
                 if (node.getPredCount() != 2) {
                     yield false;
                 } else {
-                    yield isNewAlloc(node.getPred(1));
+                    yield maybeNewAlloc(node.getPred(1));
                 }
             }
-            case iro_Proj -> isNewAlloc(node.getPred(0));
+            case iro_Proj -> maybeNewAlloc(node.getPred(0));
             case iro_Phi -> {
                 if (node.visited()) {
                     yield false;
@@ -172,7 +172,7 @@ public final class AttributeAnalysis {
                     node.markVisited();
                     var isMalloc = false;
                     for (var pred : node.getPreds()) {
-                        isMalloc |= isNewAlloc(pred);
+                        isMalloc |= maybeNewAlloc(pred);
                     }
                     yield isMalloc;
                 }
@@ -183,7 +183,7 @@ public final class AttributeAnalysis {
                 yield attributes.isMalloc() ? true : false;
             }
 
-            default -> true;
+            default -> false;
         };
     }
 

@@ -138,7 +138,7 @@ public class PureFunctionOptimizationTest {
 
     @Test
     public void testUnusedAllocLike() {
-        addIntToArr("foo", 2, "int[] a = new int[2]; a[0] = x0; a[1] = x1; return a;");
+        addIntToArr("foo", 2, "int[] a = new int[4]; return a;");
         addIntToInt("bar", 3, "int[] a = foo(x0, x1); return x2;");
         buildOptIR();
 
