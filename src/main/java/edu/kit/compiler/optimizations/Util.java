@@ -4,7 +4,9 @@ import firm.Entity;
 import firm.Graph;
 import firm.Mode;
 import firm.bindings.binding_irnode;
+import firm.bindings.binding_irop;
 import firm.bindings.binding_irnode.ir_opcode;
+import firm.bindings.binding_irop.irop_flags;
 import firm.nodes.Address;
 import firm.nodes.Call;
 import firm.nodes.Node;
@@ -76,5 +78,14 @@ public final class Util {
      */
     public static void setPinned(Node node, boolean pinned) {
         binding_irnode.set_irn_pinned(node.ptr, pinned ? 1 : 0);
+    }
+
+    /**
+     * Return true if the given node has the given flag. Can for example be used
+     * to check if a node is commutative or has a memory predecessor.
+     */
+    public static boolean hasFlag(Node node, binding_irop.irop_flags flag) {
+        var flags = binding_irop.get_op_flags(node.ptr);
+        return (flag.val & flags) != 0;
     }
 }

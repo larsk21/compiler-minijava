@@ -1,5 +1,7 @@
 package edu.kit.compiler.optimizations.attributes;
 
+import static firm.bindings.binding_irop.irop_flags.irop_flag_uses_memory;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.StreamSupport;
@@ -13,6 +15,8 @@ import firm.Entity;
 import firm.Graph;
 import firm.Mode;
 import firm.Program;
+import firm.bindings.binding_irnode;
+import firm.bindings.binding_irop;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.*;
 import lombok.AccessLevel;
@@ -170,20 +174,25 @@ public final class AttributeAnalysis {
                     yield false;
                 } else {
                     node.markVisited();
-                    var isMalloc = false;
                     for (var pred : node.getPreds()) {
-                        isMalloc |= maybeNewAlloc(pred);
+                        if (maybeNewAlloc(pred)) yield true;
                     }
-                    yield isMalloc;
+                    yield false;
                 }
             }
             case iro_Call -> {
                 var callee = Util.getCallee((Call) node);
                 var attributes = computeAttributes(callee);
-                yield attributes.isMalloc() ? true : false;
+                yield (attributes.isMalloc() ? true : false);
             }
 
-            default -> false;
+            default -> {
+                var offset = Util.hasFlag(node, irop_flag_uses_memory) ? 1 : 0;
+                for (var i = offset; i < node.getPredCount(); ++i) {
+                    if (maybeNewAlloc(node.getPred(i))) yield true;
+                }
+                yield false;
+            }
         };
     }
 
