@@ -83,6 +83,9 @@ public class PureFunctionOptimizationTest {
 
         var ret = (Return) Counter.getOnly(bar, ir_opcode.iro_Return);
         assertEquals(ret.getMem(), bar.getInitialMem());
+        assertEquals(ir_opcode.iro_Proj, ret.getPred(1).getOpCode());
+        assertEquals(ir_opcode.iro_Proj, ret.getPred(1).getPred(0).getOpCode());
+        assertEquals(ir_opcode.iro_Call, ret.getPred(1).getPred(0).getPred(0).getOpCode());
     }
 
     @Test

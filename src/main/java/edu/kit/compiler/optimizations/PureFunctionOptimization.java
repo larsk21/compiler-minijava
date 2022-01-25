@@ -45,9 +45,10 @@ public final class PureFunctionOptimization implements Optimization.Local {
         if (!node.getMem().equals(graph.getNoMem())) {
             // setting mem to NoMem on the original call would break the memory chain
             var constCall = (Call) graph.copyNode(node);
+            var projRes = graph.newProj(constCall, Mode.getT(), Call.pnTResult);
             constCall.setMem(graph.getNoMem());
 
-            exchangeCall(node, constCall, node.getMem());
+            exchangeCall(node, projRes, node.getMem());
             return true;
         } else {
             return false;
