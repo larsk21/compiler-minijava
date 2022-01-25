@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import edu.kit.compiler.optimizations.constant_folding.ConstantAnalysis;
-import edu.kit.compiler.optimizations.constant_folding.TargetValueLatticeElement;
+import edu.kit.compiler.optimizations.analysis.ConstantAnalysis;
+import edu.kit.compiler.optimizations.analysis.TargetValueLatticeElement;
 import edu.kit.compiler.optimizations.constant_folding.UndefinedCondStrategies;
 import edu.kit.compiler.optimizations.Util.NodeListFiller;
 

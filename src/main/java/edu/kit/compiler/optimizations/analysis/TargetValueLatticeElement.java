@@ -1,4 +1,4 @@
-package edu.kit.compiler.optimizations.constant_folding;
+package edu.kit.compiler.optimizations.analysis;
 
 import firm.TargetValue;
 
