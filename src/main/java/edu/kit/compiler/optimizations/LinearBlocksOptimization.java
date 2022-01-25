@@ -105,17 +105,19 @@ public class LinearBlocksOptimization implements Optimization.Local {
             // if block contains Phi -> keep (predecessors are needed to resolve Phi)
             if (nodes.stream().anyMatch(item -> item instanceof Phi)) return;
 
+            List<Node> predNodes = blockNodes.get(pred);
+
             // skip conditional control flow in predecessor block
             Node nodePred;
             if (nodePreds.size() > 1) {
                 nodePred = graph.newJmp(pred);
+                predNodes.add(nodePred);
             } else {
                 nodePred = nodePreds.get(0);
             }
 
             // move all nodes to predecessor block (except Jmp nodes)
             // change predecessor of Jmp node successors to node in predecessor block
-            List<Node> predNodes = blockNodes.get(pred);
             for (Node node : nodes) {
                 if (node instanceof Jmp) {
                     for (Edge edge : BackEdges.getOuts(node)) {
@@ -129,7 +131,9 @@ public class LinearBlocksOptimization implements Optimization.Local {
             blockNodes.remove(block);
 
             // exclude block from control flow
-            block.setPred(0, graph.newBad(Mode.getX()));
+            for (int i = 0; i < block.getPredCount(); i++) {
+                block.setPred(i, graph.newBad(Mode.getX()));
+            }
 
             // graph has changed
             change = true;

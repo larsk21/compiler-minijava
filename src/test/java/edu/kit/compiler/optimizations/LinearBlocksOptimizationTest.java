@@ -503,6 +503,71 @@ public class LinearBlocksOptimizationTest {
     }
 
     @Test
+    public void testMultipleEqualPredecessorsMultipleEqualSuccessorsNoPhiThenLinear() {
+        //       ->
+        // Start    C (no Phi) -> D -> End
+        //       ->
+        // =>
+        // Start -> End
+
+        // construct graph
+        Graph graph = createGraph(new Type[] { INT_TYPE });
+        Construction construction = new Construction(graph);
+
+        Block block1 = construction.getCurrentBlock();
+        Node const11 = construction.newConst(new TargetValue(17, Mode.getIs()));
+        Node minus1 = construction.newMinus(const11);
+        Node const12 = construction.newConst(TargetValue.getBTrue());
+        Node cond1 = construction.newCond(const12);
+        Node proj11 = construction.newProj(cond1, Mode.getX(), Cond.pnFalse);
+        Node proj12 = construction.newProj(cond1, Mode.getX(), Cond.pnTrue);
+        block1.mature();
+
+        Block block2 = construction.newBlock();
+        block2.addPred(proj11);
+        block2.addPred(proj12);
+        construction.setCurrentBlock(block2);
+        Node const2 = construction.newConst(new TargetValue(42, Mode.getIs()));
+        Node add2 = construction.newAdd(minus1, const2);
+        Node jmp2 = construction.newJmp();
+        block2.mature();
+
+        Block block3 = construction.newBlock();
+        block3.addPred(jmp2);
+        construction.setCurrentBlock(block3);
+        Node const3 = construction.newConst(new TargetValue(71, Mode.getIs()));
+        Node sub3 = construction.newSub(add2, const3);
+        Node return3 = construction.newReturn(construction.getCurrentMem(), new Node[] { sub3 });
+        block3.mature();
+
+        Block block4 = graph.getEndBlock();
+        block4.addPred(return3);
+
+        construction.finish();
+
+        // run optimization
+        LinearBlocksOptimization optimization = new LinearBlocksOptimization();
+        optimization.optimize(graph, null);
+
+        // make assertions
+        List<Block> blocks = getBlocks(graph);
+        assertEquals(2, blocks.size());
+
+        assertEquals(block1, graph.getStartBlock());
+        assertEquals(block4, graph.getEndBlock());
+
+        List<Node> nodes = getNodes(graph);
+        assertContainsOpCode(nodes, ir_opcode.iro_Minus);
+        assertContainsOpCode(nodes, ir_opcode.iro_Add);
+        assertContainsOpCode(nodes, ir_opcode.iro_Minus);
+        assertDoesNotContainOpCode(nodes, ir_opcode.iro_Cond);
+
+        assertEquals(block1, minus1.getBlock());
+        assertEquals(block1, add2.getBlock());
+        assertEquals(block1, sub3.getBlock());
+    }
+
+    @Test
     public void testMultiplePredecessorsMultipleSuccessorsBothEmptyNoPhi() {
         //       -> A (empty) ->
         // Start                 C (no Phi) -> End
