@@ -2,10 +2,10 @@ package edu.kit.compiler.optimizations.attributes;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.StreamSupport;
 
 import com.sun.jna.NativeLong;
 
+import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
 import edu.kit.compiler.optimizations.Util;
@@ -136,7 +136,7 @@ public final class AttributeAnalysis {
      * allocated memory.
      */
     private boolean isMallocLike(Graph graph) {
-        return StreamSupport.stream(graph.getEndBlock().getPreds().spliterator(), false)
+        return CommonUtil.stream(graph.getEndBlock().getPreds())
                 .anyMatch(this::maybeNewAlloc);
     }
 

@@ -4,9 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
+import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.optimizations.Util.BlockNodeMapper;
 
 import firm.BackEdges;
@@ -74,7 +73,7 @@ public class LinearBlocksOptimization implements Optimization.Local {
 
         @Override
         public void visitBlock(Block block) {
-            List<Node> nodePreds = StreamSupport.stream(block.getPreds().spliterator(), false).collect(Collectors.toList());
+            List<Node> nodePreds = CommonUtil.toList(block.getPreds());
 
             // if block has no or more than one distinct predecessor block -> keep (block is needed to unify control flow)
             if (nodePreds.stream().map(pred -> pred.getBlock()).distinct().count() != 1) return;

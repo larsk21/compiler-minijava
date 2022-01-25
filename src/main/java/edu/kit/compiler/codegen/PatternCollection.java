@@ -4,7 +4,6 @@ import static firm.bindings.binding_irnode.ir_opcode.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Memory;
@@ -27,6 +26,8 @@ import edu.kit.compiler.codegen.pattern.ReturnPattern;
 import edu.kit.compiler.codegen.pattern.UnaryInstructionPattern;
 import edu.kit.compiler.codegen.pattern.UnknownPattern;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
+import edu.kit.compiler.io.CommonUtil;
+
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
 import lombok.AccessLevel;
@@ -122,8 +123,7 @@ public class PatternCollection implements Pattern<InstructionMatch> {
     private static final class InheritingPattern implements Pattern<InstructionMatch> {
         @Override
         public InstructionMatch match(Node node, MatcherState matcher) {
-            return InstructionMatch.empty(node, Util.streamPreds(node)
-                    .collect(Collectors.toList()));
+            return InstructionMatch.empty(node, CommonUtil.toList(node.getPreds()));
         }
     }
 
