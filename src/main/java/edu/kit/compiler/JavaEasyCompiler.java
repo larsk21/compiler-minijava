@@ -4,9 +4,11 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import edu.kit.compiler.assembly.AssemblyOptimizer;
 import edu.kit.compiler.assembly.AssemblyWriter;
 import edu.kit.compiler.assembly.ElfAssemblyWriter;
 import edu.kit.compiler.assembly.FunctionInstructions;
+import edu.kit.compiler.assembly.JumpInversion;
 import edu.kit.compiler.cli.Cli;
 import edu.kit.compiler.cli.CliOption;
 import edu.kit.compiler.cli.CliOptionGroup;
@@ -227,7 +229,7 @@ public class JavaEasyCompiler {
      * @return Ok or an according error
      */
     private static Result compile(String filePath, Logger logger, Optimizer optimizer,
-                                  RegisterAllocator allocator) {
+                                  RegisterAllocator allocator, AssemblyOptimizer asmOptimizer) {
         try {
             var graphs = createOptimizedIR(filePath, logger, optimizer);
 
@@ -244,8 +246,9 @@ public class JavaEasyCompiler {
                 int nArgs = type.getNParams();
                 List<String> instructions = allocator.performAllocation(
                         nArgs, il, selection.getMatcher().getRegisterSizes());
+                List<String> optimizedInstructions = asmOptimizer.apply(instructions);
 
-                functions.add(new FunctionInstructions(graph.getEntity().getLdName(), instructions));
+                functions.add(new FunctionInstructions(graph.getEntity().getLdName(), optimizedInstructions));
             }
 
             AssemblyWriter writer = new ElfAssemblyWriter();
@@ -254,6 +257,7 @@ public class JavaEasyCompiler {
             var assemblyFile = sourceFile + ".s";
             var out = new FileOutputStream(assemblyFile);
             logger.info("assembling program: '%s'", assemblyFile);
+
             writer.writeAssembly(functions, out);
 
             var stdLibrary = System.getenv("STD_LIBRARY_PATH");
@@ -363,6 +367,7 @@ public class JavaEasyCompiler {
 
         Optimizer optimizer;
         RegisterAllocator allocator;
+        AssemblyOptimizer asmOptimizer;
         switch (optimizationLevel) {
             case Level0:
                 optimizer = new Optimizer(List.of(), List.of(
@@ -370,6 +375,7 @@ public class JavaEasyCompiler {
                     new ArithmeticIdentitiesOptimization()
                 ), debugFlags);
                 allocator = new DumbAllocator();
+                asmOptimizer = new AssemblyOptimizer(List.of());
                 break;
             case Level1:
                 optimizer = new Optimizer(List.of(), List.of(
@@ -381,6 +387,9 @@ public class JavaEasyCompiler {
                     new PureFunctionOptimization()
                 ), debugFlags);
                 allocator = new LinearScan();
+                asmOptimizer = new AssemblyOptimizer(List.of(
+                    new JumpInversion()
+                ));
                 break;
             default:
                 throw new UnsupportedOperationException("unsupported optimization level");
@@ -421,7 +430,7 @@ public class JavaEasyCompiler {
         } else if (cliCall.hasOption(CliOptions.Compile.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.Compile.getOption());
 
-            result = compile(filePath, logger, optimizer, allocator);
+            result = compile(filePath, logger, optimizer, allocator, asmOptimizer);
         }  else {
             if (cliCall.getFreeArgs().length == 0) {
                 System.err.println("Wrong command line arguments, see --help for supported commands.");
@@ -430,7 +439,7 @@ public class JavaEasyCompiler {
             } else {
                 String filePath = cliCall.getFreeArgs()[0];
 
-                result = compile(filePath, logger, optimizer, allocator);
+                result = compile(filePath, logger, optimizer, allocator, asmOptimizer);
             }
         }
 

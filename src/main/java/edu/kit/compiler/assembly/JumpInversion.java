@@ -6,73 +6,79 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import edu.kit.compiler.assembly.AssemblyOptimizer.AssemblyOptimization;
 import edu.kit.compiler.io.BufferedLookaheadIterator;
 import edu.kit.compiler.io.LookaheadIterator;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-public final class JumpInversion implements Iterator<String> {
-
-    private final LookaheadIterator<String> input;
-
-    public JumpInversion(FunctionInstructions function) {
-        this.input = new BufferedLookaheadIterator<>(
-                function.getInstructions().iterator());
-    }
+public final class JumpInversion implements AssemblyOptimization {
 
     @Override
-    public boolean hasNext() {
-        return input.has();
+    public Iterator<String> optimize(Iterator<String> instructions) {
+        return new Optimization(new BufferedLookaheadIterator<>(instructions));
     }
 
-    @Override
-    public String next() {
-        if (input.has(2)) {
-            return parseConditional();
-        } else {
-            return input.getNext();
+    @RequiredArgsConstructor
+    private static final class Optimization implements Iterator<String> {
+
+        private final LookaheadIterator<String> input;
+
+        @Override
+        public boolean hasNext() {
+            return input.has();
         }
-    }
 
-    private String parseConditional() {
-        assert input.has(0);
-
-        var instruction = input.get(0);
-        var space = instruction.indexOf(' ');
-
-        if (space != -1) {
-            return Jump.get(instruction.substring(0, space))
-                    .map(jump -> {
-                        var trueLabel = instruction.substring(space).stripLeading();
-                        return parseUnconditional(jump, trueLabel);
-                    })
-                    .orElseGet(input::getNext);
-        } else {
-            return input.getNext();
+        @Override
+        public String next() {
+            if (input.has(2)) {
+                return parseConditional();
+            } else {
+                return input.getNext();
+            }
         }
-    }
 
-    private String parseUnconditional(Jump trueJump, String trueLabel) {
-        assert input.has(1);
+        private String parseConditional() {
+            assert input.has(0);
 
-        var instruction = input.get(1);
+            var instruction = input.get(0);
+            var space = instruction.indexOf(' ');
 
-        if (instruction.startsWith("jmp ")) {
-            var falseLabel = instruction.substring(3).stripLeading();
-            return parseLabel(trueJump, trueLabel, falseLabel);
-        } else {
-            return input.getNext();
+            if (space != -1) {
+                return Jump.get(instruction.substring(0, space))
+                        .map(jump -> {
+                            var trueLabel = instruction.substring(space).stripLeading();
+                            return parseUnconditional(jump, trueLabel);
+                        })
+                        .orElseGet(input::getNext);
+            } else {
+                return input.getNext();
+            }
         }
-    }
 
-    private String parseLabel(Jump trueJump, String trueLabel, String falseLabel) {
-        assert input.has(2);
+        private String parseUnconditional(Jump trueJump, String trueLabel) {
+            assert input.has(1);
 
-        var instruction = input.get(2);
-        if (instruction.startsWith(trueLabel) && instruction.endsWith(":")) {
-            input.next(2);
-            return trueJump.getInverse().getInstruction() + " " + falseLabel;
-        } else {
-            return input.getNext();
+            var instruction = input.get(1);
+
+            if (instruction.startsWith("jmp ")) {
+                var falseLabel = instruction.substring(3).stripLeading();
+                return parseLabel(trueJump, trueLabel, falseLabel);
+            } else {
+                return input.getNext();
+            }
+        }
+
+        private String parseLabel(Jump trueJump, String trueLabel, String falseLabel) {
+            assert input.has(2);
+
+            var instruction = input.get(2);
+            if (instruction.startsWith(trueLabel) && instruction.endsWith(":")) {
+                input.next(2);
+                return trueJump.getInverse().getInstruction() + " " + falseLabel;
+            } else {
+                return input.getNext();
+            }
         }
     }
 
