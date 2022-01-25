@@ -1,0 +1,6 @@
+class BooleanArrayInfiniteLoop {
+    public static void main(String[] args) {
+        boolean b1; boolean[] bb = new boolean[5];
+        if (true) { } ; if (bb[1]) { }; while (true) { }
+    }
+}
