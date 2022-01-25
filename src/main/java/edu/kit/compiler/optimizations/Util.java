@@ -1,6 +1,8 @@
 package edu.kit.compiler.optimizations;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import edu.kit.compiler.io.Worklist;
 
@@ -170,6 +172,26 @@ public final class Util {
             } else {
                 list.add(block);
             }
+        }
+
+    }
+
+    /**
+     * Firm node visitor that maps blocks to the nodes contained in them.
+     * 
+     * The nodes in each list are in the order of their visit.
+     */
+    @RequiredArgsConstructor
+    public static class BlockNodeMapper extends NodeVisitor.Default {
+
+        private final Map<Block, List<Node>> blockNodes;
+
+        @Override
+        public void defaultVisit(Node node) {
+            Block block = (Block) node.getBlock();
+
+            blockNodes.putIfAbsent(block, new ArrayList<>());
+            blockNodes.get(block).add(node);
         }
 
     }
