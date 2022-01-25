@@ -6,6 +6,10 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Represents a collection of assembly optimization that can be collectively
+ * applied to a list of instructions.
+ */
 @RequiredArgsConstructor
 public final class AssemblyOptimizer {
 
@@ -28,6 +32,9 @@ public final class AssemblyOptimizer {
         return iterator;
     }
 
+    /**
+     * Represents an optimization that can be applied to assembly instructions.
+     */
     public interface AssemblyOptimization {
         Iterator<String> optimize(Iterator<String> instructions);
     }

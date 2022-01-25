@@ -12,6 +12,11 @@ import edu.kit.compiler.io.LookaheadIterator;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * An optimization to improve control flow in assembly. A conditional jump
+ * to Label A, followed by an unconditional jump to label B is replaced with
+ * a single conditional jump to label B if fallthrough is possible.
+ */
 public final class JumpInversion implements AssemblyOptimization {
 
     @Override

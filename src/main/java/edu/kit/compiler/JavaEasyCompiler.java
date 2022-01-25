@@ -9,6 +9,7 @@ import edu.kit.compiler.assembly.AssemblyWriter;
 import edu.kit.compiler.assembly.ElfAssemblyWriter;
 import edu.kit.compiler.assembly.FunctionInstructions;
 import edu.kit.compiler.assembly.JumpInversion;
+import edu.kit.compiler.assembly.RemoveNop;
 import edu.kit.compiler.cli.Cli;
 import edu.kit.compiler.cli.CliOption;
 import edu.kit.compiler.cli.CliOptionGroup;
@@ -388,6 +389,7 @@ public class JavaEasyCompiler {
                 ), debugFlags);
                 allocator = new LinearScan();
                 asmOptimizer = new AssemblyOptimizer(List.of(
+                    new RemoveNop(),
                     new JumpInversion()
                 ));
                 break;
