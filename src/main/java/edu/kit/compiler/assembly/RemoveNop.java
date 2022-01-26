@@ -15,7 +15,7 @@ public class RemoveNop extends AssemblyOptimization {
     }
 
     @Override
-    Optional<String[]> optimize(String[] instructions) {
+    public Optional<String[]> optimize(String[] instructions) {
         if (instructions[0] == "nop") {
             return Optional.of(new String[0]);
         } else {

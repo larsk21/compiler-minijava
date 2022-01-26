@@ -20,7 +20,7 @@ public final class JumpInversion extends AssemblyOptimization {
     }
 
     @Override
-    Optional<String[]> optimize(String[] instructions) {
+    public Optional<String[]> optimize(String[] instructions) {
         var trueJump = Jump.parse(instructions[0]);
         if (trueJump.isEmpty()) {
             return Optional.empty();

@@ -16,7 +16,8 @@ import lombok.RequiredArgsConstructor;
 public final class AssemblyOptimizer {
 
     /**
-     * Represents an optimization that can be applied to assembly instructions.
+     * Represents an optimization that can be applied to a fixed size windows
+     * of assembly instructions.
      */
     @RequiredArgsConstructor
     public static abstract class AssemblyOptimization {
@@ -24,7 +25,13 @@ public final class AssemblyOptimizer {
         @Getter
         private final int windowSize;
 
-        abstract Optional<String[]> optimize(String[] instructions);
+        /**
+         * If possible, returns an optimized version of the given array of
+         * assembly instructions. Otherwise return nothing. The array can be
+         * relied upon to be of length `windowSize`. The array must not be
+         * modified, nor must it be contained in the returned Optional.
+         */
+        public abstract Optional<String[]> optimize(String[] instructions);
     }
 
     private final Iterable<AssemblyOptimization> optimizations;
