@@ -36,4 +36,5 @@ public interface LookaheadIterator<T> {
      * Move the lookahead iterator forward for the given number of steps.
      */
     void next(int steps);
+
 }

@@ -104,7 +104,7 @@ public final class AssemblyOptimizer {
             target[i] = instructions.removeFirst();
         }
 
-        for (int i = target.length; i < source.length; ++i) {
+        for (int i = source.length - 1; i >= target.length ; --i) {
             instructions.addFirst(source[i]);
         }
     }
