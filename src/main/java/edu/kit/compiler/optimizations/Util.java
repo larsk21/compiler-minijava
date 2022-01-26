@@ -190,8 +190,7 @@ public final class Util {
         public void defaultVisit(Node node) {
             Block block = (Block) node.getBlock();
 
-            blockNodes.putIfAbsent(block, new ArrayList<>());
-            blockNodes.get(block).add(node);
+            blockNodes.computeIfAbsent(block, item -> new ArrayList<>()).add(node);
         }
 
     }
