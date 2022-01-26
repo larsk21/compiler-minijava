@@ -4,6 +4,8 @@ import java.util.function.BinaryOperator;
 
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
+import edu.kit.compiler.optimizations.Util.NodeWorklistFiller;
+
 import firm.Graph;
 import firm.Mode;
 import firm.TargetValue;
@@ -66,7 +68,7 @@ public final class ArithmeticIdentitiesOptimization implements Optimization.Loca
         private boolean changes = false;
 
         private final void apply() {
-            graph.walkTopological(new WorklistFiller(worklist));
+            graph.walkTopological(new NodeWorklistFiller(worklist));
 
             while (!worklist.isEmpty()) {
                 worklist.dequeue().accept(this);

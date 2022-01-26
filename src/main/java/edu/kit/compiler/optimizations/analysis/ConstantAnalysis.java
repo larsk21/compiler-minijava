@@ -1,4 +1,6 @@
-package edu.kit.compiler.optimizations.constant_folding;
+package edu.kit.compiler.optimizations.analysis;
+
+import static edu.kit.compiler.optimizations.analysis.TargetValueLatticeElement.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -7,7 +9,7 @@ import java.util.function.Function;
 
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.io.Worklist;
-import edu.kit.compiler.optimizations.WorklistFiller;
+import edu.kit.compiler.optimizations.Util.NodeWorklistFiller;
 
 import firm.BackEdges;
 import firm.Graph;
@@ -16,27 +18,17 @@ import firm.BackEdges.Edge;
 import firm.nodes.*;
 
 import lombok.Getter;
-
-import static edu.kit.compiler.optimizations.constant_folding.TargetValueLatticeElement.*;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Analysis that finds constant values for value nodes where possible.
  */
+@RequiredArgsConstructor
 public class ConstantAnalysis {
 
-    /**
-     * Create a new ConstantAnalysis on the given graph.
-     */
-    public ConstantAnalysis(Graph graph) {
-        this.graph = graph;
+    private final Graph graph;
 
-        worklist = new StackWorklist<>();
-        nodeValues = new HashMap<>();
-    }
-
-    private Graph graph;
-
-    private Worklist<Node> worklist;
+    private Worklist<Node> worklist = new StackWorklist<>();
     /**
      * Get the mapping of nodes to lattice elements after the graph has been
      * analyzed.
@@ -45,7 +37,7 @@ public class ConstantAnalysis {
      * `analyze`.
      */
     @Getter
-    private Map<Node, TargetValueLatticeElement> nodeValues;
+    private Map<Node, TargetValueLatticeElement> nodeValues = new HashMap<>();
 
     /**
      * Analyze the given graph to find constant values for value nodes.
@@ -57,7 +49,7 @@ public class ConstantAnalysis {
         boolean backEdgesEnabled = BackEdges.enabled(graph);
         BackEdges.enable(graph);
 
-        graph.walkTopological(new WorklistFiller(worklist));
+        graph.walkTopological(new NodeWorklistFiller(worklist));
 
         ConstantAnalysisVisitor visitor = new ConstantAnalysisVisitor();
         while (!worklist.isEmpty()) {

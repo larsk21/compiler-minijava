@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import edu.kit.compiler.optimizations.constant_folding.ConstantAnalysis;
-import edu.kit.compiler.optimizations.constant_folding.TargetValueLatticeElement;
+import edu.kit.compiler.optimizations.analysis.ConstantAnalysis;
+import edu.kit.compiler.optimizations.analysis.TargetValueLatticeElement;
 import edu.kit.compiler.optimizations.constant_folding.UndefinedCondStrategies;
+import edu.kit.compiler.optimizations.Util.NodeListFiller;
 
 import firm.BackEdges;
 import firm.Graph;
@@ -17,7 +18,6 @@ import firm.bindings.binding_irgopt;
 import firm.nodes.Cond;
 import firm.nodes.Const;
 import firm.nodes.Node;
-import firm.nodes.NodeVisitor;
 import firm.nodes.Proj;
 import firm.nodes.Unknown;
 
@@ -51,14 +51,7 @@ public class ConstantOptimization implements Optimization.Local {
         // we transform the nodes in reverse postorder, i.e. we can access the
         // unchanged predecessors of a node when transforming it
         List<Node> nodes = new ArrayList<>();
-        graph.walkPostorder(new NodeVisitor.Default() {
-
-            @Override
-            public void defaultVisit(Node node) {
-                nodes.add(0, node);
-            }
-
-        });
+        graph.walkPostorder(new NodeListFiller(nodes, true));
 
         BackEdges.enable(graph);
 

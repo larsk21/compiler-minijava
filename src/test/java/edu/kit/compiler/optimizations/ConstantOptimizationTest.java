@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.Test;
 
@@ -26,8 +25,10 @@ import edu.kit.compiler.data.ast_nodes.MethodNode;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode;
 import edu.kit.compiler.data.ast_nodes.ExpressionNode.ValueExpressionType;
+import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.logger.Logger;
+import edu.kit.compiler.optimizations.Util.NodeListFiller;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
 import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
@@ -70,7 +71,7 @@ public class ConstantOptimizationTest {
         IRVisitor irv = new IRVisitor(namespaceMapper, stringTable);
         program.accept(irv);
 
-        List<Graph> graphs = StreamSupport.stream(Program.getGraphs().spliterator(), false).collect(Collectors.toList());
+        List<Graph> graphs = CommonUtil.toList(Program.getGraphs());
         return graphs.get(graphs.size() - 1);
     }
 
@@ -106,15 +107,7 @@ public class ConstantOptimizationTest {
 
     private List<Node> getNodes(Graph graph) {
         List<Node> nodes = new ArrayList<>();
-        NodeVisitor nodeVisitor = new NodeVisitor.Default() {
-
-            @Override
-            public void defaultVisit(Node node) {
-                nodes.add(node);
-            }
-
-        };
-        graph.walkPostorder(nodeVisitor);
+        graph.walkPostorder(new NodeListFiller(nodes));
 
         return nodes;
     }
@@ -302,7 +295,7 @@ public class ConstantOptimizationTest {
         List<Node> callArgs = getNodes(graph);
         callArgs = callArgs.stream()
             .filter(node -> node instanceof Call)
-            .flatMap(node -> StreamSupport.stream(node.getPreds().spliterator(), false))
+            .flatMap(node -> CommonUtil.stream(node.getPreds()))
             .collect(Collectors.toList());
 
         assertContainsOpCode(getNodes(graph), ir_opcode.iro_Div);
@@ -396,7 +389,7 @@ public class ConstantOptimizationTest {
 
         boolean containsPhi = getNodes(graph).stream().anyMatch(node ->
             node instanceof Phi &&
-            StreamSupport.stream(node.getPreds().spliterator(), false).noneMatch(pred ->
+            CommonUtil.stream(node.getPreds()).noneMatch(pred ->
                 pred.equals(node)
             )
         );

@@ -11,9 +11,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import edu.kit.compiler.optimizations.Util.BlockListFiller;
+import edu.kit.compiler.optimizations.Util.NodeListFiller;
 import edu.kit.compiler.transform.JFirmSingleton;
 
-import firm.BlockWalker;
 import firm.Construction;
 import firm.Entity;
 import firm.Graph;
@@ -27,7 +28,6 @@ import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Block;
 import firm.nodes.Cond;
 import firm.nodes.Node;
-import firm.nodes.NodeVisitor;
 
 public class LinearBlocksOptimizationTest {
 
@@ -51,28 +51,14 @@ public class LinearBlocksOptimizationTest {
 
     private List<Node> getNodes(Graph graph) {
         List<Node> nodes = new ArrayList<>();
-        NodeVisitor nodeVisitor = new NodeVisitor.Default() {
-
-            @Override
-            public void defaultVisit(Node node) {
-                nodes.add(node);
-            }
-
-        };
-        graph.walkPostorder(nodeVisitor);
+        graph.walkPostorder(new NodeListFiller(nodes));
 
         return nodes;
     }
 
     private List<Block> getBlocks(Graph graph) {
         List<Block> blocks = new ArrayList<>();
-        BlockWalker blockWalker = new BlockWalker() {
-            @Override
-            public void visitBlock(Block block) {
-                blocks.add(block);
-            }
-        };
-        graph.walkBlocksPostorder(blockWalker);
+        graph.walkBlocksPostorder(new BlockListFiller(blocks));
 
         return blocks;
     }

@@ -8,6 +8,7 @@ import edu.kit.compiler.data.ast_nodes.MethodNode.DynamicMethodNode;
 import edu.kit.compiler.data.ast_nodes.MethodNode.MethodNodeParameter;
 import edu.kit.compiler.data.ast_nodes.MethodNode.StaticMethodNode;
 import edu.kit.compiler.data.ast_nodes.StatementNode.*;
+import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.lexer.StringTable;
 
 import java.util.Comparator;
@@ -15,7 +16,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
@@ -58,16 +58,12 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
         println();
     }
 
-    private <T> List<T> toList(Iterable<T> iterable) {
-        return StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toList());
-    }
-
     @SafeVarargs
     private <T> List<T> sortAlphabetically(Function<T, Integer> name, Iterable<? extends T>... iterables) {
         Stream<T> stream = Stream.empty();
 
         for (Iterable<? extends T> iterable : iterables) {
-            stream = Stream.concat(stream, StreamSupport.stream(iterable.spliterator(), false));
+            stream = Stream.concat(stream, CommonUtil.stream(iterable));
         }
 
         return stream.sorted(new Comparator<T>() {
@@ -197,7 +193,7 @@ public class PrettyPrintAstVisitor implements AstVisitor<Void> {
 
     @Override
     public Void visit(BlockStatementNode blockStatementNode) {
-        List<StatementNode> statements = toList(blockStatementNode.getStatements());
+        List<StatementNode> statements = CommonUtil.toList(blockStatementNode.getStatements());
 
         if (statements.isEmpty()) {
             print("{ }");

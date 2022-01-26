@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+
+import edu.kit.compiler.io.CommonUtil;
+import edu.kit.compiler.optimizations.Util.BlockNodeMapper;
 
 import firm.BackEdges;
 import firm.BlockWalker;
@@ -16,8 +17,8 @@ import firm.bindings.binding_irgopt;
 import firm.nodes.Block;
 import firm.nodes.Jmp;
 import firm.nodes.Node;
-import firm.nodes.NodeVisitor;
 import firm.nodes.Phi;
+
 import lombok.Getter;
 
 /**
@@ -38,28 +39,12 @@ public class LinearBlocksOptimization implements Optimization.Local {
      */
     private Map<Block, List<Node>> blockNodes;
 
-    /**
-     * Fill the blockNodes map.
-     */
-    private void collectBlockNodes() {
-        blockNodes = new HashMap<>();
-
-        graph.walkPostorder(new NodeVisitor.Default() {
-            @Override
-            public void defaultVisit(Node node) {
-                Block block = (Block) node.getBlock();
-
-                blockNodes.putIfAbsent(block, new ArrayList<>());
-                blockNodes.get(block).add(node);
-            }
-        });
-    }
-
     @Override
     public boolean optimize(Graph graph, OptimizationState state) {
         this.graph = graph;
 
-        collectBlockNodes();
+        blockNodes = new HashMap<>();
+        graph.walkPostorder(new BlockNodeMapper(blockNodes));
 
         BackEdges.enable(graph);
 
@@ -88,7 +73,7 @@ public class LinearBlocksOptimization implements Optimization.Local {
 
         @Override
         public void visitBlock(Block block) {
-            List<Node> nodePreds = StreamSupport.stream(block.getPreds().spliterator(), false).collect(Collectors.toList());
+            List<Node> nodePreds = CommonUtil.toList(block.getPreds());
 
             // if block has no or more than one distinct predecessor block -> keep (block is needed to unify control flow)
             if (nodePreds.stream().map(pred -> pred.getBlock()).distinct().count() != 1) return;

@@ -1,11 +1,12 @@
 package edu.kit.compiler.codegen;
 
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import edu.kit.compiler.codegen.Operand.Immediate;
 import edu.kit.compiler.codegen.Operand.Register;
 import edu.kit.compiler.intermediate_lang.RegisterSize;
+import edu.kit.compiler.io.CommonUtil;
+
 import firm.Mode;
 import firm.TargetValue;
 import firm.nodes.Node;
@@ -51,7 +52,7 @@ public class Util {
     }
 
     public static Stream<Node> streamPreds(Node node) {
-        return StreamSupport.stream(node.getPreds().spliterator(), false);
+        return CommonUtil.stream(node.getPreds());
     }
 
     public static boolean isOverflow(TargetValue value, RegisterSize maxSize) {

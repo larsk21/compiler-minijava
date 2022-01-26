@@ -1,5 +1,12 @@
 package edu.kit.compiler.optimizations;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import edu.kit.compiler.io.Worklist;
+
+import firm.BlockWalker;
 import firm.Entity;
 import firm.Graph;
 import firm.Mode;
@@ -7,10 +14,15 @@ import firm.bindings.binding_irnode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Address;
 import firm.nodes.Call;
+import firm.nodes.Block;
 import firm.nodes.Node;
+import firm.nodes.NodeVisitor;
 import firm.nodes.Proj;
 import firm.nodes.Tuple;
+
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -77,4 +89,110 @@ public final class Util {
     public static void setPinned(Node node, boolean pinned) {
         binding_irnode.set_irn_pinned(node.ptr, pinned ? 1 : 0);
     }
+
+    /**
+     * Firm node visitor that inserts all visited nodes in the given Worklist
+     * using the method enqueueInOrder.
+     */
+    @AllArgsConstructor
+    public static class NodeWorklistFiller extends NodeVisitor.Default {
+
+        @Getter
+        private final Worklist<Node> worklist;
+
+        @Override
+        public void defaultVisit(Node node) {
+            worklist.enqueueInOrder(node);
+        }
+
+    }
+
+    /**
+     * Firm block walker that inserts all visited blocks in the given Worklist
+     * using the method enqueueInOrder.
+     */
+    @AllArgsConstructor
+    public static class BlockWorklistFiller implements BlockWalker {
+
+        @Getter
+        private final Worklist<Block> worklist;
+
+        @Override
+        public void visitBlock(Block block) {
+            worklist.enqueueInOrder(block);
+        }
+
+    }
+
+    /**
+     * Firm node visitor that inserts all visited nodes in the given List.
+     * 
+     * If the reverse flag is set, the nodes are inserted in the reverse order
+     * of their visit.
+     */
+    @AllArgsConstructor
+    @RequiredArgsConstructor
+    public static class NodeListFiller extends NodeVisitor.Default {
+
+        @Getter
+        private final List<Node> list;
+        @Getter
+        private boolean reverse = false;
+
+        @Override
+        public void defaultVisit(Node node) {
+            if (reverse) {
+                list.add(0, node);
+            } else {
+                list.add(node);
+            }
+        }
+
+    }
+
+    /**
+     * Firm block walker that inserts all visited blocks in the given List.
+     * 
+     * If the reverse flag is set, the blocks are inserted in the reverse order
+     * of their visit.
+     */
+    @AllArgsConstructor
+    @RequiredArgsConstructor
+    public static class BlockListFiller implements BlockWalker {
+
+        @Getter
+        private final List<Block> list;
+        @Getter
+        private boolean reverse = false;
+
+        @Override
+        public void visitBlock(Block block) {
+            if (reverse) {
+                list.add(0, block);
+            } else {
+                list.add(block);
+            }
+        }
+
+    }
+
+    /**
+     * Firm node visitor that maps blocks to the nodes contained in them.
+     * 
+     * The nodes in each list are in the order of their visit.
+     */
+    @RequiredArgsConstructor
+    public static class BlockNodeMapper extends NodeVisitor.Default {
+
+        private final Map<Block, List<Node>> blockNodes;
+
+        @Override
+        public void defaultVisit(Node node) {
+            Block block = (Block) node.getBlock();
+
+            blockNodes.computeIfAbsent(block, item -> new ArrayList<>()).add(node);
+        }
+
+    }
+
 }

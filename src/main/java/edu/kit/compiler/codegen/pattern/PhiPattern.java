@@ -9,6 +9,8 @@ import edu.kit.compiler.codegen.MatcherState;
 import edu.kit.compiler.codegen.Operand;
 import edu.kit.compiler.codegen.PhiInstruction;
 import edu.kit.compiler.codegen.Util;
+import edu.kit.compiler.io.CommonUtil;
+
 import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Node;
@@ -25,8 +27,7 @@ public final class PhiPattern implements Pattern<InstructionMatch> {
             return InstructionMatch.none();
         } else if (node.getMode().equals(Mode.getM())) {
             // node is a memory phi, match only needs to reference predecessors
-            return InstructionMatch.empty(node, Util.streamPreds(node)
-                    .collect(Collectors.toList()));
+            return InstructionMatch.empty(node, CommonUtil.toList(node.getPreds()));
         } else {
             // node is an actual phi
             assert node.getMode().isData();
