@@ -2,9 +2,9 @@ package edu.kit.compiler.assembly;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,39 +20,54 @@ public class JumpInversionTest {
 
     @Test
     public void testReplaceJNZ() {
-        var res = optimize("jnz .L1", "jmp .L2", ".L1:");
-        assertEquals(List.of("jz .L2", ".L1:"), res);
+        var expected = List.of("jz .L2", ".L1:");
+        var actual = optimize("jnz .L1", "jmp .L2", ".L1:");
+
+        assertEquals(Optional.of(expected), actual);
     }
 
     @Test
     public void testReplaceJG() {
-        var res = optimize("jg .L1", "jmp .L2", ".L1:");
-        assertEquals(List.of("jng .L2", ".L1:"), res);
+        var expected = List.of("jng .L2", ".L1:");
+        var actual = optimize("jg .L1", "jmp .L2", ".L1:");
+
+        assertEquals(Optional.of(expected), actual);
+    }
+
+    @Test
+    public void testReplaceComplexLabel() {
+        var expected = List.of("jle .LFE_Main_main", ".Labc_1234_foo:");
+        var actual = optimize("jnle .Labc_1234_foo", "jmp .LFE_Main_main", ".Labc_1234_foo:");
+
+        assertEquals(Optional.of(expected), actual);
+    }
+
+    @Test
+    public void testReplaceIllegalLabel() {
+        var actual = optimize("jnle .Labc_1234_foo", "jmp abc", ".Labc_1234_foo:");
+
+        assertEquals(Optional.empty(), actual);
     }
 
     @Test
     public void testNoDefaultJump() {
-        var res = optimize("jnz .L2", ".L1");
-        assertEquals(List.of("jnz .L2", ".L1"), res);
+        var actual = optimize(".L0", "jnz .L2", ".L1");
+        assertEquals(Optional.empty(), actual);
     }
 
     @Test
     public void testNoCondJump() {
-        var res = optimize("addl %rax, %rbx", "jump .L2", ".L1");
-        assertEquals(List.of("addl %rax, %rbx", "jump .L2", ".L1"), res);
+        var actual = optimize("addl %rax, %rbx", "jump .L2", ".L1");
+        assertEquals(Optional.empty(), actual);
     }
 
     @Test
     public void testNoLabel() {
-        var res = optimize("jnz .L1", "jmp .L2", "addl %rax, %rbx");
-        assertEquals(List.of("jnz .L1", "jmp .L2", "addl %rax, %rbx"), res);
+        var actual = optimize("jnz .L1", "jmp .L2", "addl %rax, %rbx");
+        assertEquals(Optional.empty(), actual);
     }
 
-    private List<String> optimize(String... instructions) {
-        var input = Arrays.stream(instructions).iterator();
-        var output = optimization.optimize(input);
-        var result = new ArrayList<String>();
-        output.forEachRemaining(result::add);
-        return result;
+    private Optional<List<String>> optimize(String... instructions) {
+        return optimization.optimize(instructions).map(Arrays::asList);
     }
 }

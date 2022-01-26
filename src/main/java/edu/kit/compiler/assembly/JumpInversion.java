@@ -1,89 +1,65 @@
 package edu.kit.compiler.assembly;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import edu.kit.compiler.assembly.AssemblyOptimizer.AssemblyOptimization;
-import edu.kit.compiler.io.BufferedLookaheadIterator;
-import edu.kit.compiler.io.LookaheadIterator;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 /**
  * An optimization to improve control flow in assembly. A conditional jump
  * to Label A, followed by an unconditional jump to label B is replaced with
  * a single conditional jump to label B if fallthrough is possible.
  */
-public final class JumpInversion implements AssemblyOptimization {
+public final class JumpInversion extends AssemblyOptimization {
 
-    @Override
-    public Iterator<String> optimize(Iterator<String> instructions) {
-        return new Optimization(new BufferedLookaheadIterator<>(instructions));
+    public JumpInversion() {
+        super(3);
     }
 
-    @RequiredArgsConstructor
-    private static final class Optimization implements Iterator<String> {
-
-        private final LookaheadIterator<String> input;
-
-        @Override
-        public boolean hasNext() {
-            return input.has();
+    @Override
+    Optional<String[]> optimize(String[] instructions) {
+        var trueJump = Jump.parse(instructions[0]);
+        if (trueJump.isEmpty()) {
+            return Optional.empty();
         }
 
-        @Override
-        public String next() {
-            if (input.has(2)) {
-                return parseConditional();
-            } else {
-                return input.getNext();
-            }
+        if (!instructions[1].startsWith("jmp ")) {
+            return Optional.empty();
         }
 
-        private String parseConditional() {
-            assert input.has(0);
-
-            var instruction = input.get(0);
-            var space = instruction.indexOf(' ');
-
-            if (space != -1) {
-                return Jump.get(instruction.substring(0, space))
-                        .map(jump -> {
-                            var trueLabel = instruction.substring(space).stripLeading();
-                            return parseUnconditional(jump, trueLabel);
-                        })
-                        .orElseGet(input::getNext);
-            } else {
-                return input.getNext();
-            }
+        var trueLabel = parseLabel(instructions[0]);
+        var falseLabel = parseLabel(instructions[1]);
+        if (trueLabel == null || falseLabel == null) {
+            return Optional.empty();
         }
 
-        private String parseUnconditional(Jump trueJump, String trueLabel) {
-            assert input.has(1);
-
-            var instruction = input.get(1);
-
-            if (instruction.startsWith("jmp ")) {
-                var falseLabel = instruction.substring(3).stripLeading();
-                return parseLabel(trueJump, trueLabel, falseLabel);
-            } else {
-                return input.getNext();
-            }
+        if (!instructions[2].startsWith(".L")) {
+            return Optional.empty();
         }
 
-        private String parseLabel(Jump trueJump, String trueLabel, String falseLabel) {
-            assert input.has(2);
+        if (instructions[2].equals(trueLabel + ":")) {
+            var invertedJump = trueJump.get().getInverse().getInstruction() + " " + falseLabel;
+            return Optional.of(new String[] { invertedJump, instructions[2] });
+        } else {
+            return Optional.empty();
+        }
+    }
 
-            var instruction = input.get(2);
-            if (instruction.startsWith(trueLabel) && instruction.endsWith(":")) {
-                input.next(2);
-                return trueJump.getInverse().getInstruction() + " " + falseLabel;
+    private static String parseLabel(String instruction) {
+        var space = instruction.indexOf(' ');
+
+        if (space != -1) {
+            var label = instruction.substring(space).stripLeading();
+            if (label.startsWith(".L")) {
+                return label;
             } else {
-                return input.getNext();
+                return null;
             }
+        } else {
+            return null;
         }
     }
 
@@ -126,8 +102,14 @@ public final class JumpInversion implements AssemblyOptimization {
             this.instruction = this.name().toLowerCase();
         }
 
-        public static Optional<Jump> get(String instruction) {
-            return Optional.ofNullable(JUMPS.get(instruction));
+        public static Optional<Jump> parse(String instruction) {
+            var space = instruction.indexOf(' ');
+
+            if (space != -1) {
+                return Optional.ofNullable(JUMPS.get(instruction.substring(0, space)));
+            } else {
+                return Optional.empty();
+            }
         }
 
         private static final Map<String, Jump> JUMPS = Arrays.stream(Jump.values())

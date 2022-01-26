@@ -1,52 +1,25 @@
 package edu.kit.compiler.assembly;
 
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import edu.kit.compiler.assembly.AssemblyOptimizer.AssemblyOptimization;
-import lombok.RequiredArgsConstructor;
 
 /**
  * A basic optimization to remove `nop` instructions, potentially introduced
  * by Unknown nodes in the Firm graph.
  */
-public class RemoveNop implements AssemblyOptimization {
+public class RemoveNop extends AssemblyOptimization {
 
-    @Override
-    public Iterator<String> optimize(Iterator<String> instructions) {
-        return new Optimization(instructions);
+    public RemoveNop() {
+        super(1);
     }
 
-    @RequiredArgsConstructor
-    private static final class Optimization implements Iterator<String> {
-
-        private final Iterator<String> input;
-
-        private String buffer;
-
-        @Override
-        public boolean hasNext() {
-            fillBuffer();
-            return buffer != null;
-        }
-
-        @Override
-        public String next() {
-            var next = buffer;
-            buffer = null;
-
-            if (next != null) {
-                return next;
-            } else {
-                throw new NoSuchElementException();
-            }
-        }
-
-        private void fillBuffer() {
-            while (buffer == null && input.hasNext()) {
-                var next = input.next();
-                buffer = next == "nop" ? null : next;
-            }
+    @Override
+    Optional<String[]> optimize(String[] instructions) {
+        if (instructions[0] == "nop") {
+            return Optional.of(new String[0]);
+        } else {
+            return Optional.empty();
         }
     }
 }

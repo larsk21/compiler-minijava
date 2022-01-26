@@ -36,13 +36,4 @@ public interface LookaheadIterator<T> {
      * Move the lookahead iterator forward for the given number of steps.
      */
     void next(int steps);
-
-    /**
-     * Return the next element and advance the iterator.
-     */
-    default T getNext() {
-        var result = get();
-        next();
-        return result;
-    }
 }
