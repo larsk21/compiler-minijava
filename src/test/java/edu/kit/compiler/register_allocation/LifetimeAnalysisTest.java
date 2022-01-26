@@ -22,12 +22,14 @@ public class LifetimeAnalysisTest {
                 Instruction.newJmp("jl .L2", 2),
                 Instruction.newJmp("jmp .L3", 3)
         ), 1, 1);
+        loopHead.setBlockLoopDepth(1);
         Block loopBody = new Block(List.of(
                 Instruction.newOp("addl $1, @3", List.of(), Optional.of(1), 3),
                 Instruction.newOp("mov @3, @1", List.of(3), Optional.empty(), 1),
                 Instruction.newCall(List.of(1), Optional.empty(), "foo"),
                 Instruction.newJmp("jmp .L1", 1)
         ), 2, 0);
+        loopBody.setBlockLoopDepth(1);
         Block end = new Block(List.of(
                 Instruction.newOp("addl $7, @2", List.of(), Optional.of(0), 2),
                 Instruction.newRet(Optional.of(2))

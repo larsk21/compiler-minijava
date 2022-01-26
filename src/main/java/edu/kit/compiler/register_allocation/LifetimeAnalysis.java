@@ -9,6 +9,10 @@ import java.util.*;
 
 /**
  * Analyses the lifetimes and related information for all vRegisters.
+ *
+ * Precondition: The blocks need to be in reverse postfix order with
+ * loops in contiguous blocks and the correct number of backrefs and
+ * the correct loop depth needs to be set (see also ReversePostfixOrder).
  */
 public class LifetimeAnalysis {
     @Getter
@@ -16,23 +20,32 @@ public class LifetimeAnalysis {
     private Optional<Instruction>[] firstInstruction;
     private Optional<Instruction>[] lastInstruction;
     private int[] loopNestingDepth;
+    private int[] definitionNestingDepth;
     private boolean[] isDividend;
     private List<Integer> callsPrefixSum;
     private List<Integer> divsPrefixSum;
     @Getter
     private int numInstructions;
 
-    private LifetimeAnalysis(Lifetime[] lifetimes, Optional<Instruction>[] firstInstruction,
-                             Optional<Instruction>[] lastInstruction, int[] loopNestingDepth, boolean[] isDividend,
-                             List<Integer> callsPrefixSum, List<Integer> divsPrefixSum, int numInstructions) {
-        this.lifetimes = lifetimes;
-        this.firstInstruction = firstInstruction;
-        this.lastInstruction = lastInstruction;
-        this.loopNestingDepth = loopNestingDepth;
-        this.isDividend = isDividend;
-        this.callsPrefixSum = callsPrefixSum;
-        this.divsPrefixSum = divsPrefixSum;
-        this.numInstructions = numInstructions;
+    @SuppressWarnings("unchecked")
+    private LifetimeAnalysis(int numVRegisters) {
+        this.lifetimes = new Lifetime[numVRegisters];
+        this.firstInstruction = new Optional[numVRegisters];
+        this.lastInstruction = new Optional[numVRegisters];
+        this.loopNestingDepth = new int[numVRegisters];
+        this.definitionNestingDepth = new int[numVRegisters];
+        this.isDividend = new boolean[numVRegisters];
+        this.callsPrefixSum = new ArrayList<>();
+        callsPrefixSum.add(0);
+        this.divsPrefixSum = new ArrayList<>();
+        divsPrefixSum.add(0);
+        this.numInstructions = 0;
+
+        for (int i = 0; i < numVRegisters; i++) {
+            lifetimes[i] = new Lifetime();
+            firstInstruction[i] = Optional.empty();
+            lastInstruction[i] = Optional.empty();
+        }
     }
 
     /**
@@ -111,28 +124,21 @@ public class LifetimeAnalysis {
     }
 
     public static LifetimeAnalysis run(List<Block> ir, int numVRegisters, int nArgs) {
-        Lifetime[] lifetimes = new Lifetime[numVRegisters];
-        @SuppressWarnings("unchecked")
-        Optional<Instruction>[] firstInstruction = new Optional[numVRegisters];
-        @SuppressWarnings("unchecked")
-        Optional<Instruction>[] lastInstruction = new Optional[numVRegisters];
-        int[] loopNestingDepth = new int[numVRegisters];
-        int[] definitionNestingDepth = new int[numVRegisters];
-        boolean[] isDividend = new boolean[numVRegisters];
-        List<Integer> callsPrefixSum = new ArrayList<>();
-        callsPrefixSum.add(0);
-        List<Integer> divsPrefixSum = new ArrayList<>();
-        divsPrefixSum.add(0);
+        LifetimeAnalysis analysis = new LifetimeAnalysis(numVRegisters);
+        analysis.run(ir, nArgs);
+        return analysis;
+    }
+
+    private void run(List<Block> ir, int nArgs) {
         List<StackEntry> stack = new ArrayList<>();
-
-        for (int i = 0; i < numVRegisters; i++) {
-            lifetimes[i] = new Lifetime();
-            firstInstruction[i] = Optional.empty();
-            lastInstruction[i] = Optional.empty();
-        }
-
         int index = 0;
+        int previousDepth = 0;
         for (Block b: ir) {
+            assert previousDepth == stack.size();
+            int endOfLoopDepth = b.getBlockLoopDepth() - b.getNumBackReferences();
+            handleLoopEnding(index - 1, endOfLoopDepth, stack);
+            previousDepth = b.getBlockLoopDepth();
+
             for (int counter = 0; counter < b.getNumBackReferences(); counter++) {
                 stack.add(new StackEntry(b.getBlockId()));
             }
@@ -197,23 +203,23 @@ public class LifetimeAnalysis {
                     }
                 }
 
-                Optional<Integer> backref = instr.getJumpTarget();
-                if (backref.isPresent() && !stack.isEmpty() &&
-                        backref.get() == stack.get(stack.size() - 1).getBlockId()) {
-                    // loop-extension of register lifetimes
-                    StackEntry entry = stack.remove(stack.size() - 1);
-                    for (int vRegister: entry.getVRegisters()) {
-                        lifetimes[vRegister].extend(index, false);
-                        lastInstruction[vRegister] = Optional.empty();
-                    }
-                }
-
                 index++;
             }
         }
+        handleLoopEnding(index - 1, 0, stack);
         assert stack.isEmpty();
-        return new LifetimeAnalysis(lifetimes, firstInstruction, lastInstruction,
-                loopNestingDepth, isDividend, callsPrefixSum, divsPrefixSum, index);
+        numInstructions = index;
+    }
+
+    private void handleLoopEnding(int index, int newDepth, List<StackEntry> stack) {
+        while (newDepth < stack.size()) {
+            // loop ending: loop-extension of register lifetimes
+            StackEntry entry = stack.remove(stack.size() - 1);
+            for (int vRegister: entry.getVRegisters()) {
+                lifetimes[vRegister].extend(index, false);
+                lastInstruction[vRegister] = Optional.empty();
+            }
+        }
     }
 
     private int numInterferencesFromPrefixSum(List<Integer> prefixSum, int vRegister,

@@ -12,6 +12,11 @@ import java.util.*;
  * The order that is calculated:
  *  - is a reverse postfix order (and thus a topological order except for loops)
  *  - ensures that the blocks of each loop are in contiguous order without holes
+ *  - sets the number of backrefs for each loop header correctly
+ *    (backrefs = for how many loops is this block the loop header?)
+ *  - sets the loop depth of each block correctly, specifically ensuring that e.g.
+ *    a return block that is embedded in a loop is assigned the same loop depth
+ *    as the surrounding blocks in the loop
  *
  *  This is (more or less) the best possible block layout for linear scan register
  *  allocation. However, the second condition is surprisingly hard to correctly
@@ -22,18 +27,19 @@ import java.util.*;
 public class ReversePostfixOrder {
     private Map<Integer, Block> blocks;
     private Set<Integer> visited = new HashSet<>();
-    private Map<Integer, Integer> blockLoopDepth;
+    private Map<Integer, Set<Integer>> loopsPerBlock;
 
-    private ReversePostfixOrder(Map<Integer, Block> blocks, Map<Integer, Integer> blockLoopDepth) {
+    private ReversePostfixOrder(Map<Integer, Block> blocks, Map<Integer, Set<Integer>> loopsPerBlock) {
         this.blocks = blocks;
-        this.blockLoopDepth = blockLoopDepth;
+        this.loopsPerBlock = loopsPerBlock;
     }
 
     public static List<Block> apply(Map<Integer, Block> blocks, int startBlock) {
-        Map<Integer, Integer> blockLoopDepth = new LoopDepthAnalysis(blocks).run(startBlock);
+        var loopsPerBlock = new LoopDepthAnalysis(blocks).run(startBlock);
 
-        ReversePostfixOrder instance = new ReversePostfixOrder(blocks, blockLoopDepth);
+        ReversePostfixOrder instance = new ReversePostfixOrder(blocks, loopsPerBlock);
         List<Block> result = instance.depthFirstSearch(blocks.get(startBlock)).getResult();
+        instance.setFinalLoopDepth(result);
 
         List<Block> reversed = new ArrayList<>();
         for (int i = result.size() - 1; i >= 0; i--) {
@@ -61,7 +67,8 @@ public class ReversePostfixOrder {
         // It is important that the loop body is arranged before the loop exit,
         // to enable efficient lifetime analysis.
         boolean outputInReverseOrder = (children.size() == 2) &&
-                blockLoopDepth.get(children.get(0).getBlockId()) > blockLoopDepth.get(children.get(1).getBlockId());
+                loopsPerBlock.get(children.get(0).getBlockId()).size()
+                        > loopsPerBlock.get(children.get(1).getBlockId()).size();
         if (outputInReverseOrder) {
             var tmp = children.get(0);
             children.set(0, children.get(1));
@@ -85,6 +92,50 @@ public class ReversePostfixOrder {
 
         result.add(block);
         return new DFSResult(block.getBlockId(), result);
+    }
+
+    /**
+     * Calculates the loop depth of all blocks. Also,
+     * "flattens" the loop depth for e.g. return blocks within a loop.
+     * This is necessary so that the lifetime analysis can detect loops
+     * correctly.
+     */
+    private void setFinalLoopDepth(List<Block> blocks) {
+        Set<Integer> visitedLabels = new HashSet<>();
+        Set<Integer> previousLabels = Set.of();
+        for (int i = 0; i < blocks.size(); i++) {
+            // iterate through all blocks and look for new labels
+            Block b = blocks.get(i);
+            Set<Integer> currentLabels = loopsPerBlock.get(b.getBlockId());
+            if (!currentLabels.equals(previousLabels)) {
+                Set<Integer> difference = new HashSet<>(currentLabels);
+                difference.removeAll(previousLabels);
+                for (int label: difference) {
+                    if (visitedLabels.contains(label)) {
+                        // we need to fill the "hole" in the loop labels
+                        addLabelBackwards(blocks, label, i - 1);
+                    } else {
+                        visitedLabels.add(label);
+                    }
+                }
+            }
+        }
+
+        for (Block b: blocks) {
+            int depth = loopsPerBlock.get(b.getBlockId()).size();
+            b.setBlockLoopDepth(depth);
+        }
+    }
+
+    private void addLabelBackwards(List<Block> blocks, int label, int lastIndex) {
+        for (int j = lastIndex;;  j--) {
+            Set<Integer> currentLabels = loopsPerBlock.get(blocks.get(j).getBlockId());
+            if (currentLabels.contains(label)) {
+                break;
+            } else {
+                currentLabels.add(label);
+            }
+        }
     }
 
     @Data
@@ -129,20 +180,18 @@ public class ReversePostfixOrder {
             }
         }
 
-        public Map<Integer, Integer> run(int startBlock) {
+        public Map<Integer, Set<Integer>> run(int startBlock) {
             depthFirstSearch(blocks.get(startBlock), -1);
-
-            Map<Integer, Integer> loopDepths = new HashMap<>();
-            for (var entry: loopsPerBlock.entrySet()) {
-                loopDepths.put(entry.getKey(), entry.getValue().size());
-            }
-            return loopDepths;
+            return loopsPerBlock;
         }
 
         private void depthFirstSearch(Block block, int previousId) {
             int blockId = block.getBlockId();
             if (active.contains(blockId)) {
-                block.addBackRef();
+                // we don't want to add a backref of the same block two times
+                if (!loopsPerBlock.get(blockId).contains(blockId)) {
+                    block.addBackRef();
+                }
 
                 // backtrack and add the loop to all found blocks
                 Deque<Integer> queue = new ArrayDeque<>();
