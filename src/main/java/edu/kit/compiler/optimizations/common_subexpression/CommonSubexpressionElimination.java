@@ -245,12 +245,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             }
         }
 
-        private void addOuts(Node n) {
-            for (var out : BackEdges.getOuts(n)) {
-                worklist.enqueue(out.node);
-            }
-        }
-
         private Node[] iterableToArray(Iterable<Node> iterable) {
             List<Node> list = new ArrayList<>();
             for(var entry : iterable) {
