@@ -203,6 +203,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
     private final class CSEVisitor extends NodeVisitor.Default {
 
         private final Map<TargetValue, Node> constCache = new HashMap<>();
+        private final Map<Entity, Node> addressCache = new HashMap<>();
         private final Map<NodePreds, Node> nodeCache = new HashMap<>();
 
         @RequiredArgsConstructor
@@ -221,7 +222,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
             @Override
             public int hashCode() {
-                int result = Objects.hash(opcode);
+                int result = Objects.hash(opcode, mode);
                 result = 31 * result + Arrays.hashCode(preds);
                 return result;
             }
@@ -281,6 +282,17 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         @Override
         public void visit(Proj proj) {
             // do nothing
+        }
+
+        @Override
+        public void visit(Address addr) {
+            Entity ent = addr.getEntity();
+            if (addressCache.containsKey(ent)) {
+                Node newAddr = addressCache.get(ent);
+                Graph.exchange(addr, newAddr);
+            } else {
+                addressCache.put(ent, addr);
+            }
         }
 
         @Override
