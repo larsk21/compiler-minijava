@@ -532,6 +532,10 @@ public class ApplyAssignment {
         return result;
     }
 
+    public static int argOffsetOnStack(int nArgs, int vRegister) {
+        return 16 + 8 * (nArgs - vRegister - 1);
+    }
+
     private int countRequiredTmps(LifetimeTracker tracker, Instruction instr, int index) {
         assert instr.getType() == InstructionType.GENERAL;
         int n = 0;
@@ -646,10 +650,6 @@ public class ApplyAssignment {
         stackSize = stackSize - (stackSize % 8);
         assert stackSize >= sizeOld && stackSize <= sizeOld + 8 && stackSize % 8 == 0;
         return stackSize;
-    }
-
-    private static int argOffsetOnStack(int nArgs, int vRegister) {
-        return 16 + 8 * (nArgs - vRegister - 1);
     }
 
     private void output(String instr) {
