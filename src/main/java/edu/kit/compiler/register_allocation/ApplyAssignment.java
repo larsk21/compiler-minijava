@@ -2,6 +2,7 @@ package edu.kit.compiler.register_allocation;
 
 import edu.kit.compiler.codegen.PermutationSolver;
 import edu.kit.compiler.intermediate_lang.*;
+import edu.kit.compiler.transform.StandardLibraryEntities;
 import lombok.Getter;
 
 import java.util.*;
@@ -367,7 +368,8 @@ public class ApplyAssignment {
 
         // align to 16 byte (only required for external functions, which take all args in registers)
         int alignmentOffset = 0;
-        if (numArgsOnStack == 0 && (savedOffset % 16 != 0)) {
+        if (StandardLibraryEntities.INSTANCE.isStandardLibraryEntity(instr.getCallReference().get())
+                && (savedOffset % 16 != 0)) {
             alignmentOffset = 8;
             output("subq $8, %rsp # align stack to 16 byte");
         }
