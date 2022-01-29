@@ -1,15 +1,21 @@
 package edu.kit.compiler.optimizations;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.sun.jna.Pointer;
+
+import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.io.Worklist;
 
 import firm.BlockWalker;
 import firm.Entity;
 import firm.Graph;
 import firm.Mode;
+import firm.bindings.binding_irdom;
 import firm.bindings.binding_irnode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Address;
@@ -88,6 +94,20 @@ public final class Util {
      */
     public static void setPinned(Node node, boolean pinned) {
         binding_irnode.set_irn_pinned(node.ptr, pinned ? 1 : 0);
+    }
+
+    /**
+     * Find the deepest common dominator of the given blocks.
+     * 
+     * Note: A block also dominates itself.
+     */
+    public static Block findDeepestCommonDominator(Iterable<Block> blocks) {
+        return CommonUtil.stream(blocks)
+            .reduce((dominator, block) -> {
+                Pointer ptr = binding_irdom.ir_deepest_common_dominator(dominator.ptr, block.ptr);
+                return (Block) Node.createWrapper(ptr);
+            })
+            .orElse(null);
     }
 
     /**
@@ -190,8 +210,28 @@ public final class Util {
         public void defaultVisit(Node node) {
             Block block = (Block) node.getBlock();
 
-            blockNodes.putIfAbsent(block, new ArrayList<>());
-            blockNodes.get(block).add(node);
+            blockNodes.computeIfAbsent(block, item -> new ArrayList<Node>()).add(node);
+        }
+
+    }
+
+    /**
+     * Firm node visitor that maps a block to its successors.
+     */
+    @RequiredArgsConstructor
+    public static class BlockSuccessorMapper implements BlockWalker {
+
+        private final Map<Block, Set<Block>> successors;
+
+        @Override
+        public void visitBlock(Block block) {
+            successors.computeIfAbsent(block, item -> new HashSet<>());
+
+            for (Node predNode : block.getPreds()) {
+                Block pred = (Block) predNode.getBlock();
+
+                successors.computeIfAbsent(pred, item -> new HashSet<>()).add(block);
+            }
         }
 
     }
