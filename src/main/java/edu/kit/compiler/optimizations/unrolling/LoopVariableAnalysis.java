@@ -14,6 +14,11 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Implements an analysis that tries to detect if a loop has a fixed number of
+ * iterations, and compute that number if possible. Currently, the loop must be
+ * controlled by a Cmp with a Phi and a Const node as predecessor.
+ */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class LoopVariableAnalysis {
 
@@ -36,28 +41,32 @@ public final class LoopVariableAnalysis {
             return Optional.empty();
         }
 
-        var boundValue = ((Const) cmp.getRight()).getTarval();
+        var bound = ((Const) cmp.getRight()).getTarval();
         var loopVariable = (Phi) cmp.getLeft();
 
-        var initialValue = TargetValue.getUnknown();
-        var stepValue = TargetValue.getUnknown();
+        var initial = TargetValue.getUnknown();
+        var step = TargetValue.getUnknown();
         for (int i = 0; i < loopVariable.getPredCount(); ++i) {
-            var pred = loopVariable.getPred(i);
             if (loop.isBackEdge(i)) {
-                stepValue = updateStepValue(loopVariable, stepValue, pred);
+                var value = computeStepValue(loopVariable, i);
+                step = supremum(step, value);
             } else {
-                initialValue = updateInitialValue(initialValue, pred);
+                var value = getConstValue(loopVariable.getPred(i));
+                initial = supremum(initial, value);
             }
         }
 
-        if (initialValue.isConstant() && stepValue.isConstant()) {
-            return Optional.of(new FixedIterationLoop(initialValue,
-                    boundValue, stepValue, cmp.getRelation()));
+        if (initial.isConstant() && step.isConstant()) {
+            return Optional.of(new FixedIterationLoop(initial,
+                    bound, step, cmp.getRelation()));
         } else {
             return Optional.empty();
         }
     }
 
+    /**
+     * Represents a descriptor for loops with a fixed number of iterations.
+     */
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class FixedIterationLoop {
 
@@ -70,6 +79,15 @@ public final class LoopVariableAnalysis {
         @Getter
         private final Relation relation;
 
+        /**
+         * Returns the number of iterations of the loop. If the loop does not 
+         * terminate, returns an empty Optional. This may for example be the
+         * case if the step is zero.
+         * 
+         * Note: This method does not consider overflows. Something like 
+         * `int i = 1; while (x != 0) i = i + 1;` will return an empty
+         * Optional.
+         */
         public Optional<TargetValue> getIterationCount() {
             var mode = initial.getMode();
 
@@ -82,7 +100,8 @@ public final class LoopVariableAnalysis {
                     case Equal -> Optional.of(mode.getOne());
                     case LessGreater -> {
                         var difference = bound.sub(initial);
-                        if (difference.mod(step).isNull()) {
+                        if (difference.mod(step).isNull() 
+                                && !difference.div(step).isNegative()) {
                             yield Optional.of(difference.div(step));
                         } else {
                             yield Optional.empty();
@@ -145,72 +164,76 @@ public final class LoopVariableAnalysis {
 
     }
 
-    private static TargetValue updateInitialValue(
-            TargetValue initialValue, Node initializer) {
-        if (initialValue.equals(BAD)) {
+    /**
+     * Recursively analyzes every path through a loop starting at the i-th
+     * predecessor of the loop variable. Returns a constant Tarval if the
+     * node is equal to the previous value of the loop variable plus a constant
+     * step (beware that the step may be zero).
+     */
+    private static TargetValue computeStepValue(Phi loopVariable, int i) {
+        loopVariable.getGraph().incVisited();
+        var zero = loopVariable.getMode().getNull();
+        return analyzeStepValue(loopVariable, zero, loopVariable.getPred(i));
+    }
+
+    private static TargetValue analyzeStepValue(Phi loopVariable,
+            TargetValue step, Node node) {
+        if (step.equals(BAD)) {
             return BAD;
         }
 
-        if (initializer.getOpCode() == ir_opcode.iro_Const) {
-            var value = ((Const) initializer).getTarval();
-            if (initialValue.equals(UNKNOWN)) {
-                return value;
-            } else if (initialValue.equals(value)) {
-                // multiple identical initializers for index are fine
-                return initialValue;
-            } else {
-                // multiple non-identical initializers for index
-                return BAD;
+        return switch (node.getOpCode()) {
+            case iro_Add -> {
+                var newStep = step.add(getConstValue(node.getPred(1)));
+                yield analyzeStepValue(loopVariable, newStep, node.getPred(0));
             }
+            case iro_Phi -> {
+                if (node.equals(loopVariable)) {
+                    yield step;
+                } else {
+                    if (node.visited()) {
+                        yield BAD;
+                    } else {
+                        node.markVisited();
+                        var newStep = UNKNOWN;
+                        for (int i = 0; i < node.getPredCount() && !newStep.equals(BAD); ++i) {
+                            newStep = supremum(newStep, analyzeStepValue(
+                                    loopVariable, step, node.getPred(i)));
+                        }
+                        yield newStep;
+                    }
+                }
+            }
+            default -> BAD;
+        };
+    }
+
+    /**
+     * If the node is Const, returns its value, otherwise returns BAD.
+     */
+    private static TargetValue getConstValue(Node node) {
+        if (node.getOpCode() == ir_opcode.iro_Const) {
+            return ((Const) node).getTarval();
         } else {
             // non Const initializer for index
             return BAD;
         }
     }
 
-    private static TargetValue updateStepValue(Phi loopVariable,
-            TargetValue stepValue, Node node) {
-        if (stepValue.equals(BAD)) {
+    /**
+     * Returns the supremum of the two Tarvals. 
+     */
+    private static TargetValue supremum(TargetValue lhs, TargetValue rhs) {
+        if (lhs.equals(BAD) || rhs.equals(BAD)) {
             return BAD;
-        }
-
-        var zero = loopVariable.getMode().getNull();
-        var newStepValue = analyzeStepValue(loopVariable, zero, node);
-
-        if (stepValue.equals(UNKNOWN)) {
-            return newStepValue;
-        } else if (newStepValue.equals(stepValue)) {
-            return stepValue;
+        } else if (lhs.equals(UNKNOWN)) {
+            return rhs;
+        } else if (rhs.equals(UNKNOWN)) {
+            return lhs;
+        } else if (lhs.equals(rhs)) {
+            return lhs;
         } else {
-            // every path must have same step value
             return BAD;
         }
-    }
-
-    private static TargetValue analyzeStepValue(Phi loopVariable,
-            TargetValue stepValue, Node node) {
-        return switch (node.getOpCode()) {
-            case iro_Add -> {
-                if (node.getPred(1).getOpCode() == ir_opcode.iro_Const) {
-                    var offset = ((Const) node.getPred(1)).getTarval();
-                    stepValue = stepValue.add(offset);
-
-                    yield analyzeStepValue(loopVariable, stepValue, node.getPred(0));
-                } else
-
-                {
-                    yield BAD;
-                }
-            }
-            case iro_Phi -> {
-                if (node.equals(loopVariable)) {
-                    yield stepValue;
-                } else {
-                    // todo there is room for improvement here
-                    yield BAD;
-                }
-            }
-            default -> BAD;
-        };
     }
 }
