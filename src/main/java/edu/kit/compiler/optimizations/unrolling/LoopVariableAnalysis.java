@@ -39,13 +39,11 @@ public final class LoopVariableAnalysis {
         var boundValue = ((Const) cmp.getRight()).getTarval();
         var loopVariable = (Phi) cmp.getLeft();
 
-        var isBackEdge = loop.computeBackEdges();
-
         var initialValue = TargetValue.getUnknown();
         var stepValue = TargetValue.getUnknown();
         for (int i = 0; i < loopVariable.getPredCount(); ++i) {
             var pred = loopVariable.getPred(i);
-            if (isBackEdge[i]) {
+            if (loop.isBackEdge(i)) {
                 stepValue = updateStepValue(loopVariable, stepValue, pred);
             } else {
                 initialValue = updateInitialValue(initialValue, pred);

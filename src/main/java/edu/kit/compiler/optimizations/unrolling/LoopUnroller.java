@@ -30,14 +30,14 @@ public final class LoopUnroller {
     private final Loop loop;
     private final int nCopies;
     private final boolean isFull;
-    private final boolean[] isBackEdge;
 
     private final HashMap<Node, NodeVec> copies = new HashMap<>();
 
     /**
      * Unrolls `loop` by the given factor. The caller must ensure that the loop
      * can actually be unrolled by the given factor. The `isFull` flag must be
-     * true iff the loop will be fully unrolled.
+     * true iff the loop will be fully unrolled. The body of the given Loop
+     * is guaranteed to be updated if necessary.
      * 
      * In the following H and B are the original header and body of the loop,
      * while H_n and B_n are their n-th copy.
@@ -63,6 +63,7 @@ public final class LoopUnroller {
         if (factor > 1 || (factor == 1 && isFull)) {
             var unroller = new LoopUnroller(loop, factor, isFull, nodesPerBlock);
             unroller.apply();
+            loop.updateBody();
             return true;
         } else {
             return false;
@@ -76,7 +77,6 @@ public final class LoopUnroller {
         this.loop = loop;
         this.nCopies = isFull ? factor : factor - 1;
         this.isFull = isFull;
-        this.isBackEdge = loop.computeBackEdges();
     }
 
     private void apply() {
@@ -114,7 +114,7 @@ public final class LoopUnroller {
     private void fixCopyHeader(Block header, NodeVec headerCopy) {
         Util.forEachPredBlock(header, (predBlock, i) -> {
             var bad = graph.newBad(Mode.getX());
-            if (loop.isBackEdge(predBlock)) {
+            if (loop.isBackEdge(i)) {
 
                 var pred = header.getPred(i);
                 var predCopy = copies.get(pred);
@@ -150,7 +150,7 @@ public final class LoopUnroller {
      */
     private void fixOriginalHeader(Block header, NodeVec headerCopy) {
         Util.forEachPredBlock(header, (predBlock, i) -> {
-            if (loop.isBackEdge(predBlock)) {
+            if (loop.isBackEdge(i)) {
                 var predCopy = copies.get(header.getPred(i));
                 assert predCopy.get(nCopies - 1) != null;
                 header.setPred(i, predCopy.get(nCopies - 1));
@@ -186,7 +186,7 @@ public final class LoopUnroller {
 
     private void fixHeaderPhi(Phi phi) {
         for (int i = 0; i < phi.getPredCount(); ++i) {
-            if (isBackEdge[i]) {
+            if (loop.isBackEdge(i)) {
                 var phiCopy = copies.get(phi);
                 var predCopy = copies.get(phi.getPred(i));
 

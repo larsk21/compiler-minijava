@@ -81,11 +81,26 @@ public class LoopUnrollingOptimization implements Optimization.Local {
     }
 
     private static final boolean tryUnroll(Loop loop, int iterations) {
-        var nodesPerBlock = Util.getNodesPerBlock(loop.getGraph());
-        return UnrollFactor.of(loop, iterations, nodesPerBlock)
-                .map(f -> LoopUnroller.unroll(loop, f.getFactor(),
-                        f.isFull(), nodesPerBlock))
-                .orElse(false);
+        var hasChanged = false;
+        Optional<UnrollFactor> factor;
+        do {
+            var nodesPerBlock = Util.getNodesPerBlock(loop.getGraph());
+            factor = UnrollFactor.of(loop, iterations, nodesPerBlock);
+
+            if (factor.isPresent()) {
+                var factor_ = factor.get();
+                if (!LoopUnroller.unroll(loop, factor_.getFactor(),
+                        factor_.isFull(), nodesPerBlock)) {
+                    return hasChanged;
+                }
+
+                assert iterations % factor_.getFactor() == 0;
+                iterations /= factor_.getFactor();
+                hasChanged = true;
+            }
+        } while (factor.isPresent() && !factor.get().isFull());
+
+        return hasChanged;
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
