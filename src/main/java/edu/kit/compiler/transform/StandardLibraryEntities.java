@@ -11,6 +11,8 @@ import firm.Type;
 import firm.bindings.binding_typerep.ir_visibility;
 import lombok.Getter;
 
+import java.util.Set;
+
 /**
  * A Singleton holding reference to the standard library methods.
  * Each method is a Entity in the global type of the program.
@@ -28,6 +30,7 @@ public enum StandardLibraryEntities {
     private final TypedEntity<MethodType> flush;
     @Getter
     private final TypedEntity<MethodType> calloc;
+    private final Set<String> entityNames;
 
     /**
      * Return the corresponding entity for the given standard library method. This
@@ -83,5 +86,17 @@ public enum StandardLibraryEntities {
         write.getEntity().setVisibility(ir_visibility.ir_visibility_external);
         flush.getEntity().setVisibility(ir_visibility.ir_visibility_external);
         calloc.getEntity().setVisibility(ir_visibility.ir_visibility_external);
+
+        this.entityNames = Set.of(
+                read.getEntity().getLdName(),
+                print.getEntity().getLdName(),
+                write.getEntity().getLdName(),
+                flush.getEntity().getLdName(),
+                calloc.getEntity().getLdName()
+        );
+    }
+
+    public boolean isStandardLibraryEntity(String functionName) {
+        return entityNames.contains(functionName);
     }
 }

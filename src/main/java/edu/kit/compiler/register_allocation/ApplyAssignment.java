@@ -2,6 +2,7 @@ package edu.kit.compiler.register_allocation;
 
 import edu.kit.compiler.codegen.PermutationSolver;
 import edu.kit.compiler.intermediate_lang.*;
+import edu.kit.compiler.transform.StandardLibraryEntities;
 import lombok.Getter;
 
 import java.util.*;
@@ -367,7 +368,8 @@ public class ApplyAssignment {
 
         // align to 16 byte (only required for external functions, which take all args in registers)
         int alignmentOffset = 0;
-        if (numArgsOnStack == 0 && (savedOffset % 16 != 0)) {
+        if (StandardLibraryEntities.INSTANCE.isStandardLibraryEntity(instr.getCallReference().get())
+                && (savedOffset % 16 != 0)) {
             alignmentOffset = 8;
             output("subq $8, %rsp # align stack to 16 byte");
         }
@@ -530,6 +532,10 @@ public class ApplyAssignment {
         return result;
     }
 
+    public static int argOffsetOnStack(int nArgs, int vRegister) {
+        return 16 + 8 * (nArgs - vRegister - 1);
+    }
+
     private int countRequiredTmps(LifetimeTracker tracker, Instruction instr, int index) {
         assert instr.getType() == InstructionType.GENERAL;
         int n = 0;
@@ -644,10 +650,6 @@ public class ApplyAssignment {
         stackSize = stackSize - (stackSize % 8);
         assert stackSize >= sizeOld && stackSize <= sizeOld + 8 && stackSize % 8 == 0;
         return stackSize;
-    }
-
-    private static int argOffsetOnStack(int nArgs, int vRegister) {
-        return 16 + 8 * (nArgs - vRegister - 1);
     }
 
     private void output(String instr) {

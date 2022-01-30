@@ -20,6 +20,7 @@ public class LifetimeAnalysis {
     private Optional<Instruction>[] firstInstruction;
     private Optional<Instruction>[] lastInstruction;
     private int[] loopNestingDepth;
+    private int[] numUses;
     private int[] definitionNestingDepth;
     private boolean[] isDividend;
     private List<Integer> callsPrefixSum;
@@ -32,6 +33,7 @@ public class LifetimeAnalysis {
         this.lifetimes = new Lifetime[numVRegisters];
         this.firstInstruction = new Optional[numVRegisters];
         this.lastInstruction = new Optional[numVRegisters];
+        this.numUses = new int[numVRegisters];
         this.loopNestingDepth = new int[numVRegisters];
         this.definitionNestingDepth = new int[numVRegisters];
         this.isDividend = new boolean[numVRegisters];
@@ -80,6 +82,13 @@ public class LifetimeAnalysis {
      */
     public int getLoopDepth(int vRegister) {
         return loopNestingDepth[vRegister];
+    }
+
+    /**
+     * The number of times the vRegister is used within maximum loop depth.
+     */
+    public int getNumUses(int vRegister) {
+        return numUses[vRegister];
     }
 
     /**
@@ -178,8 +187,7 @@ public class LifetimeAnalysis {
                         assert !lifetimes[vRegister].isTrivial();
                         lifetimes[vRegister].extend(index, true);
                     }
-                    lastInstruction[vRegister] = Optional.of(instr);
-                    loopNestingDepth[vRegister] = Math.max(loopNestingDepth[vRegister], stack.size());
+                    handleRegisterUsage(vRegister, instr, stack);
 
                     if (definitionNestingDepth[vRegister] < stack.size()) {
                         // insert vRegister to stack to be processed later when leaving the loop
@@ -194,8 +202,7 @@ public class LifetimeAnalysis {
                         definitionNestingDepth[target] = stack.size();
                         firstInstruction[target] = Optional.of(instr);
                     }
-                    lastInstruction[target] = Optional.of(instr);
-                    loopNestingDepth[target] = Math.max(loopNestingDepth[target], stack.size());
+                    handleRegisterUsage(target, instr, stack);
 
                     if (definitionNestingDepth[target] < stack.size()) {
                         // insert vRegister to stack to be processed later when leaving the loop
@@ -209,6 +216,16 @@ public class LifetimeAnalysis {
         handleLoopEnding(index - 1, 0, stack);
         assert stack.isEmpty();
         numInstructions = index;
+    }
+
+    private void handleRegisterUsage(int vRegister, Instruction instr, List<StackEntry> stack) {
+        lastInstruction[vRegister] = Optional.of(instr);
+        if (stack.size() > loopNestingDepth[vRegister]) {
+            loopNestingDepth[vRegister] = stack.size();
+            numUses[vRegister] = 1;
+        } else {
+            numUses[vRegister]++;
+        }
     }
 
     private void handleLoopEnding(int index, int newDepth, List<StackEntry> stack) {
