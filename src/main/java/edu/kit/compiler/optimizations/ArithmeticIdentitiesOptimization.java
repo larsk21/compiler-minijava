@@ -43,6 +43,7 @@ import lombok.RequiredArgsConstructor;
  * --> In Add with Const, the Const is always the right operand (i.e. x + c)
  * --> In Sub with Const, the Const is always the left operand (i.e. c - x)
  * --> In Mul with Const, the Const is always the right operand (i.e. x * c)
+ * --> In Cmp with Const, the Const is always the right operand (i.e. x <=> c)
  * - Fold nested associative (and distributive) expressions with const operands
  * --> e.g. 5 - (x + 10) --> -5 - x
  * --> e.g. 2 * (x * 21) --> x * 42
@@ -271,6 +272,16 @@ public final class ArithmeticIdentitiesOptimization implements Optimization.Loca
             }
             // Note: We can not apply the same optimization for Lu as for Ls,
             // because this could change the program semantics
+        }
+
+        @Override
+        public void visit(Cmp node) {
+            if (isOnlyLeftConst(node.getLeft(), node.getRight())) {
+                // c < x --> x > c
+                var newNode = graph.newCmp(node.getBlock(), node.getRight(),
+                        node.getLeft(), node.getRelation().inversed());
+                exchange(node, newNode);
+            }
         }
 
         @Override
