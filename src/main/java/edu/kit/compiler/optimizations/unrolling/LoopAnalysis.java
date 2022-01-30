@@ -2,6 +2,8 @@ package edu.kit.compiler.optimizations.unrolling;
 
 import static firm.bindings.binding_irgraph.ir_graph_properties_t.IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -49,18 +51,10 @@ public final class LoopAnalysis {
     }
 
     /**
-     * Returns a list containing the innermost loops of the analyzed graph. A
-     * loop is said to be inside another loop if its header is contained in the
-     * body of the other loop.
+     * Returns a hierarchy of the loops found by this analysis.
      */
-    public List<Loop> getInnermostLoops() {
-        var innerLoops = new LinkedList<Loop>();
-        for (var loop : loops.values()) {
-            if (loop.getBody().stream().noneMatch(loops::containsKey)) {
-                innerLoops.add(loop);
-            }
-        }
-        return innerLoops;
+    public List<LoopTree> getForestOfLoops() {
+        return LoopTree.build(this);
     }
 
     /**
@@ -96,16 +90,62 @@ public final class LoopAnalysis {
     }
 
     /**
+     * Represents a node in the hierarchy of loops. The children of a node are
+     * those loops that are nested immediately within `loop`.
+     */
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    public static final class LoopTree {
+
+        @Getter
+        private final Loop loop;
+        @Getter
+        private final List<LoopTree> children = new LinkedList<>();
+
+        private static List<LoopTree> build(LoopAnalysis analysis) {
+            var sortedLoops = new ArrayList<>(analysis.loops.values());
+            sortedLoops.sort(Comparator.reverseOrder());
+
+            var trees = new HashMap<Block, LoopTree>();
+            var roots = new LinkedList<LoopTree>();
+
+            for (var loop : sortedLoops) {
+                insertTree(roots, trees, loop);
+            }
+
+            return roots;
+        }
+
+        private static void insertTree(List<LoopTree> roots,
+                Map<Block, LoopTree> trees, Loop loop) {
+            var dom = loop.getHeader().ptr;
+
+            while ((dom = binding_irdom.get_Block_idom(dom)) != null) {
+                var tree = trees.get(new Block(dom));
+                if (tree != null && tree.getLoop().contains(loop)) {
+                    var child = new LoopTree(loop);
+                    tree.children.add(child);
+                    trees.put(loop.getHeader(), child);
+                    return;
+                }
+            }
+
+            var root = new LoopTree(loop);
+            roots.add(root);
+            trees.put(loop.getHeader(), root);
+        }
+    }
+
+    /**
      * Represents a loop in a Firm graph. If a loop is not valid (i.e. if
      * `isValid()` returns false), no guarantees are made concerning the
      * behavior of any other method.
      * 
      * A loop has a header and a body. The header is always exactly one block,
-     * the body may have an arbitrary number of blocks. The header is never 
+     * the body may have an arbitrary number of blocks. The header is never
      * part of the body.
      */
     @ToString
-    public static final class Loop {
+    public static final class Loop implements Comparable<Loop> {
 
         @Getter
         private final Block header;
@@ -132,6 +172,17 @@ public final class LoopAnalysis {
             this.isBackEdge = new boolean[header.getPredCount()];
         }
 
+        @Override
+        public int compareTo(Loop other) {
+            if (other.containsBlock(this.header)) {
+                return -1;
+            } else if (this.containsBlock(other.header)) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+
         public Graph getGraph() {
             return header.getGraph();
         }
@@ -152,6 +203,13 @@ public final class LoopAnalysis {
          */
         public boolean containsBlock(Block block) {
             return header.equals(block) || body.contains(block);
+        }
+
+        /**
+         * Returns true if the body of this loop contains the given loop.
+         */
+        public boolean contains(Loop other) {
+            return this.body.contains(other.getHeader());
         }
 
         /**
@@ -176,7 +234,7 @@ public final class LoopAnalysis {
                 if (isBackEdge(i)) {
                     collectBlocks(predBlock);
                 }
-            }); 
+            });
         }
 
         private void addBackEdge(int idx) {

@@ -12,6 +12,7 @@ import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.optimizations.OptimizationState;
 import edu.kit.compiler.optimizations.Util;
 import edu.kit.compiler.optimizations.unrolling.LoopAnalysis.Loop;
+import edu.kit.compiler.optimizations.unrolling.LoopAnalysis.LoopTree;
 import edu.kit.compiler.optimizations.unrolling.LoopVariableAnalysis.FixedIterationLoop;
 import edu.kit.compiler.transform.JFirmSingleton;
 import firm.Graph;
@@ -58,31 +59,45 @@ public class LoopUnrollingOptimization implements Optimization.Local {
             return false;
         }
 
-        var analysis = LoopAnalysis.apply(graph);
-
-        var hasChanged = false;
-        for (var loop : analysis.getInnermostLoops()) {
-            hasChanged |= LoopVariableAnalysis.apply(loop)
-                    .flatMap(FixedIterationLoop::getIterationCount)
-                    .filter(n -> Relation.LessEqual.contains(n.compare(INT_MAX)))
-                    .map(n -> tryUnroll(loop, n.asInt())).orElse(false);
-        }
+        var result = LoopAnalysis.apply(graph)
+                .getForestOfLoops().stream()
+                .map(this::optimize)
+                .reduce(Result.UNCHANGED, Result::merge);
 
         graph.confirmProperties(IR_GRAPH_PROPERTIES_NONE);
         binding_irgopt.remove_bads(graph.ptr);
         binding_irgopt.remove_unreachable_code(graph.ptr);
         binding_irgopt.remove_bads(graph.ptr);
 
-        if (hasChanged) {
+        if (result.changed()) {
             graphPasses.merge(graph, 1, (n, m) -> n + m);
         }
 
-        return hasChanged;
+        return result.changed();
     }
 
-    private static final boolean tryUnroll(Loop loop, int iterations) {
-        var hasChanged = false;
+    private Result optimize(LoopTree tree) {
+        var result = tree.getChildren().stream().map(this::optimize)
+                .reduce(Result.FULL, Result::merge);
+
+        if (result == Result.FULL) {
+            // only try to unroll a loop if all nested loops are fully unrolled
+            var loop = tree.getLoop();
+            loop.updateBody();
+            return LoopVariableAnalysis.apply(loop)
+                    .flatMap(FixedIterationLoop::getIterationCount)
+                    .filter(n -> Relation.LessEqual.contains(n.compare(INT_MAX)))
+                    .map(n -> tryUnroll(loop, n.asInt()))
+                    .orElse(Result.UNCHANGED);
+        } else {
+            return result;
+        }
+    }
+
+    private static final Result tryUnroll(Loop loop, int iterations) {
+        var result = Result.UNCHANGED;
         Optional<UnrollFactor> factor;
+
         do {
             var nodesPerBlock = Util.getNodesPerBlock(loop.getGraph());
             factor = UnrollFactor.of(loop, iterations, nodesPerBlock);
@@ -91,16 +106,29 @@ public class LoopUnrollingOptimization implements Optimization.Local {
                 var factor_ = factor.get();
                 if (!LoopUnroller.unroll(loop, factor_.getFactor(),
                         factor_.isFull(), nodesPerBlock)) {
-                    return hasChanged;
+                    return result;
                 }
+                result = factor_.isFull() ? Result.FULL : Result.PARTIAL;
 
                 assert iterations % factor_.getFactor() == 0;
                 iterations /= factor_.getFactor();
-                hasChanged = true;
             }
         } while (factor.isPresent() && !factor.get().isFull());
 
-        return hasChanged;
+        return result;
+    }
+
+    private enum Result {
+
+        UNCHANGED, PARTIAL, FULL;
+
+        public Result merge(Result other) {
+            return this == other ? this : PARTIAL;
+        }
+
+        public boolean changed() {
+            return PARTIAL.compareTo(this) <= 0;
+        }
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
