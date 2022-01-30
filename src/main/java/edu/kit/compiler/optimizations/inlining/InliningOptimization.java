@@ -2,6 +2,7 @@ package edu.kit.compiler.optimizations.inlining;
 
 import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.optimizations.OptimizationState;
+import edu.kit.compiler.optimizations.analysis.LoopAnalysis;
 import firm.BackEdges;
 import firm.Entity;
 import firm.Graph;
@@ -45,11 +46,14 @@ public class InliningOptimization implements Optimization.Local {
         }
         callerEntry.addPass();
 
+        LoopAnalysis loopAnalysis = new LoopAnalysis(graph);
+        loopAnalysis.analyze();
+
         // we transform the nodes in reverse postorder, i.e. we can access the
         // unchanged predecessors of a node when transforming it
         List<Call> alwaysInlineCalls = new ArrayList<>();
         List<PrioritizedCall> maybeInlineCalls = new ArrayList<>();
-        collectCalls(alwaysInlineCalls, maybeInlineCalls);
+        collectCalls(loopAnalysis, alwaysInlineCalls, maybeInlineCalls);
 
         BackEdges.enable(graph);
         // approximates the current size of the function
@@ -60,7 +64,7 @@ public class InliningOptimization implements Optimization.Local {
             if (numNodes > InliningStateTracker.LARGE_FN
                     && currentNumNodes > InliningStateTracker.LARGE_FN) {
                 // edge case: large function with exactly one call site
-                double prio = calculatePriority(call, getCalleeEntry(call).get());
+                double prio = calculatePriority(loopAnalysis, call, getCalleeEntry(call).get());
                 maybeInlineCalls.add(new PrioritizedCall(call, prio));
             } else {
                 Inliner.inline(graph, call, getEntity(call).getGraph());
@@ -92,14 +96,14 @@ public class InliningOptimization implements Optimization.Local {
         return changes;
     }
 
-    private void collectCalls(List<Call> alwaysInlineCalls, List<PrioritizedCall> maybeInlineCalls) {
+    private void collectCalls(LoopAnalysis loops, List<Call> alwaysInlineCalls, List<PrioritizedCall> maybeInlineCalls) {
         graph.walk(new NodeVisitor.Default() {
             @Override
             public void visit(Call call) {
                 var entry  = getCalleeEntry(call);
                 var callee = getEntity(call).getGraph();
                 if (entry.isPresent() && Inliner.canBeInlined(call.getGraph(), callee)) {
-                    double prio = calculatePriority(call, entry.get());
+                    double prio = calculatePriority(loops, call, entry.get());
                     if (entry.get().isAlwaysInline()) {
                         alwaysInlineCalls.add(call);
                     } else if (prio >= 0) {
@@ -115,7 +119,7 @@ public class InliningOptimization implements Optimization.Local {
      *
      * Returns -1 if the call shouldn't be inlined at all.
      */
-    private static double calculatePriority(Call call, InliningStateTracker.CalleeEntry entry) {
+    private static double calculatePriority(LoopAnalysis loops, Call call, InliningStateTracker.CalleeEntry entry) {
         int numConstArgs = 0;
         for (int i = 2; i < call.getPredCount(); i++) {
             if (call.getPred(i).getOpCode() == binding_irnode.ir_opcode.iro_Const) {
@@ -136,8 +140,9 @@ public class InliningOptimization implements Optimization.Local {
                         && logWeight >= 0
         );
         if (doInline) {
-            double basePrio = Math.pow(2, logWeight) / entry.getNumNodes();
-            return basePrio;
+            int loopDepth = loops.getBlockLoops().get((Block) call.getBlock()).size();
+            logWeight += 2 * loopDepth;
+            return Math.pow(2, logWeight) / entry.getNumNodes();
         }
         return -1;
     }

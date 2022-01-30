@@ -22,7 +22,7 @@ import lombok.Getter;
  * Collection of strategies for choosing a TargetValue for Cond nodes with an
  * unknown TargetValue.
  */
-public class UndefinedCondStrategies {
+public final class UndefinedCondStrategies {
 
     private UndefinedCondStrategies() {}
 
