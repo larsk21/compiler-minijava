@@ -1,0 +1,94 @@
+/* A really inefficient way to calculate powers of two.
+   We use a math library to hide the actual calculations
+   under a tower of abstractions. Hopefully, some of this
+   can be inlined or unrolled...
+*/
+class FindPowersOfTwo {
+    public static void main(String[] args) {
+        FindPowersOfTwo obj = new FindPowersOfTwo();
+        obj.run();
+    }
+
+    public void run() {
+        int currentLog = -1;
+        int i = 1;
+        while (i < 10000000) {
+            Math math = new Math();
+            if (math.log(2, i) > currentLog) {
+                currentLog = math.log(2, i);
+                System.out.println(i);
+            }
+            i = i + 1;
+        }
+    }
+}
+
+/* A math library that reimplements basic operations. At least logarithmic time, always! */
+class Math {
+    /* trial and error logarithm, rounded up */
+    public int log(int base, int val) {
+        int sign = 1;
+        if (val < 0) {
+            sign = -1;
+            val = -val;
+        }
+        int sum = 0;
+        int guess = 5;
+        while (val / pow(base, guess) > 1) {
+            sum = sum + guess;
+            val = val / pow(base, guess);
+        }
+        if (val / pow(base, 0) <= 1) {
+            return sign * sum;
+        }
+        if (val / pow(base, 1) <= 1) {
+            return sign * (sum + 1);
+        }
+        if (val / pow(base, 2) <= 1) {
+            return sign * (sum + 2);
+        }
+        if (val / pow(base, 3) <= 1) {
+            return sign * (sum + 3);
+        }
+        if (val / pow(base, 4) <= 1) {
+            return sign * (sum + 4);
+        }
+        return sign * (sum + 5);
+    }
+
+    public int pow(int base, int exp) {
+        if (exp < 0) {
+            return 0;
+        }
+        if (exp == 0) {
+            return 1;
+        }
+        if (exp == 1) {
+            return base;
+        }
+        if (exp % 2 == 0) {
+            return mul(
+                pow(base, exp / 2),
+                pow(base, exp / 2)
+            );
+        }
+        int lower = exp / 2;
+        return mul(
+           pow(base, lower + 1),
+           pow(base, lower)
+       );
+    }
+
+    public int mul(int a, int b) {
+        if (b < 0) {
+            return -mul(a, -b);
+        }
+        if (b == 0) {
+            return 0;
+        }
+        if (b % 2 == 0) {
+            return mul(a + a, b / 2);
+        }
+        return a + mul(a + a, b / 2);
+    }
+}
