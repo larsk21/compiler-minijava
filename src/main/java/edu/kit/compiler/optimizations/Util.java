@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashMap;
+import java.util.function.ObjIntConsumer;
 
 import com.sun.jna.Pointer;
 
@@ -236,4 +238,36 @@ public final class Util {
 
     }
 
+    /**
+     * Call `func` for each non-Bad direct control flow predecessor of `block`.
+     */
+    public static void forEachPredBlock(Block block, ObjIntConsumer<Block> func) {
+        for (int i = 0; i < block.getPredCount(); ++i) {
+            var pred = block.getPred(i);
+            if (pred.getOpCode() != ir_opcode.iro_Bad) {
+                func.accept((Block) pred.getBlock(), i);
+            }
+        } 
+    }
+
+    /**
+     * Returns a map containing a map of blocks to a list of contained nodes.
+     */
+    public static Map<Block, List<Node>> getNodesPerBlock(Graph graph) {
+        var nodesPerBlock = new HashMap<Block, List<Node>>();
+        graph.walk(new NodeVisitor.Default() {
+            @Override
+            public void defaultVisit(Node node) {
+                nodesPerBlock.computeIfAbsent((Block) node.getBlock(),
+                        k -> new ArrayList<>()).add(node);
+            }
+
+            @Override
+            public void visit(Block node) {
+                nodesPerBlock.computeIfAbsent(node, k -> new ArrayList<>());
+            }
+        });
+
+        return nodesPerBlock;
+    }
 }
