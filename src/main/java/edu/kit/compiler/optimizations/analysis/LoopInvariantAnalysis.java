@@ -8,9 +8,11 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.kit.compiler.io.CommonUtil;
+import edu.kit.compiler.optimizations.Util;
 import edu.kit.compiler.optimizations.Util.NodeListFiller;
 
 import firm.Graph;
+import firm.Mode;
 import firm.nodes.Block;
 import firm.nodes.Node;
 import firm.nodes.Phi;
@@ -24,7 +26,8 @@ import lombok.RequiredArgsConstructor;
  * invariant to the representing loop. A node can be invariant to multiple
  * loops.
  * 
- * Control flow, memory and Phi nodes are never marked as invariant.
+ * This analysis respects the pin state of nodes. In addition, control flow and
+ * Phi nodes are never marked as invariant.
  */
 @RequiredArgsConstructor
 public class LoopInvariantAnalysis {
@@ -78,11 +81,11 @@ public class LoopInvariantAnalysis {
      * blocks given a set of nodes invariant to that loop.
      */
     public boolean isLoopInvariant(Node node, Set<Block> loopBlocks, Set<Node> loopInvariantNodes) {
-        if (node instanceof Phi) {
+        if (Util.isPinned(node)) {
             return false;
-        }
-
-        if (!node.getMode().isData()) {
+        } else if (node.getMode().equals(Mode.getX())) {
+            return false;
+        } else if (node instanceof Phi) {
             return false;
         }
 

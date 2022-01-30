@@ -17,7 +17,8 @@ import firm.nodes.Node;
  * loop entry point. Nodes invariant to inner blocks are moved as far out as
  * possible.
  * 
- * Control flow, memory and Phi nodes are not affected.
+ * This analysis respects the pin state of nodes. In addition, control flow and
+ * Phi nodes are never moved.
  */
 public class LoopInvariantOptimization implements Optimization.Local {
 
