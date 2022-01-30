@@ -2,7 +2,6 @@ package edu.kit.compiler.optimizations.analysis;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,10 +40,11 @@ public class LoopInvariantAnalysis {
     private Map<Block, Set<Block>> loops;
     /**
      * Map from loop entry point to nodes invariant to the represented loop. A
-     * node can be invariant to multiple loops.
+     * node can be invariant to multiple loops. The nodes invariant to each
+     * loop are in global postorder.
      */
     @Getter
-    private Map<Block, Set<Node>> loopInvariantNodes;
+    private Map<Block, List<Node>> loopInvariantNodes;
 
     /**
      * Analyze the given graph to find loop-invariant nodes.
@@ -65,7 +65,7 @@ public class LoopInvariantAnalysis {
             Block loopEntryPoint = loop.getKey();
             Set<Block> loopBlocks = loop.getValue();
 
-            Set<Node> invariantNodes = new HashSet<>();
+            List<Node> invariantNodes = new ArrayList<>();
             nodes.stream().filter(item -> loopBlocks.contains(item.getBlock())).forEach(node -> {
                 if (isLoopInvariant(node, loopBlocks, invariantNodes)) {
                     invariantNodes.add(node);
@@ -78,9 +78,9 @@ public class LoopInvariantAnalysis {
 
     /**
      * Whether a given node is invariant to the loop containing the given loop
-     * blocks given a set of nodes invariant to that loop.
+     * blocks given a list of nodes invariant to that loop.
      */
-    public boolean isLoopInvariant(Node node, Set<Block> loopBlocks, Set<Node> loopInvariantNodes) {
+    public boolean isLoopInvariant(Node node, Set<Block> loopBlocks, List<Node> loopInvariantNodes) {
         if (Util.isPinned(node)) {
             return false;
         } else if (node.getMode().equals(Mode.getX())) {

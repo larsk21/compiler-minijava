@@ -1,11 +1,13 @@
 package edu.kit.compiler.optimizations;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.optimizations.analysis.LoopInvariantAnalysis;
+import edu.kit.compiler.optimizations.loop_invariant.MoveInvariantStrategies;
 
 import firm.Graph;
 import firm.nodes.Block;
@@ -27,7 +29,9 @@ public class LoopInvariantOptimization implements Optimization.Local {
         LoopInvariantAnalysis loopInvariantAnalysis = new LoopInvariantAnalysis(graph);
         loopInvariantAnalysis.analyze();
 
-        Map<Block, Set<Node>> loopInvariantNodes = loopInvariantAnalysis.getLoopInvariantNodes();
+        Map<Block, List<Node>> loopInvariantNodes = loopInvariantAnalysis.getLoopInvariantNodes();
+
+        MoveInvariantStrategy moveInvariantStrategy = new MoveInvariantStrategies.MoveAlways();
 
         boolean change = false;
         for (Map.Entry<Block, Set<Block>> loop : loopInvariantAnalysis.getLoops().entrySet()) {
@@ -45,14 +49,37 @@ public class LoopInvariantOptimization implements Optimization.Local {
             }
 
             for (Node node : loopInvariantNodes.get(loopEntryPoint)) {
-                if (loopBlocks.contains(node.getBlock())) {
-                    node.setBlock(targetBlock);
-                    change = true;
+                if (!loopBlocks.contains(node.getBlock())) {
+                    // node is invariant to an outer loop and was already moved
+                    continue;
+                } else if (CommonUtil.stream(node.getPreds()).anyMatch(pred -> loopBlocks.contains(pred.getBlock()))) {
+                    // heuristic decided not to move predecessor blocks
+                    continue;
+                } else if (!moveInvariantStrategy.decideMoveNodeTo(node, targetBlock)) {
+                    // heuristic decided not to move this node
+                    continue;
                 }
+
+                node.setBlock(targetBlock);
+                change = true;
             }
         }
 
         return change;
+    }
+
+    /**
+     * Represents a strategy for deciding whether to move a loop-invariant node
+     * outside the loop.
+     */
+    public static interface MoveInvariantStrategy {
+
+        /**
+         * Decide whether to move the given loop-invariant node outside the
+         * loop to the given target block.
+         */
+        boolean decideMoveNodeTo(Node node, Block target);
+
     }
 
 }
