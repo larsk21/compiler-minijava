@@ -69,8 +69,10 @@ public class LoopAnalysis {
             // return this as active loop
             return Set.of(block);
         } else if (isVisited(block)) {
-            // continue loop
-            return blockLoops.get(block);
+            // continue loop if inside
+            Set<Block> activeLoops = new HashSet<>(blockLoops.get(block));
+            activeLoops.remove(block);
+            return activeLoops;
         }
 
         // initialize block
