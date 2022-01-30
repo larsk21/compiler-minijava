@@ -349,7 +349,6 @@ class ScanState {
 
     private void clearNext() {
         int vRegister = lifetimeEnds.remove(lifetimeEnds.size() - 1);
-        stackSlots.clearSlot(vRegister, sizes[vRegister]);
         Optional<Register> r = assignment[vRegister].getRegister();
         if (r.isPresent()) {
             registers.clear(r.get());
@@ -381,7 +380,7 @@ class ScanState {
     private void spill(int vRegister) {
         assignment[vRegister] = new RegisterAssignment(0);
         var preference = calculatePreferredStackSlots(vRegister);
-        stackSlots.addSlot(vRegister, sizes[vRegister], preference);
+        stackSlots.addSlot(vRegister, analysis.getLifetime(vRegister), sizes[vRegister], preference);
         registers.clear(vRegister);
     }
 
@@ -447,7 +446,10 @@ class ScanState {
     }
 
     private static class StackSlots {
-        private EnumMap<RegisterSize, List<Boolean>> slotsForSize;
+        /**
+         * saves the lifetime for each slot
+         */
+        private EnumMap<RegisterSize, List<Lifetime>> slotsForSize;
         private SlotAssignment[] slotAssignments;
 
         public StackSlots(int nRegisters) {
@@ -459,40 +461,33 @@ class ScanState {
             slotAssignments = new SlotAssignment[nRegisters];
         }
 
-        public void addSlot(int vRegister, RegisterSize size, List<SlotAssignment> preference) {
-            List<Boolean> slots = slotsForSize.get(size);
+        public void addSlot(int vRegister, Lifetime lifetime, RegisterSize size, List<SlotAssignment> preference) {
+            List<Lifetime> slots = slotsForSize.get(size);
             for (SlotAssignment ass: preference) {
                 if (ass.isSpecialSlot()) {
                     slotAssignments[vRegister] = ass;
                     return;
-                } else if (!slots.get(ass.getIndexOrSlot())) {
+                } else if (!lifetime.interferes(slots.get(ass.getIndexOrSlot()))) {
                     slotAssignments[vRegister] = ass;
-                    slots.set(ass.getIndexOrSlot(), true);
+                    slots.set(ass.getIndexOrSlot(), lifetime);
                     return;
                 }
             }
 
             // search for slot that can be reused
             for (int i = 0; i < slots.size(); i++) {
-                if (!slots.get(i)) {
+                if (!lifetime.interferes(slots.get(i))) {
                     slotAssignments[vRegister] = new SlotAssignment(i, false);
-                    slots.set(i, true);
+                    slots.set(i, lifetime);
                     return;
                 }
             }
             slotAssignments[vRegister] = new SlotAssignment(slots.size(), false);
-            slots.add(true);
+            slots.add(lifetime);
         }
 
         public Optional<SlotAssignment> getSlot(int vRegister) {
             return Optional.ofNullable(slotAssignments[vRegister]);
-        }
-
-        public void clearSlot(int vRegister, RegisterSize size) {
-            if (slotAssignments[vRegister] != null && !slotAssignments[vRegister].isSpecialSlot()) {
-                List<Boolean> slots = slotsForSize.get(size);
-                slots.set(slotAssignments[vRegister].getIndexOrSlot(), false);
-            }
         }
 
         public int calculateSlot(int vRegister, RegisterSize size) {
