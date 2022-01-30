@@ -227,6 +227,8 @@ public class LinearScan implements RegisterAllocator {
  * Also handles register assignments and spilling.
  */
 class ScanState {
+    private static final CallingConvention CCONV = CallingConvention.X86_64;
+
     @Getter
     private LifetimeAnalysis analysis;
     @Getter
@@ -423,7 +425,7 @@ class ScanState {
                     stackSlots.getSlot(overwrite.get()).ifPresent(preference::add);
                 }
             }
-        } else {
+        } else if (!CCONV.isPassedInRegister(vRegister)) {
             // argument
             assert analysis.getLifetime(vRegister).getBegin() < 0;
             preference.add(new SlotAssignment(ApplyAssignment.argOffsetOnStack(nArgs, vRegister), true));
