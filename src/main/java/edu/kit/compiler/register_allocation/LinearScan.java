@@ -420,13 +420,11 @@ class ScanState {
             assert first.getTargetRegister().get() == vRegister;
 
             if (first.isMov()) {
-                stackSlots.getSlot(first.inputRegister(0)).ifPresent(preference::add);
+                addSlotPreference(preference, vRegister, Optional.of(first.inputRegister(0)));
             } else if (first.getType() == InstructionType.GENERAL) {
                 // check for overwrite
                 Optional<Integer> overwrite = first.getOverwriteRegister();
-                if (overwrite.isPresent()) {
-                    stackSlots.getSlot(overwrite.get()).ifPresent(preference::add);
-                }
+                addSlotPreference(preference, vRegister, overwrite);
             }
         } else if (!CCONV.isPassedInRegister(vRegister)) {
             // argument
@@ -437,10 +435,16 @@ class ScanState {
                 analysis.getLifetime(vRegister).isLastInstrIsInput()) {
             Instruction last = analysis.getLastInstruction(vRegister).get();
             if (last.isMov()) {
-                stackSlots.getSlot(last.getTargetRegister().get()).ifPresent(preference::add);
+                addSlotPreference(preference, vRegister, last.getTargetRegister());
             }
         }
         return preference;
+    }
+
+    private void addSlotPreference(List<SlotAssignment> preference, int vRegister, Optional<Integer> mergeRegister) {
+        if (mergeRegister.isPresent() && sizes[vRegister] == sizes[mergeRegister.get()]) {
+            stackSlots.getSlot(mergeRegister.get()).ifPresent(preference::add);
+        }
     }
 
     @Data
