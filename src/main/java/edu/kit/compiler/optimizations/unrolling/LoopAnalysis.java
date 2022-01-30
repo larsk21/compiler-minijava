@@ -36,8 +36,14 @@ public final class LoopAnalysis {
 
     public static LoopAnalysis apply(Graph graph) {
         graph.assureProperties(IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE);
+
         var analysis = new LoopAnalysis();
-        analysis.collectLoops(graph);
+        try {
+            analysis.collectLoops(graph);
+        } catch (GraphNotReducibleException e) {
+            assert false : "Graphs in MiniJava should always be reducible";
+            analysis.loops.clear();
+        }
         return analysis;
     }
 
@@ -51,12 +57,19 @@ public final class LoopAnalysis {
         return innerLoops;
     }
 
+    private static final class GraphNotReducibleException extends RuntimeException {
+    }
+
     private void collectLoops(Graph graph) {
         graph.walkBlocksPostorder(new BlockWalker() {
             @Override
             public void visitBlock(Block block) {
                 Util.forEachPredBlock(block, (pred, i) -> {
                     if (isBackEdge(pred, block)) {
+                        if (!isRetreatingEdge(pred, block)) {
+                            throw new GraphNotReducibleException();
+                        }
+
                         Block loopHead = block, loopTail = pred;
 
                         // It is possible for multiple backedges to point to the
@@ -186,5 +199,14 @@ public final class LoopAnalysis {
 
     private static boolean isBackEdge(Block tail, Block head) {
         return binding_irdom.block_dominates(head.ptr, tail.ptr) != 0;
+    }
+
+    private static boolean isRetreatingEdge(Block tail, Block head) {
+        var dom = tail.ptr;
+        while (dom != null && !dom.equals(head.ptr)) {
+            dom = binding_irdom.get_Block_idom(dom);
+        }
+
+        return new Block(dom).equals(head);
     }
 }
