@@ -46,16 +46,16 @@ public final class LoopUnroller {
      * and body of the loop are copied `factor` times. The original header is
      * executed exactly once, and its body is never executed.
      * 
-     * The control flow looks something like the following: 
+     * The control flow looks something like the following:
      * -> H_1 -> B_1 -> ... -> H_N -> B_N -> H ->
      * 
      * 2. If `isFull` is false, i.e. the loopy is to be partially unrolled, the
      * header and body of the loop are only copied `factor-1` times. The
      * original header will continue to be used as loop header of the new loop.
      * 
-     * The control flow looks something like the following
-     *    ↓─────<─────<─────<──────<─────┐
-     * -> H -> B -> H -> ... -> H_N-1 -> B_N-1 
+     * The control flow looks something like the following:
+     *    ↓─────<──────<──────<──────<──────<─────┐
+     * -> H -> B -> H_1 -> B_1 -> ... -> H_N-1 -> B_N-1
      *    ↓
      */
     public static boolean unroll(Loop loop, int factor, boolean isFull,
@@ -131,15 +131,7 @@ public final class LoopUnroller {
         });
 
         for (int i = 0; i < nCopies; ++i) {
-            var cond = copies.get(loop.getCond()).get(i);
-            var bad = graph.newBad(Mode.getX());
-            var jmp = graph.newJmp(cond.getBlock());
-
-            Graph.turnIntoTuple(cond, switch (loop.getExitProj()) {
-                case Cond.pnTrue -> new Node[] { bad, jmp };
-                case Cond.pnFalse -> new Node[] { jmp, bad };
-                default -> throw new IllegalStateException();
-            });
+            fixHeaderCond(copies.get(loop.getCond()).get(i), false);
         }
     }
 
@@ -160,15 +152,26 @@ public final class LoopUnroller {
         });
 
         if (isFull) {
-            var cond = loop.getCond();
-            var bad = graph.newBad(Mode.getX());
-            var jmp = graph.newJmp(cond.getBlock());
+            fixHeaderCond(loop.getCond(), true);
+        }
+    }
 
-            Graph.turnIntoTuple(cond, switch (loop.getExitProj()) {
-                case Cond.pnTrue -> new Node[] { jmp, bad };
-                case Cond.pnFalse -> new Node[] { bad, jmp };
-                default -> throw new IllegalStateException();
-            });
+    /**
+     * Turns the given header Cond into an unconditional jump. The jump will
+     * exit the loop depending on the value of `exitLoop`.
+     */
+    private void fixHeaderCond(Node cond, boolean exitLoop) {
+        assert cond.getOpCode() == ir_opcode.iro_Cond;
+        assert loop.getExitProj() >= 0;
+        assert loop.getExitProj() < Cond.pnMax;
+
+        var bad = graph.newBad(Mode.getX());
+        var jmp = graph.newJmp(cond.getBlock());
+
+        if ((loop.getExitProj() == Cond.pnTrue) == exitLoop) {
+            Graph.turnIntoTuple(cond, new Node[] { bad, jmp });
+        } else {
+            Graph.turnIntoTuple(cond, new Node[] { jmp, bad });
         }
     }
 

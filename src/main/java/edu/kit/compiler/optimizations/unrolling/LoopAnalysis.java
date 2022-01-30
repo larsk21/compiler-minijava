@@ -278,7 +278,7 @@ public final class LoopAnalysis {
                     && pred.getPred(0).getOpCode() == ir_opcode.iro_Cond) {
                 var proj = (Proj) pred;
                 cond = (Cond) proj.getPred();
-                exitProj = proj.getNum();
+                exitProj = proj.getNum() == Cond.pnTrue ? Cond.pnFalse : Cond.pnTrue;
             } else {
                 // loop header has unsupported control flow, maybe infinite loop?
                 setInvalid();
