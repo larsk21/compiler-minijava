@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.optimizations.Util;
 import firm.BlockWalker;
@@ -23,9 +22,11 @@ import firm.nodes.Proj;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * Implements an analysis to detect loops in Firm graphs.
+ */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class LoopAnalysis {
 
@@ -47,6 +48,11 @@ public final class LoopAnalysis {
         return analysis;
     }
 
+    /**
+     * Returns a list containing the innermost loops of the analyzed graph. A
+     * loop is said to be inside another loop if its header is contained in the
+     * body of the other loop.
+     */
     public List<Loop> getInnermostLoops() {
         var innerLoops = new LinkedList<Loop>();
         for (var loop : loops.values()) {
@@ -57,6 +63,10 @@ public final class LoopAnalysis {
         return innerLoops;
     }
 
+    /**
+     * An exception to indicate that a graph is not reducible. See "Compilers
+     * Principles, Techniques, and Tools" (Aho et al., Chapter 9.6.4).
+     */
     private static final class GraphNotReducibleException extends RuntimeException {
     }
 
@@ -64,18 +74,15 @@ public final class LoopAnalysis {
         graph.walkBlocksPostorder(new BlockWalker() {
             @Override
             public void visitBlock(Block block) {
-                Util.forEachPredBlock(block, (pred, i) -> {
-                    if (isBackEdge(pred, block)) {
-                        if (!isRetreatingEdge(pred, block)) {
+                Util.forEachPredBlock(block, (predBlock, i) -> {
+                    if (isBackEdge(predBlock, block)) {
+                        if (!isRetreatingEdge(predBlock, block)) {
                             throw new GraphNotReducibleException();
                         }
 
-                        Block loopHead = block, loopTail = pred;
-
                         // It is possible for multiple backedges to point to the
                         // same loop header
-                        loops.computeIfAbsent(loopHead, Loop::new)
-                                .addBackEdge(loopTail);
+                        loops.computeIfAbsent(block, Loop::new).addBackEdge(i);
                     }
                 });
             }
@@ -83,37 +90,55 @@ public final class LoopAnalysis {
 
         for (var loop : loops.values()) {
             if (loop.cond == null || loop.exitProj == -1) {
-                loop.setValid(false);
+                loop.setInvalid();
             }
         }
     }
 
-    @RequiredArgsConstructor
+    /**
+     * Represents a loop in a Firm graph. If a loop is not valid (i.e. if
+     * `isValid()` returns false), no guarantees are made concerning the
+     * behavior of any other method.
+     * 
+     * A loop has a header and a body. The header is always exactly one block,
+     * the body may have an arbitrary number of blocks. The header is never 
+     * part of the body.
+     */
     @ToString
     public static final class Loop {
 
         @Getter
         private final Block header;
+        private final boolean[] isBackEdge;
+
+        /**
+         * A loop is valid if it is a natural loop, i.e. the loop header must
+         * dominate every block of the loop body. Additionally, the header must
+         * contain a Cond node where exactly one case exists the loop.
+         */
+        @Getter
+        private boolean valid = true;
 
         @Getter
-        @Setter
-        private boolean valid = true;
-        @Getter
-        @Setter
         private int exitProj = -1;
         @Getter
-        @Setter
         private Cond cond;
 
         @Getter
         private final Set<Block> body = new HashSet<>();
-        @Getter
-        private final Set<Block> backEdges = new HashSet<>();
+
+        private Loop(Block header) {
+            this.header = header;
+            this.isBackEdge = new boolean[header.getPredCount()];
+        }
 
         public Graph getGraph() {
             return header.getGraph();
         }
 
+        /**
+         * Returns true if the given node is contained in the loop.
+         */
         public boolean containsNode(Node node) {
             return switch (node.getOpCode()) {
                 case iro_Block -> containsBlock((Block) node);
@@ -121,34 +146,51 @@ public final class LoopAnalysis {
             };
         }
 
+        /**
+         * Returns true if the given block is the header or part of the body of
+         * the loop.
+         */
         public boolean containsBlock(Block block) {
             return header.equals(block) || body.contains(block);
         }
 
-        public boolean isBackEdge(Block tail) {
-            return backEdges.contains(tail);
+        /**
+         * returns true if the i-th predecessor of the header is a back edge,
+         * i.e. control flow along the edge comes from within the loop.
+         */
+        public boolean isBackEdge(int i) {
+            return isBackEdge[i];
         }
 
-        public boolean[] computeBackEdges() {
-            var isBackEdge = new boolean[getHeader().getPredCount()];
-            Util.forEachPredBlock(getHeader(), (pred, i) -> {
-                if (isBackEdge(pred)) {
-                    isBackEdge[i] = true;
-                }
-            });
+        /**
+         * Recomputes the body of the loop, which may for example have been
+         * changed by an unrolling operation.
+         */
+        public void updateBody() {
+            body.clear();
 
-            return isBackEdge;
-        }
-
-        public void addBackEdge(Block tail) {
-            assert CommonUtil.stream(header.getPreds())
-                    .map(Node::getBlock)
-                    .anyMatch(tail::equals);
-
-            header.getGraph().incVisited();
+            getGraph().incVisited();
             header.markVisited();
-            backEdges.add(tail);
 
+            Util.forEachPredBlock(header, (predBlock, i) -> {
+                if (isBackEdge(i)) {
+                    collectBlocks(predBlock);
+                }
+            }); 
+        }
+
+        private void addBackEdge(int idx) {
+            assert idx < header.getPredCount();
+            assert header.getPred(idx).getBlock().getOpCode() == ir_opcode.iro_Block;
+
+            isBackEdge[idx] = true;
+
+            getGraph().incVisited();
+            header.markVisited();
+            collectBlocks((Block) header.getPred(idx).getBlock());
+        }
+
+        private void collectBlocks(Block tail) {
             var worklist = new StackWorklist<Block>();
             if (!tail.visited()) {
                 worklist.enqueue(tail);
@@ -158,13 +200,13 @@ public final class LoopAnalysis {
                 var block = worklist.dequeue();
                 block.markVisited();
                 body.add(block);
-                Util.forEachPredBlock(block, (pred, i) -> {
+                Util.forEachPredBlock(block, (pred, j) -> {
                     if (!pred.visited()) {
                         worklist.enqueue(pred);
                     }
 
                     if (pred.equals(header)) {
-                        setExit(block, block.getPred(i));
+                        setExit(block, block.getPred(j));
                     }
                 });
             }
@@ -181,7 +223,7 @@ public final class LoopAnalysis {
                 exitProj = proj.getNum();
             } else {
                 // loop header has unsupported control flow, maybe infinite loop?
-                setValid(false);
+                setInvalid();
                 return;
             }
 
@@ -192,8 +234,12 @@ public final class LoopAnalysis {
                 // path already visited, carry on
             } else {
                 // both control flow successors of header are part of loop
-                setValid(false);
+                setInvalid();
             }
+        }
+
+        private void setInvalid() {
+            this.valid = false;
         }
     }
 
