@@ -1,0 +1,129 @@
+/* A brute-force knapsack solver (that outputs the optimum value).
+
+   This primarily tests the backend: Because of the recursive way the
+   algorithm is written and n being stored in memory, it is really hard
+   to apply inlining in a useful way. Most other middle-end optimizations
+   also aren't really applicable, except for a bit of loop-invariant code
+   motion. Thus the burden mostly rests on the register allocator, which
+   gets a lot of pressure in `solveForPosition`.
+*/
+class Knapsack {
+    public int n;
+    public int maxWeight;
+    public int[] weights;
+    public int[] values;
+    public int[] numAvailable;
+
+    public static void main(String[] args) {
+        Knapsack knapsack = new Knapsack();
+        knapsack.init();
+        System.out.println(knapsack.solve());
+    }
+
+    public void init() {
+        this.n = 12;
+        this.maxWeight = 114;
+        this.weights = new int[n];
+        this.values = new int[n];
+        this.numAvailable = new int[n];
+        weights[0] = 3;
+        values[0] = 4;
+        numAvailable[0] = 7;
+        weights[1] = 1;
+        values[1] = 1;
+        numAvailable[1] = 6;
+        weights[2] = 4;
+        values[2] = 6;
+        numAvailable[2] = 3;
+        weights[3] = 2;
+        values[3] = 2;
+        numAvailable[3] = 4;
+        weights[4] = 7;
+        values[4] = 11;
+        numAvailable[4] = 3;
+        weights[5] = 6;
+        values[5] = 7;
+        numAvailable[5] = 5;
+        weights[6] = 10;
+        values[6] = 11;
+        numAvailable[6] = 4;
+        weights[7] = 3;
+        values[7] = 5;
+        numAvailable[7] = 4;
+        weights[8] = 17;
+        values[8] = 21;
+        numAvailable[8] = 4;
+        weights[9] = 6;
+        values[9] = 11;
+        numAvailable[9] = 2;
+        weights[10] = 3;
+        values[10] = 4;
+        numAvailable[10] = 8;
+        weights[11] = 7;
+        values[11] = 9;
+        numAvailable[11] = 2;
+    }
+
+    public int solve() {
+        if (n == 0) {
+            return 0;
+        }
+        if (n % 2 == 0) {
+            return solveForPosition(0, weights[0], values[0], numAvailable[0],
+                                       weights[1], values[1], numAvailable[1],
+                                       maxWeight, 0);
+        } else {
+            return solveForPosition(-1, 0, 0, 0,
+                                    weights[0], values[0], numAvailable[0],
+                                    maxWeight, 0);
+        }
+    }
+
+    public int solveForPosition(int i, int weight1, int val1, int available1, int weight2, int val2, int available2,
+                                int remainingWeight, int prevVal) {
+        if (i + 2 == n) {
+            int max = 0;
+            int n1 = 0;
+            while (n1 <= available1) {
+                int n2 = 0;
+                while (n2 <= available2) {
+                    if (n1 * weight1 + n2 * weight2 <= remainingWeight) {
+                        int val = n1 * val1 + n2 * val2;
+                        if (val > max) {
+                            max = val;
+                        }
+                    }
+                    n2 = n2 + 1;
+                }
+                n1 = n1 + 1;
+            }
+            return prevVal + max;
+        } else {
+            int max = 0;
+            int n1 = 0;
+            int w2 = weights[i+2];
+            int w3 = weights[i+3];
+            int v2 = values[i+2];
+            int v3 = values[i+3];
+            int a2 = numAvailable[i+2];
+            int a3 = numAvailable[i+3];
+            while (n1 <= available1) {
+                int n2 = 0;
+                while (n2 <= available2) {
+                    int nextWeight = remainingWeight - n1 * weight1 - n2 * weight2;
+                    if (nextWeight >= 0) {
+                        int nextVal = n1 * val1 + n2 * val2;
+                        int val = solveForPosition(i + 2, w2, v2, a2, w3, v3, a3, nextWeight, nextVal);
+                        if (val > max) {
+                            max = val;
+                        }
+                    }
+                    n2 = n2 + 1;
+                }
+                n1 = n1 + 1;
+            }
+            return prevVal + max;
+        }
+    }
+}
+
