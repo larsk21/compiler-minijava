@@ -364,14 +364,18 @@ class ScanState {
         int best = -1;
         int bestLoopDepth = Integer.MAX_VALUE;
         int bestLifetimeEnd = -1;
+        int bestNumUses = Integer.MAX_VALUE;
         for (int r: vRegisters) {
             int loopDepth = analysis.getLoopDepth(r);
             int lifetimeEnd = analysis.getLifetime(r).getEnd();
+            int numUses = analysis.getNumUses(r);
             if (loopDepth < bestLoopDepth ||
-                    (loopDepth == bestLoopDepth && lifetimeEnd > bestLifetimeEnd)) {
+                    (loopDepth == bestLoopDepth && lifetimeEnd > bestLifetimeEnd) ||
+                    (loopDepth == bestLoopDepth && lifetimeEnd == bestLifetimeEnd && numUses < bestNumUses)) {
                 best = r;
                 bestLoopDepth = loopDepth;
                 bestLifetimeEnd = lifetimeEnd;
+                bestNumUses = numUses;
             }
         }
         return best;
