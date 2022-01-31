@@ -87,7 +87,7 @@ public final class LoopUnroller {
         var headerCopy = copyLoopNodes();
 
         fixCopyHeader(header, headerCopy);
-        fixOriginalHeader(header, headerCopy);
+        fixOriginalHeader(header);
         fixHeaderPhis(header);
     }
 
@@ -143,7 +143,7 @@ public final class LoopUnroller {
      * to be fully unrolled, replaces the conditional jump in the header with
      * an unconditional jump that exits the loop
      */
-    private void fixOriginalHeader(Block header, NodeVec headerCopy) {
+    private void fixOriginalHeader(Block header) {
         Util.forEachPredBlock(header, (predBlock, i) -> {
             if (loop.isBackEdge(i)) {
                 var predCopy = copies.get(header.getPred(i));

@@ -143,6 +143,15 @@ public final class LoopAnalysis {
      * A loop has a header and a body. The header is always exactly one block,
      * the body may have an arbitrary number of blocks. The header is never
      * part of the body.
+     * 
+     * A loop is valid if it is a natural loop, i.e. the loop header must
+     * dominate every block of the loop body. Additionally, the header must
+     * contain a Cond node where exactly one case exists the loop. Any loop
+     * that does not fit this criteria is detected and marked as invalid.
+     * Only valid loop loops are considered for loop unrolling.
+     * 
+     * Common examples of invalid loops are infinite loops, where the loop
+     * header is exited via an unconditional jump to the loop body.
      */
     @ToString
     public static final class Loop implements Comparable<Loop> {
@@ -151,11 +160,6 @@ public final class LoopAnalysis {
         private final Block header;
         private final boolean[] isBackEdge;
 
-        /**
-         * A loop is valid if it is a natural loop, i.e. the loop header must
-         * dominate every block of the loop body. Additionally, the header must
-         * contain a Cond node where exactly one case exists the loop.
-         */
         @Getter
         private boolean valid = true;
 

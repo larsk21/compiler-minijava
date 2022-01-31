@@ -14,7 +14,6 @@ import edu.kit.compiler.optimizations.Util.BlockNodeMapper;
 import edu.kit.compiler.optimizations.unrolling.LoopAnalysis.Loop;
 import edu.kit.compiler.optimizations.unrolling.LoopAnalysis.LoopTree;
 import edu.kit.compiler.optimizations.unrolling.LoopVariableAnalysis.FixedIterationLoop;
-import edu.kit.compiler.transform.JFirmSingleton;
 import firm.Graph;
 import firm.Mode;
 import firm.Relation;
@@ -28,12 +27,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 public class LoopUnrollingOptimization implements Optimization.Local {
-
-    static {
-        JFirmSingleton.initializeFirmLinux();
-    }
-
-    private static final TargetValue INT_MAX = new TargetValue(Integer.MAX_VALUE, Mode.getIs());
 
     /**
      * Loops with more nodes will never be unrolled.
@@ -86,7 +79,7 @@ public class LoopUnrollingOptimization implements Optimization.Local {
             loop.updateBody();
             return LoopVariableAnalysis.apply(loop)
                     .flatMap(FixedIterationLoop::getIterationCount)
-                    .filter(n -> Relation.LessEqual.contains(n.compare(INT_MAX)))
+                    .filter(LoopUnrollingOptimization::fitsIntoInteger)
                     .map(n -> tryUnroll(loop, n.asInt()))
                     .orElse(Result.UNCHANGED);
         } else {
@@ -96,7 +89,7 @@ public class LoopUnrollingOptimization implements Optimization.Local {
 
     private static final Result tryUnroll(Loop loop, int iterations) {
         var result = Result.UNCHANGED;
-        Optional<UnrollFactor> factor;
+        Optional<UnrollFactor> maybeFactor;
 
         if (iterations == 0) {
             var nodesPerBlock = new HashMap<Block, List<Node>>();
@@ -109,22 +102,27 @@ public class LoopUnrollingOptimization implements Optimization.Local {
         do {
             var nodesPerBlock = new HashMap<Block, List<Node>>();
             loop.getGraph().walk(new BlockNodeMapper(nodesPerBlock));
-            factor = UnrollFactor.of(loop, iterations, nodesPerBlock);
+            maybeFactor = UnrollFactor.of(loop, iterations, nodesPerBlock);
 
-            if (factor.isPresent()) {
-                var factor_ = factor.get();
-                if (!LoopUnroller.unroll(loop, factor_.getFactor(),
-                        factor_.isFull(), nodesPerBlock)) {
+            if (maybeFactor.isPresent()) {
+                var factor = maybeFactor.get();
+                if (!LoopUnroller.unroll(loop, factor.getFactor(),
+                        factor.isFull(), nodesPerBlock)) {
                     return result;
                 }
-                result = factor_.isFull() ? Result.FULL : Result.PARTIAL;
+                result = factor.isFull() ? Result.FULL : Result.PARTIAL;
 
-                assert iterations % factor_.getFactor() == 0;
-                iterations /= factor_.getFactor();
+                assert iterations % factor.getFactor() == 0;
+                iterations /= factor.getFactor();
             }
-        } while (factor.isPresent() && !factor.get().isFull());
+        } while (maybeFactor.isPresent() && !maybeFactor.get().isFull());
 
         return result;
+    }
+
+    private static boolean fitsIntoInteger(TargetValue value) {
+        return Relation.LessEqual.contains(value.compare(
+                new TargetValue(Integer.MAX_VALUE, Mode.getIs())));
     }
 
     private enum Result {
