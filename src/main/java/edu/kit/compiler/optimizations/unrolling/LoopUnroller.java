@@ -22,9 +22,10 @@ import lombok.ToString;
 /**
  * Implements functionality to fully or partially unroll loops.
  */
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class LoopUnroller {
 
-    private Map<Block, List<Node>> nodesPerBlock;
+    private final Map<Block, List<Node>> nodesPerBlock;
 
     private final Graph graph;
     private final Loop loop;
@@ -37,7 +38,8 @@ public final class LoopUnroller {
      * Unrolls `loop` by the given factor. The caller must ensure that the loop
      * can actually be unrolled by the given factor. The `isFull` flag must be
      * true iff the loop will be fully unrolled. The body of the given Loop
-     * is guaranteed to be updated if necessary.
+     * is guaranteed to be updated if necessary. Returns true if the graph has
+     * been modified.
      * 
      * In the following H and B are the original header and body of the loop,
      * while H_n and B_n are their n-th copy.
@@ -61,8 +63,9 @@ public final class LoopUnroller {
     public static boolean unroll(Loop loop, int factor, boolean isFull,
             Map<Block, List<Node>> nodesPerBlock) {
         if (factor > 1 || (factor == 1 && isFull)) {
-            var unroller = new LoopUnroller(loop, factor, isFull, nodesPerBlock);
-            unroller.apply();
+            var unroller = new LoopUnroller(nodesPerBlock, loop.getGraph(),
+                    loop, isFull ? factor : factor - 1, isFull);
+            unroller.unroll();
             loop.updateBody();
             return true;
         } else {
@@ -70,16 +73,16 @@ public final class LoopUnroller {
         }
     }
 
-    private LoopUnroller(Loop loop, int factor, boolean isFull,
-            Map<Block, List<Node>> nodesPerBlock) {
-        this.nodesPerBlock = nodesPerBlock;
-        this.graph = loop.getGraph();
-        this.loop = loop;
-        this.nCopies = isFull ? factor : factor - 1;
-        this.isFull = isFull;
+    /**
+     * Complete skips the body of the loop. The header is executed once, after
+     * which the program unconditionally leaves the loop.
+     */
+    public static void skipLoop(Loop loop, Map<Block, List<Node>> nodesPerBlock) {
+        var unroller = new LoopUnroller(nodesPerBlock, loop.getGraph(), loop, 0, true);
+        unroller.fixHeaderCond(loop.getCond(), true);
     }
 
-    private void apply() {
+    private void unroll() {
         var header = loop.getHeader();
         var headerCopy = copyLoopNodes();
 

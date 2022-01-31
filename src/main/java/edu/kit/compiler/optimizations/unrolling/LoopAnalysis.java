@@ -232,11 +232,15 @@ public final class LoopAnalysis {
 
             Util.forEachPredBlock(header, (predBlock, i) -> {
                 if (isBackEdge(i)) {
-                    collectBlocks(predBlock);
+                    collectBlocks(predBlock, false);
                 }
             });
         }
 
+        /**
+         * Mark the control flow predecessor of the loop header at the given
+         * index as back edge and adds the resulting blocks to the loop body.
+         */
         private void addBackEdge(int idx) {
             assert idx < header.getPredCount();
             assert header.getPred(idx).getBlock().getOpCode() == ir_opcode.iro_Block;
@@ -245,10 +249,11 @@ public final class LoopAnalysis {
 
             getGraph().incVisited();
             header.markVisited();
-            collectBlocks((Block) header.getPred(idx).getBlock());
+            var tail = (Block) header.getPred(idx).getBlock();
+            collectBlocks(tail, true);
         }
 
-        private void collectBlocks(Block tail) {
+        private void collectBlocks(Block tail, boolean setExit) {
             var worklist = new StackWorklist<Block>();
             if (!tail.visited()) {
                 worklist.enqueue(tail);
@@ -263,7 +268,7 @@ public final class LoopAnalysis {
                         worklist.enqueue(pred);
                     }
 
-                    if (pred.equals(header)) {
+                    if (setExit && pred.equals(header)) {
                         setExit(block, block.getPred(j));
                     }
                 });

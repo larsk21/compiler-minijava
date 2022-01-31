@@ -98,6 +98,12 @@ public class LoopUnrollingOptimization implements Optimization.Local {
         var result = Result.UNCHANGED;
         Optional<UnrollFactor> factor;
 
+        if (iterations == 0) {
+            var nodesPerBlock = Util.getNodesPerBlock(loop.getGraph());
+            LoopUnroller.skipLoop(loop, nodesPerBlock);
+            return Result.FULL;
+        }
+
         do {
             var nodesPerBlock = Util.getNodesPerBlock(loop.getGraph());
             factor = UnrollFactor.of(loop, iterations, nodesPerBlock);

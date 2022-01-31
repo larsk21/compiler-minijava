@@ -80,11 +80,11 @@ public final class LoopVariableAnalysis {
         private final Relation relation;
 
         /**
-         * Returns the number of iterations of the loop. If the loop does not 
+         * Returns the number of iterations of the loop. If the loop does not
          * terminate, returns an empty Optional. This may for example be the
          * case if the step is zero.
          * 
-         * Note: This method does not consider overflows. Something like 
+         * Note: This method does not consider overflows. Something like
          * `int i = 1; while (x != 0) i = i + 1;` will return an empty
          * Optional.
          */
@@ -100,7 +100,7 @@ public final class LoopVariableAnalysis {
                     case Equal -> Optional.of(mode.getOne());
                     case LessGreater -> {
                         var difference = bound.sub(initial);
-                        if (difference.mod(step).isNull() 
+                        if (difference.mod(step).isNull()
                                 && !difference.div(step).isNegative()) {
                             yield Optional.of(difference.div(step));
                         } else {
@@ -108,11 +108,11 @@ public final class LoopVariableAnalysis {
                         }
                     }
                     case Less, Greater -> getNumSteps(initial, bound, step);
-                    case LessEqual ->  getNumSteps(initial,
+                    case LessEqual -> getNumSteps(initial,
                             bound.add(mode.getOne()), step);
                     case GreaterEqual -> getNumSteps(initial,
                             bound.sub(mode.getOne()), step);
-                    
+
                     case True, LessEqualGreater -> Optional.empty();
                     case False -> throw new IllegalStateException();
                     default -> Optional.empty();
@@ -128,7 +128,7 @@ public final class LoopVariableAnalysis {
             assert relation.contains(initial.compare(bound)) || steps.isNull();
             assert !relation.contains(initial.add(step.mul(steps)).compare(bound));
             assert steps.isNull() || relation.contains(initial.add(step.mul(
-                            steps.sub(steps.getMode().getOne()))).compare(bound));
+                    steps.sub(steps.getMode().getOne()))).compare(bound));
         }
 
         private static final Optional<TargetValue> getNumSteps(
@@ -209,7 +209,7 @@ public final class LoopVariableAnalysis {
     }
 
     /**
-     * If the node is Const, returns its value, otherwise returns BAD.
+     * If the node is Const, returns its value. Otherwise returns BAD.
      */
     private static TargetValue getConstValue(Node node) {
         if (node.getOpCode() == ir_opcode.iro_Const) {
@@ -221,7 +221,7 @@ public final class LoopVariableAnalysis {
     }
 
     /**
-     * Returns the supremum of the two Tarvals. 
+     * Returns the supremum of the two Tarvals.
      */
     private static TargetValue supremum(TargetValue lhs, TargetValue rhs) {
         if (lhs.equals(BAD) || rhs.equals(BAD)) {
