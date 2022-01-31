@@ -46,12 +46,17 @@ public class LinearBlocksOptimization implements Optimization.Local {
         blockNodes = new HashMap<>();
         graph.walkPostorder(new BlockNodeMapper(blockNodes));
 
-        BackEdges.enable(graph);
+        boolean backEdgesEnabled = BackEdges.enabled(graph);
+        if (!backEdgesEnabled) {
+            BackEdges.enable(graph);
+        }
 
         LinearBlockVisitor visitor = new LinearBlockVisitor();
         graph.walkBlocksPostorder(visitor);
 
-        BackEdges.disable(graph);
+        if (!backEdgesEnabled) {
+            BackEdges.disable(graph);
+        }
 
         binding_irgopt.remove_unreachable_code(graph.ptr);
         binding_irgopt.remove_bads(graph.ptr);
