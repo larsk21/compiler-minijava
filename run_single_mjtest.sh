@@ -24,7 +24,8 @@ do
 	MJ_TEST_TARGET=$(sed 's/mjtest-files\/\(.*\)/\.\/mjtest\/tests\/\1/g' <(echo $var))
 	MJ_DIRNAME=$(dirname $MJ_TEST_TARGET)
 
-	if [[ ! -d $MJ_DIRNAME ]] 
+  echo [info] checking whether $MJ_DIRNAME exists
+	if [[ ! -d $MJ_DIRNAME ]];
 	then
 		echo "[info] creating directory $MJ_DIRNAME"
 		mkdir -p $MJ_DIRNAME
@@ -34,7 +35,7 @@ do
 done
 
 # call mjtest with the specified mode
-./mjtest/mjt.py --log_level info compile-firm
+./mjtest/mjt.py --log_level info compile
 return_code=$?
 
 # cleanup

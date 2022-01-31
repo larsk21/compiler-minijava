@@ -36,7 +36,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         boolean hadChange = false;
         boolean changes;
         int maxChanges = 0;
-        Dump.dumpGraph(g, "before-opt");
+
         do {
             changes = false;
             nodeValues.clear();
@@ -134,21 +134,17 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             Pointer origPointer = orig.getBlock().ptr;
             Pointer replacementPointer = replacement.getBlock().ptr;
 
-            int dominatesOld = dominates(newPointer, origPointer);
-            int dominatesNew = dominates(newPointer, replacementPointer);
+            boolean dominatesOld = dominates(newPointer, origPointer);
+            boolean dominatesNew = dominates(newPointer, replacementPointer);
 
-            if (dominatesOld == 0 || dominatesNew == 0) {
-                // can not replace node in this case since new node does not dominate one of the replacements
+            if (!dominatesOld || !dominatesNew) {
+                // can not replace node if the new node isnt dominating both former nodes.
                 return false;
             }
             // new node has to dominate all uses
             boolean usesDominated = dominatesUses(newNode, orig);
             boolean usesDominatedRep = dominatesUses(newNode, replacement);
 
-            if (hasCallAsChild(orig) || hasCallAsChild(replacement)) {
-                System.out.println("call as child do not replace");
-                return false;
-            }
             if (usesDominated && usesDominatedRep) {
                 //      System.out.println("replaced node " + orig + " with " + newNode + " in graph " + g);
                 Graph.exchange(orig, newNode);
@@ -171,7 +167,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         return false;
     }
 
-    private int dominates(Pointer source, Pointer target) {
+    private boolean dominates(Pointer source, Pointer target) {
         int dominates = 0;
 
         if (!dominateMap.containsKey(source)) {
@@ -186,19 +182,18 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             Map<Pointer, Integer> cachedResults = dominateMap.get(source);
             dominates = cachedResults.computeIfAbsent(target, p -> binding_irdom.block_dominates(source, target));
         }
-        return dominates;
+        return dominates != 0;
     }
 
     private boolean dominatesUses(Node newNode, Node orig) {
         for (BackEdges.Edge edge : BackEdges.getOuts(orig)) {
             Node n = edge.node;
-            if (dominates(newNode.getBlock().ptr, n.getBlock().ptr) == 0) {
+            if (!dominates(newNode.getBlock().ptr, n.getBlock().ptr)) {
                 return false;
             }
         }
         return true;
     }
-
 
     private final class CSEVisitor extends NodeVisitor.Default {
 
@@ -237,9 +232,13 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             NodePreds np = new NodePreds(preds, opcode, node.getMode());
             if (nodeCache.containsKey(np)) {
                 Node n = nodeCache.get(np);
-                // can exchange node with already found in list
-                nodeValues.put(node, n);
-                // enqueue outs
+                if (dominates(n.getBlock().ptr, node.getBlock().ptr)) {
+                    nodeValues.put(node, n);
+                } else {
+                    // replace and update cache
+                    nodeValues.put(n, node);
+                    nodeCache.put(np, node);
+                }
             } else {
                 nodeCache.put(np, node);
             }

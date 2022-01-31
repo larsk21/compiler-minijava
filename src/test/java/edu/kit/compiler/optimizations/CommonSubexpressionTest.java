@@ -71,7 +71,6 @@ public class CommonSubexpressionTest {
         // return a + d;
         String file = "edu/kit/compiler/optimizations/Subexpressions.java";
         Graph g = build(file);
-        Dump.dumpGraph(g, "subexp-before");
 
         int nodeSizeBefore = getNodeSize(g);
 
@@ -84,9 +83,6 @@ public class CommonSubexpressionTest {
         assertContainsOpCode(g, binding_irnode.ir_opcode.iro_Minus);
         assertContainsOpCode(g, binding_irnode.ir_opcode.iro_Add);
         assertTrue(nodeSizeAfter < nodeSizeBefore);
-
-        System.out.println("dumping subexpresion graph");
-        Dump.dumpGraph(g, "subexp-after");
     }
 
     @Test
@@ -112,14 +108,13 @@ public class CommonSubexpressionTest {
                 Graph.exchange(n, div);
             }
         }
-        Dump.dumpGraph(g, "nomem-before");
 
         int nodeSizeBefore = getNodeSize(g);
 
         CommonSubexpressionElimination optimization = new CommonSubexpressionElimination();
         try {
             while (optimization.optimize(g, null)) {
-                System.out.println("changed");
+                //
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -129,10 +124,6 @@ public class CommonSubexpressionTest {
 
         assertContainsOpCode(g, binding_irnode.ir_opcode.iro_Add);
         assertTrue(nodeSizeAfter < nodeSizeBefore);
-        //assertDoesNotContainOpCode(g, binding_irnode.ir_opcode.iro_Minus);
-
-        System.out.println("dumping subexpresion graph");
-        Dump.dumpGraph(g, "nomem-after");
     }
 
 }

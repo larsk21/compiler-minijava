@@ -63,7 +63,6 @@ public class FirmGraphGenerator {
     public static void dumpGraph(Graph g) throws IOException {
         JFirmSingleton.initializeFirmLinux();
 
-        Dump.dumpGraph(g, "dumped-graph");
         String p = Objects.requireNonNull(systemClassLoader.getResource(".")).getFile();
         File rootDir = new File(p + "/../../");
         if (!rootDir.exists()) {
