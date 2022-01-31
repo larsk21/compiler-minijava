@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 
 import edu.kit.compiler.transform.JFirmSingleton;
 
-import firm.bindings.binding_irdom;
 import firm.Construction;
 import firm.Entity;
 import firm.Graph;
@@ -107,8 +106,6 @@ public class LoopInvariantOptimizationCallTest {
         block5.addPred(return4);
 
         construction.finish();
-
-        binding_irdom.compute_doms(graph.ptr);
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();

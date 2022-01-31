@@ -1,5 +1,7 @@
 package edu.kit.compiler.optimizations;
 
+import static firm.bindings.binding_irgraph.ir_graph_properties_t.IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +28,8 @@ public class LoopInvariantOptimization implements Optimization.Local {
 
     @Override
     public boolean optimize(Graph graph, OptimizationState state) {
+        graph.assureProperties(IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE);
+
         LoopInvariantAnalysis loopInvariantAnalysis = new LoopInvariantAnalysis(graph);
         loopInvariantAnalysis.analyze();
 
