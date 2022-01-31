@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 
 import edu.kit.compiler.transform.JFirmSingleton;
 
-import firm.bindings.binding_irdom;
 import firm.Construction;
 import firm.Entity;
 import firm.Graph;
@@ -97,8 +96,6 @@ public class LoopInvariantOptimizationTest {
 
         construction.finish();
 
-        binding_irdom.compute_doms(graph.ptr);
-
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
         optimization.optimize(graph, null);
@@ -162,8 +159,6 @@ public class LoopInvariantOptimizationTest {
 
         construction.finish();
 
-        binding_irdom.compute_doms(graph.ptr);
-
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
         optimization.optimize(graph, null);
@@ -226,8 +221,6 @@ public class LoopInvariantOptimizationTest {
         block5.addPred(return4);
 
         construction.finish();
-
-        binding_irdom.compute_doms(graph.ptr);
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
@@ -320,8 +313,6 @@ public class LoopInvariantOptimizationTest {
 
         construction.finish();
 
-        binding_irdom.compute_doms(graph.ptr);
-
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
         optimization.optimize(graph, null);
@@ -413,8 +404,6 @@ public class LoopInvariantOptimizationTest {
 
         construction.finish();
 
-        binding_irdom.compute_doms(graph.ptr);
-
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
         optimization.optimize(graph, null);
@@ -504,8 +493,6 @@ public class LoopInvariantOptimizationTest {
         block6.addPred(return5);
 
         construction.finish();
-
-        binding_irdom.compute_doms(graph.ptr);
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
