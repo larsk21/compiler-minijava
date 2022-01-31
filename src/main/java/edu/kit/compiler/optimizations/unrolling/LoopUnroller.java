@@ -56,9 +56,9 @@ public final class LoopUnroller {
      * original header will continue to be used as loop header of the new loop.
      * 
      * The control flow looks something like the following:
-     *    ↓─────<──────<──────<──────<──────<─────┐
+     *    v─────<──────<──────<──────<──────<─────┐
      * -> H -> B -> H_1 -> B_1 -> ... -> H_N-1 -> B_N-1
-     *    ↓
+     *    v
      */
     public static boolean unroll(Loop loop, int factor, boolean isFull,
             Map<Block, List<Node>> nodesPerBlock) {
@@ -78,11 +78,14 @@ public final class LoopUnroller {
      * which the program unconditionally leaves the loop.
      */
     public static void skipLoop(Loop loop, Map<Block, List<Node>> nodesPerBlock) {
+        pruneFromKeepAlive(loop);
         var unroller = new LoopUnroller(nodesPerBlock, loop.getGraph(), loop, 0, true);
         unroller.fixHeaderCond(loop.getCond(), true);
     }
 
     private void unroll() {
+        pruneFromKeepAlive(loop);
+
         var header = loop.getHeader();
         var headerCopy = copyLoopNodes();
 
@@ -246,6 +249,21 @@ public final class LoopUnroller {
             }
         } else {
             return NodeVec.of(node, nCopies);
+        }
+    }
+
+    /**
+     * Remove all keep-alive edges to the loop from the graph.
+     */
+    private static void pruneFromKeepAlive(Loop loop) {
+        var graph = loop.getGraph();
+        var endNode = graph.getEnd();
+
+        for (int i = 0; i < endNode.getPredCount(); ++i) {
+            var keepAlive = endNode.getPred(i);
+            if (loop.containsNode(keepAlive)) {
+                endNode.setPred(i, graph.newBad(keepAlive.getMode()));
+            }
         }
     }
 
