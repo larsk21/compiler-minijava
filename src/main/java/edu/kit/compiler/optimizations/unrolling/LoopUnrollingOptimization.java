@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.optimizations.OptimizationState;
-import edu.kit.compiler.optimizations.Util;
+import edu.kit.compiler.optimizations.Util.BlockNodeMapper;
 import edu.kit.compiler.optimizations.unrolling.LoopAnalysis.Loop;
 import edu.kit.compiler.optimizations.unrolling.LoopAnalysis.LoopTree;
 import edu.kit.compiler.optimizations.unrolling.LoopVariableAnalysis.FixedIterationLoop;
@@ -99,13 +99,16 @@ public class LoopUnrollingOptimization implements Optimization.Local {
         Optional<UnrollFactor> factor;
 
         if (iterations == 0) {
-            var nodesPerBlock = Util.getNodesPerBlock(loop.getGraph());
+            var nodesPerBlock = new HashMap<Block, List<Node>>();
+            loop.getGraph().walk(new BlockNodeMapper(nodesPerBlock));
+
             LoopUnroller.skipLoop(loop, nodesPerBlock);
             return Result.FULL;
         }
 
         do {
-            var nodesPerBlock = Util.getNodesPerBlock(loop.getGraph());
+            var nodesPerBlock = new HashMap<Block, List<Node>>();
+            loop.getGraph().walk(new BlockNodeMapper(nodesPerBlock));
             factor = UnrollFactor.of(loop, iterations, nodesPerBlock);
 
             if (factor.isPresent()) {

@@ -5,14 +5,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashMap;
 import java.util.function.ObjIntConsumer;
 
 import com.sun.jna.Pointer;
 
 import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.io.Worklist;
-
 import firm.BlockWalker;
 import firm.Entity;
 import firm.Graph;
@@ -21,13 +19,12 @@ import firm.bindings.binding_irdom;
 import firm.bindings.binding_irnode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Address;
-import firm.nodes.Call;
 import firm.nodes.Block;
+import firm.nodes.Call;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
 import firm.nodes.Proj;
 import firm.nodes.Tuple;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -248,26 +245,5 @@ public final class Util {
                 func.accept((Block) pred.getBlock(), i);
             }
         } 
-    }
-
-    /**
-     * Returns a map containing a map of blocks to a list of contained nodes.
-     */
-    public static Map<Block, List<Node>> getNodesPerBlock(Graph graph) {
-        var nodesPerBlock = new HashMap<Block, List<Node>>();
-        graph.walk(new NodeVisitor.Default() {
-            @Override
-            public void defaultVisit(Node node) {
-                nodesPerBlock.computeIfAbsent((Block) node.getBlock(),
-                        k -> new ArrayList<>()).add(node);
-            }
-
-            @Override
-            public void visit(Block node) {
-                nodesPerBlock.computeIfAbsent(node, k -> new ArrayList<>());
-            }
-        });
-
-        return nodesPerBlock;
     }
 }
