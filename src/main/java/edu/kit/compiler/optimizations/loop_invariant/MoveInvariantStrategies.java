@@ -19,8 +19,20 @@ public final class MoveInvariantStrategies {
     public static class MoveAlways implements MoveInvariantStrategy {
 
         @Override
-        public boolean decideMoveNodeTo(Node node, Block target) {
+        public boolean decideMoveNodeTo(Node node, Block loop, Block target) {
             return true;
+        }
+
+    }
+
+    /**
+     * Strategy that moves no loop-invariant nodes.
+     */
+    public static class MoveNever implements MoveInvariantStrategy {
+
+        @Override
+        public boolean decideMoveNodeTo(Node node, Block loop, Block target) {
+            return false;
         }
 
     }
