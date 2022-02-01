@@ -107,11 +107,12 @@ public final class LoopVariableAnalysis {
                             yield Optional.empty();
                         }
                     }
-                    case Less, Greater -> getNumSteps(initial, bound, step);
-                    case LessEqual -> getNumSteps(initial,
-                            bound.add(mode.getOne()), step);
-                    case GreaterEqual -> getNumSteps(initial,
-                            bound.sub(mode.getOne()), step);
+
+                    // convert loop to a less-than-loop and compute iterations
+                    case Less -> getIterations(initial, bound, step);
+                    case LessEqual -> getIterations(initial, bound.add(mode.getOne()), step);
+                    case Greater -> getIterations(initial.neg(), bound.neg(), step.neg());
+                    case GreaterEqual -> getIterations(initial.neg(), bound.neg().add(mode.getOne()), step.neg());
 
                     case True, LessEqualGreater -> Optional.empty();
                     case False -> throw new IllegalStateException();
@@ -124,44 +125,39 @@ public final class LoopVariableAnalysis {
             }
         }
 
+        /**
+         * Returns the number of iterations of a less-than-loop with the given
+         * parameters. It is assumed that the loop has at least one iteration.
+         * If the loop does not terminate, an empty Optional is returned.
+         */
+        private static Optional<TargetValue> getIterations(TargetValue lowerInclusive,
+                TargetValue upperExclusive, TargetValue increment) {
+
+            // assert relation.contains(initial.compare(bound));
+
+            var mode = lowerInclusive.getMode();
+            var min = mode.getMin();
+
+            if (increment.isNull() || increment.isNegative()) {
+                return Optional.empty();
+            } else if (increment.equals(min) || lowerInclusive.equals(min)
+                    || upperExclusive.equals(min)) {
+                // INT_MIN leads to unpredictable results when negated
+                return Optional.empty();
+            } else {
+                var offset = increment.sub(mode.getOne());
+                var difference = upperExclusive.sub(lowerInclusive).add(offset);
+
+                return Optional.of(difference.div(increment));
+            }
+        }
+
         private void assertCorrectNumSteps(TargetValue steps) {
             assert relation.contains(initial.compare(bound)) || steps.isNull();
             assert !relation.contains(initial.add(step.mul(steps)).compare(bound));
             assert steps.isNull() || relation.contains(initial.add(step.mul(
                     steps.sub(steps.getMode().getOne()))).compare(bound));
         }
-
-        private static final Optional<TargetValue> getNumSteps(
-                TargetValue begin, TargetValue end, TargetValue step) {
-            assert begin.getMode().equals(end.getMode());
-            assert begin.getMode().equals(step.getMode());
-
-            var mode = begin.getMode();
-
-            if (step.isNegative()) {
-                if (step.equals(mode.getMin())) {
-                    // ugly special case because INT_MIN "breaks" neg()
-                    return Optional.empty();
-                } else {
-                    return getNumSteps(begin.neg(), end.neg(), step.neg());
-                }
-            } else if (step.isNull()) {
-                return Optional.empty();
-            } else {
-                if (begin.equals(mode.getMin()) || end.equals(mode.getMin())) {
-                    return Optional.empty();
-                } else if (Relation.LessEqual.contains(begin.compare(end))) {
-                    var offset = step.sub(mode.getOne());
-                    var difference = end.sub(begin).add(offset);
-                    var steps = difference.div(step);
-
-                    return Optional.of(steps);
-                } else {
-                    return Optional.empty();
-                }
-            }
-        }
-
     }
 
     /**
@@ -212,12 +208,10 @@ public final class LoopVariableAnalysis {
      * If the node is Const, returns its value. Otherwise returns BAD.
      */
     private static TargetValue getConstValue(Node node) {
-        if (node.getOpCode() == ir_opcode.iro_Const) {
-            return ((Const) node).getTarval();
-        } else {
-            // non Const initializer for index
-            return BAD;
-        }
+        return switch (node.getOpCode()) {
+            case iro_Const -> ((Const) node).getTarval();
+            default -> BAD;
+        };
     }
 
     /**

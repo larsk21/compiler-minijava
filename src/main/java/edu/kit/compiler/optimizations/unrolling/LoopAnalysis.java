@@ -57,13 +57,6 @@ public final class LoopAnalysis {
         return LoopTree.build(this);
     }
 
-    /**
-     * An exception to indicate that a graph is not reducible. See "Compilers
-     * Principles, Techniques, and Tools" (Aho et al., Chapter 9.6.4).
-     */
-    private static final class GraphNotReducibleException extends RuntimeException {
-    }
-
     private void collectLoops(Graph graph) {
         graph.walkBlocksPostorder(new BlockWalker() {
             @Override
@@ -90,49 +83,10 @@ public final class LoopAnalysis {
     }
 
     /**
-     * Represents a node in the hierarchy of loops. The children of a node are
-     * those loops that are nested immediately within `loop`.
+     * An exception to indicate that a graph is not reducible. See "Compilers
+     * Principles, Techniques, and Tools" (Aho et al., Chapter 9.6.4).
      */
-    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class LoopTree {
-
-        @Getter
-        private final Loop loop;
-        @Getter
-        private final List<LoopTree> children = new LinkedList<>();
-
-        private static List<LoopTree> build(LoopAnalysis analysis) {
-            var sortedLoops = new ArrayList<>(analysis.loops.values());
-            sortedLoops.sort(Comparator.reverseOrder());
-
-            var trees = new HashMap<Block, LoopTree>();
-            var roots = new LinkedList<LoopTree>();
-
-            for (var loop : sortedLoops) {
-                insertTree(roots, trees, loop);
-            }
-
-            return roots;
-        }
-
-        private static void insertTree(List<LoopTree> roots,
-                Map<Block, LoopTree> trees, Loop loop) {
-            var dom = loop.getHeader().ptr;
-
-            while ((dom = binding_irdom.get_Block_idom(dom)) != null) {
-                var tree = trees.get(new Block(dom));
-                if (tree != null && tree.getLoop().contains(loop)) {
-                    var child = new LoopTree(loop);
-                    tree.children.add(child);
-                    trees.put(loop.getHeader(), child);
-                    return;
-                }
-            }
-
-            var root = new LoopTree(loop);
-            roots.add(root);
-            trees.put(loop.getHeader(), root);
-        }
+    private static final class GraphNotReducibleException extends RuntimeException {
     }
 
     /**
@@ -174,17 +128,6 @@ public final class LoopAnalysis {
         private Loop(Block header) {
             this.header = header;
             this.isBackEdge = new boolean[header.getPredCount()];
-        }
-
-        @Override
-        public int compareTo(Loop other) {
-            if (other.containsBlock(this.header)) {
-                return -1;
-            } else if (this.containsBlock(other.header)) {
-                return 1;
-            } else {
-                return 0;
-            }
         }
 
         public Graph getGraph() {
@@ -242,7 +185,22 @@ public final class LoopAnalysis {
         }
 
         /**
-         * Mark the control flow predecessor of the loop header at the given
+         * An ordering for loops, based on whether the header of one loop is
+         * contained in the body of another.
+         */
+        @Override
+        public int compareTo(Loop other) {
+            if (other.body.contains(this.header)) {
+                return -1;
+            } else if (this.body.contains(other.header)) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+
+        /**
+         * Marks the control flow predecessor of the loop header at the given
          * index as back edge and adds the resulting blocks to the loop body.
          */
         private void addBackEdge(int idx) {
@@ -257,6 +215,11 @@ public final class LoopAnalysis {
             collectBlocks(tail, true);
         }
 
+        /**
+         * Walk all paths through the loop, starting at the given block and add
+         * them to the loop body. If `setExit` is true, also set the `cond` and
+         * `exitProj` information of the loop.
+         */
         private void collectBlocks(Block tail, boolean setExit) {
             var worklist = new StackWorklist<Block>();
             if (!tail.visited()) {
@@ -273,26 +236,29 @@ public final class LoopAnalysis {
                     }
 
                     if (setExit && pred.equals(header)) {
-                        setExit(block, block.getPred(j));
+                        setExit(block.getPred(j));
                     }
                 });
             }
         }
 
-        private void setExit(Block block, Node pred) {
-            int exitProj;
-            Cond cond;
+        /**
+         * Tries to set `cond` and `exitProj` under the assumption that `cfNode`
+         * is a control flow node in the header, and does not exit the loop.
+         */
+        private void setExit(Node cfNode) {
+            assert cfNode.getBlock().equals(header);
 
-            if (pred.getOpCode() == ir_opcode.iro_Proj
-                    && pred.getPred(0).getOpCode() == ir_opcode.iro_Cond) {
-                var proj = (Proj) pred;
-                cond = (Cond) proj.getPred();
-                exitProj = proj.getNum() == Cond.pnTrue ? Cond.pnFalse : Cond.pnTrue;
-            } else {
-                // loop header has unsupported control flow, maybe infinite loop?
+            if (cfNode.getOpCode() != ir_opcode.iro_Proj
+                    || cfNode.getPred(0).getOpCode() != ir_opcode.iro_Cond) {
                 setInvalid();
                 return;
             }
+
+            Cond cond = (Cond) cfNode.getPred(0);
+            int exitProj = ((Proj) cfNode).getNum() == Cond.pnTrue
+                    ? Cond.pnFalse
+                    : Cond.pnTrue;
 
             if (this.exitProj == -1 && this.cond == null) {
                 this.exitProj = exitProj;
@@ -307,6 +273,53 @@ public final class LoopAnalysis {
 
         private void setInvalid() {
             this.valid = false;
+        }
+    }
+
+    /**
+     * Represents a node in the hierarchy of loops. The children of a node are
+     * those loops that are nested immediately within `loop`.
+     */
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    public static final class LoopTree {
+
+        @Getter
+        private final Loop loop;
+        @Getter
+        private final List<LoopTree> children = new LinkedList<>();
+
+        private static List<LoopTree> build(LoopAnalysis analysis) {
+            // sort loops, outer loop before nested loops
+            var sortedLoops = new ArrayList<>(analysis.loops.values());
+            sortedLoops.sort(Comparator.reverseOrder());
+
+            var trees = new HashMap<Block, LoopTree>();
+            var roots = new LinkedList<LoopTree>();
+
+            for (var loop : sortedLoops) {
+                insertTree(roots, trees, loop);
+            }
+
+            return roots;
+        }
+
+        private static void insertTree(List<LoopTree> roots,
+                Map<Block, LoopTree> trees, Loop loop) {
+            var dom = loop.getHeader().ptr;
+
+            while ((dom = binding_irdom.get_Block_idom(dom)) != null) {
+                var tree = trees.get(new Block(dom));
+                if (tree != null && tree.getLoop().contains(loop)) {
+                    var child = new LoopTree(loop);
+                    tree.children.add(child);
+                    trees.put(loop.getHeader(), child);
+                    return;
+                }
+            }
+
+            var root = new LoopTree(loop);
+            roots.add(root);
+            trees.put(loop.getHeader(), root);
         }
     }
 
