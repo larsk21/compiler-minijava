@@ -15,9 +15,6 @@ import edu.kit.compiler.optimizations.unrolling.LoopAnalysis.Loop;
 import edu.kit.compiler.optimizations.unrolling.LoopAnalysis.LoopTree;
 import edu.kit.compiler.optimizations.unrolling.LoopVariableAnalysis.FixedIterationLoop;
 import firm.Graph;
-import firm.Mode;
-import firm.Relation;
-import firm.TargetValue;
 import firm.bindings.binding_irgopt;
 import firm.nodes.Block;
 import firm.nodes.Node;
@@ -79,8 +76,8 @@ public class LoopUnrollingOptimization implements Optimization.Local {
             loop.updateBody();
             return LoopVariableAnalysis.apply(loop)
                     .flatMap(FixedIterationLoop::getIterationCount)
-                    .filter(LoopUnrollingOptimization::fitsIntoInteger)
-                    .map(n -> tryUnroll(loop, n.asInt()))
+                    .filter(n -> 0 <= n && n <= Integer.MAX_VALUE)
+                    .map(n -> tryUnroll(loop, n.intValue()))
                     .orElse(Result.UNCHANGED);
         } else {
             return result;
@@ -118,11 +115,6 @@ public class LoopUnrollingOptimization implements Optimization.Local {
         } while (maybeFactor.isPresent() && !maybeFactor.get().isFull());
 
         return result;
-    }
-
-    private static boolean fitsIntoInteger(TargetValue value) {
-        return Relation.LessEqual.contains(value.compare(
-                new TargetValue(Integer.MAX_VALUE, Mode.getIs())));
     }
 
     private enum Result {

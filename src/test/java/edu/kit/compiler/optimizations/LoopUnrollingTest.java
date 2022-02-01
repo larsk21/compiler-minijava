@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.optimizations.unrolling.LoopUnrollingOptimization;
+import edu.kit.compiler.optimizations.unrolling.LoopVariableAnalysis.FixedIterationLoop;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
 import edu.kit.compiler.semantic.ErrorHandler;
@@ -30,7 +32,10 @@ import edu.kit.compiler.transform.IRVisitor;
 import edu.kit.compiler.transform.JFirmSingleton;
 import edu.kit.compiler.transform.Lower;
 import firm.Graph;
+import firm.Mode;
 import firm.Program;
+import firm.Relation;
+import firm.TargetValue;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Const;
 import firm.nodes.Node;
@@ -40,8 +45,11 @@ import lombok.RequiredArgsConstructor;
 
 public class LoopUnrollingTest {
 
+    private static final long ABS_INT_MIN = Math.abs((long) Integer.MIN_VALUE);
+    private static final long INT_MAX = Math.abs((long) Integer.MAX_VALUE);
+
     private static final String PROGRAM = "class Main_%s { public static void main(String[] args) { } %s }";
-    private static final String FUNCTION = "public int func() { int i = %s; while (i %s %s) { i = i + %s; } return i; }";
+    private static final String FUNCTION = "public int func() { %s }";
 
     private Optimization.Local unroll = new LoopUnrollingOptimization();
     private Optimization.Local linearBlocks = new LinearBlocksOptimization();
@@ -69,98 +77,132 @@ public class LoopUnrollingTest {
     }
 
     @Test
-    public void testRangeLt1() {
-        assertFullyUnrolled(createWhile(0, 10, 1, "<"), 10);
+    public void testIterationsLt() {
+        assertEquals(Optional.of(10), intIterations(0, 10, 1, Relation.Less));
+        assertEquals(Optional.of(5), intIterations(0, 10, 2, Relation.Less));
+        assertEquals(Optional.of(0), intIterations(100, 100, 1, Relation.Less));
+        assertEquals(Optional.of(0), intIterations(100, 0, 1, Relation.Less));
+        assertEquals(Optional.of(10), intIterations(10, 60, 5, Relation.Less));
+        assertEquals(Optional.of(5), intIterations(-10, 10, 4, Relation.Less));
+
+        assertEquals(Optional.empty(), intIterations(0, 10, 0, Relation.Less));
+        assertEquals(Optional.empty(), intIterations(0, 10, -1, Relation.Less));
+
+        assertEquals(Optional.of(ABS_INT_MIN), longIterations(Integer.MIN_VALUE, 0, 1, Relation.Less));
+        assertEquals(Optional.of(INT_MAX), longIterations(0, Integer.MAX_VALUE, 1, Relation.Less));
+        assertEquals(Optional.of(ABS_INT_MIN + INT_MAX),
+                longIterations(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, Relation.Less));
     }
 
     @Test
-    public void testRangeLt2() {
-        assertFullyUnrolled(createWhile(-10, 10, 2, "<"), 10);
+    public void testIterationsLe() {
+        assertEquals(Optional.of(11), intIterations(0, 10, 1, Relation.LessEqual));
+        assertEquals(Optional.of(6), intIterations(0, 10, 2, Relation.LessEqual));
+        assertEquals(Optional.of(1), intIterations(100, 100, 1, Relation.LessEqual));
+        assertEquals(Optional.of(0), intIterations(100, 0, 1, Relation.LessEqual));
+        assertEquals(Optional.of(11), intIterations(10, 60, 5, Relation.LessEqual));
+        assertEquals(Optional.of(6), intIterations(-10, 10, 4, Relation.LessEqual));
+        assertEquals(Optional.of(3), intIterations(0, 10, 4, Relation.LessEqual));
+
+        assertEquals(Optional.empty(), intIterations(0, 10, 0, Relation.LessEqual));
+        assertEquals(Optional.empty(), intIterations(0, 10, -1, Relation.LessEqual));
+
+        var ABS_INT_MIN = Math.abs((long) Integer.MIN_VALUE);
+        assertEquals(Optional.of(ABS_INT_MIN + 1), longIterations(Integer.MIN_VALUE, 0, 1, Relation.LessEqual));
+        assertEquals(Optional.empty(), longIterations(0, Integer.MAX_VALUE, 1, Relation.LessEqual));
+        assertEquals(Optional.empty(), intIterations(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, Relation.LessEqual));
     }
 
     @Test
-    public void testRangeLt3() {
-        assertFullyUnrolled(createWhile(28, 10, 2, "<"), 28);
+    public void testIterationsGt() {
+        assertEquals(Optional.of(10), intIterations(10, 0, -1, Relation.Greater));
+        assertEquals(Optional.of(5), intIterations(10, 0, -2, Relation.Greater));
+        assertEquals(Optional.of(0), intIterations(100, 100, -1, Relation.Greater));
+        assertEquals(Optional.of(0), intIterations(0, 100, -1, Relation.Greater));
+        assertEquals(Optional.of(10), intIterations(60, 10, -5, Relation.Greater));
+        assertEquals(Optional.of(5), intIterations(10, -10, -4, Relation.Greater));
+
+        assertEquals(Optional.empty(), intIterations(10, 0, 0, Relation.Greater));
+        assertEquals(Optional.empty(), intIterations(10, 0, 1, Relation.Greater));
+
+        var ABS_INT_MIN = Math.abs((long) Integer.MIN_VALUE);
+        var INT_MAX = Math.abs((long) Integer.MAX_VALUE);
+        assertEquals(Optional.of(ABS_INT_MIN), longIterations(0, Integer.MIN_VALUE, -1, Relation.Greater));
+        assertEquals(Optional.of(INT_MAX), longIterations(Integer.MAX_VALUE, 0, -1, Relation.Greater));
+        assertEquals(Optional.of(ABS_INT_MIN + INT_MAX),
+                longIterations(Integer.MAX_VALUE, Integer.MIN_VALUE, -1, Relation.Greater));
+        assertEquals(Optional.of(0), intIterations(Integer.MIN_VALUE, Integer.MAX_VALUE, -1, Relation.Greater));
     }
 
     @Test
-    public void testRangeLe1() {
-        assertFullyUnrolled(createWhile(0, 10, 5, "<="), 15);
+    public void testIterationsGe() {
+        assertEquals(Optional.of(11), intIterations(10, 0, -1, Relation.GreaterEqual));
+        assertEquals(Optional.of(6), intIterations(10, 0, -2, Relation.GreaterEqual));
+        assertEquals(Optional.of(1), intIterations(100, 100, -1, Relation.GreaterEqual));
+        assertEquals(Optional.of(0), intIterations(0, 100, -1, Relation.GreaterEqual));
+        assertEquals(Optional.of(11), intIterations(60, 10, -5, Relation.GreaterEqual));
+        assertEquals(Optional.of(6), intIterations(10, -10, -4, Relation.GreaterEqual));
+        assertEquals(Optional.of(3), intIterations(10, 0, -4, Relation.GreaterEqual));
+
+        assertEquals(Optional.empty(), intIterations(10, 0, 0, Relation.GreaterEqual));
+        assertEquals(Optional.empty(), intIterations(10, 0, 1, Relation.GreaterEqual));
+
+        var ABS_INT_MIN = Math.abs((long) Integer.MIN_VALUE);
+        assertEquals(Optional.empty(), longIterations(0, Integer.MIN_VALUE, -1, Relation.GreaterEqual));
+        assertEquals(Optional.of(ABS_INT_MIN), longIterations(Integer.MAX_VALUE, 0, -1, Relation.GreaterEqual));
+        assertEquals(Optional.empty(), longIterations(Integer.MAX_VALUE, Integer.MIN_VALUE, -1, Relation.GreaterEqual));
+        assertEquals(Optional.of(0), intIterations(Integer.MIN_VALUE, Integer.MAX_VALUE, -1, Relation.GreaterEqual));
     }
 
     @Test
-    public void testRangeLe2() {
-        assertFullyUnrolled(createWhile(-15, 1, 3, "<="), 3);
+    public void testIterationsEq() {
+        assertEquals(Optional.of(1), intIterations(-128, -128, 10, Relation.Equal));
+        assertEquals(Optional.of(0), intIterations(42, 41, 1, Relation.Equal));
+        assertEquals(Optional.of(0), intIterations(41, 42, -1, Relation.Equal));
+        assertEquals(Optional.empty(), intIterations(28, 28, 0, Relation.Equal));
+        assertEquals(Optional.of(0), intIterations(42, 41, 0, Relation.Equal));
     }
 
     @Test
-    public void testRangeLe3() {
-        assertFullyUnrolled(createWhile(10, 9, 3, "<="), 10);
+    public void testIterationsNeq() {
+        assertEquals(Optional.of(0), intIterations(42, 42, 1, Relation.LessGreater));
+        assertEquals(Optional.of(0), intIterations(42, 42, 0, Relation.LessGreater));
+        assertEquals(Optional.of(1), intIterations(41, 42, 1, Relation.LessGreater));
+        assertEquals(Optional.empty(), intIterations(41, 42, 0, Relation.LessGreater));
+        assertEquals(Optional.of(256), intIterations(-128, 128, 1, Relation.LessGreater));
+        assertEquals(Optional.of(ABS_INT_MIN + INT_MAX),
+                longIterations(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, Relation.LessGreater));
+        assertEquals(Optional.empty(), longIterations(Integer.MIN_VALUE, Integer.MAX_VALUE, -1, Relation.LessGreater));
+        assertEquals(Optional.empty(), longIterations(Integer.MAX_VALUE, Integer.MIN_VALUE, 1, Relation.LessGreater));
+        assertEquals(Optional.of(ABS_INT_MIN + INT_MAX),
+                longIterations(Integer.MAX_VALUE, Integer.MIN_VALUE, -1, Relation.LessGreater));
     }
 
     @Test
-    public void testRangeGt1() {
-        assertFullyUnrolled(createWhile(10, 0, -1, ">"), 0);
+    public void testUnroll() {
+        assertFullyUnrolled(createFunction("int i = 0; while (i < 10) i = i + 1; return i;"), 10);
     }
 
     @Test
-    public void testRangeGt2() {
-        assertFullyUnrolled(createWhile(96, 0, -3, ">"), 0);
+    public void testUnrollMedium() {
+        assertFullyUnrolled(createFunction("int i = 0; while (i < 128) i = i + 1; return i;"), 128);
     }
 
     @Test
-    public void testRangeGt3() {
-        assertFullyUnrolled(createWhile(1000, 0, -5, ">"), 0);
+    public void testUnrollLarge() {
+        assertFullyUnrolled(createFunction("int i = 0; while (i < 4096) i = i + 1; return i;"), 4096);
     }
 
     @Test
-    public void testRangeGt4() {
-        assertFullyUnrolled(createWhile(1337, 1337, -5, ">"), 1337);
+    public void testUnrollPrime() {
+        assertNotUnrolled(createFunction("int i = 0; while (i < 73) i = i + 1; return i;"));
     }
 
     @Test
-    public void testRangeGe1() {
-        assertFullyUnrolled(createWhile(10, 0, -5, ">="), -5);
-    }
-
-    @Test
-    public void testRangeGe2() {
-        assertFullyUnrolled(createWhile(999, 0, -1, ">="), -1);
-    }
-
-    @Test
-    public void testRangeGe3() {
-        assertFullyUnrolled(createWhile(-5, -4, -1, ">="), -5);
-    }
- 
-    @Test
-    public void testRangeEq1() {
-        assertFullyUnrolled(createWhile(42, 42, 1, "=="), 43);
-    }
- 
-    @Test
-    public void testRangeEq2() {
-        assertFullyUnrolled(createWhile(28, 42, 1, "=="), 28);
-    }
- 
-    @Test
-    public void testRangeNeq1() {
-        assertFullyUnrolled(createWhile(0, 42, 1, "!="), 42);
-    }
- 
-    @Test
-    public void testRangeNeq2() {
-        assertNotUnrolled(createWhile(0, 41, 2, "!="), 42);
-    }
- 
-    @Test
-    public void testRangeNeq3() {
-        assertFullyUnrolled(createWhile(10, 0, -1, "!="), 0);
-    }
- 
-    @Test
-    public void testRangeNeq4() {
-        assertFullyUnrolled(createWhile(42, 42, -1, "!="), 42);
+    public void testUnrollCountTo100() {
+        assertFullyUnrolled(
+                createFunction("int i = 1; int sum = 0; while (i <= 100) { sum = sum + i; i = i + 1; } return sum;"),
+                5050);
     }
 
     private void assertFullyUnrolled(Graph graph, int result) {
@@ -174,15 +216,33 @@ public class LoopUnrollingTest {
         assertEquals(result, ((Const) constNode).getTarval().asInt());
     }
 
-    private void assertNotUnrolled(Graph graph, int result) {
+    private void assertNotUnrolled(Graph graph) {
         assertEquals(1, Counter.count(graph, ir_opcode.iro_Return));
         assertEquals(1, Counter.count(graph, ir_opcode.iro_Add));
         assertNotEquals(0, Counter.count(graph, ir_opcode.iro_Jmp));
         assertNotEquals(0, Counter.count(graph, ir_opcode.iro_Cond));
     }
 
-    private Graph createWhile(int begin, int end, int step, String relation) {
-        buildOptIR(String.format(FUNCTION, begin, relation, end, step));
+    private static Optional<Integer> intIterations(int initial, int bound, int step, Relation relation) {
+        var desc = new FixedIterationLoop(
+                new TargetValue(initial, Mode.getIs()),
+                new TargetValue(bound, Mode.getIs()),
+                new TargetValue(step, Mode.getIs()),
+                relation);
+        return desc.getIterationCount().map(Long::intValue);
+    }
+
+    private static Optional<Long> longIterations(int initial, int bound, int step, Relation relation) {
+        var desc = new FixedIterationLoop(
+                new TargetValue(initial, Mode.getIs()),
+                new TargetValue(bound, Mode.getIs()),
+                new TargetValue(step, Mode.getIs()),
+                relation);
+        return desc.getIterationCount();
+    }
+
+    private Graph createFunction(String body) {
+        buildOptIR(String.format(FUNCTION, body));
         return getFunction("func");
     }
 
@@ -268,5 +328,5 @@ public class LoopUnrollingTest {
             }
         }
     }
-    
+
 }

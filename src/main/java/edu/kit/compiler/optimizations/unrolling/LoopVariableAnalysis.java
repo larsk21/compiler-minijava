@@ -67,7 +67,7 @@ public final class LoopVariableAnalysis {
     /**
      * Represents a descriptor for loops with a fixed number of iterations.
      */
-    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor
     public static final class FixedIterationLoop {
 
         @Getter
@@ -88,21 +88,21 @@ public final class LoopVariableAnalysis {
          * `int i = 1; while (x != 0) i = i + 1;` will return an empty
          * Optional.
          */
-        public Optional<TargetValue> getIterationCount() {
+        public Optional<Long> getIterationCount() {
             var mode = initial.getMode();
 
             if (!relation.contains(initial.compare(bound))) {
-                return Optional.of(mode.getNull());
+                return Optional.of((long) 0);
             } else if (step.isNull()) {
                 return Optional.empty();
             } else {
-                Optional<TargetValue> steps = switch (relation) {
-                    case Equal -> Optional.of(mode.getOne());
+                Optional<Long> steps = switch (relation) {
+                    case Equal -> Optional.of((long) 1);
                     case LessGreater -> {
-                        var difference = bound.sub(initial);
-                        if (difference.mod(step).isNull()
-                                && !difference.div(step).isNegative()) {
-                            yield Optional.of(difference.div(step));
+                        var difference = bound.asLong() - initial.asLong();
+                        if (difference % step.asLong() == 0
+                                && difference / step.asLong() >= 0) {
+                            yield Optional.of(difference / step.asLong());
                         } else {
                             yield Optional.empty();
                         }
@@ -111,8 +111,8 @@ public final class LoopVariableAnalysis {
                     // convert loop to a less-than-loop and compute iterations
                     case Less -> getIterations(initial, bound, step);
                     case LessEqual -> getIterations(initial, bound.add(mode.getOne()), step);
-                    case Greater -> getIterations(initial.neg(), bound.neg(), step.neg());
-                    case GreaterEqual -> getIterations(initial.neg(), bound.neg().add(mode.getOne()), step.neg());
+                    case Greater -> getIterations(bound, initial, step.neg());
+                    case GreaterEqual -> getIterations(bound.sub(mode.getOne()), initial, step.neg());
 
                     case True, LessEqualGreater -> Optional.empty();
                     case False -> throw new IllegalStateException();
@@ -130,33 +130,31 @@ public final class LoopVariableAnalysis {
          * parameters. It is assumed that the loop has at least one iteration.
          * If the loop does not terminate, an empty Optional is returned.
          */
-        private static Optional<TargetValue> getIterations(TargetValue lowerInclusive,
+        private static Optional<Long> getIterations(TargetValue lowerInclusive,
                 TargetValue upperExclusive, TargetValue increment) {
+            
+            var lowerLong = lowerInclusive.asLong();
+            var upperLong = upperExclusive.asLong();
+            var incLong = increment.asLong();
 
-            // assert relation.contains(initial.compare(bound));
-
-            var mode = lowerInclusive.getMode();
-            var min = mode.getMin();
-
-            if (increment.isNull() || increment.isNegative()) {
+            if (lowerLong >= upperLong) {
                 return Optional.empty();
-            } else if (increment.equals(min) || lowerInclusive.equals(min)
-                    || upperExclusive.equals(min)) {
-                // INT_MIN leads to unpredictable results when negated
+            } else if (incLong == 0 || incLong < 0) {
                 return Optional.empty();
             } else {
-                var offset = increment.sub(mode.getOne());
-                var difference = upperExclusive.sub(lowerInclusive).add(offset);
+                var difference = upperLong - lowerLong + incLong - 1;
 
-                return Optional.of(difference.div(increment));
+                return Optional.of(Long.divideUnsigned(difference, incLong));
             }
         }
 
-        private void assertCorrectNumSteps(TargetValue steps) {
-            assert relation.contains(initial.compare(bound)) || steps.isNull();
-            assert !relation.contains(initial.add(step.mul(steps)).compare(bound));
-            assert steps.isNull() || relation.contains(initial.add(step.mul(
-                    steps.sub(steps.getMode().getOne()))).compare(bound));
+        private void assertCorrectNumSteps(long steps) {
+            var offset = step.asLong() * steps;
+            var result = new TargetValue(initial.asLong() + offset, initial.getMode());
+
+            assert relation.contains(initial.compare(bound)) || steps == 0;
+            assert !relation.contains(result.compare(bound));
+            assert steps == 0 || relation.contains(result.sub(step).compare(bound));
         }
     }
 
