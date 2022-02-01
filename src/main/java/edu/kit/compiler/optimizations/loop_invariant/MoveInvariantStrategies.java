@@ -196,6 +196,9 @@ public final class MoveInvariantStrategies {
          * decided to move them out of the given loop.
          */
         private long moveableSuccessors(Node node, Block loop) {
+            if (!loopMoveableNodes.containsKey(loop)) {
+                return 0;
+            }
             Set<Node> moveableNodes = loopMoveableNodes.get(loop);
 
             return CommonUtil.stream(BackEdges.getOuts(node))
