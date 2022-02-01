@@ -54,7 +54,7 @@ public class LoopInvariantOptimization implements Optimization.Local {
             BackEdges.enable(graph);
         }
 
-        MoveInvariantStrategy moveInvariantStrategy = this.moveInvariantStrategy.orElse(new MoveInvariantStrategies.MoveAlways());
+        MoveInvariantStrategy moveInvariantStrategy = this.moveInvariantStrategy.orElse(new MoveInvariantStrategies.MinimizeRegisterPressure(loops, loopInvariantNodes));
 
         boolean change = false;
         for (Map.Entry<Block, Set<Block>> loop : loops.entrySet()) {
