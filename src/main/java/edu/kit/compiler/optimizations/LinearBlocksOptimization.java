@@ -14,6 +14,7 @@ import firm.Graph;
 import firm.Mode;
 import firm.BackEdges.Edge;
 import firm.bindings.binding_irgopt;
+import firm.bindings.binding_irgraph;
 import firm.nodes.Block;
 import firm.nodes.Jmp;
 import firm.nodes.Node;
@@ -58,6 +59,7 @@ public class LinearBlocksOptimization implements Optimization.Local {
             BackEdges.disable(graph);
         }
 
+        graph.confirmProperties(binding_irgraph.ir_graph_properties_t.IR_GRAPH_PROPERTIES_NONE);
         binding_irgopt.remove_unreachable_code(graph.ptr);
         binding_irgopt.remove_bads(graph.ptr);
 
