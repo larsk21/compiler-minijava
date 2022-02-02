@@ -177,7 +177,10 @@ public final class MoveInvariantStrategies {
 
             Block block = (Block) node.getBlock();
             // try to move to the target block, but never further
-            while (!block.equals(target) && Util.findDeepestCommonDominator(Arrays.asList(block, target)).equals(target)) {
+            while (
+                !block.equals(target) &&
+                Util.findDeepestCommonDominator(Arrays.asList(block, target)).equals(target)
+            ) {
                 Block immediateDominator = Util.getImmediateDominator(block);
 
                 distance += CommonUtil.stream(block.getPreds())
