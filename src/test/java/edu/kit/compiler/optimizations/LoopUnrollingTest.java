@@ -224,12 +224,7 @@ public class LoopUnrollingTest {
     }
 
     private static Optional<Integer> intIterations(int initial, int bound, int step, Relation relation) {
-        var desc = new FixedIterationLoop(
-                new TargetValue(initial, Mode.getIs()),
-                new TargetValue(bound, Mode.getIs()),
-                new TargetValue(step, Mode.getIs()),
-                relation);
-        return desc.getIterationCount().map(Long::intValue);
+        return longIterations(initial, bound, step, relation).map(Long::intValue);
     }
 
     private static Optional<Long> longIterations(int initial, int bound, int step, Relation relation) {

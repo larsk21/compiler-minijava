@@ -31,6 +31,11 @@ public class LoopUnrollingOptimization implements Optimization.Local {
     private static final int LOOP_SIZE_LIMIT = 64;
 
     /**
+     * Maximum number of nodes that may be fully unrolled.
+     */
+    private static final int FULL_UNROLL_SIZE_LIMIT = 128;
+
+    /**
      * Maximum number of unrolled iterations per optimization run.
      */
     private static final int MAX_UNROLL = 8;
@@ -145,22 +150,16 @@ public class LoopUnrollingOptimization implements Optimization.Local {
                     + loop.getBody().stream().collect(Collectors
                             .summingInt(b -> nodesPerBlock.get(b).size()));
 
-            if (loopSize > LOOP_SIZE_LIMIT) {
-                return Optional.empty();
-            }
-
-            return UnrollFactor.of(loop, iterations);
-        }
-
-        private static Optional<UnrollFactor> of(Loop loop, long iterations) {
-            if (iterations <= (long) MAX_UNROLL) {
+            if (loopSize <= FULL_UNROLL_SIZE_LIMIT && iterations <= (long) MAX_UNROLL) {
                 return Optional.of(new UnrollFactor((int) iterations, true));
-            } else {
+            } else if (loopSize <= LOOP_SIZE_LIMIT) {
                 for (int i = MAX_UNROLL; i >= 2; --i) {
                     if (iterations % i == 0) {
                         return Optional.of(new UnrollFactor(i, false));
                     }
                 }
+                return Optional.empty();
+            } else {
                 return Optional.empty();
             }
         }
