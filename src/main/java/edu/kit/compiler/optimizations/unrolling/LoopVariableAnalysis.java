@@ -2,6 +2,7 @@ package edu.kit.compiler.optimizations.unrolling;
 
 import java.util.Optional;
 
+import edu.kit.compiler.optimizations.analysis.TargetValueLatticeElement;
 import edu.kit.compiler.optimizations.unrolling.LoopAnalysis.Loop;
 import firm.Relation;
 import firm.TargetValue;
@@ -22,8 +23,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class LoopVariableAnalysis {
 
-    private static final TargetValue UNKNOWN = TargetValue.getUnknown();
-    private static final TargetValue BAD = TargetValue.getBad();
+    private static final TargetValueLatticeElement UNKNOWN = TargetValueLatticeElement.unknown();
+    private static final TargetValueLatticeElement CONFLICTING = TargetValueLatticeElement.conflicting();
 
     public static Optional<FixedIterationLoop> apply(Loop loop) {
         if (!loop.isValid()) {
@@ -44,21 +45,20 @@ public final class LoopVariableAnalysis {
         var bound = ((Const) cmp.getRight()).getTarval();
         var loopVariable = (Phi) cmp.getLeft();
 
-        var initial = TargetValue.getUnknown();
-        var step = TargetValue.getUnknown();
+        var initial = UNKNOWN;
+        var step = UNKNOWN;
+
         for (int i = 0; i < loopVariable.getPredCount(); ++i) {
             if (loop.isBackEdge(i)) {
-                var value = computeStepValue(loopVariable, i);
-                step = supremum(step, value);
+                step = step.join(computeStepValue(loopVariable, i));
             } else {
-                var value = getConstValue(loopVariable.getPred(i));
-                initial = supremum(initial, value);
+                initial = initial.join(getConstValue(loopVariable.getPred(i)));
             }
         }
 
         if (initial.isConstant() && step.isConstant()) {
-            return Optional.of(new FixedIterationLoop(initial,
-                    bound, step, cmp.getRelation()));
+            return Optional.of(new FixedIterationLoop(initial.getValue(),
+                    bound, step.getValue(), cmp.getRelation()));
         } else {
             return Optional.empty();
         }
@@ -132,7 +132,7 @@ public final class LoopVariableAnalysis {
          */
         private static Optional<Long> getIterations(TargetValue lowerInclusive,
                 TargetValue upperExclusive, TargetValue increment) {
-            
+
             var lowerLong = lowerInclusive.asLong();
             var upperLong = upperExclusive.asLong();
             var incLong = increment.asLong();
@@ -165,21 +165,23 @@ public final class LoopVariableAnalysis {
      * node is equal to the previous value of the loop variable plus a constant
      * step (beware that the step may be zero).
      */
-    private static TargetValue computeStepValue(Phi loopVariable, int i) {
+    private static TargetValueLatticeElement computeStepValue(Phi loopVariable, int i) {
         loopVariable.getGraph().incVisited();
-        var zero = loopVariable.getMode().getNull();
+        var zero = TargetValueLatticeElement.constant(loopVariable.getMode().getNull());
         return analyzeStepValue(loopVariable, zero, loopVariable.getPred(i));
     }
 
-    private static TargetValue analyzeStepValue(Phi loopVariable,
-            TargetValue step, Node node) {
-        if (step.equals(BAD)) {
-            return BAD;
+    private static TargetValueLatticeElement analyzeStepValue(Phi loopVariable,
+            TargetValueLatticeElement step, Node node) {
+        if (!step.isConstant()) {
+            return step;
         }
 
         return switch (node.getOpCode()) {
             case iro_Add -> {
-                var newStep = step.add(getConstValue(node.getPred(1)));
+                var increment = getConstValue(node.getPred(1));
+                var newStep = TargetValueLatticeElement.constant(
+                        step.getValue().add(increment.getValue()));
                 yield analyzeStepValue(loopVariable, newStep, node.getPred(0));
             }
             case iro_Phi -> {
@@ -187,46 +189,29 @@ public final class LoopVariableAnalysis {
                     yield step;
                 } else {
                     if (node.visited()) {
-                        yield BAD;
+                        yield CONFLICTING;
                     } else {
                         node.markVisited();
                         var newStep = UNKNOWN;
-                        for (int i = 0; i < node.getPredCount() && !newStep.equals(BAD); ++i) {
-                            newStep = supremum(newStep, analyzeStepValue(
+                        for (int i = 0; i < node.getPredCount() && newStep.isConstant(); ++i) {
+                            newStep = newStep.join(analyzeStepValue(
                                     loopVariable, step, node.getPred(i)));
                         }
                         yield newStep;
                     }
                 }
             }
-            default -> BAD;
+            default -> CONFLICTING;
         };
     }
 
     /**
-     * If the node is Const, returns its value. Otherwise returns BAD.
+     * If the node is Const, returns its value. Otherwise returns CONFLICTING.
      */
-    private static TargetValue getConstValue(Node node) {
+    private static TargetValueLatticeElement getConstValue(Node node) {
         return switch (node.getOpCode()) {
-            case iro_Const -> ((Const) node).getTarval();
-            default -> BAD;
+            case iro_Const -> TargetValueLatticeElement.constant(((Const) node).getTarval());
+            default -> CONFLICTING;
         };
-    }
-
-    /**
-     * Returns the supremum of the two Tarvals.
-     */
-    private static TargetValue supremum(TargetValue lhs, TargetValue rhs) {
-        if (lhs.equals(BAD) || rhs.equals(BAD)) {
-            return BAD;
-        } else if (lhs.equals(UNKNOWN)) {
-            return rhs;
-        } else if (rhs.equals(UNKNOWN)) {
-            return lhs;
-        } else if (lhs.equals(rhs)) {
-            return lhs;
-        } else {
-            return BAD;
-        }
     }
 }
