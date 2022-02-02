@@ -53,14 +53,19 @@ public class ConstantOptimization implements Optimization.Local {
         List<Node> nodes = new ArrayList<>();
         graph.walkPostorder(new NodeListFiller(nodes, true));
 
-        BackEdges.enable(graph);
+        boolean backEdgesEnabled = BackEdges.enabled(graph);
+        if (!backEdgesEnabled) {
+            BackEdges.enable(graph);
+        }
 
         boolean changes = false;
         for (Node node : nodes) {
             changes |= transform(node, nodeValues.getOrDefault(node, TargetValueLatticeElement.unknown()));
         }
 
-        BackEdges.disable(graph);
+        if (!backEdgesEnabled) {
+            BackEdges.disable(graph);
+        }
 
         binding_irgopt.remove_bads(graph.ptr);
         binding_irgopt.remove_unreachable_code(graph.ptr);

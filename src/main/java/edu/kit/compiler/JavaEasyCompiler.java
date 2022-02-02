@@ -39,6 +39,7 @@ import edu.kit.compiler.optimizations.ArithmeticIdentitiesOptimization;
 import edu.kit.compiler.optimizations.ArithmeticReplacementOptimization;
 import edu.kit.compiler.optimizations.ConstantOptimization;
 import edu.kit.compiler.optimizations.LinearBlocksOptimization;
+import edu.kit.compiler.optimizations.LoopInvariantOptimization;
 import edu.kit.compiler.optimizations.Optimizer;
 import edu.kit.compiler.optimizations.PureFunctionOptimization;
 import edu.kit.compiler.parser.Parser;
@@ -387,7 +388,8 @@ public class JavaEasyCompiler {
                     new LinearBlocksOptimization(),
                     new CommonSubexpressionElimination(),
                     new InliningOptimization(),
-                    new PureFunctionOptimization()
+                    new PureFunctionOptimization(),
+                    new LoopInvariantOptimization()
                 ), debugFlags);
                 allocator = new LinearScan();
                 asmOptimizer = new AssemblyOptimizer(List.of(

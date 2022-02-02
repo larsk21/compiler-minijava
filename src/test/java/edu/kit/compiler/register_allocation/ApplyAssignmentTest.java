@@ -258,6 +258,29 @@ public class ApplyAssignmentTest {
     }
 
     @Test
+    public void testCallAlignment() {
+        CallingConvention cconv = new CallingConvention(EnumSet.of(Register.RAX, Register.RBX, Register.RCX, Register.RDX),
+                new Register[]{Register.RBX, Register.RCX, Register.RDX}, Register.RAX);
+        RegisterAssignment[] assignment = new RegisterAssignment[] {new RegisterAssignment(Register.RAX)};
+        RegisterSize[] sizes = new RegisterSize[] {RegisterSize.DOUBLE};
+        Lifetime[] lifetimes = new Lifetime[] {new Lifetime(-1, 1)};
+        Block block = new Block(List.of(
+                Instruction.newCall(List.of(0), Optional.empty(), "print")
+        ), 0, 0);
+        ApplyAssignment ass = new ApplyAssignment(assignment, sizes, lifetimes, List.of(block), 1, cconv);
+        var result = ass.doApply();
+        var expected = new ArrayList<>();
+        expected.add(".L0:");
+        expected.add("pushq %rax # push caller-saved register");
+        expected.add("mov %rax, %rbx # assign arg registers");
+        expected.add("subq $8, %rsp # align stack to 16 byte");
+        expected.add("call print");
+        expected.add("addq $8, %rsp # remove args from stack");
+        expected.add("popq %rax # restore caller-saved register");
+        assertEquals(expected, result.getInstructions());
+    }
+
+    @Test
     public void testRet() {
         RegisterAssignment[] assignment = new RegisterAssignment[]{
                 new RegisterAssignment(Register.RAX),

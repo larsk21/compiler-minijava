@@ -47,7 +47,9 @@ public class ConstantAnalysis {
      */
     public void analyze() {
         boolean backEdgesEnabled = BackEdges.enabled(graph);
-        BackEdges.enable(graph);
+        if (!backEdgesEnabled) {
+            BackEdges.enable(graph);
+        }
 
         graph.walkTopological(new NodeWorklistFiller(worklist));
 
