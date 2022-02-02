@@ -111,6 +111,13 @@ public final class Util {
     }
 
     /**
+     * Get the immediate dominator of the given block.
+     */
+    public static Block getImmediateDominator(Block block) {
+        return (Block) Node.createWrapper(binding_irdom.get_Block_idom(block.ptr));
+    }
+
+    /**
      * Firm node visitor that inserts all visited nodes in the given Worklist
      * using the method enqueueInOrder.
      */

@@ -3,12 +3,14 @@ package edu.kit.compiler.optimizations;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import edu.kit.compiler.optimizations.loop_invariant.MoveInvariantStrategies;
 import edu.kit.compiler.transform.JFirmSingleton;
 
 import firm.Construction;
@@ -109,6 +111,7 @@ public class LoopInvariantOptimizationCallTest {
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
+        optimization.setMoveInvariantStrategy(Optional.of(new MoveInvariantStrategies.MoveAlways()));
         optimization.optimize(call3.getGraph(), null);
 
         // make assertions

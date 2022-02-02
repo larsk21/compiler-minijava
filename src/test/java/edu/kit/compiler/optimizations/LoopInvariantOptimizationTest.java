@@ -2,11 +2,13 @@ package edu.kit.compiler.optimizations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import edu.kit.compiler.optimizations.loop_invariant.MoveInvariantStrategies;
 import edu.kit.compiler.transform.JFirmSingleton;
 
 import firm.Construction;
@@ -98,6 +100,7 @@ public class LoopInvariantOptimizationTest {
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
+        optimization.setMoveInvariantStrategy(Optional.of(new MoveInvariantStrategies.MoveAlways()));
         optimization.optimize(graph, null);
 
         // make assertions
@@ -161,6 +164,7 @@ public class LoopInvariantOptimizationTest {
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
+        optimization.setMoveInvariantStrategy(Optional.of(new MoveInvariantStrategies.MoveAlways()));
         optimization.optimize(graph, null);
 
         // make assertions
@@ -224,6 +228,7 @@ public class LoopInvariantOptimizationTest {
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
+        optimization.setMoveInvariantStrategy(Optional.of(new MoveInvariantStrategies.MoveAlways()));
         optimization.optimize(graph, null);
 
         // make assertions
@@ -315,6 +320,7 @@ public class LoopInvariantOptimizationTest {
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
+        optimization.setMoveInvariantStrategy(Optional.of(new MoveInvariantStrategies.MoveAlways()));
         optimization.optimize(graph, null);
 
         // make assertions
@@ -406,6 +412,7 @@ public class LoopInvariantOptimizationTest {
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
+        optimization.setMoveInvariantStrategy(Optional.of(new MoveInvariantStrategies.MoveAlways()));
         optimization.optimize(graph, null);
 
         // make assertions
@@ -496,6 +503,7 @@ public class LoopInvariantOptimizationTest {
 
         // run optimization
         LoopInvariantOptimization optimization = new LoopInvariantOptimization();
+        optimization.setMoveInvariantStrategy(Optional.of(new MoveInvariantStrategies.MoveAlways()));
         optimization.optimize(graph, null);
 
         // make assertions
