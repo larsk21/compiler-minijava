@@ -387,9 +387,9 @@ public class JavaEasyCompiler {
                     new ArithmeticReplacementOptimization(),
                     new LinearBlocksOptimization(),
                     new InliningOptimization(),
-                    new LoopUnrollingOptimization(),
                     new PureFunctionOptimization(),
-                    new LoopInvariantOptimization()
+                    new LoopInvariantOptimization(),
+                    new LoopUnrollingOptimization()
                 ), debugFlags);
                 allocator = new LinearScan();
                 asmOptimizer = new AssemblyOptimizer(List.of(
