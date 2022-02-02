@@ -136,7 +136,7 @@ public class InliningOptimization implements Optimization.Local {
             logWeight += 3;
         }
         boolean doInline = logWeight >= 3 || (
-                (Math.pow(2, logWeight) * InliningStateTracker.UNPROBLEMATIC_SIZE_INCREASE / 2) >= entry.getNumNodes()
+                (Math.pow(2, logWeight) * InliningStateTracker.UNPROBLEMATIC_SIZE_INCREASE) >= entry.getNumNodes()
                         && logWeight >= 0
         );
         if (doInline) {

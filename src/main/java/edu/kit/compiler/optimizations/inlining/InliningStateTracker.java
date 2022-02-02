@@ -12,13 +12,13 @@ public class InliningStateTracker {
     /**
      * Heuristic value for constant overhead of calls (number of firm nodes).
      */
-    public static final int CALL_OVERHEAD = 20;
+    public static final int CALL_OVERHEAD = 25;
 
     /**
      * Some heuristic values for per-function size increase limits (number of firm nodes).
      */
-    public static final int ACCEPTABLE_SIZE_INCREASE = 300;
-    public static final int UNPROBLEMATIC_SIZE_INCREASE = 80;
+    public static final int ACCEPTABLE_SIZE_INCREASE = 500;
+    public static final int UNPROBLEMATIC_SIZE_INCREASE = 150;
     public static final double ACCEPTABLE_INCREASE_FACTOR = 2;
     public static final int LARGE_FN = 500;
     public static final int UPPER_LIMIT_FN_SIZE = 6000;
