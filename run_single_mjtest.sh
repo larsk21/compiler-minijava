@@ -35,7 +35,7 @@ do
 done
 
 # call mjtest with the specified mode
-./mjtest/mjt.py --log_level info compile
+./mjtest/mjt.py --log_level info compile-firm
 return_code=$?
 
 # cleanup

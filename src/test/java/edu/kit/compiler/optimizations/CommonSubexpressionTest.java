@@ -72,6 +72,7 @@ public class CommonSubexpressionTest {
         String file = "edu/kit/compiler/optimizations/Subexpressions.java";
         Graph g = build(file);
 
+        Dump.dumpGraph(g, "before-opt");
         int nodeSizeBefore = getNodeSize(g);
 
         CommonSubexpressionElimination optimization = new CommonSubexpressionElimination();
@@ -79,6 +80,8 @@ public class CommonSubexpressionTest {
 
 
         int nodeSizeAfter = getNodeSize(g);
+
+        Dump.dumpGraph(g, "after-opt");
 
         assertContainsOpCode(g, binding_irnode.ir_opcode.iro_Minus);
         assertContainsOpCode(g, binding_irnode.ir_opcode.iro_Add);

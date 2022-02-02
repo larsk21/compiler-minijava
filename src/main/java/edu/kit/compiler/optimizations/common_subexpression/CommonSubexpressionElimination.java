@@ -1,8 +1,7 @@
 package edu.kit.compiler.optimizations.common_subexpression;
 
 import com.sun.jna.Pointer;
-import edu.kit.compiler.io.DefaultWorklist;
-import edu.kit.compiler.io.Worklist;
+import edu.kit.compiler.optimizations.NodeCollector;
 import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.optimizations.OptimizationState;
 import edu.kit.compiler.optimizations.WorklistFiller;
@@ -16,17 +15,20 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 
+import static firm.bindings.binding_irgraph.ir_graph_properties_t.IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE;
+
 @RequiredArgsConstructor
 @Data
 public class CommonSubexpressionElimination implements Optimization.Local {
 
     // map that holds nodes that are to be exchanged with equivalent other nodes
     private final HashMap<Node, Node> nodeValues = new HashMap<>();
-    private Worklist<Node> worklist = new DefaultWorklist<>();
     private final Map<Pointer, Map<Pointer, Integer>> dominateMap = new HashMap<>();
 
     @Override
     public boolean optimize(Graph g, OptimizationState state) {
+        g.assureProperties(IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE);
+
         // compare new change map with old one
         boolean backEdgesEnabled = BackEdges.enabled(g);
         if (!backEdgesEnabled) {
@@ -37,33 +39,59 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         boolean changes;
         int maxChanges = 0;
 
+        Dump.dumpGraph(g, "before-cse");
         do {
             changes = false;
             nodeValues.clear();
             dominateMap.clear();
-            worklist = new DefaultWorklist<>();
 
             CSEVisitor visitor = new CSEVisitor();
 
-
-            g.walkTopological(new WorklistFiller(worklist));
-            while (!worklist.isEmpty()) {
-                Node n = worklist.dequeue();
+            NodeCollector nodeCollector = new NodeCollector();
+            g.walkTopological(nodeCollector);
+            while (!nodeCollector.getNodes().isEmpty()) {
+                Node n = nodeCollector.getNodes().remove(0);
                 n.accept(visitor);
             }
 
+            HashMap<Node, Node> replacementMap = new HashMap<>();
             for (var replacement : nodeValues.entrySet()) {
                 // for each replacement merge nodes together
                 Node orig = replacement.getKey();
                 Node n = replacement.getValue();
 
-                changes |= transform(g, orig, n, orig.getOpCode());
+                int maxIndirections = 150;
+                while(orig.getOpCode() == binding_irnode.ir_opcode.iro_Deleted && maxIndirections > 0) {
+                    orig = replacementMap.getOrDefault(orig, orig);
+                    maxIndirections--;
+                }
+
+                while(n.getOpCode() == binding_irnode.ir_opcode.iro_Deleted && maxIndirections > 0) {
+                    n = replacementMap.getOrDefault(n, n);
+                    maxIndirections--;
+                }
+
+                if(maxIndirections == 0) {
+                    continue;
+                }
+
+                if(orig.getOpCode() != n.getOpCode()) {
+                    throw new RuntimeException("wrrong");
+                }
+                changes |= transform(g, orig, n, orig.getOpCode(), replacementMap);
             }
             if (changes) {
                 hadChange = true;
+                maxChanges++;
             }
-            maxChanges++;
+
+            binding_irgopt.remove_bads(g.ptr);
+            binding_irgopt.remove_unreachable_code(g.ptr);
+            binding_irgopt.remove_bads(g.ptr);
+            g.assureProperties(IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE);
         } while (changes && maxChanges < 10);
+
+        Dump.dumpGraph(g, "after-cse");
 
         if (!backEdgesEnabled) {
             BackEdges.disable(g);
@@ -79,58 +107,75 @@ public class CommonSubexpressionElimination implements Optimization.Local {
      * Transform the given node with the given associated lattice element if
      * that element is constant.
      */
-    private boolean transform(Graph g, Node orig, Node replacement, binding_irnode.ir_opcode opcode) {
+    private boolean transform(Graph g, Node orig, Node replacement, binding_irnode.ir_opcode opcode, HashMap<Node, Node> replacementMap) {
         Node newNode = switch (opcode) {
             case iro_Add -> {
-                Add add = (Add) orig;
-                yield g.newAdd(orig.getBlock(), add.getLeft(), add.getRight());
+                Add add = (Add) replacement;
+                yield g.newAdd(replacement.getBlock(), add.getLeft(), add.getRight());
             }
             case iro_And -> {
-                And and = (And) orig;
-                yield g.newAnd(orig.getBlock(), and.getLeft(), and.getRight());
+                And and = (And) replacement;
+                yield g.newAnd(replacement.getBlock(), and.getLeft(), and.getRight());
             }
+
             case iro_Or -> {
-                Or or = (Or) orig;
-                yield g.newOr(orig.getBlock(), or.getLeft(), or.getRight());
+                Or or = (Or) replacement;
+                yield g.newOr(replacement.getBlock(), or.getLeft(), or.getRight());
             }
             case iro_Sub -> {
-                Sub sub = (Sub) orig;
-                yield g.newSub(orig.getBlock(), sub.getLeft(), sub.getRight());
+                Sub sub = (Sub) replacement;
+                yield g.newSub(replacement.getBlock(), sub.getLeft(), sub.getRight());
             }
             case iro_Eor -> {
-                Eor eor = (Eor) orig;
-                yield g.newEor(orig.getBlock(), eor.getLeft(), eor.getRight());
+                Eor eor = (Eor) replacement;
+                yield g.newEor(replacement.getBlock(), eor.getLeft(), eor.getRight());
             }
             case iro_Mul -> {
-                Mul mul = (Mul) orig;
-                yield g.newMul(orig.getBlock(), mul.getLeft(), mul.getRight());
+                Mul mul = (Mul) replacement;
+                yield g.newMul(replacement.getBlock(), mul.getLeft(), mul.getRight());
             }
             case iro_Minus -> {
-                Minus minus = (Minus) orig;
-                yield g.newMinus(orig.getBlock(), minus.getOp());
+                Minus minus = (Minus) replacement;
+                yield g.newMinus(replacement.getBlock(), minus.getOp());
             }
             case iro_Const -> {
-                Const cons = (Const) orig;
-                yield g.newConst(cons.getTarval().asInt(), cons.getMode());
+                Const cons = (Const) replacement;
+                yield g.newConst(cons.getTarval());
             }
             case iro_Sel -> {
-                Sel sel = (Sel) orig;
-                yield g.newSel(orig.getBlock(), sel.getPtr(), sel.getIndex(), sel.getType());
+                Sel sel = (Sel) replacement;
+                yield g.newSel(replacement.getBlock(), sel.getPtr(), sel.getIndex(), sel.getType());
             }
             case iro_Not -> {
-                Not not = (Not) orig;
-                yield g.newNot(orig.getBlock(), not.getOp());
+                Not not = (Not) replacement;
+                yield g.newNot(replacement.getBlock(), not.getOp());
             }
             case iro_Conv -> {
-                Conv conv = (Conv) orig;
-                yield g.newConv(orig.getBlock(), conv.getOp(), conv.getMode());
+                Conv conv = (Conv) replacement;
+                yield g.newConv(replacement.getBlock(), conv.getOp(), conv.getMode());
+            }
+            case iro_Proj -> {
+                Proj proj = (Proj) replacement;
+                yield g.newProj(proj.getPred(), proj.getMode(), proj.getNum());
+            }
+            case iro_Shr -> {
+                Shr shr = (Shr) replacement;
+                yield g.newShr(replacement.getBlock(), shr.getLeft(), shr.getRight());
+            }
+            case iro_Shl -> {
+                Shl shl = (Shl) replacement;
+                yield g.newShl(replacement.getBlock(), shl.getLeft(), shl.getRight());
+            }
+            case iro_Shrs -> {
+                Shrs shrs = (Shrs) replacement;
+                yield g.newShrs(replacement.getBlock(), shrs.getLeft(), shrs.getRight());
             }
             default -> null;
         };
 
 
-        if (newNode != null) {
-            Pointer newPointer = newNode.getBlock().ptr;
+        if (replacement != null) {
+            Pointer newPointer = replacement.getBlock().ptr;
             Pointer origPointer = orig.getBlock().ptr;
             Pointer replacementPointer = replacement.getBlock().ptr;
 
@@ -142,26 +187,17 @@ public class CommonSubexpressionElimination implements Optimization.Local {
                 return false;
             }
             // new node has to dominate all uses
-            boolean usesDominated = dominatesUses(newNode, orig);
-            boolean usesDominatedRep = dominatesUses(newNode, replacement);
+            boolean usesDominated = dominatesUses(replacement, orig);
+            boolean usesDominatedRep = dominatesUses(replacement, replacement);
 
             if (usesDominated && usesDominatedRep) {
-                //      System.out.println("replaced node " + orig + " with " + newNode + " in graph " + g);
-                Graph.exchange(orig, newNode);
+                replacementMap.put(replacement, newNode);
+                replacementMap.put(orig, newNode);
                 Graph.exchange(replacement, newNode);
+                Graph.exchange(orig, newNode);
                 return true;
             } else {
                 return false;
-            }
-        }
-        return false;
-    }
-
-    private boolean hasCallAsChild(Node n) {
-        for (BackEdges.Edge edge : BackEdges.getOuts(n)) {
-            Node node = edge.node;
-            if (node.getOpCode() == binding_irnode.ir_opcode.iro_Call) {
-                return true;
             }
         }
         return false;
@@ -200,6 +236,37 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         private final Map<TargetValue, Node> constCache = new HashMap<>();
         private final Map<Entity, Node> addressCache = new HashMap<>();
         private final Map<NodePreds, Node> nodeCache = new HashMap<>();
+        private final Map<ProjPreds, Node> projCache = new HashMap<>();
+
+        private final Map<CmpPreds, Node> cmpCache = new HashMap<>();
+
+        @RequiredArgsConstructor
+        private class CmpPreds {
+            private final Node predLeft;
+            private final Node predRight;
+            private final Relation relation;
+            private final Mode mode;
+        }
+
+        @RequiredArgsConstructor
+        private class ProjPreds {
+            private final Node pred;
+            private final int num;
+            private final Mode mode;
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                ProjPreds projPreds = (ProjPreds) o;
+                return num == projPreds.num && pred.equals(projPreds.pred) && mode.equals(projPreds.mode);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(pred, num, mode);
+            }
+        }
 
         @RequiredArgsConstructor
         private class NodePreds {
@@ -227,6 +294,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         public void defaultVisit(Node node) {
             // change nothing
         }
+        
 
         private void visitPreds(Node node, Node[] preds, binding_irnode.ir_opcode opcode) {
             NodePreds np = new NodePreds(preds, opcode, node.getMode());
@@ -264,7 +332,18 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
         @Override
         public void visit(Cmp node) {
-            // do nothing
+            CmpPreds cmpPreds = new CmpPreds(node.getLeft(), node.getRight(), node.getRelation(), node.getMode());
+            if (cmpCache.containsKey(cmpPreds)) {
+                Node n = cmpCache.get(cmpPreds);
+                if (dominates(n.getBlock().ptr, node.getBlock().ptr)) {
+                    nodeValues.put(node, n);
+                } else {
+                    nodeValues.put(n, node);
+                    cmpCache.put(cmpPreds, node);
+                }
+            } else {
+                cmpCache.put(cmpPreds, node);
+            }
         }
 
         @Override
@@ -274,7 +353,18 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
         @Override
         public void visit(Proj proj) {
-            // do nothing
+            ProjPreds projPreds = new ProjPreds(proj.getPred(), proj.getNum(), proj.getMode());
+            if (projCache.containsKey(projPreds)) {
+                Node n = projCache.get(projPreds);
+                if (dominates(n.getBlock().ptr, proj.getBlock().ptr)) {
+                    nodeValues.put(proj, n);
+                } else {
+                    nodeValues.put(n, proj);
+                    projCache.put(projPreds, proj);
+                }
+            } else {
+                projCache.put(projPreds, proj);
+            }
         }
 
         @Override
@@ -311,7 +401,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
         @Override
         public void visit(Div node) {
-            visitPreds(node, iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Div);
+         //   visitPreds(node, iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Div);
         }
 
         @Override
@@ -326,7 +416,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
         @Override
         public void visit(Mod node) {
-            visitPreds(node, iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Mod);
+         //   visitPreds(node, iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Mod);
         }
 
         @Override
