@@ -45,13 +45,13 @@ public final class NodeCosts {
             case iro_Mod:
                 return 25;
             case iro_Alloc:
-                return 50;
+                return 100; // or a lot higher
             case iro_Load:
-                return 50;
+                return 12; // L2
             case iro_Store:
-                return 50;
+                return 12; // L2
             case iro_Call:
-                return 2;
+                return 2; // instruction only
             case iro_Return:
                 return 2;
             default:
