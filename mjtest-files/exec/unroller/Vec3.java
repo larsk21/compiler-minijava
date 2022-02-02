@@ -31,6 +31,23 @@ class Main {
                 .dot(new Vec3().initRandom(rng))
         );
     }
+
+    public void bla(RNG rng) {
+        new Vec3().initZero()
+            .add(new Vec3().initOne())
+            .add(new Vec3().initOne())
+            .div(new Vec3().initOne())
+            .mul(new Vec3().initOne())
+            .sub(new Vec3().initOne())
+            .sub(new Vec3().initOne())
+            .add(new Vec3().initOne())
+            .add(new Vec3().initOne())
+            .sub(new Vec3().initOne())
+            .add(new Vec3().initOne())
+            .sub(new Vec3().initOne())
+            .add(new Vec3().initOne())
+            .print();
+    }
 }
 
 

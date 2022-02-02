@@ -76,15 +76,14 @@ public class LoopUnrollingOptimization implements Optimization.Local {
             loop.updateBody();
             return LoopVariableAnalysis.apply(loop)
                     .flatMap(FixedIterationLoop::getIterationCount)
-                    .filter(n -> 0 <= n && n <= Integer.MAX_VALUE)
-                    .map(n -> tryUnroll(loop, n.intValue()))
+                    .map(n -> tryUnroll(loop, n))
                     .orElse(Result.UNCHANGED);
         } else {
             return result;
         }
     }
 
-    private static final Result tryUnroll(Loop loop, int iterations) {
+    private static final Result tryUnroll(Loop loop, long iterations) {
         var result = Result.UNCHANGED;
         Optional<UnrollFactor> maybeFactor;
 
@@ -139,7 +138,7 @@ public class LoopUnrollingOptimization implements Optimization.Local {
         @Getter
         private final boolean isFull;
 
-        public static Optional<UnrollFactor> of(Loop loop, int iterations,
+        public static Optional<UnrollFactor> of(Loop loop, long iterations,
                 Map<Block, List<Node>> nodesPerBlock) {
 
             var loopSize = nodesPerBlock.get(loop.getHeader()).size()
@@ -153,9 +152,9 @@ public class LoopUnrollingOptimization implements Optimization.Local {
             return UnrollFactor.of(loop, iterations);
         }
 
-        private static Optional<UnrollFactor> of(Loop loop, int iterations) {
-            if (iterations <= MAX_UNROLL) {
-                return Optional.of(new UnrollFactor(iterations, true));
+        private static Optional<UnrollFactor> of(Loop loop, long iterations) {
+            if (iterations <= (long) MAX_UNROLL) {
+                return Optional.of(new UnrollFactor((int) iterations, true));
             } else {
                 for (int i = MAX_UNROLL; i >= 2; --i) {
                     if (iterations % i == 0) {

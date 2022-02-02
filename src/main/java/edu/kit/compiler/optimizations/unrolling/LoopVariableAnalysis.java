@@ -152,6 +152,7 @@ public final class LoopVariableAnalysis {
             var offset = step.asLong() * steps;
             var result = new TargetValue(initial.asLong() + offset, initial.getMode());
 
+            assert steps >= 0;
             assert relation.contains(initial.compare(bound)) || steps == 0;
             assert !relation.contains(result.compare(bound));
             assert steps == 0 || relation.contains(result.sub(step).compare(bound));
