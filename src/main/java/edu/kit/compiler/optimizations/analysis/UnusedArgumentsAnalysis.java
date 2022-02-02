@@ -94,24 +94,15 @@ public class UnusedArgumentsAnalysis {
     }
 
     private ArgUsageValue[] analyzeArgs(Entity function) {
-        Proj argProj = null;
-        Start start = function.getGraph().getStart();
-        for (var edge: BackEdges.getOuts(start)) {
-            if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj
-                    && edge.node.getMode().equals(Mode.getT())) {
-                assert argProj == null: "Proj not unique!";
-                argProj = (Proj)  edge.node;
-            }
-        }
-
+        var argProj = Util.getArgProj(function);
         ArgUsageValue[] result = new ArgUsageValue[Util.getNArgs(function)];
         Arrays.fill(result, new ArgUsageValue(false));
-        if (argProj != null) {
-            for (var edge : BackEdges.getOuts(argProj)) {
+        if (argProj.isPresent()) {
+            for (var edge : BackEdges.getOuts(argProj.get())) {
                 if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj) {
                     Proj currentArg = (Proj) edge.node;
                     int index = currentArg.getNum();
-                    var newValue = analyzeNodeUsage(currentArg, argProj);
+                    var newValue = analyzeNodeUsage(currentArg, argProj.get());
                     result[index] = result[index].supremum(newValue);
                 }
             }
@@ -173,6 +164,10 @@ public class UnusedArgumentsAnalysis {
             }
         }
 
+        public int nArgs() {
+            return indexMapping.length;
+        }
+
         public int getMappedIndex(int i) {
             return indexMapping[i];
         }
@@ -182,12 +177,17 @@ public class UnusedArgumentsAnalysis {
         }
 
         public boolean anyUnused() {
+            return numUnused() > 0;
+        }
+
+        public int numUnused() {
+            int unused = 0;
             for (boolean used: used) {
                 if (!used) {
-                    return true;
+                    unused++;
                 }
             }
-            return false;
+            return unused;
         }
     }
 }
