@@ -20,12 +20,12 @@ import java.util.*;
 public class UnusedArgumentsAnalysis {
     private final Map<Entity, ArgUsageValue[]> usageMap = new HashMap<>();
 
-    public static void run(CallGraph callGraph) {
+    public static  List<ArgMapping> run(CallGraph callGraph) {
         var analysis = new UnusedArgumentsAnalysis();
-        analysis.analyse(callGraph);
+        return analysis.analyse(callGraph);
     }
 
-    private void analyse(CallGraph callGraph) {
+    private List<ArgMapping> analyse(CallGraph callGraph) {
         usageMap.clear();
         var worklist = new StackWorklist<Entity>();
         for (Entity func: callGraph.functionSet()) {
@@ -45,10 +45,14 @@ public class UnusedArgumentsAnalysis {
             }
         }
 
+        List<ArgMapping> result = new ArrayList<>();
         for (var entry: usageMap.entrySet()) {
-            System.out.println(entry.getKey().getLdName() + ":");
-            System.out.println(Arrays.toString(entry.getValue()));
+            var mapping = new ArgMapping(entry.getKey(), entry.getValue());
+            if (mapping.anyUnused()) {
+                result.add(mapping);
+            }
         }
+        return result;
     }
 
     private boolean updateValues(ArgUsageValue[] values) {
@@ -102,12 +106,14 @@ public class UnusedArgumentsAnalysis {
 
         ArgUsageValue[] result = new ArgUsageValue[Util.getNArgs(function)];
         Arrays.fill(result, new ArgUsageValue(false));
-        for (var edge: BackEdges.getOuts(argProj)) {
-            if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj) {
-                Proj currentArg = (Proj) edge.node;
-                int index = currentArg.getNum();
-                var newValue = analyzeNodeUsage(currentArg, argProj);
-                result[index] = result[index].supremum(newValue);
+        if (argProj != null) {
+            for (var edge : BackEdges.getOuts(argProj)) {
+                if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj) {
+                    Proj currentArg = (Proj) edge.node;
+                    int index = currentArg.getNum();
+                    var newValue = analyzeNodeUsage(currentArg, argProj);
+                    result[index] = result[index].supremum(newValue);
+                }
             }
         }
         return result;
@@ -142,6 +148,47 @@ public class UnusedArgumentsAnalysis {
             }
         }
         return result;
+    }
+
+    @ToString
+    public static class ArgMapping {
+        @Getter
+        private final Entity func;
+        private final int[] indexMapping;
+        private final boolean[] used;
+
+        public ArgMapping(Entity func, ArgUsageValue[] usage) {
+            this.func = func;
+            this.indexMapping = new int[usage.length];
+            this.used = new boolean[usage.length];
+            int mapped = 0;
+            for (int i = 0; i < usage.length; i++) {
+                indexMapping[i] = mapped;
+                if (usage[i].isDefinitivelyUsed()) {
+                    // after the fixpoint iteration, unknown is also unused
+                    // (due to cyclic dependencies)
+                    used[i] = true;
+                    mapped++;
+                }
+            }
+        }
+
+        public int getMappedIndex(int i) {
+            return indexMapping[i];
+        }
+
+        public boolean isUsed(int i) {
+            return used[i];
+        }
+
+        public boolean anyUnused() {
+            for (boolean used: used) {
+                if (!used) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
 
