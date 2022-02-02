@@ -20,6 +20,7 @@ import edu.kit.compiler.codegen.PhiResolver;
 import edu.kit.compiler.codegen.ReversePostfixOrder;
 import edu.kit.compiler.intermediate_lang.Block;
 import edu.kit.compiler.optimizations.inlining.InliningOptimization;
+import edu.kit.compiler.optimizations.unrolling.LoopUnrollingOptimization;
 import edu.kit.compiler.register_allocation.DumbAllocator;
 import edu.kit.compiler.register_allocation.LinearScan;
 import edu.kit.compiler.register_allocation.RegisterAllocator;
@@ -387,7 +388,8 @@ public class JavaEasyCompiler {
                     new LinearBlocksOptimization(),
                     new InliningOptimization(),
                     new PureFunctionOptimization(),
-                    new LoopInvariantOptimization()
+                    new LoopInvariantOptimization(),
+                    new LoopUnrollingOptimization()
                 ), debugFlags);
                 allocator = new LinearScan();
                 asmOptimizer = new AssemblyOptimizer(List.of(

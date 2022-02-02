@@ -5,12 +5,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.ObjIntConsumer;
 
 import com.sun.jna.Pointer;
 
 import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.io.Worklist;
-
 import firm.BlockWalker;
 import firm.Entity;
 import firm.Graph;
@@ -19,13 +19,12 @@ import firm.bindings.binding_irdom;
 import firm.bindings.binding_irnode;
 import firm.bindings.binding_irnode.ir_opcode;
 import firm.nodes.Address;
-import firm.nodes.Call;
 import firm.nodes.Block;
+import firm.nodes.Call;
 import firm.nodes.Node;
 import firm.nodes.NodeVisitor;
 import firm.nodes.Proj;
 import firm.nodes.Tuple;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -243,4 +242,15 @@ public final class Util {
 
     }
 
+    /**
+     * Call `func` for each non-Bad direct control flow predecessor of `block`.
+     */
+    public static void forEachPredBlock(Block block, ObjIntConsumer<Block> func) {
+        for (int i = 0; i < block.getPredCount(); ++i) {
+            var pred = block.getPred(i);
+            if (pred.getOpCode() != ir_opcode.iro_Bad) {
+                func.accept((Block) pred.getBlock(), i);
+            }
+        } 
+    }
 }
