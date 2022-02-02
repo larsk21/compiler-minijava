@@ -4,7 +4,8 @@ echo "Reading path, copying files and running mjtest"
 
 export PATH=$PATH
 export JAVA_HOME=$JAVA_HOME
-export MJ_TIMEOUT=15
+export MJ_TIMEOUT=30
+export MJ_BIG_TIMEOUT=60
 export MJ_RUN='./run'
 
 # copy test files
