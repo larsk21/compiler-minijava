@@ -180,9 +180,13 @@ public final class LoopVariableAnalysis {
         return switch (node.getOpCode()) {
             case iro_Add -> {
                 var increment = getConstValue(node.getPred(1));
-                var newStep = TargetValueLatticeElement.constant(
-                        step.getValue().add(increment.getValue()));
-                yield analyzeStepValue(loopVariable, newStep, node.getPred(0));
+                if (increment.isConstant()) {
+                    var newStep = TargetValueLatticeElement.constant(
+                            step.getValue().add(increment.getValue()));
+                    yield analyzeStepValue(loopVariable, newStep, node.getPred(0));
+                } else {
+                    yield CONFLICTING;
+                }
             }
             case iro_Phi -> {
                 if (node.equals(loopVariable)) {
