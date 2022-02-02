@@ -11,10 +11,7 @@ import com.sun.jna.Pointer;
 
 import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.io.Worklist;
-import firm.BlockWalker;
-import firm.Entity;
-import firm.Graph;
-import firm.Mode;
+import firm.*;
 import firm.bindings.binding_irdom;
 import firm.bindings.binding_irnode;
 import firm.bindings.binding_irnode.ir_opcode;
@@ -252,5 +249,13 @@ public final class Util {
                 func.accept((Block) pred.getBlock(), i);
             }
         } 
+    }
+
+    /**
+     * Returns the number of arguments of the given function.
+     */
+    public static int getNArgs(Entity func) {
+        var type = (MethodType) func.getType();
+        return type.getNParams();
     }
 }
