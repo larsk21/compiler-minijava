@@ -30,7 +30,7 @@ public class LoadStoreOptimization implements Optimization.Local {
             BackEdges.enable(g);
         }
 
-        LoadStoreVisitor visitor = new LoadStoreVisitor();
+        LoadStoreVisitor visitor = new LoadStoreVisitor(g.getStart());
 
         List<Node> nodes = new ArrayList<>();
         Util.NodeListFiller filler = new Util.NodeListFiller(nodes);
@@ -41,7 +41,6 @@ public class LoadStoreOptimization implements Optimization.Local {
         }
 
         // calculate dominances for graph
-        Map<MemNode, Boolean> hadDom = new HashMap<>();
         visitor.setPreds();
         DominanceVisitor domVisitor = new DominanceVisitor(visitor.getMemNodeMap(), state);
 
@@ -70,78 +69,6 @@ public class LoadStoreOptimization implements Optimization.Local {
 
         hadChanges |= rlVisitor.isChanges();
 
-        // rewire everything
-//        for (var entry : visitor.getMemNodeMap().values()) {
-//            if (entry.getDominatingMem().size() == 1) {
-//                Node n = entry.getN();
-//                switch (n.getOpCode()) {
-//                    case iro_Load -> {
-//                        MemNode dominatingNode = entry.getDominatingMem().stream().findFirst().get();
-//                        Node newMem = dominatingNode.getMem();
-//                        if (newMem.getOpCode() == iro_Phi) {
-//                            // phis produce errors so do not exchange them
-//                            continue;
-//                        }
-//
-//                        Load l = (Load) n;
-//
-//                        if (l.getMem() == newMem) {
-//                            continue;
-//                        } else if (!dominates(newMem.getBlock().ptr, l.getMem().getBlock().ptr)) {
-//                            continue;
-//                        }
-//
-//                        l.setMem(newMem);
-//
-//                        Node rhsMem = g.newProj(l, Mode.getM(), 0);
-//                        // search in this block for nodes
-//                        for (var dominatedMem : dominatingNode.getDominatedChildren()) {
-//                            firm.bindings.binding_irnode.ir_opcode opcode = dominatedMem.getN().getOpCode();
-//                            if (opcode == iro_Call) {
-//                                Call c = (Call) dominatedMem.getN();
-//                                Attributes a = state.getAttributeAnalysis().getAttributes(Util.getCallee(c));
-//                                if (a.isPure()) {
-//                                    continue;
-//                                }
-//                            }
-//                            if (opcode == iro_Store || opcode == iro_Call) {
-//                                Node memPred = dominatedMem.getN().getPred(0);
-//                                if (memPred.getOpCode() == iro_Sync) {
-//                                    Sync s = (Sync) memPred;
-//                                    if (!dominates(rhsMem.getBlock().ptr, s.getBlock().ptr)) {
-//                                        continue;
-//                                    }
-//
-//                                    List<Node> newL = new ArrayList<>();
-//                                    for (var nn : s.getPreds()) {
-//                                        newL.add(nn);
-//                                    }
-//
-//                                    newL.add(rhsMem);
-//                                    Node newSync = g.newSync(s.getBlock(), newL.toArray(new Node[0]));
-//                                    Graph.exchange(s, newSync);
-//                                    deduplicateEquivalentOutMemNodes(n);
-//                                } else {
-//                                    Node[] nodes = new Node[]{rhsMem, memPred};
-//                                    Pointer newBlockPtr = l.getBlock().ptr;
-//                                    if (!dominates(rhsMem.getBlock().ptr, newBlockPtr) || !dominates(memPred.getBlock().ptr, newBlockPtr)) {
-//                                        continue;
-//                                    }
-//                                    if (!dominates(l.getBlock().ptr, dominatedMem.getN().getBlock().ptr)) {
-//                                        continue;
-//                                    }
-//                                    Node s = g.newSync(l.getBlock(), nodes);
-//                                    dominatedMem.getN().setPred(0, s);
-//                                    deduplicateEquivalentOutMemNodes(n);
-//                                }
-//
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-
         if (!backEdgesEnabled) {
             BackEdges.disable(g);
         }
@@ -159,40 +86,10 @@ public class LoadStoreOptimization implements Optimization.Local {
         return dominates != 0;
     }
 
-    private void deduplicateEquivalentOutMemNodes(Node node) {
-        // map from target to mem
-        Map<Node, Node> singularOutMems = new HashMap<>();
-        // map from node to replacement node
-        Map<Node, Node> markedForDeletion = new HashMap<>();
-
-        for (var edge : BackEdges.getOuts(node)) {
-            Node n = edge.node;
-            if (n.getOpCode() == iro_Proj && Objects.equals(n.getMode(), Mode.getM()) && n.getPredCount() == 1) {
-                int countOuts = 0;
-                for (var e : BackEdges.getOuts(n)) {
-                    countOuts++;
-                }
-                if (countOuts != 1) {
-                    continue;
-                }
-                Node target = BackEdges.getOuts(n).iterator().next().node;
-                if (singularOutMems.containsKey(target)) {
-                    markedForDeletion.put(n, singularOutMems.get(target));
-                } else {
-                    singularOutMems.put(target, n);
-                }
-            }
-        }
-
-        for (var del : markedForDeletion.entrySet()) {
-            Graph.exchange(del.getKey(), del.getValue());
-        }
-    }
-
     @Getter
+    @RequiredArgsConstructor
     private static final class LoadStoreVisitor extends NodeVisitor.Default {
-
-        private Node rootNode = null;
+        private final Start start;
         private LoadStoreOptimization.MemNode rootMemNode = null;
         private final Map<Node, LoadStoreOptimization.MemNode> memNodeMap = new HashMap<>();
 
@@ -211,54 +108,34 @@ public class LoadStoreOptimization implements Optimization.Local {
             return children;
         }
 
-        private Node getChildMemNode(Node n) {
+        private Optional<Node> getChildMemNode(Node n) {
             List<Node> children = getNodeChildren(n);
-            Optional<Node> first = children.stream().filter(f -> Objects.equals(f.getMode(), Mode.getM())).findFirst();
-            Optional<Node> returnNode = children.stream().filter(f -> f.getOpCode() == binding_irnode.ir_opcode.iro_Return).findFirst();
-
-            if (first.isEmpty()) {
-                if (returnNode.isEmpty()) {
-                    if (n.getOpCode() == iro_Phi) {
-                        // skip phis since they sometimes do not need mem
-                        return null;
-                    }
-                    return null;
-                } else {
-                    return null;
-                }
-            }
-
-            return first.get();
+            return children.stream().filter(
+                    f -> Objects.equals(f.getMode(), Mode.getM())
+            ).findFirst();
         }
 
         private void traceNode(Node orig) {
-            if (rootNode == null) {
-                rootNode = orig;
-            }
-
-            Node memNode = getChildMemNode(orig);
+            Optional<Node> memNode = getChildMemNode(orig);
 
             // return nodes do not have any outgoing memory refernces
-            if (memNode == null && orig.getOpCode() == binding_irnode.ir_opcode.iro_Return) {
-                LoadStoreOptimization.MemNode newMem = new LoadStoreOptimization.MemNode(orig, memNode, null);
-                memNodeMap.put(orig, newMem);
+            if (memNode.isEmpty() && orig.getOpCode() == binding_irnode.ir_opcode.iro_Return) {
+                memNodeMap.put(orig, new MemNode(orig, null, null));
                 return;
             }
-            // phi nodes do not have to be memory nodes
-            if (memNode == null && orig.getOpCode() != iro_Phi) {
+            if (orig.getOpCode() == iro_Phi && orig.getMode().equals(Mode.getM())) {
+                // phi nodes are themselves memory nodes
+                memNode = Optional.of(orig);
+            } else if (memNode.isEmpty()) {
                 return;
-            }
-            // otherwise they themselves are mem
-            if (orig.getOpCode() == iro_Phi) {
-                memNode = orig;
             }
 
             if (!memNodeMap.containsKey(orig)) {
                 memNodeMap.put(orig, null);
-
-                List<Node> memOuts = traceMemOuts(memNode);
-                LoadStoreOptimization.MemNode newMem = new LoadStoreOptimization.MemNode(orig, memNode, memOuts);
-                if (orig == rootNode) {
+                List<Node> memOuts = traceMemOuts(memNode.get());
+                MemNode newMem = new MemNode(orig, memNode.get(), memOuts);
+                if (orig.equals(start)) {
+                    // TODO: never happened
                     newMem.getDominatingMem().add(newMem);
                     rootMemNode = newMem;
                 }
@@ -266,10 +143,9 @@ public class LoadStoreOptimization implements Optimization.Local {
             }
         }
 
+        // follows the memory dependency chain recursively
         private List<Node> traceMemOuts(Node memNode) {
             List<Node> children = getNodeChildren(memNode);
-
-            // create a new node that follows this nodes memory chain
             List<Node> memOuts = new ArrayList<>();
             for (var child : children) {
                 switch (child.getOpCode()) {
@@ -279,8 +155,7 @@ public class LoadStoreOptimization implements Optimization.Local {
                         child.accept(this);
                     }
                     case iro_Phi -> {
-                        Phi phi = (Phi) child;
-                        if (Objects.equals(phi.getMode(), Mode.getM())) {
+                        if (Objects.equals(child.getMode(), Mode.getM())) {
                             // this is a memory node itself thus we just follow it again
                             memOuts.add(child);
                             child.accept(this);
@@ -367,47 +242,26 @@ public class LoadStoreOptimization implements Optimization.Local {
         @Override
         public void visit(Load load) {
             MemNode memNode = memNodeMap.get(load);
-            if (memNode == null) {
+            if (memNode == null || memNode.getDominatingMem() == null) {
                 return;
             }
-
-            if (memNode.getDominatingMem() == null) {
-                return;
-            }
-
-            if (memNode.getDominatingMem().size() > 1) {
+            if (memNode.getDominatingMem().size() != 1) {
                 // can not replace in case of multiple incoming paths that may dominate this one
                 return;
             }
-            Optional<MemNode> dominatingMemOpt = memNode.getDominatingMem().stream().findFirst();
-            if (dominatingMemOpt.isEmpty()) {
-                // dominance analysis not deep enough just return and do nothing in this case
-                return;
-            }
-            Node dominatingMem = dominatingMemOpt.get().getN();
 
-            if (dominatingMem.getOpCode() == iro_Store) {// replace this node with stores input
-                Store store = (Store) dominatingMem;
+            MemNode dominatingMem = memNode.getDominatingMem().stream().findFirst().get();
+
+            if (dominatingMem.getN().getOpCode() == iro_Store) {
+                Store store = (Store) dominatingMem.getN();
                 Node value = store.getValue();
-
-                int memCount = 0;
-                for (var edge : BackEdges.getOuts(load)) {
-                    Node node = edge.node;
-                    if (Objects.equals(node.getMode(), Mode.getM())) {
-                        memCount++;
-                    }
-                }
-
-                if (memCount > 1) {
-                    return;
-                }
 
                 // only replace load if they point to the same object
                 if (store.getPtr().equals(load.getPtr())) {
+                    // replace result of the load for each successor
                     for (var edge : BackEdges.getOuts(load)) {
                         Node node = edge.node;
-                        if (node.getOpCode() == iro_Proj && !Objects.equals(node.getMode(), Mode.getM())) {
-                            // replace projection output with
+                        if (node.getOpCode() == iro_Proj && !node.getMode().equals(Mode.getM())) {
                             Proj proj = (Proj) node;
                             for (var out : BackEdges.getOuts(proj)) {
                                 out.node.setPred(out.pos, value);
@@ -418,10 +272,11 @@ public class LoadStoreOptimization implements Optimization.Local {
                     // replace mem node out with preds
                     this.changes = true;
                     Graph.exchange(memNode.getMem(), load.getMem());
+                    System.out.println(String.format("exchange %s with %s", memNode.getMem().getNr(), load.getMem().getNr()));
                     // replace reference of mem to dominated mem node
                     for (var memOutNode : memNode.getMemOuts()) {
                         if (memOutNode.getOpCode() != iro_Deleted) {
-                            memOutNode.setPred(0, dominatingMemOpt.get().getMem());
+                            memOutNode.setPred(0, dominatingMem.getMem());
                         }
                     }
                     Graph.killNode(load);
@@ -488,7 +343,13 @@ public class LoadStoreOptimization implements Optimization.Local {
     @Setter
     @RequiredArgsConstructor
     private static class MemNode {
+        /**
+         * the associated node
+         */
         private final Node n;
+        /**
+         * succesor node with Mode M
+         */
         private final Node mem;
         private final List<Node> memOuts;
         private Set<MemNode> dominatingMem = new HashSet<>();
