@@ -4,30 +4,25 @@
 %% Siehe https://sdqweb.ipd.kit.edu/wiki/Dokumentvorlagen
 
 %% Beispiel-Präsentation
-\documentclass{sdqbeamer} 
+\documentclass[navbaroff,en]{sdqbeamer} 
  
 %% Titelbild
 \titleimage{banner_2020_kit}
 
 %% Gruppenlogo
-%\grouplogo{mylogo} 
+\grouplogo{}
 
 %% Gruppenname
-\groupname{Abteilungs-, KIT-Fakultäts-, Institutsbezeichnung}
+\groupname{IPD - Lehrstuhl Programmierparadigmen}
 
 % Beginn der Präsentation
 
-\title[KIT-Beamer-Vorlage]{Präsentation mit \LaTeX{} Beamer im KIT-Design}
-\subtitle{entsprechend den Gestaltungsrichtlinien vom 1. August 2020} 
-\author[Erik Burger]{Dr.-Ing. Erik Burger}
+\title{Vorstellung Compiler - Gruppe 3}
+\subtitle{Compiler-Praktikum WS21/22}
+\author[Nikolai, Pascal, Lars, Niklas]{Nikolai Maas, Pascal Mehnert, Lars König, Niklas Betten}
 
-\date[10.\,8.\,2021]{10. August 2021}
+\date[10.\,2.\,2022]{10. Februar 2022}
 
-% Literatur 
- 
-\usepackage[citestyle=authoryear,bibstyle=numeric,hyperref,backend=biber]{biblatex}
-\addbibresource{presentation.bib}
-\bibhang1em
 
 \begin{document}
 
@@ -35,252 +30,337 @@
 \KITtitleframe
 
 %Inhaltsverzeichnis
-\begin{frame}{Inhaltsverzeichnis}
+\begin{frame}{Structure}
 \tableofcontents
 \end{frame}
 
-\section{Erster Abschnitt}
+\begin{frame}
+    \frametitle{Überblick}
 
-\subsection{Erster Unterabschnitt}
-\begin{frame}{Blöcke}{in den KIT-Farben}
-	\begin{columns}
-		\column{.3\textwidth}
-		\begin{greenblock}{Greenblock}
-			Standard (\texttt{block})
-        \end{greenblock}
-		\column{.3\textwidth}
-		\begin{blueblock}{Blueblock}
-			= \texttt{exampleblock}
-        \end{blueblock}
-		\column{.3\textwidth}
-		\begin{redblock}{Redblock}
-			= \texttt{alertblock}
-        \end{redblock}
-	\end{columns}
-	\begin{columns}
-		\column{.3\textwidth}
-        \begin{brownblock}{Brownblock}
-        \end{brownblock}
-		\column{.3\textwidth}
-        \begin{purpleblock}{Purpleblock}
-        \end{purpleblock}
-		\column{.3\textwidth}
-        \begin{cyanblock}{Cyanblock}
-        \end{cyanblock}
-	\end{columns}
-	\begin{columns}
-		\column{.3\textwidth}
-        \begin{yellowblock}{Yellowblock}
-        \end{yellowblock}
-		\column{.3\textwidth}
-        \begin{lightgreenblock}{Lightgreenblock}
-        \end{lightgreenblock}
-		\column{.3\textwidth}
-        \begin{orangeblock}{Orangeblock}
-        \end{orangeblock}
-	\end{columns}
-	\begin{columns}
-		\column{.3\textwidth}
-        \begin{grayblock}{Grayblock}
-        \end{grayblock}
-		\column{.3\textwidth}
-		\begin{contentblock}{Contentblock}
-			(farblos)
-		\end{contentblock}
-		\column{.3\textwidth}
-	\end{columns}
-\end{frame}
-	  
-\subsection{Zweiter Unterabschnitt}
-\begin{frame}{Auflistungen}
-	Text
-	\begin{itemize}
-		\item Auflistung\\ Umbruch
-		\item Auflistung
-		\begin{itemize}
-			\item Auflistung
-			\item Auflistung
-		\end{itemize}
-	\end{itemize}
+    \begin{itemize}
+        \item Compiler-Phasen
+    \end{itemize}
+
 \end{frame}
 
-\section{Zweiter Abschnitt}
+
+\section{Front End}
 
 \begin{frame}
-        Bei Frames ohne Titel wird die Kopfzeile nicht angezeigt, und  
-    der freie Platz kann für Inhalte genutzt werden.
+	\frametitle{Parser}
+
+    \begin{itemize}
+        \item Pull-Parser
+        \item SLL(3)
+        \item Precedence Climber für Expressions
+        \item nicht wiederaufsetzend (keine Ankermengen)
+        \item Streaming
+        \item AST hierarchy with enums for selected node types
+    \end{itemize}
+
 \end{frame}
 
-\begin{frame}[plain]
-    Bei Frames mit Option \texttt{[plain]} werden weder Kopf- noch Fußzeile angezeigt.
+\begin{frame}
+    \frametitle{Semantische Analyse}
+
+    \begin{itemize}
+        \item supports multiple errors
+        \vspace{1em}
+        \item Namespace Gathering
+        \begin{itemize}
+            \item name(space) collection
+            \item exactly one main
+        \end{itemize}
+        \item Name / Type Analysis
+        \begin{itemize}
+            \item find declarations
+            \item type checking
+            \item expression result type
+            \item duplicate variable declaration
+            \item no this in static methods
+            \item System-Library
+        \end{itemize}
+        \item Semantic Checks
+        \begin{itemize}
+            \item return statements
+            \item keine args in main verwendet
+            \item String nicht mit new erzeugt
+            \item L-value assignments
+            \item no pure expression statements
+        \end{itemize}
+    \end{itemize}
+
 \end{frame}
 
-\begin{frame}[t]{Beispielinhalt}
-    Bei Frames mit Option \texttt{[t]} werden die Inhalte nicht vertikal zentriert, sondern an der Oberkante begonnen.
+\begin{frame}
+    \frametitle{Transformation}
+
+    \begin{itemize}
+        \item AST -> Firm graph
+        \item visitor based
+        \item generation of firm types (naive)
+        \item basic blocks
+        \item resolve assignments
+        \item boolean internal vs. value
+        \item Div/Mod special case
+        \item unsigned array index (undefined behavior)
+    \end{itemize}
+
 \end{frame}
 
 
-\begin{frame}{Beispielinhalt: Literatur}
-    Literaturzitat: \cite{klare2021jss}
+\section{Middle End}
+
+\begin{frame}
+    \frametitle{Optimizations}
+
+    \begin{itemize}
+        \item bottom-up durch den call graph
+        \item dead function elimination
+        \item übergeordnete Fixpunkt-Iteration(en)
+        \item lokale und globale Optimierungen
+        \item teilweise aufgeteilt in Analyse + Umsetzung
+        \vspace{1em}
+        \item Constant Propagation
+        \item Linear Blocks
+        \item Arithmetic Identities
+        \item Arithmetic Strength Reduction
+        \item Pure Functions
+        \item Inliner
+        \item Loop Invariant Code Motion
+        \item Loop Unrolling
+        \item (Load/Store)
+        \item (CSE)
+        \item (Unused Arguments)
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Linear Blocks}
+
+    \begin{itemize}
+        \item remove trivial jumps
+        \item join blocks with one predecessor / successor
+        \item cond with equal successors (without phis)
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Arithmetic Strength Reduction}
+
+    \begin{itemize}
+        \item replace div / mod
+        \item replace some multiplications
+        \item (in general: instruction set / processor dependent)
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Pure Functions}
+
+    \begin{itemize}
+        \item pure -> kein Schreibzugriff auf Speicher
+        \item const -> auf kein Lesezugriff auf Speicher (no mem)
+        \item Termination (Rekursion, Schleife)
+        \item returns newly allocated memory
+        \item remove unused pure functions (incl. alloc)
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Inliner}
+
+    \begin{itemize}
+        \item constant arguments
+        \item inside loop -> high prio
+        \item code size change (factor [global] + abs [per func])
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Loop Invariant Code Motion}
+
+    \begin{itemize}
+        \item flat loops
+        \item move to loop entry point dominator
+        \item unconditional execution of moved nodes
+        \item minimize reg pressure für cheap nodes
+        \begin{itemize}
+            \item delta loop in edges
+            \item move distance
+            \item number of invariant successors
+        \end{itemize}
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Loop Unrolling}
+
+    \begin{itemize}
+        \item bottom-up through loop forest
+        \item loop header format: compare const and phi (const init + backedges [add with const])
+        \item max abs number of unrolled iterations
+        \item loop body size
+        \item complete unroll -> larger size allowed
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Unused Arguments}
+
+    \begin{itemize}
+        \item incl. in recursive calls (fix-point analysis)
+    \end{itemize}
+
+\end{frame}
+
+
+\section{Backend}
+
+\begin{frame}
+    \frametitle{Intermediate Language}
+
+    \begin{itemize}
+        \item close to x86-64 assembler
+        \item virtual registers
+        \item phis can be assigned to basic blocks -> resolved later
+        \item additional virtual instructions (div / mod / call)
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Instruction Selection}
+
+    \begin{itemize}
+        \item bottom-up pattern matching -> single pattern per node
+        \item no cost function
+        \item bottom-up pattern collection (postorder on matched patterns -> ignores unnecessary predecessor patterns)
+        \item topological order of instructions
+        \item virtual registers
+        \item basic and advanced patterns (add: add r r, addi r, add r i, lea)
+        \item register restrictions not considered
+        \item separate phi resolving phase
+        \item memory dependencies discarded
+        \vspace{1em}
+        \item no separate instruction scheduling
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Phi Resolving}
+
+    \begin{itemize}
+        \item works on intermediate language
+        \item add moves to predecessor blocks
+        \item ?
+        \item permutations
+        \item critical edges
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Register Allocation - Overview / Techniques}
+
+    \begin{itemize}
+        \item Linear Scan
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Register Allocator}
+
+    \begin{itemize}
+        \item[1.] block order
+        \begin{itemize}
+            \item topological (reverse postorder, control flow)
+            \item loop aware (loop blocks directly after loop header)
+        \end{itemize}
+        \item[2.] lifetime analysis
+        \begin{itemize}
+            \item linear through blocks
+            \item lifetime for all virtual registers
+            \item expand lifetime of variables in loops
+            \item reuse register if virtual register lifetime ends as instruction argument
+            \item linear lifetimes (no splits)
+            \item collect additional information for register allocation heuristic (number of calls / divs, loop depth)
+        \end{itemize}
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Register Allocator}
+
+    \begin{itemize}
+        \item[3.] register allocation
+        \begin{itemize}
+            \item linear scan
+            \item generates mapping from virtual to processor? registers
+            \item heuristic for spill decision (loop depth)
+            \item spill virtual register for entire lifetime
+            \item unify virtual registers / registers
+            \begin{itemize}
+                \item in-out virtual registers
+                \item registers for call arguments (in / out)
+            \end{itemize}
+            \item reuse stack slots if lifetime don't overlap
+        \end{itemize}
+        \item[4.] code generation
+        \begin{itemize}
+            \item x86-64 call convetion (systemv)
+            \begin{itemize}
+                \item 6 arguments in register
+                \item rest on stack
+                \item caller / callee stacked registers
+            \end{itemize}
+            \item 16-bit alignment for stdlib calls only
+            \item omit load of spilled register if temp. register is still available (inside basic blocks)
+        \end{itemize}
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Peephole Optimizations}
+
+    \begin{itemize}
+        \item fixed-size (per optimization) window of instructions
+        \vspace{1em}
+        \item Jump Inversion
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Assembly Output}
+
+    \begin{itemize}
+        \item ELF file format
+        \item function prologs / epilogs
+        \item link runtime library (written in C)
+        \item passed to gcc
+    \end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
 \end{frame}
 
 \appendix
 \beginbackup
 
-\begin{frame}{Literatur}
-\begin{exampleblock}{Backup-Teil}
-    Folien, die nach \texttt{\textbackslash beginbackup} eingefügt werden, zählen nicht in die Gesamtzahl der Folien.
-\end{exampleblock}
-
-\printbibliography
-\end{frame}
-
-\section{Farben}
-%% ----------------------------------------
-%% | Test-Folie mit definierten Farben |
-%% ----------------------------------------
-\begin{frame}{Farbpalette}
-\tiny
-
-% GREEN
-	\colorbox{kit-green100}{kit-green100}
-	\colorbox{kit-green90}{kit-green90}
-	\colorbox{kit-green80}{kit-green80}
-	\colorbox{kit-green70}{kit-green70}
-	\colorbox{kit-green60}{kit-green60}
-	\colorbox{kit-green50}{kit-green50}
-	\colorbox{kit-green40}{kit-green40}
-	\colorbox{kit-green30}{kit-green30}
-	\colorbox{kit-green25}{kit-green25}
-	\colorbox{kit-green20}{kit-green20}
-	\colorbox{kit-green15}{kit-green15}
-	\colorbox{kit-green10}{kit-green10}
-	\colorbox{kit-green5}{kit-green5}
-
-% BLUE
-	\colorbox{kit-blue100}{kit-blue100}
-	\colorbox{kit-blue90}{kit-blue90}
-	\colorbox{kit-blue80}{kit-blue80}
-	\colorbox{kit-blue70}{kit-blue70}
-	\colorbox{kit-blue60}{kit-blue60}
-	\colorbox{kit-blue50}{kit-blue50}
-	\colorbox{kit-blue40}{kit-blue40}
-	\colorbox{kit-blue30}{kit-blue30}
-	\colorbox{kit-blue25}{kit-blue25}
-	\colorbox{kit-blue20}{kit-blue20}
-	\colorbox{kit-blue15}{kit-blue15}
-	\colorbox{kit-blue10}{kit-blue10}
-	\colorbox{kit-blue5}{kit-blue5}
-
-% RED
-	\colorbox{kit-red100}{kit-red100}
-	\colorbox{kit-red90}{kit-red90}
-	\colorbox{kit-red80}{kit-red80}
-	\colorbox{kit-red70}{kit-red70}
-	\colorbox{kit-red60}{kit-red60}
-	\colorbox{kit-red50}{kit-red50}
-	\colorbox{kit-red40}{kit-red40}
-	\colorbox{kit-red30}{kit-red30}
-	\colorbox{kit-red25}{kit-red25}
-	\colorbox{kit-red20}{kit-red20}
-	\colorbox{kit-red15}{kit-red15}
-	\colorbox{kit-red10}{kit-red10}
-	\colorbox{kit-red5}{kit-red5}
-
-% GREY
-	\colorbox{kit-gray100}{\color{white}kit-gray100}
-	\colorbox{kit-gray90}{\color{white}kit-gray90}
-	\colorbox{kit-gray80}{\color{white}kit-gray80}
-	\colorbox{kit-gray70}{\color{white}kit-gray70}
-	\colorbox{kit-gray60}{\color{white}kit-gray60}
-	\colorbox{kit-gray50}{\color{white}kit-gray50}
-	\colorbox{kit-gray40}{kit-gray40}
-	\colorbox{kit-gray30}{kit-gray30}
-	\colorbox{kit-gray25}{kit-gray25}
-	\colorbox{kit-gray20}{kit-gray20}
-	\colorbox{kit-gray15}{kit-gray15}
-	\colorbox{kit-gray10}{kit-gray10}
-	\colorbox{kit-gray5}{kit-gray5}
-
-% Orange
-	\colorbox{kit-orange100}{kit-orange100}
-	\colorbox{kit-orange90}{kit-orange90}
-	\colorbox{kit-orange80}{kit-orange80}
-	\colorbox{kit-orange70}{kit-orange70}
-	\colorbox{kit-orange60}{kit-orange60}
-	\colorbox{kit-orange50}{kit-orange50}
-	\colorbox{kit-orange40}{kit-orange40}
-	\colorbox{kit-orange30}{kit-orange30}
-	\colorbox{kit-orange25}{kit-orange25}
-	\colorbox{kit-orange20}{kit-orange20}
-	\colorbox{kit-orange15}{kit-orange15}
-	\colorbox{kit-orange10}{kit-orange10}
-	\colorbox{kit-orange5}{kit-orange5}
-
-% lightgreen
-	\colorbox{kit-lightgreen100}{kit-lightgreen100}
-	\colorbox{kit-lightgreen90}{kit-lightgreen90}
-	\colorbox{kit-lightgreen80}{kit-lightgreen80}
-	\colorbox{kit-lightgreen70}{kit-lightgreen70}
-	\colorbox{kit-lightgreen60}{kit-lightgreen60}
-	\colorbox{kit-lightgreen50}{kit-lightgreen50}
-	\colorbox{kit-lightgreen40}{kit-lightgreen40}
-	\colorbox{kit-lightgreen30}{kit-lightgreen30}
-	\colorbox{kit-lightgreen25}{kit-lightgreen25}
-	\colorbox{kit-lightgreen20}{kit-lightgreen20}
-	\colorbox{kit-lightgreen15}{kit-lightgreen15}
-	\colorbox{kit-lightgreen10}{kit-lightgreen10}
-	\colorbox{kit-lightgreen5}{kit-lightgreen5}
-
-% Brown
-	\colorbox{kit-brown100}{kit-brown100}
-	\colorbox{kit-brown90}{kit-brown90}
-	\colorbox{kit-brown80}{kit-brown80}
-	\colorbox{kit-brown70}{kit-brown70}
-	\colorbox{kit-brown60}{kit-brown60}
-	\colorbox{kit-brown50}{kit-brown50}
-	\colorbox{kit-brown40}{kit-brown40}
-	\colorbox{kit-brown30}{kit-brown30}
-	\colorbox{kit-brown25}{kit-brown25}
-	\colorbox{kit-brown20}{kit-brown20}
-	\colorbox{kit-brown15}{kit-brown15}
-	\colorbox{kit-brown10}{kit-brown10}
-	\colorbox{kit-brown5}{kit-brown5}
-
-% Purple
-	\colorbox{kit-purple100}{kit-purple100}
-	\colorbox{kit-purple90}{kit-purple90}
-	\colorbox{kit-purple80}{kit-purple80}
-	\colorbox{kit-purple70}{kit-purple70}
-	\colorbox{kit-purple60}{kit-purple60}
-	\colorbox{kit-purple50}{kit-purple50}
-	\colorbox{kit-purple40}{kit-purple40}
-	\colorbox{kit-purple30}{kit-purple30}
-	\colorbox{kit-purple25}{kit-purple25}
-	\colorbox{kit-purple20}{kit-purple20}
-	\colorbox{kit-purple15}{kit-purple15}
-	\colorbox{kit-purple10}{kit-purple10}
-	\colorbox{kit-purple5}{kit-purple5}
-
-% Cyan
-	\colorbox{kit-cyan100}{kit-cyan100}
-	\colorbox{kit-cyan90}{kit-cyan90}
-	\colorbox{kit-cyan80}{kit-cyan80}
-	\colorbox{kit-cyan70}{kit-cyan70}
-	\colorbox{kit-cyan60}{kit-cyan60}
-	\colorbox{kit-cyan50}{kit-cyan50}
-	\colorbox{kit-cyan40}{kit-cyan40}
-	\colorbox{kit-cyan30}{kit-cyan30}
-	\colorbox{kit-cyan25}{kit-cyan25}
-	\colorbox{kit-cyan20}{kit-cyan20}
-	\colorbox{kit-cyan15}{kit-cyan15}
-	\colorbox{kit-cyan10}{kit-cyan10}
-	\colorbox{kit-cyan5}{kit-cyan5}
-		
-\end{frame}
-%% ----------------------------------------
-%% | /Test-Folie mit definierten Farben |
-%% ----------------------------------------
 \backupend
 
 \end{document}
