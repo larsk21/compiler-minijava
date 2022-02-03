@@ -201,6 +201,10 @@ public class LifetimeAnalysis {
                         lifetimes[target] = new Lifetime(index, index + 1);
                         definitionNestingDepth[target] = stack.size();
                         firstInstruction[target] = Optional.of(instr);
+                    } else {
+                        // it is possible that the first assignment of the target is "wrongly" placed within a loop,
+                        // thus it is necessary to update the depth
+                        definitionNestingDepth[target] = Math.min(definitionNestingDepth[target], stack.size());
                     }
                     handleRegisterUsage(target, instr, stack);
 

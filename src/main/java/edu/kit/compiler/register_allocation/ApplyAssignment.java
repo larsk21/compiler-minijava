@@ -117,6 +117,13 @@ public class ApplyAssignment {
         assert instr.getType() == InstructionType.GENERAL;
         tracker.enterInstruction(index);
 
+        if (instr.getOverwriteRegister().isPresent()) {
+            Optional<Register> tRegister = assignment[instr.getTargetRegister().get()].getRegister();
+            // the overwrite register will be moved into the target register, thus any value in the
+            // target register is no longer available
+            tRegister.ifPresent(r -> tracker.getRegisters().clearTmp(r));
+        }
+
         List<Register> tmpRegisters = tracker.getTmpRegisters(
                 countRequiredTmps(tracker, instr, index),
                 determineExcludedTmps(tracker, instr)
