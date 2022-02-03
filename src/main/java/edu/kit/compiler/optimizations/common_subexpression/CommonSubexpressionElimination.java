@@ -135,10 +135,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
                 Minus minus = (Minus) replacement;
                 yield g.newMinus(replacement.getBlock(), minus.getOp());
             }
-            case iro_Const -> {
-                Const cons = (Const) replacement;
-                yield g.newConst(cons.getTarval());
-            }
             case iro_Not -> {
                 Not not = (Not) replacement;
                 yield g.newNot(replacement.getBlock(), not.getOp());
@@ -193,7 +189,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
                 yield g.newStore(store.getBlock(), store.getMem(), store.getPtr(),
                         store.getValue(), store.getType(), ir_cons_flags.cons_none);
             }
-
             default -> null;
         };
 
@@ -241,13 +236,10 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         return true;
     }
 
+    @RequiredArgsConstructor
     private final class CSEVisitor extends NodeVisitor.Default {
 
-        private OptimizationState s;
-
-        public CSEVisitor(OptimizationState s) {
-            this.s = s;
-        }
+        private final OptimizationState s;
 
         private final Map<TargetValue, Node> constCache = new HashMap<>();
         private final Map<Entity, Node> addressCache = new HashMap<>();
@@ -300,11 +292,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         @Override
         public void visit(And node) {
             visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_And);
-        }
-
-        @Override
-        public void visit(Cond node) {
-            // do nothing
         }
 
         @Override
@@ -392,11 +379,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         @Override
         public void visit(Or node) {
             visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Or);
-        }
-
-        @Override
-        public void visit(Phi node) {
-            // do nothing
         }
 
         @Override
