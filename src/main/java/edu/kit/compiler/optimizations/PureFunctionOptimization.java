@@ -1,11 +1,10 @@
 package edu.kit.compiler.optimizations;
 
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import edu.kit.compiler.optimizations.attributes.AttributeAnalysis;
 import firm.Graph;
 import firm.Mode;
 import firm.bindings.binding_irnode.ir_opcode;
@@ -20,17 +19,20 @@ public final class PureFunctionOptimization implements Optimization.Local {
 
     @Override
     public boolean optimize(Graph graph, OptimizationState state) {
-        var collector = CallCollector.apply(state.getAttributeAnalysis(), graph);
+        var analysis = state.getAttributeAnalysis();
+        var collector = CallCollector.apply(graph);
 
         var hasChanged = false;
-        for (var call : collector.constCalls) {
-            hasChanged |= unpinCall(call);
-            hasChanged |= handleConstCall(call);
-        }
+        for (var call : collector.calls) {
+            var attributes = analysis.getAttributes(Util.getCallee(call));
+            
+            hasChanged |= attributes.isPure() && unpinCall(call);
 
-        for (var call : collector.pureCalls) {
-            hasChanged |= unpinCall(call);
-            hasChanged |= handlePureCall(call, collector.usedCalls);
+            hasChanged |= switch (attributes.getPurity()) {
+                case CONST -> handleConstCall(call);
+                case PURE -> handlePureCall(call, collector.usedCalls); 
+                default -> false;
+            };
         }
 
         return hasChanged;
@@ -91,13 +93,10 @@ public final class PureFunctionOptimization implements Optimization.Local {
     private static final class CallCollector extends NodeVisitor.Default {
 
         private final Set<Call> usedCalls = new HashSet<>();
-        private final List<Call> pureCalls = new LinkedList<>();
-        private final List<Call> constCalls = new LinkedList<>();
+        private final List<Call> calls = new ArrayList<>();
 
-        private final AttributeAnalysis analysis;
-
-        public static CallCollector apply(AttributeAnalysis analysis, Graph graph) {
-            var visitor = new CallCollector(analysis);
+        public static CallCollector apply(Graph graph) {
+            var visitor = new CallCollector();
             graph.walk(visitor);
 
             return visitor;
@@ -113,16 +112,7 @@ public final class PureFunctionOptimization implements Optimization.Local {
 
         @Override
         public void visit(Call node) {
-            var attributes = analysis.getAttributes(Util.getCallee(node));
-
-            if (attributes.isTerminates()) {
-                switch (attributes.getPurity()) {
-                    case CONST -> constCalls.add(node);
-                    case PURE -> pureCalls.add(node);
-                    default -> {
-                    }
-                }
-            }
+            calls.add(node);
         }
     }
 }
