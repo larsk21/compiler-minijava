@@ -153,7 +153,9 @@ public class Inliner {
         }
 
         @Override
-        public void visit(NoMem noMem) {}
+        public void visit(NoMem noMem) {
+            mapping.put(noMem.getNr(), graph.getNoMem());
+        }
 
         @Override
         public void visit(Start start) {}
