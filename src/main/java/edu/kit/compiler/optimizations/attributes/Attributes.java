@@ -25,6 +25,9 @@ public final class Attributes {
     /**
      * A function is malloc-like if it may return a reference to newly allocated
      * memory. Multiple calls to such functions may never be unified.
+     * 
+     * Note: The `malloc` attribute of a function may only be relied upon, if 
+     * that function is also pure.
      */
     private boolean malloc = false;
 
