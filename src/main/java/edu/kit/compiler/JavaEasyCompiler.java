@@ -20,6 +20,7 @@ import edu.kit.compiler.codegen.PhiResolver;
 import edu.kit.compiler.codegen.ReversePostfixOrder;
 import edu.kit.compiler.intermediate_lang.Block;
 import edu.kit.compiler.optimizations.*;
+import edu.kit.compiler.optimizations.common_subexpression.CommonSubexpressionElimination;
 import edu.kit.compiler.optimizations.inlining.InliningOptimization;
 import edu.kit.compiler.optimizations.unrolling.LoopUnrollingOptimization;
 import edu.kit.compiler.optimizations.UnusedArgumentsOptimization;

@@ -42,9 +42,7 @@ public class LoadStoreOptimization implements Optimization.Local {
 
         // calculate dominances for graph
         visitor.setPreds();
-        DominanceVisitor domVisitor = new DominanceVisitor(visitor.getMemNodeMap(), state);
-
-        // this is needed for loops etc that are not handled by post order very well
+        DominanceVisitor domVisitor = new DominanceVisitor(visitor.getMemNodeMap());
         g.walkPostorder(domVisitor);
 
         for (var entry : visitor.getMemNodeMap().entrySet()) {
@@ -246,43 +244,48 @@ public class LoadStoreOptimization implements Optimization.Local {
             MemNode dominatingMem = memNode.getDominatingMem().stream().findFirst().get();
 
             if (dominatingMem.getN().getOpCode() == iro_Store) {
+                // eliminate load after store
                 Store store = (Store) dominatingMem.getN();
                 Node value = store.getValue();
+                replaceLoadWithValue(load, value, memNode, dominatingMem, store.getPtr());
+            } else if (dominatingMem.getN().getOpCode() == iro_Load) {
+                // eliminate load after load
+                Load prev = (Load) dominatingMem.getN();
+                Node value = load.getGraph().newProj(prev, prev.getMode(), Load.pnRes);
+                replaceLoadWithValue(load, value, memNode, dominatingMem, prev.getPtr());
+            }
+        }
 
-                // only replace load if they point to the same object
-                if (store.getPtr().equals(load.getPtr())) {
-                    // replace result of the load for each successor
-                    for (var edge : BackEdges.getOuts(load)) {
-                        Node node = edge.node;
-                        if (node.getOpCode() == iro_Proj && !node.getMode().equals(Mode.getM())) {
-                            Proj proj = (Proj) node;
-                            for (var out : BackEdges.getOuts(proj)) {
-                                out.node.setPred(out.pos, value);
-                            }
+        private void replaceLoadWithValue(Load load, Node value, MemNode memNode, MemNode dominatingMem, Node ptr) {
+            if (ptr.equals(load.getPtr())) {
+                // replace result of the load for each successor
+                for (var edge : BackEdges.getOuts(load)) {
+                    Node node = edge.node;
+                    if (node.getOpCode() == iro_Proj && !node.getMode().equals(Mode.getM())) {
+                        Proj proj = (Proj) node;
+                        for (var out : BackEdges.getOuts(proj)) {
+                            out.node.setPred(out.pos, value);
                         }
                     }
-
-                    // replace mem node out with preds
-                    this.changes = true;
-                    Graph.exchange(memNode.getMem(), load.getMem());
-                    System.out.println(String.format("exchange %s with %s", memNode.getMem().getNr(), load.getMem().getNr()));
-                    // replace reference of mem to dominated mem node
-                    for (var memOutNode : memNode.getMemOuts()) {
-                        if (memOutNode.getOpCode() != iro_Deleted) {
-                            memOutNode.setPred(0, dominatingMem.getMem());
-                        }
-                    }
-                    Graph.killNode(load);
                 }
+
+                // replace mem node out with preds
+                this.changes = true;
+                Graph.exchange(memNode.getMem(), load.getMem());
+                // replace reference of mem to dominated mem node
+                for (var memOutNode : memNode.getMemOuts()) {
+                    if (memOutNode.getOpCode() != iro_Deleted) {
+                        memOutNode.setPred(0, dominatingMem.getMem());
+                    }
+                }
+                Graph.killNode(load);
             }
         }
     }
 
     @RequiredArgsConstructor
     private static class DominanceVisitor extends NodeVisitor.Default {
-
         private final Map<Node, MemNode> memNodeMap;
-        private final OptimizationState state;
 
         @Override
         public void defaultVisit(Node node) {
