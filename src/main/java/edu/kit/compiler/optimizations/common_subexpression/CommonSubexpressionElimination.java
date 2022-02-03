@@ -8,9 +8,11 @@ import firm.*;
 import firm.bindings.binding_irdom;
 import firm.bindings.binding_irgopt;
 import firm.bindings.binding_ircons.op_pin_state;
+import firm.bindings.binding_ircons.ir_cons_flags;
 import firm.bindings.binding_irnode;
 import firm.nodes.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 
 import java.util.*;
@@ -163,12 +165,12 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             }
             case iro_Div -> {
                 Div div = (Div) replacement;
-                yield g.newDiv(replacement.getBlock(), div.getMem(), div.getLeft(),
+                yield g.newDiv(div.getBlock(), div.getMem(), div.getLeft(),
                         div.getRight(), op_pin_state.op_pin_state_pinned);
             }
             case iro_Mod -> {
                 Mod mod = (Mod) replacement;
-                yield g.newMod(replacement.getBlock(), mod.getMem(), mod.getLeft(),
+                yield g.newMod(mod.getBlock(), mod.getMem(), mod.getLeft(),
                         mod.getRight(), op_pin_state.op_pin_state_pinned);
             }
             case iro_Call -> {
@@ -179,8 +181,19 @@ public class CommonSubexpressionElimination implements Optimization.Local {
                 if (preds.length - 2 >= 0) {
                     System.arraycopy(preds, 2, ins, 0, preds.length - 2);
                 }
-                yield g.newCall(replacement.getBlock(), call.getMem(), call.getPtr(), ins, call.getType());
+                yield g.newCall(call.getBlock(), call.getMem(), call.getPtr(), ins, call.getType());
             }
+            case iro_Load -> {
+                Load load = (Load) replacement;
+                yield g.newLoad(replacement.getBlock(), load.getMem(), load.getPtr(),
+                        load.getLoadMode(), load.getType(), ir_cons_flags.cons_none);
+            }
+            case iro_Store -> {
+                Store store = (Store) replacement;
+                yield g.newStore(store.getBlock(), store.getMem(), store.getPtr(),
+                        store.getValue(), store.getType(), ir_cons_flags.cons_none);
+            }
+
             default -> null;
         };
 
@@ -215,9 +228,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
     }
 
     private boolean dominates(Pointer source, Pointer target) {
-        int dominates = 0;
-        dominates = binding_irdom.block_dominates(source, target);
-        return dominates != 0;
+        return binding_irdom.block_dominates(source, target) != 0;
     }
 
     private boolean dominatesUses(Node newNode, Node orig) {
@@ -244,45 +255,19 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         private final Map<ProjPreds, Node> projCache = new HashMap<>();
 
         @RequiredArgsConstructor
+        @EqualsAndHashCode
         private class ProjPreds {
             private final Node pred;
             private final int num;
             private final Mode mode;
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-                ProjPreds projPreds = (ProjPreds) o;
-                return num == projPreds.num && pred.equals(projPreds.pred) && mode.equals(projPreds.mode);
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hash(pred, num, mode);
-            }
         }
 
         @RequiredArgsConstructor
+        @EqualsAndHashCode
         private class NodePreds {
             private final Node[] preds;
             private final binding_irnode.ir_opcode opcode;
             private final Mode mode;
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-                NodePreds nodePreds = (NodePreds) o;
-                return Arrays.equals(preds, nodePreds.preds) && opcode == nodePreds.opcode && mode.equals(nodePreds.mode);
-            }
-
-            @Override
-            public int hashCode() {
-                int result = Objects.hash(opcode, mode);
-                result = 31 * result + Arrays.hashCode(preds);
-                return result;
-            }
         }
 
         @Override
