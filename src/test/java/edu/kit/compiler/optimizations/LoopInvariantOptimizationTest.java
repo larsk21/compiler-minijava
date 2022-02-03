@@ -330,7 +330,7 @@ public class LoopInvariantOptimizationTest {
         assertEquals(block3, cond3.getBlock());
 
         assertEquals(block2, cmp2.getBlock());
-        assertEquals(block1, cmp3.getBlock());
+        assertEquals(block3, cmp3.getBlock());
         assertEquals(block1, add4.getBlock());
         assertEquals(block5, sub5.getBlock());
     }

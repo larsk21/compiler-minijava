@@ -13,6 +13,7 @@ import edu.kit.compiler.optimizations.Util.NodeListFiller;
 import firm.Graph;
 import firm.Mode;
 import firm.nodes.Block;
+import firm.nodes.Cmp;
 import firm.nodes.Node;
 import firm.nodes.Phi;
 
@@ -85,7 +86,7 @@ public class LoopInvariantAnalysis {
             return false;
         } else if (node.getMode().equals(Mode.getX())) {
             return false;
-        } else if (node instanceof Phi) {
+        } else if (node instanceof Phi || node instanceof Cmp) {
             return false;
         }
 
