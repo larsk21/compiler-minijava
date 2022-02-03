@@ -81,6 +81,7 @@ Additionally, the compiler uses a more advanced register allocator in level 1.
 | Inliner                       | 1                          |
 | Loop Invariant Code Motion    | 1                          |
 | Loop Unrolling                | 1                          |
+| Unused Arguments              | 1                          |
 
 ### Backend Optimizations
 
