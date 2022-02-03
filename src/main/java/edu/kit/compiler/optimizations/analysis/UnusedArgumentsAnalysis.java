@@ -137,7 +137,9 @@ public class UnusedArgumentsAnalysis {
      * (which is done later with a fixed-point analysis).
      */
     private ArgUsageValue analyzeNodeUsage(Node node, Node pred) {
-        if (node.getMode().equals(Mode.getX()) || node.getMode().equals(Mode.getM())) {
+        if (node.getMode().equals(Mode.getX()) || node.getMode().equals(Mode.getM())
+                || node.getOpCode() == binding_irnode.ir_opcode.iro_Load
+                || node.getOpCode() == binding_irnode.ir_opcode.iro_Store) {
             return new ArgUsageValue(true);
         }
         if (node.getOpCode() == binding_irnode.ir_opcode.iro_Call) {
