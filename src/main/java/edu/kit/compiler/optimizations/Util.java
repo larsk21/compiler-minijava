@@ -249,6 +249,10 @@ public final class Util {
         return type.getNParams();
     }
 
+    /**
+     * Determines the node that projects the arguments from the start node of
+     * the specified function, if there is any.
+     */
     public static Optional<Proj> getArgProj(Entity func) {
         Optional<Proj> argProj = Optional.empty();
         Start start = func.getGraph().getStart();

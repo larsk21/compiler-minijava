@@ -16,6 +16,18 @@ import lombok.*;
 
 import java.util.*;
 
+/**
+ * Call graph based analyses to determine unused function arguments.
+ *
+ * First, the graphs are analysed to see whether arguments are
+ * definitively used or definitively unused. However, some arguments
+ * might be used only as argument to another function. In case of recursive
+ * calls, we thus can not determine in a single pass whether an argument is
+ * actually used (because the arguments have cyclic dependencies).
+ * To resolve this, we collect all dependencies between arguments and run
+ * a fixed point iteration on the dependencies (note that this operates on
+ * the call graph only and doesn't need to look at the function graphs).
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class UnusedArgumentsAnalysis {
     private final Map<Entity, ArgUsageValue[]> usageMap = new HashMap<>();
@@ -28,6 +40,8 @@ public class UnusedArgumentsAnalysis {
     private List<ArgMapping> analyse(CallGraph callGraph) {
         usageMap.clear();
         var worklist = new StackWorklist<Entity>();
+
+        // collect usage data and dependencies for args
         for (Entity func: callGraph.functionSet()) {
             if (func.getGraph() != null) {
                 BackEdges.enable(func.getGraph());
@@ -37,6 +51,7 @@ public class UnusedArgumentsAnalysis {
             }
         }
 
+        // run fixed point analysis to resolve dependencies
         while (!worklist.isEmpty()) {
             Entity current = worklist.dequeue();
             ArgUsageValue[] values = usageMap.get(current);
@@ -45,6 +60,7 @@ public class UnusedArgumentsAnalysis {
             }
         }
 
+        // collect result
         List<ArgMapping> result = new ArrayList<>();
         for (var entry: usageMap.entrySet()) {
             var mapping = new ArgMapping(entry.getKey(), entry.getValue());
@@ -55,6 +71,10 @@ public class UnusedArgumentsAnalysis {
         return result;
     }
 
+    /**
+     * Single step of the fixed point iteration that updates
+     * the usage values of a specific function.
+     */
     private boolean updateValues(ArgUsageValue[] values) {
         boolean changed = false;
         for (int i = 0; i < values.length; i++) {
@@ -141,6 +161,10 @@ public class UnusedArgumentsAnalysis {
         return result;
     }
 
+    /**
+     * Represents for a specific function which arguments are unused and
+     * additionally translates each old argument index to the according new index.
+     */
     @ToString
     public static class ArgMapping {
         @Getter
@@ -192,6 +216,10 @@ public class UnusedArgumentsAnalysis {
     }
 }
 
+/**
+ * Lattice value that represents available information about the usage
+ * of an argument.
+ */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 class ArgUsageValue {
     @Getter

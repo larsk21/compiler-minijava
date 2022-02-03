@@ -13,6 +13,12 @@ import firm.nodes.Proj;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * A global optimization that analyses for all functions whether some of their
+ * arguments are unused (or used for recursive calls only). Then, all unused
+ * arguments are eliminated by updating the firm type of the function, the graph
+ * of the function and all call-sites.
+ */
 public class UnusedArgumentsOptimization implements Optimization.Global {
     @Override
     public Set<Graph> optimize(CallGraph callGraph) {
