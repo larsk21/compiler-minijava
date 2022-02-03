@@ -34,7 +34,6 @@ public final class AttributeAnalysis {
      * are needed, and will subsequently be cached.
      */
     public Attributes getAttributes(Entity entity) {
-        // return functions.getOrDefault(entity, Attributes.MINIMUM);
         var cachedAttributes = functions.get(entity);
         if (cachedAttributes == null) {
             var graph = entity.getGraph();
@@ -145,10 +144,11 @@ public final class AttributeAnalysis {
      * malloc-like function.
      */
     private boolean maybeNewAlloc(Node node) {
-        if (node.getMode().equals(Mode.getM())) {
+        if (node.getMode().equals(Mode.getM()) || node.visited()) {
             return false;
         }
 
+        node.markVisited();
         return switch (node.getOpCode()) {
             case iro_Return -> {
                 if (node.getPredCount() != 2) {
@@ -158,19 +158,13 @@ public final class AttributeAnalysis {
                 }
             }
             case iro_Confirm -> maybeNewAlloc(node.getPred(0));
-            case iro_Proj -> maybeNewAlloc(node.getPred(0));
             case iro_Phi -> {
-                if (node.visited()) {
-                    yield false;
-                } else {
-                    node.markVisited();
-                    for (var pred : node.getPreds()) {
-                        if (maybeNewAlloc(pred)) {
-                            yield true;
-                        }
+                for (var pred : node.getPreds()) {
+                    if (maybeNewAlloc(pred)) {
+                        yield true;
                     }
-                    yield false;
                 }
+                yield false;
             }
             case iro_Call -> {
                 var callee = Util.getCallee((Call) node);
@@ -181,8 +175,8 @@ public final class AttributeAnalysis {
             case iro_Bad -> true;
             case iro_Unknown, iro_Load -> false;
             default -> {
-                for (var i = 0; i < node.getPredCount(); ++i) {
-                    if (maybeNewAlloc(node.getPred(i))) {
+                for (var pred : node.getPreds()) {
+                    if (maybeNewAlloc(pred)) {
                         yield true;
                     }
                 }
