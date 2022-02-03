@@ -46,8 +46,6 @@ public class LoadStoreOptimization implements Optimization.Local {
 
         // this is needed for loops etc that are not handled by post order very well
         g.walkPostorder(domVisitor);
-        g.walkPostorder(domVisitor);
-        g.walkPostorder(domVisitor);
 
         for (var entry : visitor.getMemNodeMap().entrySet()) {
             Set<MemNode> dominators = entry.getValue().getDominatingMem();
@@ -134,11 +132,6 @@ public class LoadStoreOptimization implements Optimization.Local {
                 memNodeMap.put(orig, null);
                 List<Node> memOuts = traceMemOuts(memNode.get());
                 MemNode newMem = new MemNode(orig, memNode.get(), memOuts);
-                if (orig.equals(start)) {
-                    // TODO: never happened
-                    newMem.getDominatingMem().add(newMem);
-                    rootMemNode = newMem;
-                }
                 memNodeMap.put(orig, newMem);
             }
         }
@@ -302,8 +295,7 @@ public class LoadStoreOptimization implements Optimization.Local {
                 }
                 case iro_Div, iro_Load, iro_Store, iro_Mod, iro_Call, iro_Return, iro_Phi -> {
                     if (node.getOpCode() == iro_Phi) {
-                        Phi phi = (Phi) node;
-                        if (!Objects.equals(phi.getMode(), Mode.getM())) {
+                        if (!Objects.equals(node.getMode(), Mode.getM())) {
                             return;
                         }
                     }
@@ -314,15 +306,6 @@ public class LoadStoreOptimization implements Optimization.Local {
 
                     // check all pred nodes if they have the same dominator otherwise set this as dominating
                     for (var pred : mem.getMemPreds()) {
-                        if (pred.getN().getOpCode() == iro_Call) {
-                            Call c = (Call) pred.getN();
-                            Attributes a = state.getAttributeAnalysis().getAttributes(Util.getCallee(c));
-                            if (a.isPure()) {
-                                mem.getDominatingMem().addAll(pred.getDominatingMem());
-                                continue;
-                            }
-                        }
-
                         if (pred.getN().getOpCode() == binding_irnode.ir_opcode.iro_Store || pred.getN().getOpCode() == iro_Call) {
                             mem.getDominatingMem().add(pred);
                         } else if (pred.getDominatingMem().size() > 1) {
