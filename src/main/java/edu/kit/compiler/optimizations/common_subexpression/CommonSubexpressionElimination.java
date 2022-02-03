@@ -4,10 +4,10 @@ import com.sun.jna.Pointer;
 import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.optimizations.OptimizationState;
 import edu.kit.compiler.optimizations.Util;
-import edu.kit.compiler.optimizations.attributes.Attributes;
 import firm.*;
 import firm.bindings.binding_irdom;
 import firm.bindings.binding_irgopt;
+import firm.bindings.binding_ircons.op_pin_state;
 import firm.bindings.binding_irnode;
 import firm.nodes.*;
 import lombok.Data;
@@ -29,7 +29,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
     public boolean optimize(Graph g, OptimizationState state) {
         g.assureProperties(IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE);
 
-        // compare new change map with old one
         boolean backEdgesEnabled = BackEdges.enabled(g);
         if (!backEdgesEnabled) {
             BackEdges.enable(g);
@@ -96,7 +95,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         binding_irgopt.remove_bads(g.ptr);
         binding_irgopt.remove_unreachable_code(g.ptr);
         binding_irgopt.remove_bads(g.ptr);
-        g.assureProperties(IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE);
 
         return hadChange;
     }
@@ -115,7 +113,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
                 And and = (And) replacement;
                 yield g.newAnd(replacement.getBlock(), and.getLeft(), and.getRight());
             }
-
             case iro_Or -> {
                 Or or = (Or) replacement;
                 yield g.newOr(replacement.getBlock(), or.getLeft(), or.getRight());
@@ -163,6 +160,16 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             case iro_Shrs -> {
                 Shrs shrs = (Shrs) replacement;
                 yield g.newShrs(replacement.getBlock(), shrs.getLeft(), shrs.getRight());
+            }
+            case iro_Div -> {
+                Div div = (Div) replacement;
+                yield g.newDiv(replacement.getBlock(), div.getMem(), div.getLeft(),
+                        div.getRight(), op_pin_state.op_pin_state_pinned);
+            }
+            case iro_Mod -> {
+                Mod mod = (Mod) replacement;
+                yield g.newMod(replacement.getBlock(), mod.getMem(), mod.getLeft(),
+                        mod.getRight(), op_pin_state.op_pin_state_pinned);
             }
             case iro_Call -> {
                 Call call = (Call) replacement;
@@ -236,29 +243,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         private final Map<NodePreds, Node> nodeCache = new HashMap<>();
         private final Map<ProjPreds, Node> projCache = new HashMap<>();
 
-        private final Map<CmpPreds, Node> cmpCache = new HashMap<>();
-
-        @RequiredArgsConstructor
-        private class CmpPreds {
-            private final Node predLeft;
-            private final Node predRight;
-            private final Relation relation;
-            private final Mode mode;
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-                CmpPreds cmpPreds = (CmpPreds) o;
-                return predLeft.equals(cmpPreds.predLeft) && predRight.equals(cmpPreds.predRight) && relation == cmpPreds.relation && mode.equals(cmpPreds.mode);
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hash(predLeft, predRight, relation, mode);
-            }
-        }
-
         @RequiredArgsConstructor
         private class ProjPreds {
             private final Node pred;
@@ -306,7 +290,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             // change nothing
         }
 
-
         private void visitPreds(Node node, Node[] preds, binding_irnode.ir_opcode opcode) {
             NodePreds np = new NodePreds(preds, opcode, node.getMode());
             if (nodeCache.containsKey(np)) {
@@ -332,22 +315,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         @Override
         public void visit(And node) {
             visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_And);
-        }
-
-        @Override
-        public void visit(Cmp node) {
-            CmpPreds cmpPreds = new CmpPreds(node.getLeft(), node.getRight(), node.getRelation(), node.getMode());
-            if (cmpCache.containsKey(cmpPreds)) {
-                Node n = cmpCache.get(cmpPreds);
-                if (dominates(n.getBlock().ptr, node.getBlock().ptr)) {
-                    nodeValues.put(node, n);
-                } else {
-                    nodeValues.put(n, node);
-                    cmpCache.put(cmpPreds, node);
-                }
-            } else {
-                cmpCache.put(cmpPreds, node);
-            }
         }
 
         @Override
@@ -384,8 +351,9 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
         @Override
         public void visit(Call call) {
-            Attributes a = s.getAttributeAnalysis().getAttributes(Util.getCallee(call));
-            if (a.isPure()) {
+            var analysis = s.getAttributeAnalysis();
+            var attributes = analysis.getAttributes(Util.getCallee(call));
+            if (!Util.isPinned(call) && attributes.canDeduplicate()) {
                 visitPreds(call, Util.iterableToArray(call.getPreds()), binding_irnode.ir_opcode.iro_Call);
             }
         }
