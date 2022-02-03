@@ -171,10 +171,10 @@ public final class LoopVariableAnalysis {
         return analyzeStepValue(loopVariable, zero, loopVariable.getPred(i));
     }
 
-    private static TargetValueLatticeElement analyzeStepValue(Phi loopVariable,
-            TargetValueLatticeElement step, Node node) {
+    private static TargetValueLatticeElement analyzeStepValue(
+            Phi loopVariable, TargetValueLatticeElement step, Node node) {
         if (!step.isConstant()) {
-            return step;
+            return CONFLICTING;
         }
 
         return switch (node.getOpCode()) {
@@ -192,14 +192,19 @@ public final class LoopVariableAnalysis {
                 if (node.equals(loopVariable)) {
                     yield step;
                 } else {
+                    // this analysis is quite limited, if the same Phi is
+                    // visited twice for any reason, CONFLICTING is returned
                     if (node.visited()) {
                         yield CONFLICTING;
                     } else {
                         node.markVisited();
                         var newStep = UNKNOWN;
-                        for (int i = 0; i < node.getPredCount() && newStep.isConstant(); ++i) {
+                        for (var pred : node.getPreds()) {
                             newStep = newStep.join(analyzeStepValue(
-                                    loopVariable, step, node.getPred(i)));
+                                    loopVariable, step, pred));
+                            if (newStep.isConflicting()) {
+                                yield CONFLICTING;
+                            }
                         }
                         yield newStep;
                     }
