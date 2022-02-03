@@ -11,6 +11,7 @@ import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.transform.IRVisitor;
 import edu.kit.compiler.transform.JFirmSingleton;
+import firm.Dump;
 import firm.Graph;
 import firm.Program;
 
@@ -55,6 +56,31 @@ public class FirmGraphGenerator {
                         e.printStackTrace();
                     }
                 }
+            }
+        }
+    }
+
+    public static void dumpGraph(Graph g) throws IOException {
+        JFirmSingleton.initializeFirmLinux();
+
+        Dump.dumpGraph(g, "dumped-graph");
+        String p = Objects.requireNonNull(systemClassLoader.getResource(".")).getFile();
+        File rootDir = new File(p + "/../../");
+        if (!rootDir.exists()) {
+            throw new IllegalStateException("could not recover main directory");
+        }
+        for (String s : rootDir.list()) {
+            if (s.contains("dumped-graph")) {
+                // move to output directory
+                File currentFile = new File(rootDir.getPath(), s);
+                if (!currentFile.exists()) {
+                    throw new IllegalStateException("output graph does not exist!" + currentFile);
+                }
+                File targetFile = new File(tempDir.getPath(), s);
+                Files.move(currentFile.toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                currentFile.delete();
+                System.out.printf("moved file %s\n", s);
             }
         }
     }

@@ -100,6 +100,7 @@ public class PatternCollection implements Pattern<InstructionMatch> {
                 Map.entry(iro_Start, new EmptyPattern()),
                 Map.entry(iro_End, new InheritingPattern()),
                 Map.entry(iro_Cmp, new InheritingPattern()),
+                Map.entry(iro_Sync, new InheritingPattern()),
                 Map.entry(iro_NoMem, new EmptyPattern()),
 
                 // handle Unknown nodes

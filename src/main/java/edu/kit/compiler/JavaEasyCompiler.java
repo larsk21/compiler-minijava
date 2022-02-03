@@ -19,7 +19,7 @@ import edu.kit.compiler.codegen.PatternCollection;
 import edu.kit.compiler.codegen.PhiResolver;
 import edu.kit.compiler.codegen.ReversePostfixOrder;
 import edu.kit.compiler.intermediate_lang.Block;
-import edu.kit.compiler.optimizations.common_subexpression.CommonSubexpressionElimination;
+import edu.kit.compiler.optimizations.*;
 import edu.kit.compiler.optimizations.inlining.InliningOptimization;
 import edu.kit.compiler.optimizations.unrolling.LoopUnrollingOptimization;
 import edu.kit.compiler.optimizations.UnusedArgumentsOptimization;
@@ -37,13 +37,6 @@ import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.logger.Logger;
 import edu.kit.compiler.logger.Logger.Verbosity;
-import edu.kit.compiler.optimizations.ArithmeticIdentitiesOptimization;
-import edu.kit.compiler.optimizations.ArithmeticReplacementOptimization;
-import edu.kit.compiler.optimizations.ConstantOptimization;
-import edu.kit.compiler.optimizations.LinearBlocksOptimization;
-import edu.kit.compiler.optimizations.LoopInvariantOptimization;
-import edu.kit.compiler.optimizations.Optimizer;
-import edu.kit.compiler.optimizations.PureFunctionOptimization;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
@@ -393,6 +386,7 @@ public class JavaEasyCompiler {
                     new CommonSubexpressionElimination(),
                     new InliningOptimization(),
                     new PureFunctionOptimization(),
+                    new LoadStoreOptimization(),
                     new LoopInvariantOptimization(),
                     new LoopUnrollingOptimization()
                 ), debugFlags);
