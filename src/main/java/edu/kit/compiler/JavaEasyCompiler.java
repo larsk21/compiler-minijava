@@ -382,7 +382,9 @@ public class JavaEasyCompiler {
                 asmOptimizer = new AssemblyOptimizer(List.of());
                 break;
             case Level1:
-                optimizer = new Optimizer(List.of(new UnusedArgumentsOptimization()), List.of(
+                optimizer = new Optimizer(List.of(
+                    new UnusedArgumentsOptimization()
+                ), List.of(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization(),

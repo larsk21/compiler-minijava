@@ -11,7 +11,6 @@ import firm.bindings.binding_irnode;
 import firm.nodes.Call;
 import firm.nodes.Node;
 import firm.nodes.Proj;
-import firm.nodes.Start;
 import lombok.*;
 
 import java.util.*;
