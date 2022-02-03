@@ -21,6 +21,7 @@ import edu.kit.compiler.codegen.ReversePostfixOrder;
 import edu.kit.compiler.intermediate_lang.Block;
 import edu.kit.compiler.optimizations.inlining.InliningOptimization;
 import edu.kit.compiler.optimizations.unrolling.LoopUnrollingOptimization;
+import edu.kit.compiler.optimizations.UnusedArgumentsOptimization;
 import edu.kit.compiler.register_allocation.DumbAllocator;
 import edu.kit.compiler.register_allocation.LinearScan;
 import edu.kit.compiler.register_allocation.RegisterAllocator;
@@ -381,7 +382,9 @@ public class JavaEasyCompiler {
                 asmOptimizer = new AssemblyOptimizer(List.of());
                 break;
             case Level1:
-                optimizer = new Optimizer(List.of(), List.of(
+                optimizer = new Optimizer(List.of(
+                    new UnusedArgumentsOptimization()
+                ), List.of(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization(),

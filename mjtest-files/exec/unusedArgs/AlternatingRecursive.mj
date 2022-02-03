@@ -1,0 +1,25 @@
+class A {
+    public static void main(String[] args) {
+        A obj = new A();
+        obj.run();
+    }
+
+    public void run() {
+        int i = 2;
+        while (i < 50) {
+            System.out.println(call1(i, i - 1, i - 2));
+            i = 2 * i;
+        }
+    }
+
+    public int call1(int a, int b, int c) {
+        if (a == 0) {
+            return 5;
+        }
+        return call2(a, c, b);
+    }
+
+    public int call2(int a, int b, int c) {
+        return call1(a - 1, b, c);
+    }
+}

@@ -1,30 +1,17 @@
 package edu.kit.compiler.optimizations;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.ObjIntConsumer;
 
 import com.sun.jna.Pointer;
 
 import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.io.Worklist;
-import firm.BlockWalker;
-import firm.Entity;
-import firm.Graph;
-import firm.Mode;
+import firm.*;
 import firm.bindings.binding_irdom;
 import firm.bindings.binding_irnode;
 import firm.bindings.binding_irnode.ir_opcode;
-import firm.nodes.Address;
-import firm.nodes.Block;
-import firm.nodes.Call;
-import firm.nodes.Node;
-import firm.nodes.NodeVisitor;
-import firm.nodes.Proj;
-import firm.nodes.Tuple;
+import firm.nodes.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -252,5 +239,13 @@ public final class Util {
                 func.accept((Block) pred.getBlock(), i);
             }
         } 
+    }
+
+    /**
+     * Returns the number of arguments of the given function.
+     */
+    public static int getNArgs(Entity func) {
+        var type = (MethodType) func.getType();
+        return type.getNParams();
     }
 }
