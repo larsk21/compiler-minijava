@@ -248,21 +248,4 @@ public final class Util {
         var type = (MethodType) func.getType();
         return type.getNParams();
     }
-
-    /**
-     * Determines the node that projects the arguments from the start node of
-     * the specified function, if there is any.
-     */
-    public static Optional<Proj> getArgProj(Entity func) {
-        Optional<Proj> argProj = Optional.empty();
-        Start start = func.getGraph().getStart();
-        for (var edge: BackEdges.getOuts(start)) {
-            if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj
-                    && edge.node.getMode().equals(Mode.getT())) {
-                assert argProj.isEmpty(): "Proj not unique!";
-                argProj = Optional.of((Proj) edge.node);
-            }
-        }
-        return argProj;
-    }
 }

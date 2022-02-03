@@ -114,17 +114,15 @@ public class UnusedArgumentsAnalysis {
     }
 
     private ArgUsageValue[] analyzeArgs(Entity function) {
-        var argProj = Util.getArgProj(function);
+        var argProj = function.getGraph().getArgs();
         ArgUsageValue[] result = new ArgUsageValue[Util.getNArgs(function)];
         Arrays.fill(result, new ArgUsageValue(false));
-        if (argProj.isPresent()) {
-            for (var edge : BackEdges.getOuts(argProj.get())) {
-                if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj) {
-                    Proj currentArg = (Proj) edge.node;
-                    int index = currentArg.getNum();
-                    var newValue = analyzeNodeUsage(currentArg, argProj.get());
-                    result[index] = result[index].supremum(newValue);
-                }
+        for (var edge : BackEdges.getOuts(argProj)) {
+            if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj) {
+                Proj currentArg = (Proj) edge.node;
+                int index = currentArg.getNum();
+                var newValue = analyzeNodeUsage(currentArg, argProj);
+                result[index] = result[index].supremum(newValue);
             }
         }
         return result;

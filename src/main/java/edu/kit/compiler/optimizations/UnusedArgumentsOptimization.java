@@ -75,17 +75,15 @@ public class UnusedArgumentsOptimization implements Optimization.Global {
     private void updateCallee(ArgMapping mapping) {
         Graph graph = mapping.getFunc().getGraph();
         BackEdges.enable(graph);
-        var argProj = Util.getArgProj(mapping.getFunc());
-        if (argProj.isPresent()) {
-            for (var edge: BackEdges.getOuts(argProj.get())) {
-                if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj) {
-                    Proj currentArg = (Proj) edge.node;
-                    int index = currentArg.getNum();
-                    if (mapping.isUsed(index)) {
-                        currentArg.setNum(mapping.getMappedIndex(index));
-                    } else {
-                        Graph.exchange(currentArg, graph.newBad(currentArg.getMode()));
-                    }
+        var argProj = graph.getArgs();
+        for (var edge: BackEdges.getOuts(argProj)) {
+            if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj) {
+                Proj currentArg = (Proj) edge.node;
+                int index = currentArg.getNum();
+                if (mapping.isUsed(index)) {
+                    currentArg.setNum(mapping.getMappedIndex(index));
+                } else {
+                    Graph.exchange(currentArg, graph.newBad(currentArg.getMode()));
                 }
             }
         }
