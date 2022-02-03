@@ -244,6 +244,19 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             private final Node predRight;
             private final Relation relation;
             private final Mode mode;
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                CmpPreds cmpPreds = (CmpPreds) o;
+                return predLeft.equals(cmpPreds.predLeft) && predRight.equals(cmpPreds.predRight) && relation == cmpPreds.relation && mode.equals(cmpPreds.mode);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(predLeft, predRight, relation, mode);
+            }
         }
 
         @RequiredArgsConstructor
@@ -395,7 +408,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
         @Override
         public void visit(Div node) {
-            //   visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Div);
+            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Div);
         }
 
         @Override
@@ -410,7 +423,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
         @Override
         public void visit(Mod node) {
-            //   visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Mod);
+            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Mod);
         }
 
         @Override
