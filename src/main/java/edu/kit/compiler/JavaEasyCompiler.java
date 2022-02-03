@@ -40,6 +40,7 @@ import edu.kit.compiler.optimizations.ArithmeticIdentitiesOptimization;
 import edu.kit.compiler.optimizations.ArithmeticReplacementOptimization;
 import edu.kit.compiler.optimizations.ConstantOptimization;
 import edu.kit.compiler.optimizations.LinearBlocksOptimization;
+import edu.kit.compiler.optimizations.LoadStoreOptimization;
 import edu.kit.compiler.optimizations.LoopInvariantOptimization;
 import edu.kit.compiler.optimizations.Optimizer;
 import edu.kit.compiler.optimizations.PureFunctionOptimization;
@@ -391,6 +392,7 @@ public class JavaEasyCompiler {
                     new LinearBlocksOptimization(),
                     new InliningOptimization(),
                     new PureFunctionOptimization(),
+                    new LoadStoreOptimization(),
                     new LoopInvariantOptimization(),
                     new LoopUnrollingOptimization()
                 ), debugFlags);
