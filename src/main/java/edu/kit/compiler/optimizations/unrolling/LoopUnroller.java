@@ -120,8 +120,8 @@ public final class LoopUnroller {
     private void fixCopyHeader(Block header, NodeVec headerCopy) {
         Util.forEachPredBlock(header, (predBlock, i) -> {
             var bad = graph.newBad(Mode.getX());
-            if (loop.isBackEdge(i)) {
 
+            if (loop.isBackEdge(i)) {
                 var pred = header.getPred(i);
                 var predCopy = copies.get(pred);
 
@@ -150,7 +150,6 @@ public final class LoopUnroller {
         Util.forEachPredBlock(header, (predBlock, i) -> {
             if (loop.isBackEdge(i)) {
                 var predCopy = copies.get(header.getPred(i));
-                assert predCopy.get(nCopies - 1) != null;
                 header.setPred(i, predCopy.get(nCopies - 1));
             } else if (isFull) {
                 header.setPred(i, graph.newBad(Mode.getX()));
@@ -194,12 +193,14 @@ public final class LoopUnroller {
     }
 
     private void fixHeaderPhi(Phi phi) {
-        for (int i = 0; i < phi.getPredCount(); ++i) {
-            if (loop.isBackEdge(i)) {
-                var phiCopy = copies.get(phi);
-                var predCopy = copies.get(phi.getPred(i));
+        var phiCopy = copies.get(phi);
 
-                phiCopy.get(0).setPred(i, phi.getPred(i));
+        for (int i = 0; i < phi.getPredCount(); ++i) {
+            var pred = phi.getPred(i);
+            if (loop.isBackEdge(i) && loop.containsNode(pred)) {
+                var predCopy = copies.get(pred);
+
+                phiCopy.get(0).setPred(i, pred);
                 for (int j = 1; j < nCopies; ++j) {
                     phiCopy.get(j).setPred(i, predCopy.get(j - 1));
                 }
