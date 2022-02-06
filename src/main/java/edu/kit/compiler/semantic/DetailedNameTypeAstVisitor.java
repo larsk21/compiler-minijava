@@ -449,7 +449,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
 
                 namespace_ = objectType_.flatMap(objectType -> {
                     if (objectType.getType() == DataTypeClass.UserDefined) {
-                        return Optional.of(namespaceMapper.getClassNamespace(objectType.getIdentifier().get()));
+                        return Optional.ofNullable(namespaceMapper.getClassNamespace(objectType.getIdentifier().get()));
                     } else {
                         return semanticError(methodInvocationExpressionNode, "method invocation is only allowed on reference type expressions");
                     }
