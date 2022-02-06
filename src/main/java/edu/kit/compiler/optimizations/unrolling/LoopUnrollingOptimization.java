@@ -54,13 +54,11 @@ public class LoopUnrollingOptimization implements Optimization.Local {
             return false;
         }
 
-        var result = LoopAnalysis.apply(graph)
-                .getForestOfLoops().stream()
+        var result = LoopAnalysis.apply(graph).stream()
                 .map(this::optimize)
                 .reduce(Result.UNCHANGED, Result::merge);
 
         graph.confirmProperties(IR_GRAPH_PROPERTIES_NONE);
-        binding_irgopt.remove_bads(graph.ptr);
         binding_irgopt.remove_unreachable_code(graph.ptr);
         binding_irgopt.remove_bads(graph.ptr);
 
@@ -76,13 +74,17 @@ public class LoopUnrollingOptimization implements Optimization.Local {
                 .reduce(Result.FULL, Result::merge);
 
         if (result == Result.FULL) {
-            // only try to unroll a loop if all nested loops are fully unrolled
-            var loop = tree.getLoop();
-            loop.updateBody();
-            return LoopVariableAnalysis.apply(loop)
-                    .flatMap(FixedIterationLoop::getIterationCount)
-                    .map(n -> tryUnroll(loop, n))
-                    .orElse(Result.UNCHANGED);
+            if (tree.getLoop().isValid()) {
+                // only try to unroll a loop if all nested loops are fully unrolled
+                var loop = tree.getLoop();
+                loop.updateBody();
+                return LoopVariableAnalysis.apply(loop)
+                        .flatMap(FixedIterationLoop::getIterationCount)
+                        .map(n -> tryUnroll(loop, n))
+                        .orElse(Result.UNCHANGED);
+            } else {
+                return Result.PARTIAL;
+            }
         } else {
             return result;
         }

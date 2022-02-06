@@ -21,6 +21,10 @@ import lombok.ToString;
 
 /**
  * Implements functionality to fully or partially unroll loops.
+ * 
+ * Note: This implementation can only handle closed loops. For closed loops,
+ * the assumption can be made that only nodes in the header are referenced from
+ * outside the loop. This makes rewiring the graph significantly less messy.
  */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class LoopUnroller {
