@@ -95,6 +95,10 @@ public final class LoopAnalysis {
         return surroundingLoops;
     }
 
+    /**
+     * Returns the nearest surrounding loop of `block`, where `block` is not the
+     * header of that loop.
+     */
     private Loop findSurroundingLoop(Block block) {
         var dom = block.ptr;
         while ((dom = binding_irdom.get_Block_idom(dom)) != null) {
@@ -119,9 +123,6 @@ public final class LoopAnalysis {
                 var loop = surroundingLoops.get(block);
                 Util.forEachPredBlock(block, (predBlock, i) -> {
                     var predLoop = surroundingLoops.get(predBlock);
-                    if (predLoop == null) {
-                        return;
-                    }
                     if (predLoop != null && !predLoop.equals(loop)
                             && !predLoop.getHeader().equals(block)) {
                         // this CF edge is a jump from within a loop to a block
