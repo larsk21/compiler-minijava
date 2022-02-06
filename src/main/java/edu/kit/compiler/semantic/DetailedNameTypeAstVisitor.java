@@ -2,6 +2,7 @@ package edu.kit.compiler.semantic;
 
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import edu.kit.compiler.data.AstObject;
 import edu.kit.compiler.data.AstVisitor;
@@ -302,6 +303,17 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
         });
     }
 
+    private <T> Optional<DataType> getDataTypeFromDefinition(Optional<T> definition_, Function<T, DataType> getType) {
+        return definition_.flatMap(definition -> {
+            DataType dataType = getType.apply(definition);
+            if (isValidDataType(dataType)) {
+                return Optional.of(dataType);
+            } else {
+                return Optional.empty();
+            }
+        });
+    }
+
     public Optional<DataType> visit(BinaryExpressionNode binaryExpressionNode) {
         Optional<DataType> leftSideType_ = binaryExpressionNode.getLeftSide().accept(this);
         Optional<DataType> rightSideType_ = binaryExpressionNode.getRightSide().accept(this);
@@ -449,7 +461,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
 
                 namespace_ = objectType_.flatMap(objectType -> {
                     if (objectType.getType() == DataTypeClass.UserDefined) {
-                        return Optional.ofNullable(namespaceMapper.getClassNamespace(objectType.getIdentifier().get()));
+                        return Optional.of(namespaceMapper.getClassNamespace(objectType.getIdentifier().get()));
                     } else {
                         return semanticError(methodInvocationExpressionNode, "method invocation is only allowed on reference type expressions");
                     }
@@ -511,7 +523,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
             });
         }
 
-        Optional<DataType> resultType_ = definition_.map(definition -> definition.getType());
+        Optional<DataType> resultType_ = getDataTypeFromDefinition(definition_, MethodNode::getType);
         return applyResultType(methodInvocationExpressionNode, resultType_);
     }
 
@@ -536,7 +548,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
 
         applyDefinition(fieldAccessExpressionNode, definition_);
 
-        Optional<DataType> resultType_ = definition_.map(definition -> definition.getType());
+        Optional<DataType> resultType_ = getDataTypeFromDefinition(definition_, ClassNodeField::getType);
         return applyResultType(fieldAccessExpressionNode, resultType_);
     }
 
@@ -576,7 +588,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
             if (!currentClassNamespace.isPresent() && definition.getKind() == DefinitionKind.Field) {
                 return semanticError(identifierExpressionNode, "field access is not allowed in static contexts");
             } else {
-                return Optional.of(definition.getType());
+                return getDataTypeFromDefinition(definition_, Definition::getType);
             }
         });
         return applyResultType(identifierExpressionNode, resultType_);
