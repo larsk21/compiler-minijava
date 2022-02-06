@@ -40,7 +40,7 @@ export LD_LIBRARY_PATH="${SCRIPT_PATH}/target/lib/"
 export STD_LIBRARY_PATH="${SCRIPT_PATH}/lib/stdlib.c"
 
 # build the executable with Maven
-mvn package "$@"
+mvn package -DskipTests "$@"
 mvn_exit=$?
 
 # change the working directory back to where we came from
