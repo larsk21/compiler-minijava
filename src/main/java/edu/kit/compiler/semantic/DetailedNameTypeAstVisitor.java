@@ -68,10 +68,10 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
     private Optional<ClassNamespace> currentClassNamespace;
     private Optional<DataType> expectedReturnType;
 
-    private boolean isValidDataType(DataType type) {
+    private boolean isValidDataType(DataType type, boolean allowVoid) {
         switch (type.getType()) {
         case Array:
-            return isValidDataType(type.getInnerType().get());
+            return isValidDataType(type.getInnerType().get(), allowVoid);
         case Boolean:
             return true;
         case Int:
@@ -79,7 +79,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
         case UserDefined:
             return namespaceMapper.containsClassNamespace(type.getIdentifier().get());
         case Void:
-            return false;
+            return allowVoid;
         default:
             throw new IllegalArgumentException("unsupported data type");
         }
@@ -108,7 +108,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
         symboltable.enterScope();
 
         for (ClassNodeField field : classNode.getFields()) {
-            if (isValidDataType(field.getType())) {
+            if (isValidDataType(field.getType(), false)) {
                 if (!field.isHasError()) {
                     symboltable.insert(field);
                 }
@@ -142,7 +142,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
     private Optional<DataType> visitMethodNode(MethodNode methodNode) {
         symboltable.enterScope();
 
-        if (isValidDataType(methodNode.getType()) || methodNode.getType().getType() == DataTypeClass.Void) {
+        if (isValidDataType(methodNode.getType(), true)) {
             expectedReturnType = Optional.of(methodNode.getType());
         } else {
             semanticError(methodNode, "unknown reference type '%s'", methodNode.getType().getRepresentation(stringTable));
@@ -150,7 +150,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
         }
 
         for (MethodNodeParameter parameter : methodNode.getParameters()) {
-            if (isValidDataType(parameter.getType())) {
+            if (isValidDataType(parameter.getType(), false)) {
                 if (!parameter.isHasError()) {
                     symboltable.insert(parameter);
                 }
@@ -192,7 +192,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
     public Optional<DataType> visit(LocalVariableDeclarationStatementNode localVariableDeclarationStatementNode) {
         Optional<DataType> leftSideType_ = Optional.of(localVariableDeclarationStatementNode.getType());
         leftSideType_ = leftSideType_.flatMap(leftSideType -> {
-            if (isValidDataType(leftSideType)) {
+            if (isValidDataType(leftSideType, false)) {
                 return Optional.of(leftSideType);
             } else {
                 if (leftSideType.getType() == DataTypeClass.Void) {
@@ -306,7 +306,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
     private <T> Optional<DataType> getDataTypeFromDefinition(Optional<T> definition_, Function<T, DataType> getType) {
         return definition_.flatMap(definition -> {
             DataType dataType = getType.apply(definition);
-            if (isValidDataType(dataType)) {
+            if (isValidDataType(dataType, true)) {
                 return Optional.of(dataType);
             } else {
                 return Optional.empty();
@@ -636,7 +636,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
     public Optional<DataType> visit(NewObjectExpressionNode newObjectExpressionNode) {
         Optional<DataType> objectType_ = Optional.of(new DataType(newObjectExpressionNode.getTypeName()));
         Optional<DataType> resultType_ = objectType_.flatMap(objectType -> {
-            if (isValidDataType(objectType)) {
+            if (isValidDataType(objectType, false)) {
                 return Optional.of(objectType);
             } else {
                 return semanticError(newObjectExpressionNode, "unknown reference type '%s'", stringTable.retrieve(objectType.getIdentifier().get()));
@@ -649,7 +649,7 @@ public class DetailedNameTypeAstVisitor implements AstVisitor<Optional<DataType>
     public Optional<DataType> visit(NewArrayExpressionNode newArrayExpressionNode) {
         Optional<DataType> elementType_ = Optional.of(newArrayExpressionNode.getElementType());
         elementType_ = elementType_.flatMap(elementType -> {
-            if (isValidDataType(elementType)) {
+            if (isValidDataType(elementType, false)) {
                 return Optional.of(elementType);
             } else {
                 if (elementType.getType() == DataTypeClass.Void) {
