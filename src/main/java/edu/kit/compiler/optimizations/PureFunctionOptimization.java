@@ -26,13 +26,15 @@ public final class PureFunctionOptimization implements Optimization.Local {
         for (var call : collector.calls) {
             var attributes = analysis.getAttributes(Util.getCallee(call));
             
-            hasChanged |= attributes.isPure() && unpinCall(call);
+            if (attributes.isTerminates()) {
+                hasChanged |= attributes.isPure() && unpinCall(call);
 
-            hasChanged |= switch (attributes.getPurity()) {
-                case CONST -> handleConstCall(call);
-                case PURE -> handlePureCall(call, collector.usedCalls); 
-                default -> false;
-            };
+                hasChanged |= switch (attributes.getPurity()) {
+                    case CONST -> handleConstCall(call);
+                    case PURE -> handlePureCall(call, collector.usedCalls); 
+                    default -> false;
+                };
+            }
         }
 
         return hasChanged;

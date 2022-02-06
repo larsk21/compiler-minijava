@@ -27,9 +27,7 @@ public final class LoopVariableAnalysis {
     private static final TargetValueLatticeElement CONFLICTING = TargetValueLatticeElement.conflicting();
 
     public static Optional<FixedIterationLoop> apply(Loop loop) {
-        if (!loop.isValid()) {
-            return Optional.empty();
-        }
+        assert loop.isValid();
 
         var cond = loop.getCond();
         if (cond.getSelector().getOpCode() != ir_opcode.iro_Cmp) {
