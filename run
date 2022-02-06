@@ -25,5 +25,5 @@ test -t 2 && export COLOR="on"
 
 # execute the compiler with the provided arguments and return the exit code
 # -ea enables assertions
-java -jar -ea "$EXE_PATH" "$@"
+java -jar "$EXE_PATH" "$@"
 exit $?

@@ -72,7 +72,7 @@ public class ApplyAssignment {
         this.savedRegisters = Optional.empty();
         this.numInstructions = numInstructions;
 
-        assertRegistersDontInterfere(assignment, sizes, lifetimes);
+        assert !registersInterfere(assignment, sizes, lifetimes);
     }
 
     public ApplyAssignment(RegisterAssignment[] assignment, RegisterSize[] sizes,
@@ -667,22 +667,27 @@ public class ApplyAssignment {
         result.add(String.format(format, args));
     }
 
-    private static void assertRegistersDontInterfere(RegisterAssignment[] assignment,
-                                                     RegisterSize[] sizes, Lifetime[] lifetimes) {
+    private static boolean registersInterfere(RegisterAssignment[] assignment,
+                                              RegisterSize[] sizes, Lifetime[] lifetimes) {
         for(int i = 0; i < lifetimes.length; i++) {
             for(int j = i + 1; j < lifetimes.length; j++) {
                 if (lifetimes[i].interferes(lifetimes[j])) {
                     if (!assignment[i].isSpilled() && !assignment[j].isSpilled()) {
-                        assert assignment[i].getRegister().get() != assignment[j].getRegister().get();
+                        if (assignment[i].getRegister().get() == assignment[j].getRegister().get()) {
+                            return true;
+                        }
                     } else if (assignment[i].isSpilled() && assignment[j].isSpilled()) {
                         int slotA = assignment[i].getStackSlot().get();
                         int slotB = assignment[j].getStackSlot().get();
                         // assert that stack slots are disjoint
-                        assert slotA >= slotB + sizes[j].getBytes() || slotB >= slotA + sizes[i].getBytes();
+                        if (slotA < slotB + sizes[j].getBytes() && slotB < slotA + sizes[i].getBytes()) {
+                            return true;
+                        }
                     }
                 }
             }
         }
+        return false;
     }
 
     /**
