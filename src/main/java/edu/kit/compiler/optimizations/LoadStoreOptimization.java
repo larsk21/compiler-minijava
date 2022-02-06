@@ -52,18 +52,13 @@ public class LoadStoreOptimization implements Optimization.Local {
             }
         }
 
-        boolean hadChanges = false;
         nodes = new ArrayList<>();
-        filler = new Util.NodeListFiller(nodes);
-        g.walkTopological(filler);
+        g.walkTopological(new Util.NodeListFiller(nodes));
 
         RedundantLoadVisitor rlVisitor = new RedundantLoadVisitor(visitor.getMemNodeMap());
-        while (!nodes.isEmpty()) {
-            Node n = nodes.remove(0);
+        for (Node n: nodes) {
             n.accept(rlVisitor);
         }
-
-        hadChanges |= rlVisitor.isChanges();
 
         if (!backEdgesEnabled) {
             BackEdges.disable(g);
@@ -74,7 +69,7 @@ public class LoadStoreOptimization implements Optimization.Local {
         binding_irgopt.remove_bads(g.ptr);
         g.assureProperties(IR_GRAPH_PROPERTY_CONSISTENT_DOMINANCE);
 
-        return hadChanges;
+        return rlVisitor.isChanges();
     }
 
     public static boolean dominates(Pointer source, Pointer target) {
@@ -247,37 +242,28 @@ public class LoadStoreOptimization implements Optimization.Local {
                 // eliminate load after store
                 Store store = (Store) dominatingMem.getN();
                 Node value = store.getValue();
-                replaceLoadWithValue(load, value, memNode, dominatingMem, store.getPtr());
+                replaceLoadWithValue(load, value, memNode, store.getPtr());
             } else if (dominatingMem.getN().getOpCode() == iro_Load) {
                 // eliminate load after load
                 Load prev = (Load) dominatingMem.getN();
                 Node value = load.getGraph().newProj(prev, prev.getMode(), Load.pnRes);
-                replaceLoadWithValue(load, value, memNode, dominatingMem, prev.getPtr());
+                replaceLoadWithValue(load, value, memNode, prev.getPtr());
             }
         }
 
-        private void replaceLoadWithValue(Load load, Node value, MemNode memNode, MemNode dominatingMem, Node ptr) {
+        private void replaceLoadWithValue(Load load, Node value, MemNode memNode, Node ptr) {
             if (ptr.equals(load.getPtr())) {
-                // replace result of the load for each successor
+                this.changes = true;
+                // replace result of the load
                 for (var edge : BackEdges.getOuts(load)) {
                     Node node = edge.node;
                     if (node.getOpCode() == iro_Proj && !node.getMode().equals(Mode.getM())) {
-                        Proj proj = (Proj) node;
-                        for (var out : BackEdges.getOuts(proj)) {
-                            out.node.setPred(out.pos, value);
-                        }
+                        Graph.exchange(node, value);
                     }
                 }
 
-                // replace mem node out with preds
-                this.changes = true;
+                // replace memory dependency of successors
                 Graph.exchange(memNode.getMem(), load.getMem());
-                // replace reference of mem to dominated mem node
-                for (var memOutNode : memNode.getMemOuts()) {
-                    if (memOutNode.getOpCode() != iro_Deleted) {
-                        memOutNode.setPred(0, dominatingMem.getMem());
-                    }
-                }
                 Graph.killNode(load);
             }
         }
