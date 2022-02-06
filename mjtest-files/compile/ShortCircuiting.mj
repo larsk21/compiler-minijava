@@ -1,0 +1,18 @@
+class short_circuiting {
+
+    public int counter;
+
+    public void run(){
+        short_circuiting s;
+        boolean c = (s = new short_circuiting().init(39)).counter == 3 && (s = new short_circuiting().init(22)).counter == 22;
+    }
+
+    public short_circuiting init(int counterStart){
+        counter = counterStart;
+        return this;
+    }
+
+    public static void main(String[] args) {
+        new short_circuiting().run();
+    }
+}
