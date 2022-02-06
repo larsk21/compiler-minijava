@@ -16,7 +16,7 @@ popd > /dev/null
 pushd "${SCRIPT_PATH}/libfirm" > /dev/null
 
 # use debug variant to build libfirm
-FIRM_VARIANT="debug"
+FIRM_VARIANT="optimize"
 
 # build libfirm using the provided makefile
 make -j variant="$FIRM_VARIANT"
