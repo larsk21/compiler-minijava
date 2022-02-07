@@ -1,0 +1,193 @@
+class A {
+    public int[] values;
+    public int num_rows;
+    public boolean[][] permutations;
+    public int[] solutionsPerValue;
+
+   public static void main(String[] args) {
+        A obj = new A();
+        obj.run();
+    }
+
+    public void run() {
+        int n = 30;
+        init(n);
+
+        /* we do repeated runs to get an appropriate running time */
+        int i = 0;
+        int sum = 0;
+        while (i < 5) {
+            sum = sum + runSingle(i, n);
+            i = i + 1;
+        }
+        System.out.println(sum);
+    }
+
+    public int runSingle(int target, int n) {
+        int row = 0;
+        while (row < num_rows) {
+            int i = 0;
+            while (!permutations[row][i]) {
+                i = i + 1;
+            }
+            int a = values[i];
+            i = i + 1;
+            while (!permutations[row][i]) {
+                i = i + 1;
+            }
+            int b = values[i];
+            i = i + 1;
+            while (!permutations[row][i]) {
+                i = i + 1;
+            }
+            int c = values[i];
+            i = i + 1;
+            while (!permutations[row][i]) {
+                i = i + 1;
+            }
+            int d = values[i];
+            i = i + 1;
+            while (!permutations[row][i]) {
+                i = i + 1;
+            }
+            int e = values[i];
+            i = i + 1;
+            while (!permutations[row][i]) {
+                i = i + 1;
+            }
+            int f = values[i];
+
+            int j = 0;
+            if (subsetSumOfSix(a, b, c, d, e, f, target) > 0) {
+                while (j < n) {
+                    int count = subsetSumOfSix(a, b, c, d, e, f, target);
+                    if (permutations[row][j]) {
+                        /* actually, this way of counting does not make a lot of sense */
+                        solutionsPerValue[j] = solutionsPerValue[j] + count;
+                    }
+                    j = j + 1;
+                }
+            } else {
+                if (subsetSumOfSix(a, b, c, d, e, f, 0) > 0) {
+                    /*System.out.println(0);*/
+                }
+            }
+            row = row + 1;
+        }
+
+        int j = 0;
+        int sum = 0;
+        while (j < n) {
+            sum = sum + solutionsPerValue[j];
+            j = j + 1;
+        }
+        return sum;
+    }
+
+    public void init(int n) {
+        values = new int[n];
+        values[0] = 13;
+        values[1] = 8;
+        values[2] = 3;
+        values[3] = 23;
+        values[4] = 21;
+        values[5] = 53;
+        values[6] = 17;
+        values[7] = 12;
+        values[8] = 35;
+        values[9] = 42;
+        values[10] = 9;
+        values[11] = 37;
+        values[12] = 44;
+        values[13] = 20;
+        values[14] = 34;
+        values[15] = 13;
+        values[16] = 8;
+        values[17] = 3;
+        values[18] = 23;
+        values[19] = 21;
+        values[20] = 53;
+        values[21] = 17;
+        values[22] = 12;
+        values[23] = 35;
+        values[24] = 42;
+        values[25] = 9;
+        values[26] = 37;
+        values[27] = 44;
+        values[28] = 20;
+        values[29] = 34;
+
+        num_rows =  593775; /* 30 choose 6 */
+        permutations = new boolean[num_rows][];
+        int i = 0;
+        while (i < num_rows) {
+            permutations[i] = new boolean[n];
+            i = i + 1;
+        }
+        initSubsets(new boolean[0], 0, 6, 0, n);
+
+        solutionsPerValue = new int[n];
+    }
+
+    /* prefix.length == pos */
+    public int initSubsets(boolean[] prefix, int pos, int remaining, int row, int n) {
+        if (remaining == 0) {
+            int index = 0;
+            while (index < pos) {
+                permutations[row][index] = prefix[index];
+                index = index + 1;
+            }
+            permutations[row][pos] = true;
+            row = row + 1;
+            return row;
+        } else {
+            int j = pos;
+            while (j < n + 1 - remaining) {
+                boolean[] newPrefix = new boolean[j + 1];
+                int index = 0;
+                while (index < j) {
+                    newPrefix[index] = prefix[index];
+                    index = index + 1;
+                }
+                newPrefix[j] = true;
+                row = initSubsets(newPrefix, j + 1, remaining - 1, row, n);
+                j = j + 1;
+            }
+            return row;
+        }
+    }
+
+    /* Calculates the number of solutions for a subset sum problem with six inputs. */
+    public int subsetSumOfSix(int a, int b, int c, int d, int e, int f, int target) {
+        return subsetSumOfFour(c, d, e, f, target - a)
+               + subsetSumOfFour(c, d, e, f, target - b)
+               + subsetSumOfFour(c, d, e, f, target);
+    }
+
+    /* Calculates the number of solutions for a subset sum problem with four inputs. */
+    public int subsetSumOfFour(int a, int b, int c, int d, int target) {
+        int n_a = 0;
+        int n_solutions = 0;
+        while (n_a < 2) {
+            int n_b = 0;
+            while (n_b < 2) {
+                int n_c = 0;
+                while (n_c < 2) {
+                    int n_d = 0;
+                    while (n_d < 2) {
+                        int sum = n_a * a + n_b * b + n_c * c + n_d * d;
+                        if (sum == target) {
+                            n_solutions = n_solutions + 1;
+                        }
+                        n_d = n_d + 1;
+                    }
+                    n_c = n_c + 1;
+                }
+                n_b = n_b + 1;
+            }
+            n_a = n_a + 1;
+        }
+        return n_solutions;
+    }
+}
+
