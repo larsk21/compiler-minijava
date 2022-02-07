@@ -140,7 +140,6 @@ class SubsetSum {
                 permutations[row][index] = prefix[index];
                 index = index + 1;
             }
-            permutations[row][pos] = true;
             row = row + 1;
             return row;
         } else {
