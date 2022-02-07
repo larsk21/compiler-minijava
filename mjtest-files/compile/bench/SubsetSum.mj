@@ -1,11 +1,14 @@
-class A {
+/* Tries to solve a combinatorial problem via brute force and nested loops.
+The call arrangement is rather suboptimal in some cases, so it might be
+possible to move a call out of the hot loop.. */
+class SubsetSum {
     public int[] values;
     public int num_rows;
     public boolean[][] permutations;
     public int[] solutionsPerValue;
 
    public static void main(String[] args) {
-        A obj = new A();
+        SubsetSum obj = new SubsetSum();
         obj.run();
     }
 
