@@ -18,10 +18,12 @@ class MyFirstClass {
              x = celsiusToFahrenheit(30) + celsiusToFahrenheit(60);
              k = k + celsiusToFahrenheit(0);
              int y = 0;
-             while(y < 50) {
+             while(y < 200) {
                 z = celsiusToFahrenheit(50);
                 y = y + 1;
              }
+             /* take average of storage room temp here */
+             y = y / 200;
              /* delete this line later, not used   */
              k = k + (0 * celsiusToFahrenheit(2000));
              i = i + 1;
