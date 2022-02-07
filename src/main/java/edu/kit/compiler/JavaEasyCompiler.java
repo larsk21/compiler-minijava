@@ -511,7 +511,7 @@ public class JavaEasyCompiler {
         PrintAst(new CliOption("a", "print-ast", Optional.of("path"), "try to parse the file contents and output the AST")),
         Check(new CliOption("c", "check", Optional.of("path"), "try to parse the file contents and perform semantic analysis")),
         CompileFirm(new CliOption("f", "compile-firm", Optional.of("path"), "transform the file to Firm IR and compile it using the Firm backend")),
-        Compile(new CliOption("co", "compile", Optional.of("path"), "compile the file")),
+        Compile(new CliOption("co", "compile", Optional.of("path"), "compile the file (default)")),
 
         Optimize0(new CliOption("O0", "optimize0", Optional.empty(), "run (almost) no optimizations")),
         Optimize1(new CliOption("O1", "optimize1", Optional.empty(), "run standard optimizations (default)")),
