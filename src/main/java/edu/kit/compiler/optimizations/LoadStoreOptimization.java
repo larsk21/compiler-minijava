@@ -138,13 +138,11 @@ public class LoadStoreOptimization implements Optimization.Local {
                     case iro_Div, iro_Load, iro_Store, iro_Mod, iro_Call, iro_Return -> {
                         memOuts.add(child);
                         // go into childs recursively to build graph
-                        child.accept(this);
                     }
                     case iro_Phi -> {
                         if (Objects.equals(child.getMode(), Mode.getM())) {
                             // this is a memory node itself thus we just follow it again
                             memOuts.add(child);
-                            child.accept(this);
                         }
                     }
                     case iro_Sync -> {
