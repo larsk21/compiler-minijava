@@ -3,6 +3,7 @@ package edu.kit.compiler;
 import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import edu.kit.compiler.assembly.AssemblyOptimizer;
 import edu.kit.compiler.assembly.AssemblyWriter;
@@ -19,6 +20,7 @@ import edu.kit.compiler.codegen.PatternCollection;
 import edu.kit.compiler.codegen.PhiResolver;
 import edu.kit.compiler.codegen.ReversePostfixOrder;
 import edu.kit.compiler.intermediate_lang.Block;
+import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.optimizations.inlining.InliningOptimization;
 import edu.kit.compiler.optimizations.unrolling.LoopUnrollingOptimization;
 import edu.kit.compiler.optimizations.UnusedArgumentsOptimization;
@@ -411,16 +413,18 @@ public class JavaEasyCompiler {
             case Level1:
                 optimizer = new Optimizer(List.of(
                     new UnusedArgumentsOptimization()
-                ), List.of(
+                ), CommonUtil.concat(Stream.of(
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization(),
-                    new LinearBlocksOptimization(),
-                    new InliningOptimization(),
+                    new LinearBlocksOptimization()
+                ), debugFlags.isNoInline() ? Stream.of() : Stream.of(
+                    new InliningOptimization()
+                ), Stream.of(
                     new PureFunctionOptimization(),
                     new LoopInvariantOptimization(),
                     new LoopUnrollingOptimization()
-                ), debugFlags);
+                )).collect(Collectors.toList()), debugFlags);
                 allocator = new LinearScan();
                 asmOptimizer = new AssemblyOptimizer(List.of(
                     new RemoveNop(),
@@ -530,6 +534,9 @@ public class JavaEasyCompiler {
         if (cliCall.hasOption(CliOptions.DumpGraphs.getOption())) {
             debugFlags.setDumpGraphs(true);
         }
+        if (cliCall.hasOption(CliOptions.NoInline.getOption())) {
+            debugFlags.setNoInline(true);
+        }
 
         return debugFlags;
     }
@@ -552,6 +559,7 @@ public class JavaEasyCompiler {
         Debug(new CliOption("d", "debug", Optional.empty(), "print debug information")),
 
         DumpGraphs(new CliOption("dg", "dump-graphs", Optional.empty(), "dump the Firm graphs of all methods")),
+        NoInline(new CliOption("ni", "no-inline", Optional.empty(), "disable the inline optimization")),
 
         Help(new CliOption("h", "help", Optional.empty(), "print command line syntax help"));
 
@@ -581,7 +589,8 @@ public class JavaEasyCompiler {
             CliOptions.Debug.getOption()
         ))),
         DebugOptions(new CliOptionGroup("Debug Options", false, Arrays.asList(
-            CliOptions.DumpGraphs.getOption()
+            CliOptions.DumpGraphs.getOption(),
+            CliOptions.NoInline.getOption()
         ))),
         Help(new CliOptionGroup("Help", false, Arrays.asList(
             CliOptions.Help.getOption()

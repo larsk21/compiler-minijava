@@ -19,4 +19,11 @@ public class DebugFlags {
     @Setter
     private boolean dumpGraphs = false;
 
+    /**
+     * Whether the inline optimization should be disabled regardless of the optimization level.
+     */
+    @Getter
+    @Setter
+    private boolean noInline = false;
+
 }

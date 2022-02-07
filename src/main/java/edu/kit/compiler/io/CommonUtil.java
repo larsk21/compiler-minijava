@@ -1,5 +1,6 @@
 package edu.kit.compiler.io;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,6 +17,14 @@ public final class CommonUtil {
      */
     public static final <T> Stream<T> stream(Iterable<T> iterable) {
         return StreamSupport.stream(iterable.spliterator(), false);
+    }
+
+    /**
+     * Concatenate the given streams using Stream::concat.
+     */
+    @SafeVarargs
+    public static final <T> Stream<T> concat(Stream<T>... streams) {
+        return Arrays.stream(streams).reduce(Stream.of(), (result, stream) -> Stream.concat(result, stream));
     }
 
     /**
