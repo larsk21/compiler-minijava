@@ -269,11 +269,20 @@
 \end{frame}
 
 \begin{frame}
-    \frametitle{Register Allocation - Overview / Techniques}
+    \frametitle{Register Allocation - Techniques}
 
     \begin{itemize}
+    	\item Blockwise
         \item Linear Scan
+        \item Graph Coloring
     \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Register Allocator - Overview}
+
+\centering \includegraphics[scale=0.7]{images/overview.pdf}
 
 \end{frame}
 
@@ -323,6 +332,7 @@
                 \item 6 arguments in register
                 \item rest on stack
                 \item caller / callee stacked registers
+                \item efficient implementation by calculating register permutation
             \end{itemize}
             \item 16-bit alignment for stdlib calls only
             \item omit load of spilled register if temp. register is still available (inside basic blocks)
