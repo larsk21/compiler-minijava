@@ -287,6 +287,30 @@
 \end{frame}
 
 \begin{frame}
+\frametitle{Register Allocator - Block Layout}
+
+	\begin{columns}
+		\begin{column}{0.65\textwidth}
+			\begin{itemize}
+				\item \textbf{Input:} unordered blocks (intermediate language)
+				\item Calculate reverse postfix order
+				\item Additionally: loop analysis
+					\begin{itemize}
+						\item Mapping between blocks and loops
+						\item Try to find consecutive block layout for each loop\\ (minimizes lifetime of registers within loop)
+					\end{itemize}
+				\item \textbf{Output:} linear block ordering, annotated with loop depth
+			\end{itemize}
+		\end{column}
+	
+		 \begin{column}{0.35\textwidth}
+		 	\centering \includegraphics[scale=0.7]{images/block_layout.pdf}
+		 \end{column}
+	\end{columns}
+
+\end{frame}
+
+\begin{frame}
     \frametitle{Register Allocator}
 
     \begin{itemize}
