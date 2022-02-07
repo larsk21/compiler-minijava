@@ -9,9 +9,7 @@ import edu.kit.compiler.optimizations.Util;
 import firm.*;
 import firm.bindings.binding_irdom;
 import firm.bindings.binding_irgopt;
-import firm.bindings.binding_ircons.op_pin_state;
 import firm.bindings.binding_irnode.ir_opcode;
-import firm.bindings.binding_ircons.ir_cons_flags;
 import firm.bindings.binding_irnode;
 import firm.nodes.*;
 import lombok.Data;
@@ -69,22 +67,15 @@ public class CommonSubexpressionElimination implements Optimization.Local {
                     changes |= transform(g, orig, node, orig.getOpCode(), replacementMap);
                 }
             }
-            if (changes) {
-                numChanges++;
-            }
 
             binding_irgopt.remove_bads(g.ptr);
             binding_irgopt.remove_unreachable_code(g.ptr);
             binding_irgopt.remove_bads(g.ptr);
-        } while (changes && numChanges < MAX_CHANGES);
+        } while (changes && (numChanges += 1) < MAX_CHANGES);
 
         if (!backEdgesEnabled) {
             BackEdges.disable(g);
         }
-
-        binding_irgopt.remove_bads(g.ptr);
-        binding_irgopt.remove_unreachable_code(g.ptr);
-        binding_irgopt.remove_bads(g.ptr);
 
         return numChanges != 0;
     }
@@ -147,16 +138,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
                 Shrs shrs = (Shrs) replacement;
                 yield g.newShrs(replacement.getBlock(), shrs.getLeft(), shrs.getRight());
             }
-            case iro_Div -> {
-                Div div = (Div) replacement;
-                yield g.newDiv(div.getBlock(), div.getMem(), div.getLeft(),
-                        div.getRight(), op_pin_state.op_pin_state_pinned);
-            }
-            case iro_Mod -> {
-                Mod mod = (Mod) replacement;
-                yield g.newMod(mod.getBlock(), mod.getMem(), mod.getLeft(),
-                        mod.getRight(), op_pin_state.op_pin_state_pinned);
-            }
             case iro_Call -> {
                 Call call = (Call) replacement;
                 Node[] preds = Util.iterableToArray(call.getPreds());
@@ -166,16 +147,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
                     System.arraycopy(preds, 2, ins, 0, preds.length - 2);
                 }
                 yield g.newCall(call.getBlock(), call.getMem(), call.getPtr(), ins, call.getType());
-            }
-            case iro_Load -> {
-                Load load = (Load) replacement;
-                yield g.newLoad(replacement.getBlock(), load.getMem(), load.getPtr(),
-                        load.getLoadMode(), load.getType(), ir_cons_flags.cons_none);
-            }
-            case iro_Store -> {
-                Store store = (Store) replacement;
-                yield g.newStore(store.getBlock(), store.getMem(), store.getPtr(),
-                        store.getValue(), store.getType(), ir_cons_flags.cons_none);
             }
             default -> null;
         };
@@ -345,11 +316,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         }
 
         @Override
-        public void visit(Div node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Div);
-        }
-
-        @Override
         public void visit(Eor node) {
             visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Eor);
         }
@@ -357,11 +323,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         @Override
         public void visit(Minus node) {
             visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Minus);
-        }
-
-        @Override
-        public void visit(Mod node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Mod);
         }
 
         @Override
@@ -397,16 +358,6 @@ public class CommonSubexpressionElimination implements Optimization.Local {
         @Override
         public void visit(Shrs node) {
             visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Shrs);
-        }
-
-        @Override
-        public void visit(Load node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Load);
-        }
-
-        @Override
-        public void visit(Store node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Store);
         }
     }
 }
