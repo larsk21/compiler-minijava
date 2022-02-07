@@ -118,6 +118,7 @@ public class UnusedArgumentsAnalysis {
         Arrays.fill(result, new ArgUsageValue(false));
         for (var edge : BackEdges.getOuts(argProj)) {
             if (edge.node.getOpCode() == binding_irnode.ir_opcode.iro_Proj) {
+                function.getGraph().incVisited();
                 Proj currentArg = (Proj) edge.node;
                 int index = currentArg.getNum();
                 var newValue = analyzeNodeUsage(currentArg, argProj);
@@ -134,6 +135,8 @@ public class UnusedArgumentsAnalysis {
      * (which is done later with a fixed-point analysis).
      */
     private ArgUsageValue analyzeNodeUsage(Node node, Node pred) {
+        node.markVisited();
+
         if (node.getMode().equals(Mode.getX()) || node.getMode().equals(Mode.getM())
                 || node.getOpCode() == binding_irnode.ir_opcode.iro_Load
                 || node.getOpCode() == binding_irnode.ir_opcode.iro_Store) {
@@ -151,10 +154,12 @@ public class UnusedArgumentsAnalysis {
         }
         ArgUsageValue result = new ArgUsageValue(false);
         for (var edge: BackEdges.getOuts(node)) {
-            var value = analyzeNodeUsage(edge.node, node);
-            result = result.supremum(value);
-            if (result.isDefinitivelyUsed()) {
-                return result;
+            if (!edge.node.visited()) {
+                var value = analyzeNodeUsage(edge.node, node);
+                result = result.supremum(value);
+                if (result.isDefinitivelyUsed()) {
+                    return result;
+                }
             }
         }
         return result;
