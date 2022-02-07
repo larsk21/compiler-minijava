@@ -196,11 +196,13 @@ public class CommonSubexpressionElimination implements Optimization.Local {
     }
 
     private static Node findReplacement(Node node, Map<Node, Node> replacements) {
+
         for (int i = 0; i < MAX_INDIRECTIONS; ++i) {
-            node = replacements.get(node);
-            if (node == null || node.getOpCode() != ir_opcode.iro_Deleted) {
+            var replacement = replacements.get(node);
+            if (replacement == null) {
                 return node;
             }
+            node = replacement;
         }
         return null;
     }
