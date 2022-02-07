@@ -145,7 +145,7 @@ class A {
             while (j < n + 1 - remaining) {
                 boolean[] newPrefix = new boolean[j + 1];
                 int index = 0;
-                while (index < j) {
+                while (index < pos) {
                     newPrefix[index] = prefix[index];
                     index = index + 1;
                 }
