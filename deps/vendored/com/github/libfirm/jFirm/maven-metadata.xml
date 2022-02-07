@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>vendored.com.github.libfirm</groupId>
+  <artifactId>jFirm</artifactId>
+  <versioning>
+    <versions>
+      <version>master-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20220207074337</lastUpdated>
+  </versioning>
+</metadata>
