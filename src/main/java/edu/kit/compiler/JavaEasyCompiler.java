@@ -19,6 +19,7 @@ import edu.kit.compiler.codegen.PatternCollection;
 import edu.kit.compiler.codegen.PhiResolver;
 import edu.kit.compiler.codegen.ReversePostfixOrder;
 import edu.kit.compiler.intermediate_lang.Block;
+import edu.kit.compiler.optimizations.common_subexpression.CommonSubexpressionElimination;
 import edu.kit.compiler.optimizations.inlining.InliningOptimization;
 import edu.kit.compiler.optimizations.unrolling.LoopUnrollingOptimization;
 import edu.kit.compiler.optimizations.UnusedArgumentsOptimization;
@@ -389,6 +390,7 @@ public class JavaEasyCompiler {
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization(),
                     new LinearBlocksOptimization(),
+                    new CommonSubexpressionElimination(),
                     new InliningOptimization(),
                     new PureFunctionOptimization(),
                     new LoopInvariantOptimization(),
