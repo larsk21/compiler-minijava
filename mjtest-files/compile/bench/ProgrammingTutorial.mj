@@ -1,0 +1,39 @@
+class ProgrammingTutorial {
+    public static void main(String[] args) {
+        MyFirstClass obj = new MyFirstClass();
+        obj.run();
+    }
+}
+
+class MyFirstClass {
+    public void run() {
+        int hello_world;
+        int k = 0;
+        int i = 0;
+        int x = 0;
+        int z = 0;
+
+        /* unsure if mini java is the right programming language for this but a friend recommended it  */
+        while (i < 50000000) {
+             x = celsiusToFahrenheit(30) + celsiusToFahrenheit(60);
+             k = k + celsiusToFahrenheit(0);
+             int y = 0;
+             while(y < 50) {
+                z = celsiusToFahrenheit(50);
+                y = y + 1;
+             }
+             /* delete this line later, not used   */
+             k = k + (0 * celsiusToFahrenheit(2000));
+             i = i + 1;
+        }
+        /* temperature from rooms + temperature of storage  */
+        System.out.println(k + x + z);
+    }
+
+    public int celsiusToFahrenheit(int a) {
+         int k = 8 * 2;
+         int j = k * 2;
+         return a * 2 + j;
+    }
+
+}
