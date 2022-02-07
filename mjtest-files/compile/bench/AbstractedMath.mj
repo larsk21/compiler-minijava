@@ -38,22 +38,15 @@ class Math {
             sum = sum + guess;
             val = val / pow(base, guess);
         }
-        if (val / pow(base, 0) <= 1) {
-            return sign * sum;
+        int remainder = guess;
+        int result = 0;
+        while (remainder >= 0) {
+            if (val / pow(base, remainder) <= 1) {
+                result = sign * (sum + remainder);
+            }
+            remainder = remainder - 1;
         }
-        if (val / pow(base, 1) <= 1) {
-            return sign * (sum + 1);
-        }
-        if (val / pow(base, 2) <= 1) {
-            return sign * (sum + 2);
-        }
-        if (val / pow(base, 3) <= 1) {
-            return sign * (sum + 3);
-        }
-        if (val / pow(base, 4) <= 1) {
-            return sign * (sum + 4);
-        }
-        return sign * (sum + 5);
+        return result;
     }
 
     public int pow(int base, int exp) {
