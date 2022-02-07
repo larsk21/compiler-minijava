@@ -293,7 +293,7 @@ public class LoadStoreOptimization implements Optimization.Local {
 
                     // check all pred nodes if they have the same dominator otherwise set this as dominating
                     for (var pred : mem.getMemPreds()) {
-                        if (pred.getN().getOpCode() == binding_irnode.ir_opcode.iro_Store || pred.getN().getOpCode() == iro_Call) {
+                        if (pred.getN().getOpCode() == binding_irnode.ir_opcode.iro_Store || pred.getN().getOpCode() == iro_Call || pred.getN().getOpCode() == iro_Phi) {
                             mem.getDominatingMem().add(pred);
                         } else if (pred.getDominatingMem().size() > 1) {
                             // in case we have more incoming predecessors just merge them here
