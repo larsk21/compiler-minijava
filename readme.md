@@ -71,17 +71,18 @@ Additionally, the compiler uses a more advanced register allocator in level 1.
 
 ### Middle End Optimizations
 
-| Optimization                  | Minimum Optimization Level |
-|-------------------------------|----------------------------|
-| Constant Propagation          | 0                          |
-| Arithmetic Identities         | 0                          |
-| Trivial Jumps & Linear Blocks | 1                          |
-| Arithmetic Strength Reduction | 1                          |
-| Pure Functions                | 1                          |
-| Inliner                       | 1                          |
-| Loop Invariant Code Motion    | 1                          |
-| Loop Unrolling                | 1                          |
-| Unused Arguments              | 1                          |
+| Optimization                     | Minimum Optimization Level |
+|----------------------------------|----------------------------|
+| Constant Propagation             | 0                          |
+| Arithmetic Identities            | 0                          |
+| Trivial Jumps & Linear Blocks    | 1                          |
+| Arithmetic Strength Reduction    | 1                          |
+| Pure Functions                   | 1                          |
+| Inliner                          | 1                          |
+| Loop Invariant Code Motion       | 1                          |
+| Loop Unrolling                   | 1                          |
+| Unused Arguments                 | 1                          |
+| Common Subexpression Elimination | 1                          |
 
 ### Backend Optimizations
 
