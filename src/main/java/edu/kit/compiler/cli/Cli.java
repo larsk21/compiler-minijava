@@ -32,7 +32,7 @@ public class Cli {
 
     @Getter
     @Setter
-    private int helpDescriptionPadding = 28;
+    private int helpDescriptionPadding = 30;
 
     /**
      * Parse the command line arguments with this definition of a command line

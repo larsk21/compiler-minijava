@@ -45,6 +45,7 @@ import edu.kit.compiler.optimizations.Optimizer;
 import edu.kit.compiler.optimizations.PureFunctionOptimization;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
+import edu.kit.compiler.parser.PrintAstVisitor;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
 import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
@@ -115,6 +116,32 @@ public class JavaEasyCompiler {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
             Parser parser = new Parser(new Lexer(reader, logger));
             parser.parse();
+
+            return Result.Ok;
+        } catch (CompilerException e) {
+            logger.withName(e.getCompilerStage().orElse(null)).exception(e);
+
+            return e.getResult();
+        } catch (IOException e) {
+            logger.error("unable to read file: %s", e.getMessage());
+
+            return Result.FileInputError;
+        }
+    }
+
+    /**
+     * Parses the file and outputs a raw representation of the AST.
+     *
+     * @param filePath Path of the file (absolute or relative)
+     * @param logger the logger
+     * @return Ok or an according error
+     */
+    private static Result printAst(String filePath, Logger logger) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)))) {
+            Lexer lexer = new Lexer(reader, logger);
+            StringTable stringTable = lexer.getStringTable();
+            ProgramNode ast = (new Parser(lexer)).parse();
+            ast.accept(new PrintAstVisitor(stringTable));
 
             return Result.Ok;
         } catch (CompilerException e) {
@@ -424,6 +451,10 @@ public class JavaEasyCompiler {
             String filePath = cliCall.getOptionArg(CliOptions.ParseTest.getOption());
 
             result = parseTest(filePath, logger);
+        } else if (cliCall.hasOption(CliOptions.PrintAstRaw.getOption())) {
+            String filePath = cliCall.getOptionArg(CliOptions.PrintAstRaw.getOption());
+
+            result = printAst(filePath, logger);
         } else if (cliCall.hasOption(CliOptions.PrintAst.getOption())) {
             String filePath = cliCall.getOptionArg(CliOptions.PrintAst.getOption());
 
@@ -508,7 +539,8 @@ public class JavaEasyCompiler {
         Echo(new CliOption("e", "echo", Optional.of("path"), "output file contents")),
         LexTest(new CliOption("l", "lextest", Optional.of("path"), "output the tokens from the lexer")),
         ParseTest(new CliOption("p", "parsetest", Optional.of("path"), "try to parse the file contents")),
-        PrintAst(new CliOption("a", "print-ast", Optional.of("path"), "try to parse the file contents and output the AST")),
+        PrintAstRaw(new CliOption("ar", "print-ast-raw", Optional.of("path"), "try to parse the file contents and output the raw AST")),
+        PrintAst(new CliOption("a", "print-ast", Optional.of("path"), "try to parse the file contents and output the pretty-printed AST")),
         Check(new CliOption("c", "check", Optional.of("path"), "try to parse the file contents and perform semantic analysis")),
         CompileFirm(new CliOption("f", "compile-firm", Optional.of("path"), "transform the file to Firm IR and compile it using the Firm backend")),
         Compile(new CliOption("co", "compile", Optional.of("path"), "compile the file")),
@@ -534,6 +566,7 @@ public class JavaEasyCompiler {
             CliOptions.Echo.getOption(),
             CliOptions.LexTest.getOption(),
             CliOptions.ParseTest.getOption(),
+            CliOptions.PrintAstRaw.getOption(),
             CliOptions.PrintAst.getOption(),
             CliOptions.Check.getOption(),
             CliOptions.CompileFirm.getOption(),
