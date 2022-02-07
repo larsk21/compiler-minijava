@@ -1,6 +1,8 @@
 package edu.kit.compiler.optimizations.common_subexpression;
 
 import com.sun.jna.Pointer;
+
+import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.optimizations.OptimizationState;
 import edu.kit.compiler.optimizations.Util;
@@ -8,6 +10,7 @@ import firm.*;
 import firm.bindings.binding_irdom;
 import firm.bindings.binding_irgopt;
 import firm.bindings.binding_ircons.op_pin_state;
+import firm.bindings.binding_irnode.ir_opcode;
 import firm.bindings.binding_ircons.ir_cons_flags;
 import firm.bindings.binding_irnode;
 import firm.nodes.*;
@@ -23,6 +26,9 @@ import static firm.bindings.binding_irgraph.ir_graph_properties_t.IR_GRAPH_PROPE
 @Data
 public class CommonSubexpressionElimination implements Optimization.Local {
 
+    private static final int MAX_INDIRECTIONS = 128;
+    private static final int MAX_CHANGES = 10;
+
     // map that holds nodes that are to be exchanged with equivalent other nodes
     private final HashMap<Node, Node> nodeValues = new HashMap<>();
     private final Map<Pointer, Map<Pointer, Integer>> dominateMap = new HashMap<>();
@@ -36,9 +42,8 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             BackEdges.enable(g);
         }
 
-        boolean hadChange = false;
         boolean changes;
-        int maxChanges = 0;
+        int numChanges = 0;
 
         do {
             changes = false;
@@ -47,58 +52,41 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
             CSEVisitor visitor = new CSEVisitor(state);
 
-            List<Node> nodes = new ArrayList<>();
-            Util.NodeListFiller nodeCollector = new Util.NodeListFiller(nodes);
-            g.walkTopological(nodeCollector);
-            while (!nodes.isEmpty()) {
-                Node n = nodes.remove(0);
-                n.accept(visitor);
+            var worklist = new StackWorklist<Node>(false);
+            g.walkTopological(new Util.NodeWorklistFiller(worklist));
+            while (!worklist.isEmpty()) {
+                worklist.dequeue().accept(visitor);
             }
 
             HashMap<Node, Node> replacementMap = new HashMap<>();
             for (var replacement : nodeValues.entrySet()) {
                 // for each replacement merge nodes together
-                Node orig = replacement.getKey();
-                Node n = replacement.getValue();
+                Node orig = findReplacement(replacement.getKey(), replacementMap);
+                Node node = findReplacement(replacement.getValue(), replacementMap);
 
-                int maxIndirections = 150;
-                while (orig.getOpCode() == binding_irnode.ir_opcode.iro_Deleted && maxIndirections > 0) {
-                    orig = replacementMap.getOrDefault(orig, orig);
-                    maxIndirections--;
+                if (orig != null && node != null) {
+                    assert orig.getOpCode() == node.getOpCode();
+                    changes |= transform(g, orig, node, orig.getOpCode(), replacementMap);
                 }
-
-                while (n.getOpCode() == binding_irnode.ir_opcode.iro_Deleted && maxIndirections > 0) {
-                    n = replacementMap.getOrDefault(n, n);
-                    maxIndirections--;
-                }
-
-                if (maxIndirections == 0) {
-                    continue;
-                }
-
-                if (orig.getOpCode() != n.getOpCode()) {
-                    throw new RuntimeException("wrrong");
-                }
-                changes |= transform(g, orig, n, orig.getOpCode(), replacementMap);
             }
             if (changes) {
-                hadChange = true;
-                maxChanges++;
+                numChanges++;
             }
 
             binding_irgopt.remove_bads(g.ptr);
             binding_irgopt.remove_unreachable_code(g.ptr);
             binding_irgopt.remove_bads(g.ptr);
-        } while (changes && maxChanges < 10);
+        } while (changes && numChanges < MAX_CHANGES);
 
         if (!backEdgesEnabled) {
             BackEdges.disable(g);
         }
+
         binding_irgopt.remove_bads(g.ptr);
         binding_irgopt.remove_unreachable_code(g.ptr);
         binding_irgopt.remove_bads(g.ptr);
 
-        return hadChange;
+        return numChanges != 0;
     }
 
     /**
@@ -234,6 +222,16 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             }
         }
         return true;
+    }
+
+    private static Node findReplacement(Node node, Map<Node, Node> replacements) {
+        for (int i = 0; i < MAX_INDIRECTIONS; ++i) {
+            node = replacements.get(node);
+            if (node == null || node.getOpCode() != ir_opcode.iro_Deleted) {
+                return node;
+            }
+        }
+        return null;
     }
 
     @RequiredArgsConstructor
