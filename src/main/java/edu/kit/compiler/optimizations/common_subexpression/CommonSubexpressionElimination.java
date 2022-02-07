@@ -9,7 +9,6 @@ import edu.kit.compiler.optimizations.Util;
 import firm.*;
 import firm.bindings.binding_irdom;
 import firm.bindings.binding_irgopt;
-import firm.bindings.binding_irnode.ir_opcode;
 import firm.bindings.binding_irnode;
 import firm.nodes.*;
 import lombok.Data;
@@ -67,15 +66,15 @@ public class CommonSubexpressionElimination implements Optimization.Local {
                     changes |= transform(g, orig, node, orig.getOpCode(), replacementMap);
                 }
             }
-
-            binding_irgopt.remove_bads(g.ptr);
-            binding_irgopt.remove_unreachable_code(g.ptr);
-            binding_irgopt.remove_bads(g.ptr);
         } while (changes && (numChanges += 1) < MAX_CHANGES);
 
         if (!backEdgesEnabled) {
             BackEdges.disable(g);
         }
+
+        binding_irgopt.remove_bads(g.ptr);
+        binding_irgopt.remove_unreachable_code(g.ptr);
+        binding_irgopt.remove_bads(g.ptr);
 
         return numChanges != 0;
     }

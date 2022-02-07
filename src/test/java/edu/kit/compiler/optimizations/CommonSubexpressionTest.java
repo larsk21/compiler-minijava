@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CommonSubexpressionTest {
@@ -23,12 +22,6 @@ public class CommonSubexpressionTest {
         List<Graph> graphs = FirmGraphGenerator.getFirmGraphs(fileName);
         // return new graphs that are generated here
         return graphs.get(numGraphs);
-    }
-
-    private String surroundWithIO(String program, String expression) {
-        return "System.in.read()\n"
-                + program + "\n"
-                + "System.out.write(" + expression + ")";
     }
 
 
@@ -51,11 +44,6 @@ public class CommonSubexpressionTest {
     private void assertContainsOpCode(Graph g, binding_irnode.ir_opcode opcode) {
         List<Node> nodes = getNodes(g);
         assertTrue(nodes.stream().anyMatch(node -> node.getOpCode() == opcode));
-    }
-
-    private void assertDoesNotContainOpCode(Graph g, binding_irnode.ir_opcode opcode) {
-        List<Node> nodes = getNodes(g);
-        assertFalse(nodes.stream().anyMatch(node -> node.getOpCode() == opcode));
     }
 
     @Test
