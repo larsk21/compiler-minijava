@@ -307,7 +307,34 @@
 		 	\centering \includegraphics[scale=0.7]{images/block_layout.pdf}
 		 \end{column}
 	\end{columns}
+\end{frame}
 
+\begin{frame}
+\frametitle{Register Allocator - Lifetime Analysis}
+
+\begin{columns}
+	\begin{column}{0.65\textwidth}
+		\begin{itemize}
+			\item \textbf{Input:} linearized blocks
+			\item Calculate lifetime intervals for each virtual register 
+			\begin{itemize}
+				\item Definition and last usage
+				\item Differentiate input and output (allows reusing registers)
+				\item Beware loops: lifetime extension required!
+			\end{itemize}
+			\item Collect other useful stats for each virtual register
+			\begin{itemize}
+				\item Loop depth
+				\item \texttt{div}, \texttt{mod} and \texttt{call}
+			\end{itemize}
+			\item \textbf{Output:} register lifetimes and additional stats
+		\end{itemize}
+	\end{column}
+	
+	\begin{column}{0.35\textwidth}
+		\centering \includegraphics[scale=0.7]{images/lifetimes.pdf}
+	\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}
