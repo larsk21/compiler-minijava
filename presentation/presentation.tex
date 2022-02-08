@@ -368,6 +368,39 @@
 \end{frame}
 
 \begin{frame}
+\frametitle{Register Allocator - Code Generation}
+
+\begin{columns}
+	\begin{column}{0.65\textwidth}
+		\begin{itemize}
+			\item \textbf{Input:} everything from above
+			\item Verify assignment and generate the actual assembly
+			\begin{itemize}
+				\item Replace virtual registers
+				\item Allocate temporary registers where needed
+				\item Generate moves, spills and calling code
+			\end{itemize}
+			\item Function prolog and epilog (needs register usage)
+			\item \textbf{Output:} assembly
+		\end{itemize}
+	
+		\vspace{10pt}
+		\begin{itemize}
+			\item Calling convention: \texttt{x86-64} System V
+			\begin{itemize}
+				\item First six arguments in registers
+				\item Efficient implementation via register permutation
+			\end{itemize}
+		\end{itemize}
+	\end{column}
+	
+	\begin{column}{0.35\textwidth}
+		\centering \includegraphics[scale=0.7]{images/code_generation.pdf}
+	\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}
     \frametitle{Register Allocator}
 
     \begin{itemize}
