@@ -3,8 +3,6 @@
 %%
 %% Siehe https://sdqweb.ipd.kit.edu/wiki/Dokumentvorlagen
 
-%% Beispiel-Präsentation
-
 \documentclass[navbaroff,en]{sdqbeamer} 
 
 \usepackage{comment}
@@ -20,15 +18,15 @@
 \grouplogo{}
 
 %% Gruppenname
-\groupname{IPD - Lehrstuhl Programmierparadigmen}
+\groupname{IPD - Programming Paradigms Group}
 
 % Beginn der Präsentation
 
-\title{Vorstellung Compiler - Gruppe 3}
-\subtitle{Compilerpraktikum WS21/22}
+\title{Compiler Presentation - Group 3}
+\subtitle{Compiler Lab WS21/22}
 \author[Nikolai, Pascal, Lars, Niklas]{Nikolai Maas, Pascal Mehnert, Lars König, Niklas Betten}
 
-\date[10.\,2.\,2022]{10. Februar 2022}
+\date[10.\,2.\,2022]{10. February 2022}
 
 \lstset{
     language=Java,
@@ -46,11 +44,6 @@
 
 %Titelseite
 \KITtitleframe
-
-Inhaltsverzeichnis
-\begin{frame}{Structure}
-\tableofcontents
-\end{frame}
 
 \begin{frame}
 	\frametitle{Compiler Overview}
@@ -206,55 +199,6 @@ Inhaltsverzeichnis
 \end{frame}
 
 \begin{frame}
-    \frametitle{Trivial Jumps \& Linear Blocks}
-
-	\Huge need a meaningful example here
-
-\end{frame}
-
-
-% \begin{frame}
-% 	\frametitle{Pure Functions}
-
-% 	\begin{itemize}
-% 		\item pure -> kein Schreibzugriff auf Speicher
-% 		\item const -> auf kein Lesezugriff auf Speicher (no mem)
-% 		\item Termination (Rekursion, Schleife)
-% 		\item returns newly allocated memory
-% 		\item remove unused pure functions (incl. alloc)
-% 	\end{itemize}
-
-% \end{frame}
-
-% \begin{frame}
-%     \frametitle{Inliner}
-
-%     \begin{itemize}
-%         \item constant arguments
-%         \item inside loop -> high prio
-%         \item code size change (factor [global] + abs [per func])
-%     \end{itemize}
-
-% \end{frame}
-
-% \begin{frame}
-%     \frametitle{Loop Invariant Code Motion}
-
-%     \begin{itemize}
-%         \item flat loops
-%         \item move to loop entry point dominator
-%         \item unconditional execution of moved nodes
-%         \item minimize reg pressure für cheap nodes
-%         \begin{itemize}
-%             \item delta loop in edges
-%             \item move distance
-%             \item number of invariant successors
-%         \end{itemize}
-%     \end{itemize}
-
-% \end{frame}
-
-\begin{frame}
     \frametitle{Loop Unrolling}
 
 	\begin{columns}
@@ -292,18 +236,6 @@ Inhaltsverzeichnis
 
 \section{Backend}
 
-% \begin{frame}
-%     \frametitle{Intermediate Language}
-
-%     \begin{itemize}
-%         \item close to x86-64 assembler
-%         \item virtual registers
-%         \item phis can be assigned to basic blocks -> resolved later
-%         \item additional virtual instructions (div / mod / call)
-%     \end{itemize}
-
-% \end{frame}
-
 \begin{frame}
 	\frametitle{Instruction Selection}
 	\begin{columns}
@@ -319,7 +251,6 @@ Inhaltsverzeichnis
 				\begin{itemize}
 					\item Match each node against (multiple) patterns
 					\item Accept first matching pattern (no cost function)
-					\item Matches reference required predecessors
 				\end{itemize}
 			\end{contentblock}
 
@@ -335,33 +266,6 @@ Inhaltsverzeichnis
 		 	\centering \includegraphics[scale=0.4]{images/pattern.ipe.pdf}
 		\end{column}
 	\end{columns}
-
-
-    % \begin{itemize}
-    %     \item bottom-up pattern matching -> single pattern per node
-    %     \item no cost function
-    %     \item bottom-up pattern collection (postorder on matched patterns -> ignores unnecessary predecessor patterns)
-    %     \item topological order of instructions
-    %     \item virtual registers
-    %     \item basic and advanced patterns (add: add r r, addi r, add r i, lea)
-    %     \item register restrictions not considered
-    %     \item separate phi resolving phase
-
-    %     \item no separate instruction scheduling
-    % \end{itemize}
-
-\end{frame}
-
-\begin{frame}
-    \frametitle{Phi Resolving}
-
-    \begin{itemize}
-        \item works on intermediate language
-        \item add moves to predecessor blocks
-        \item ?
-        \item permutations
-        \item critical edges
-    \end{itemize}
 
 \end{frame}
 
@@ -498,61 +402,6 @@ Inhaltsverzeichnis
 \end{frame}
 
 \begin{frame}
-    \frametitle{Register Allocator}
-
-    \begin{itemize}
-        \item[1.] block order
-        \begin{itemize}
-            \item topological (reverse postorder, control flow)
-            \item loop aware (loop blocks directly after loop header)
-        \end{itemize}
-        \item[2.] lifetime analysis
-        \begin{itemize}
-            \item linear through blocks
-            \item lifetime for all virtual registers
-            \item expand lifetime of variables in loops
-            \item reuse register if virtual register lifetime ends as instruction argument
-            \item linear lifetimes (no splits)
-            \item collect additional information for register allocation heuristic (number of calls / divs, loop depth)
-        \end{itemize}
-    \end{itemize}
-
-\end{frame}
-
-\begin{frame}
-    \frametitle{Register Allocator}
-
-    \begin{itemize}
-        \item[3.] register allocation
-        \begin{itemize}
-            \item linear scan
-            \item generates mapping from virtual to processor? registers
-            \item heuristic for spill decision (loop depth)
-            \item spill virtual register for entire lifetime
-            \item unify virtual registers / registers
-            \begin{itemize}
-                \item in-out virtual registers
-                \item registers for call arguments (in / out)
-            \end{itemize}
-            \item reuse stack slots if lifetime don't overlap
-        \end{itemize}
-        \item[4.] code generation
-        \begin{itemize}
-            \item x86-64 call convetion (systemv)
-            \begin{itemize}
-                \item 6 arguments in register
-                \item rest on stack
-                \item caller / callee stacked registers
-                \item efficient implementation by calculating register permutation
-            \end{itemize}
-            \item 16-bit alignment for stdlib calls only
-            \item omit load of spilled register if temp. register is still available (inside basic blocks)
-        \end{itemize}
-    \end{itemize}
-
-\end{frame}
-
-\begin{frame}
     \frametitle{Peephole Optimizations}
 
     \begin{itemize}
@@ -572,6 +421,24 @@ Inhaltsverzeichnis
         \item link runtime library (written in C)
         \item passed to gcc
     \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+	\frametitle{Statistics}
+
+	\begin{itemize}
+		\item Duration: 16 weeks
+		\item Pull requests: 143
+		\item LOC: 15'093
+		\begin{itemize}
+			\item Frontend: 3'812
+			\item Middle-End: 5'380
+			\item Backend: 5'039
+		\end{itemize}
+	\end{itemize}
+
+	% graph w/ commits over time
 
 \end{frame}
 
