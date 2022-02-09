@@ -293,14 +293,14 @@
 	\begin{columns}
 		\begin{column}{0.65\textwidth}
 			\begin{itemize}
-				\item \textbf{Input:} unordered blocks (intermediate language)
-				\item Calculate reverse postfix order
-				\item Additionally: loop analysis
+				\item \textbf{Input:} Unordered blocks (intermediate language)
+				\item Calculate reverse postfix order for control flow
+				\item Loop analysis
 					\begin{itemize}
 						\item Mapping between blocks and loops
-						\item Try to find consecutive block layout for each loop\\ (minimizes lifetime of registers within loop)
+						\item Try to find consecutive block layout for each loop\\ ($\rightarrow$ minimize lifetime of registers within loop)
 					\end{itemize}
-				\item \textbf{Output:} linear block ordering, annotated with loop depth
+				\item \textbf{Output:} Linear block ordering, annotated with loop depth
 			\end{itemize}
 		\end{column}
 	
@@ -316,19 +316,19 @@
 \begin{columns}
 	\begin{column}{0.65\textwidth}
 		\begin{itemize}
-			\item \textbf{Input:} linearized blocks
+			\item \textbf{Input:} Linearized blocks
 			\item Calculate lifetime intervals for each virtual register 
 			\begin{itemize}
 				\item Definition and last usage
-				\item Differentiate input and output (allows reusing registers)
-				\item Beware loops: lifetime extension required!
+				\item Differentiate input and output ($\rightarrow$ allows reusing registers)
+				\item Beware loops: Lifetime extension required!
 			\end{itemize}
 			\item Collect other useful stats for each virtual register
 			\begin{itemize}
 				\item Loop depth
 				\item \texttt{div}, \texttt{mod} and \texttt{call}
 			\end{itemize}
-			\item \textbf{Output:} register lifetimes and additional stats
+			\item \textbf{Output:} Register lifetimes and additional stats
 		\end{itemize}
 	\end{column}
 	
@@ -344,7 +344,7 @@
 \begin{columns}
 	\begin{column}{0.7\textwidth}
 		\begin{itemize}
-			\item \textbf{Input:} linearized blocks and lifetimes
+			\item \textbf{Input:} Linearized blocks and lifetimes
 			\item Assign virtual registers to hardware register or stack slot
 			\item Linear scan over blocks, select best assignment greedily
 			\item Spill decision based on loop depth and lifetime 
@@ -356,9 +356,9 @@
 				\item Reuse input register if possible
 				\item Reduce and/or eliminate moves
 				\item Callee-saved register in case of interfering calls
-				\item According register for function arguments and return value
+				\item Register used as function argument or return value
 			\end{itemize}
-			\item \textbf{Output:} register assignment
+			\item \textbf{Output:} Register assignment
 		\end{itemize}
 	\end{column}
 	
@@ -374,15 +374,15 @@
 \begin{columns}
 	\begin{column}{0.7\textwidth}
 		\begin{itemize}
-			\item \textbf{Input:} everything from above
+			\item \textbf{Input:} Everything from above
 			\item Verify assignment and generate the actual assembly
 			\begin{itemize}
 				\item Replace virtual registers
 				\item Allocate temporary registers where needed
 				\item Generate moves, spills and calling code
 			\end{itemize}
-			\item Function prolog and epilog (needs register usage)
-			\item \textbf{Output:} assembly
+			\item Function prolog and epilog (requires register usage)
+			\item \textbf{Output:} \texttt{x86} Assembly
 		\end{itemize}
 	
 		\vspace{10pt}
