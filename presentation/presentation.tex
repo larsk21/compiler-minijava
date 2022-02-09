@@ -29,15 +29,15 @@
 \date[10.\,2.\,2022]{10. February 2022}
 
 \lstset{
-    language=Java,
-    basicstyle=\small\ttfamily,
-    tabsize=4,
-    columns=fixed,
-    showstringspaces=false,
-    showtabs=false,
-    keepspaces,
-    commentstyle=\color{red},
-    keywordstyle=\color{blue}
+	language=Java,
+	basicstyle=\small\ttfamily,
+	tabsize=4,
+	columns=fixed,
+	showstringspaces=false,
+	showtabs=false,
+	keepspaces,
+	commentstyle=\color{red},
+	keywordstyle=\bfseries\color{kit-blue}
 }
 
 \begin{document}
@@ -88,7 +88,7 @@
 	\begin{contentblock}{Name and Type Analysis}
 		\begin{itemize}
 			\item Find and link variable declarations
-			\item Calculate expression result types
+			\item Compute and check expression types
 			\item Resolve function call references
 		\end{itemize}
 	\end{contentblock}
@@ -97,7 +97,7 @@
 	\begin{contentblock}{Semantic Checks}
 		\begin{itemize}
 			\item Ensure existence of \texttt{return} statement on every path
-			\item Ensure \texttt{args} and \texttt{String} are never used
+			\item Ensure \texttt{\textbf{args}} and \texttt{\textbf{String}} are never used
 			\item \dots and other miscellaneous checks
 		\end{itemize}
 	\end{contentblock}
@@ -107,23 +107,31 @@
 \begin{frame}
 	\frametitle{Transformation}
 
-	\begin{itemize}
-		\item \textbf{Input:} Attributed AST
-		\item Generate and cache Firm types
-		\item Implemented using visitors on the AST
+	\begin{columns}
+		\begin{column}{0.45\textwidth}
+			\begin{itemize}
+				\item \textbf{Input:} Attributed AST
+				\item Generate and cache Firm types
+				\item Implemented using visitors on the AST
 
-		\vspace{1em}
+				\vspace{1em}
 
-		\item Special handling for \textit{Div} and \textit{Mod}
-		\begin{itemize}
-			\item 32-bit division with explicit overflow checks
-			\item \textit{(64-bit division several times slower)}
-		\end{itemize}
+				\item Special handling for \textit{Div} and \textit{Mod}
+				\begin{itemize}
+					\item 32-bit division with explicit overflow checks
+					\item \textit{(64-bit division several times slower)}
+				\end{itemize}
 
-		\vspace{1em}
+				\vspace{1em}
 
-		\item \textbf{Output:} Single Firm graph for each function
-	\end{itemize}
+				\item \textbf{Output:} Single Firm graph for each function
+			\end{itemize}
+		\end{column}
+		\begin{column}{0.58\textwidth}
+			\centering
+			\scalebox{0.2}{\input{firm/transformation/transformation.tikz}}
+		\end{column}
+	\end{columns}
 
 \end{frame}
 
@@ -172,61 +180,120 @@
 
 
 \begin{frame}
-    \frametitle{Optimizations -- Fixed Point Iterations}
+	\frametitle{Optimizations -- Fixed Point Iteration}
 
-	\begin{contentblock}{Call Graph}
-		\begin{itemize}
-			\item Used to walk functions in bottom-up order
-			\item Passed to optimizations ($\rightarrow$ Inliner)
-			\item Detect and prune dead functions
-		\end{itemize}
-	\end{contentblock}
+	\begin{columns}
+		\begin{column}{0.48\textwidth}
+			\begin{contentblock}{Call Graph}
+				\begin{itemize}
+					\item Used to walk functions in bottom-up order
+					\item Passed to optimizations ($\rightarrow$ needed for Inliner)
+					\item Detect and prune dead functions
+				\end{itemize}
+			\end{contentblock}
 
-	\begin{contentblock}{Local Optimizations}
-		\begin{itemize}
-			\item Applied to a single function
-			\item Run all optimizations until FP is reached
-		\end{itemize}
-	\end{contentblock}
+			\begin{contentblock}{Local Optimizations}
+				\begin{itemize}
+					\item Applied to a single function
+					\item Run all optimizations until FP is reached
+				\end{itemize}
+			\end{contentblock}
 
-	\begin{contentblock}{Global Optimizations}
-		\begin{itemize}
-			\item Run on the entire program
-			\item Return the set of changed functions
-		\end{itemize}
-	\end{contentblock}
+			\begin{contentblock}{Global Optimizations}
+				\begin{itemize}
+					\item Run on the entire program
+					\item Return the set of changed functions
+				\end{itemize}
+			\end{contentblock}
+		\end{column}
+		\begin{column}{0.48\textwidth}
+			\centering
+			\includegraphics[scale=0.4]{images/call-graph.ipe.pdf}
+		\end{column}
+	\end{columns}
 
+\end{frame}
+
+\begin{frame}
+    \frametitle{Optimizations -- Example}
+
+	\begin{columns}
+		\centering
+		\begin{column}{0.2\textwidth}
+			\centering
+			\lstinputlisting[basicstyle=\normalsize\ttfamily]{firm/optimization/Example.min.java}
+		\end{column}
+		\begin{column}{0.05\textwidth}
+			\centering
+			\includegraphics[scale=0.7]{images/arrow.ipe.pdf}
+		\end{column}
+		\begin{column}{0.2\textwidth}
+			\centering
+			\scalebox{0.2}{\input{firm/optimization/initial.tikz}}
+		\end{column}
+	\end{columns}
 \end{frame}
 
 \begin{frame}
     \frametitle{Loop Unrolling}
 
 	\begin{columns}
-		\begin{column}{0.48\textwidth}
+		\centering
+		\begin{column}{0.4\textwidth}
 			\begin{itemize}
 				\item[1.] Find closed natural loops
 				\item[2.] Find loop variables
 				\item[3.] Determine loop boundaries
 				\item[4.] Calculate number of iterations
+				\vspace*{1em}
+				\item[$\rightarrow$] Multiply and rewire the loop
 			\end{itemize}
+		\end{column}
+		\begin{column}{0.2\textwidth}
+			\centering
+			\scalebox{0.2}{%
+				\input{firm/optimization/initial.tikz}
+			}
+		\end{column}
+		\begin{column}{0.05\textwidth}
+			\centering
+			\includegraphics[scale=0.7]{images/arrow.ipe.pdf}
+		\end{column}
+		\begin{column}{0.15\textwidth}
+			\centering
+			\scalebox{0.14}{\input{firm/optimization/after-unrolling.tikz}}
+		\end{column}
+	\end{columns}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Linear Blocks / Constant Propagation}
+
+	\begin{columns}
+		\centering
+		\begin{column}{0.15\textwidth}
+			\centering
+			\scalebox{0.14}{\input{firm/optimization/after-unrolling.tikz}}
+		\end{column}
+		\begin{column}{0.05\textwidth}
+			\centering
+			\includegraphics[scale=0.7]{images/arrow.ipe.pdf}
 		\end{column}
 		\begin{column}{0.25\textwidth}
 			\centering
-			\scalebox{0.2}{%
-				\input{firm/loop-unrolling/loop-unrolling-raw.tikz}
-			}
+			\scalebox{0.2}{\input{firm/optimization/after-linear-blocks.tikz}}
 		\end{column}
-		\begin{column}{0.09\textwidth}
-					\centering
-					\includegraphics[scale=0.7]{images/arrow.ipe.pdf}
-		\end{column}
-		\begin{column}{0.16\textwidth}
+		\begin{column}{0.05\textwidth}
 			\centering
-			\scalebox{0.13}{%
-				\input{firm/loop-unrolling/loop-unrolling-opt.tikz}
-			}
+			\includegraphics[scale=0.7]{images/arrow.ipe.pdf}
+		\end{column}
+		\begin{column}{0.15\textwidth}
+			\centering
+			\scalebox{0.1}{\input{firm/optimization/after-constant.tikz}}
 		\end{column}
 	\end{columns}
+
 \end{frame}
 
 
@@ -242,7 +309,8 @@
 		\begin{column}{0.55\textwidth}
 			\begin{itemize}
 				\item Uses simplified bottom-up pattern matching
-				\item Does not resolve $\phi$-Instructions
+				\item Generates instructions in intermediate language
+				\item Does not resolve $\phi$-Instructions ($\rightarrow$ separate phase)
 			\end{itemize}
 
 			\vspace{1em}
@@ -250,7 +318,7 @@
 			\begin{contentblock}{Phase 1: Match Nodes}
 				\begin{itemize}
 					\item Match each node against (multiple) patterns
-					\item Accept first matching pattern (no cost function)
+					\item Greedily accept matching pattern (no cost function)
 				\end{itemize}
 			\end{contentblock}
 
@@ -258,7 +326,10 @@
 				\begin{itemize}
 					\item Walk matches in topological order
 					\item Ignore unnecessary predecessors
-					\item Discard memory dependencies ($\rightarrow$ no reordering)
+					\item Discard memory dependencies
+					\begin{itemize}
+						\item[$\rightarrow$] No instruction reordering implemented
+					\end{itemize}
 				\end{itemize}
 			\end{contentblock}
 		\end{column}
@@ -447,12 +518,9 @@
 \end{frame}
 
 
-\begin{frame}
-\end{frame}
+% \appendix
+% \beginbackup
 
-\appendix
-\beginbackup
-
-\backupend
+% \backupend
 
 \end{document}
