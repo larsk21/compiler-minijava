@@ -393,6 +393,48 @@
 
 \end{frame}
 
+\begin{frame}[noframenumbering]
+\frametitle{Register Allocation - Techniques}
+
+\definecolor{darkgreen}{rgb}{0.15,0.8,0}
+\setlength{\fboxsep}{2pt}
+
+\begin{columns}
+	\begin{column}{0.65\textwidth}
+		\begin{contentblock}{Blockwise Allocation}
+			\begin{itemize}
+				\item Load at beginning and spill at end of each block
+				\item Use free-list to manage registers, greedy allocation
+			\end{itemize}
+		\end{contentblock}
+		
+		\vspace{-2pt}
+		\begin{contentblock}{\colorbox{darkgreen}{Linear Scan}}
+			\begin{itemize}
+				\item Linear block ordering
+				\item Scan through all blocks, greedy allocation
+				\item Good results in practice
+			\end{itemize}
+		\end{contentblock}
+		
+		\begin{contentblock}{Graph Coloring}
+			\begin{itemize}
+				\item Construct register interference graph
+				\item Coloring corresponds to register assignment
+				\item Best results, but high complexity
+			\end{itemize}
+		\end{contentblock}
+	\end{column}
+	
+	\begin{column}{0.35\textwidth}
+		\vspace{40pt}
+		\vfill
+		\centering \includegraphics[scale=0.7]{images/techniques.pdf}
+	\end{column}
+\end{columns}
+
+\end{frame}
+
 \begin{frame}
 \frametitle{Register Allocator - Overview}
 
