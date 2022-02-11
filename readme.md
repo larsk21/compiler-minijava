@@ -36,27 +36,29 @@ Java Easy Compiler
 usage: compiler [<action>] [<optimization-level>] [<output-verbosity>] [<debug options>]
 
 Action
- -e --echo <path>           output file contents
- -l --lextest <path>        output the tokens from the lexer
- -p --parsetest <path>      try to parse the file contents
- -a --print-ast <path>      try to parse the file contents and output the AST
- -c --check <path>          try to parse the file contents and perform semantic analysis
- -f --compile-firm <path>   transform the file to Firm IR and compile it using the Firm backend
- -co --compile <path>       compile the file (default)
+ -e --echo <path>             output file contents
+ -l --lextest <path>          output the tokens from the lexer
+ -p --parsetest <path>        try to parse the file contents
+ -ar --print-ast-raw <path>   try to parse the file contents and output the raw AST
+ -a --print-ast <path>        try to parse the file contents and output the pretty-printed AST
+ -c --check <path>            try to parse the file contents and perform semantic analysis
+ -f --compile-firm <path>     transform the file to Firm IR and compile it using the Firm backend
+ -co --compile <path>         compile the file (default)
 
 Optimization Level
- -O0 --optimize0            run (almost) no optimizations
- -O1 --optimize1            run standard optimizations (default)
+ -O0 --optimize0              run (almost) no optimizations
+ -O1 --optimize1              run standard optimizations (default)
 
 Output Verbosity
- -v --verbose               be more verbose
- -d --debug                 print debug information
+ -v --verbose                 be more verbose
+ -d --debug                   print debug information
 
 Debug Options
- -dg --dump-graphs          dump the Firm graphs of all methods
+ -dg --dump-graphs            dump the Firm graphs of all methods
+ -ni --no-inline              disable the inline optimization
 
 Help
- -h --help                  print command line syntax help
+ -h --help                    print command line syntax help
 
 for more information check out: https://github.com/larsk21/compiler-minijava
 ```
