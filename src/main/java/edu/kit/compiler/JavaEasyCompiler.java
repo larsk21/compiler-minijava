@@ -1,7 +1,19 @@
 package edu.kit.compiler;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -12,28 +24,19 @@ import edu.kit.compiler.assembly.FunctionInstructions;
 import edu.kit.compiler.assembly.JumpInversion;
 import edu.kit.compiler.assembly.RemoveNop;
 import edu.kit.compiler.cli.Cli;
+import edu.kit.compiler.cli.Cli.CliCall;
 import edu.kit.compiler.cli.CliOption;
 import edu.kit.compiler.cli.CliOptionGroup;
-import edu.kit.compiler.cli.Cli.CliCall;
 import edu.kit.compiler.codegen.InstructionSelection;
 import edu.kit.compiler.codegen.PatternCollection;
 import edu.kit.compiler.codegen.PhiResolver;
 import edu.kit.compiler.codegen.ReversePostfixOrder;
-import edu.kit.compiler.intermediate_lang.Block;
-import edu.kit.compiler.io.CommonUtil;
-import edu.kit.compiler.optimizations.inlining.InliningOptimization;
-import edu.kit.compiler.optimizations.unrolling.LoopUnrollingOptimization;
-import edu.kit.compiler.optimizations.UnusedArgumentsOptimization;
-import edu.kit.compiler.register_allocation.DumbAllocator;
-import edu.kit.compiler.register_allocation.LinearScan;
-import edu.kit.compiler.register_allocation.RegisterAllocator;
-import edu.kit.compiler.transform.IRVisitor;
-import firm.*;
-
 import edu.kit.compiler.data.CompilerException;
 import edu.kit.compiler.data.Token;
 import edu.kit.compiler.data.TokenType;
 import edu.kit.compiler.data.ast_nodes.ProgramNode;
+import edu.kit.compiler.intermediate_lang.Block;
+import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.lexer.Lexer;
 import edu.kit.compiler.lexer.StringTable;
 import edu.kit.compiler.logger.Logger;
@@ -45,16 +48,30 @@ import edu.kit.compiler.optimizations.LinearBlocksOptimization;
 import edu.kit.compiler.optimizations.LoopInvariantOptimization;
 import edu.kit.compiler.optimizations.Optimizer;
 import edu.kit.compiler.optimizations.PureFunctionOptimization;
+import edu.kit.compiler.optimizations.UnusedArgumentsOptimization;
+import edu.kit.compiler.optimizations.common_subexpression.CommonSubexpressionElimination;
+import edu.kit.compiler.optimizations.inlining.InliningOptimization;
+import edu.kit.compiler.optimizations.unrolling.LoopUnrollingOptimization;
 import edu.kit.compiler.parser.Parser;
 import edu.kit.compiler.parser.PrettyPrintAstVisitor;
 import edu.kit.compiler.parser.PrintAstVisitor;
+import edu.kit.compiler.register_allocation.DumbAllocator;
+import edu.kit.compiler.register_allocation.LinearScan;
+import edu.kit.compiler.register_allocation.RegisterAllocator;
 import edu.kit.compiler.semantic.DetailedNameTypeAstVisitor;
 import edu.kit.compiler.semantic.ErrorHandler;
 import edu.kit.compiler.semantic.NamespaceGatheringVisitor;
 import edu.kit.compiler.semantic.NamespaceMapper;
 import edu.kit.compiler.semantic.SemanticChecks;
+import edu.kit.compiler.transform.IRVisitor;
 import edu.kit.compiler.transform.JFirmSingleton;
 import edu.kit.compiler.transform.Lower;
+
+import firm.Backend;
+import firm.Entity;
+import firm.Firm;
+import firm.Graph;
+import firm.MethodType;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -417,7 +434,8 @@ public class JavaEasyCompiler {
                     new ConstantOptimization(),
                     new ArithmeticIdentitiesOptimization(),
                     new ArithmeticReplacementOptimization(),
-                    new LinearBlocksOptimization()
+                    new LinearBlocksOptimization(),
+                    new CommonSubexpressionElimination()
                 ), debugFlags.isNoInline() ? Stream.of() : Stream.of(
                     new InliningOptimization()
                 ), Stream.of(
@@ -550,7 +568,7 @@ public class JavaEasyCompiler {
         PrintAst(new CliOption("a", "print-ast", Optional.of("path"), "try to parse the file contents and output the pretty-printed AST")),
         Check(new CliOption("c", "check", Optional.of("path"), "try to parse the file contents and perform semantic analysis")),
         CompileFirm(new CliOption("f", "compile-firm", Optional.of("path"), "transform the file to Firm IR and compile it using the Firm backend")),
-        Compile(new CliOption("co", "compile", Optional.of("path"), "compile the file")),
+        Compile(new CliOption("co", "compile", Optional.of("path"), "compile the file (default)")),
 
         Optimize0(new CliOption("O0", "optimize0", Optional.empty(), "run (almost) no optimizations")),
         Optimize1(new CliOption("O1", "optimize1", Optional.empty(), "run standard optimizations (default)")),

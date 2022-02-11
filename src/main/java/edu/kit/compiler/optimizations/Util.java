@@ -20,6 +20,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Util {
 
+    public static Node[] iterableToArray(Iterable<Node> iterable) {
+        List<Node> list = new ArrayList<>();
+        for(var entry : iterable) {
+            list.add(entry);
+        }
+        return list.toArray(new Node[0]);
+    }
     /**
      * If the predecessor of the given Proj node is a Tuple, exchange the node
      * with the corresponding predecessor of the tuple. This can be useful if

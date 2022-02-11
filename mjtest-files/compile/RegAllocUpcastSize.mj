@@ -1,0 +1,21 @@
+class A {
+    public boolean[][] permutations;
+
+    public static void main(String[] args) {
+        A obj = new A();
+        obj.run();
+    }
+
+    public void run() {
+        init();
+    }
+
+    public void init() {
+        permutations = new boolean[10][];
+        int i = 0;
+        while (i < 10) {
+            permutations[i] = new boolean[10];
+            i = i + 1;
+        }
+    }
+}

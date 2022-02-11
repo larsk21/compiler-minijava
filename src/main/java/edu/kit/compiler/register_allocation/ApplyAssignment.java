@@ -303,7 +303,7 @@ public class ApplyAssignment {
         if (isUpcast && !isSignedUpcast && assignment[target].isSpilled()) {
             // edge case: stack slot needs to be zeroed in case of unsigned upcast
             output("mov%c $0, %s # zero the target slot for upcast",
-                    targetSize.getSuffix(), getTarget);
+                    sizes[target].getSuffix(), getTarget);
         }
 
         // output the instruction itself
