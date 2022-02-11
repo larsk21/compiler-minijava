@@ -2,6 +2,7 @@ package edu.kit.compiler.optimizations.common_subexpression;
 
 import com.sun.jna.Pointer;
 
+import edu.kit.compiler.io.CommonUtil;
 import edu.kit.compiler.io.StackWorklist;
 import edu.kit.compiler.optimizations.Optimization;
 import edu.kit.compiler.optimizations.OptimizationState;
@@ -139,7 +140,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             }
             case iro_Call -> {
                 Call call = (Call) replacement;
-                Node[] preds = Util.iterableToArray(call.getPreds());
+                Node[] preds = CommonUtil.toArray(call.getPreds(), Node[]::new);
                 int newSize = preds.length - 2;
                 Node[] ins = new Node[newSize];
                 if (preds.length - 2 >= 0) {
@@ -256,12 +257,12 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
         @Override
         public void visit(Add node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Add);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Add);
         }
 
         @Override
         public void visit(And node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_And);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_And);
         }
 
         @Override
@@ -296,7 +297,7 @@ public class CommonSubexpressionElimination implements Optimization.Local {
             var analysis = s.getAttributeAnalysis();
             var attributes = analysis.getAttributes(Util.getCallee(call));
             if (!Util.isPinned(call) && attributes.canDeduplicate()) {
-                visitPreds(call, Util.iterableToArray(call.getPreds()), binding_irnode.ir_opcode.iro_Call);
+                visitPreds(call, CommonUtil.toArray(call.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Call);
             }
         }
 
@@ -313,52 +314,52 @@ public class CommonSubexpressionElimination implements Optimization.Local {
 
         @Override
         public void visit(Conv node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Conv);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Conv);
         }
 
         @Override
         public void visit(Eor node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Eor);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Eor);
         }
 
         @Override
         public void visit(Minus node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Minus);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Minus);
         }
 
         @Override
         public void visit(Mul node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Mul);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Mul);
         }
 
         @Override
         public void visit(Not node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Not);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Not);
         }
 
         @Override
         public void visit(Or node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Or);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Or);
         }
 
         @Override
         public void visit(Sub node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Sub);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Sub);
         }
 
         @Override
         public void visit(Shr node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Shr);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Shr);
         }
 
         @Override
         public void visit(Shl node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Shl);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Shl);
         }
 
         @Override
         public void visit(Shrs node) {
-            visitPreds(node, Util.iterableToArray(node.getPreds()), binding_irnode.ir_opcode.iro_Shrs);
+            visitPreds(node, CommonUtil.toArray(node.getPreds(), Node[]::new), binding_irnode.ir_opcode.iro_Shrs);
         }
     }
 }
